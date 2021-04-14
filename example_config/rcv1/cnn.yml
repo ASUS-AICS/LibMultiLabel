@@ -1,0 +1,34 @@
+# https://github.com/yu54ku/xml-cnn/blob/master/params.yml
+# data
+data_dir: data
+data_name: rcv1
+dev_size: 0.25
+min_vocab_freq: 1
+max_seq_length: 500
+
+# train
+seed: 1337
+epochs: 50
+batch_size: 64
+optimizer: adam
+learning_rate: 0.0005099137446356937
+weight_decay: 0
+patience: 5
+
+# eval
+eval_batch_size: 256
+monitor_metrics: [P@1, P@3, P@5]
+val_metric: P@1
+
+# model
+model_name: cnn
+num_filter_map: 128 # filter channels
+filter_size: 4 # no filter sizes
+dropout: 0.2
+
+# pretrained vocab / embeddings
+embed_file: glove.6B.300d
+
+# others
+data_workers: 1
+display_iter: 100
