@@ -8,6 +8,7 @@ import random
 import torch
 import tqdm
 import numpy as np
+import pandas as pd
 from nltk.tokenize import RegexpTokenizer
 from sklearn.preprocessing import MultiLabelBinarizer
 from torch.utils.data import Dataset
@@ -63,28 +64,19 @@ def get_dataset_loader(config, dataset, shuffle=False, train=True):
     return dataset_loader
 
 
-def _load_raw_data(config, data_dir):
-    raw_data_cache = config.get('raw_data_cache')
-    if raw_data_cache and os.path.exists(raw_data_cache):
-        log.info(f'Load existing raw data cache from {raw_data_cache}.')
-        with open(raw_data_cache, 'rb') as fp:
-            dataset = pickle.load(fp)
-        if 'labels' in next(iter(dataset.values())):
-            for split in dataset:
-                dataset[split]['label'] = dataset[split].pop('labels')
-        return dataset
+def tokenize(text):
+    tokenizer = RegexpTokenizer(r'\w+')
+    return [t.lower() for t in tokenizer.tokenize(text) if not t.isnumeric()]
 
-    log.info(f'Load data from train_texts.txt, train_labels.txt, test_texts.txt, and text_labels.txt.')
-    dataset = {k: {} for k in ['train', 'test']}
-    for split in ['train', 'test']:
-        with open(os.path.join(data_dir, f'{split}_texts.txt')) as f:
-            texts = f.readlines()
-            dataset[split]['text'] = [text for text in texts]
-        with open(os.path.join(data_dir, f'{split}_labels.txt')) as f:
-            labels = f.readlines()
-            dataset[split]['label'] = [label.split() for label in labels]
-        dataset[split]['index'] = list(range(len(dataset[split]['text'])))
-    return dataset
+
+def _load_raw_data(path):
+    log.info(f'Load data from {path}.')
+    data = pd.read_csv(path, sep='\t', names=['label', 'text'],
+                       converters={'label': lambda s: s.split(),
+                                   'text': tokenize})
+    data = data.reset_index().to_dict('records')
+    data= [d for d in data if len(d['label']) > 0]
+    return data
 
 
 @log.enter('load_dataset')
@@ -100,9 +92,11 @@ def load_dataset(config):
         with open(cache_path, 'rb') as fp:
             datasets = pickle.load(fp)
     else:
-        datasets = _load_raw_data(config, data_dir)
-        for split in datasets.keys():
-            datasets[split] = _preprocess_on_split(datasets[split])
+        datasets = {}
+        for split in ['train', 'val', 'test']:
+            path = os.path.join(data_dir, f'{split}.txt')
+            if os.path.exists(path):
+                datasets[split] = _load_raw_data(path)
         with open(cache_path, 'wb') as fp:
             pickle.dump(datasets, fp)
 
@@ -134,28 +128,6 @@ def load_dataset(config):
 
     log.info(f"Finish loading dataset (train: {len(datasets['train'])} / test: {len(datasets['test'])} / dev: {len(datasets['dev'])})")
     return datasets
-
-
-def _get_tokenizer():
-    def caml_tokenizer(text):
-        tokenizer = RegexpTokenizer(r'\w+')
-        return [t.lower() for t in tokenizer.tokenize(text) if not t.isnumeric()]
-
-    # attention xml
-    # [token.lower() if token != sep else token for token in word_tokenize(sentence)
-    #     if len(re.sub(r'[^\w]', '', token)) > 0]
-    return caml_tokenizer
-
-
-def _preprocess_on_split(dataset):
-    # split text: https://pytorch.org/text/_modules/torchtext/data/utils.html
-    # tokenizer = get_tokenizer(tokenizer=None)
-    tokenizer = _get_tokenizer()
-    dataset['text'] = [tokenizer(text) for text in dataset['text']]
-    dataset = [dict(zip(dataset, v)) for v in zip(*dataset.values())]
-    dataset = [d for d in dataset if len(d['label']) > 0]
-
-    return dataset
 
 
 def build_text_dict(examples, min_vocab_freq, vocab_file=None):

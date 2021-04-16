@@ -63,7 +63,7 @@ class FewShotMetrics():
                 [self.few_shot_labels_idx, 'F'],
                 [self.zero_shot_labels_idx, 'Z']
             ])
-        
+
         self.clear()
 
     def clear(self):
