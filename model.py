@@ -11,7 +11,7 @@ import torch.optim as optim
 from tqdm import tqdm
 
 import data_utils
-from evaluate import MultiLabelMetric, evaluate
+from evaluate import evaluate
 from network import get_network
 from utils import log
 from utils.utils import (AverageMeter, Timer)
@@ -124,20 +124,14 @@ class Model(object):
         """Run through one epoch of model training with the provided data loader."""
 
         train_loss = AverageMeter()
-        metrics = MultiLabelMetric(self.config.num_class)
         epoch_time = Timer()
         progress_bar = tqdm(data_loader)
 
         for idx, batch in enumerate(progress_bar):
             loss, batch_label_scores = self.train_step(batch)
             train_loss.update(loss)
-
-            # training metrics
-            batch_labels = batch['label'].cpu().detach().numpy()
-            batch_label_scores = batch_label_scores.cpu().detach().numpy()
-            metrics.add_batch(batch_labels, batch_label_scores)
             progress_bar.set_postfix(loss=train_loss.avg)
-        log.info(metrics.get_metrics())
+
         log.info(f'Epoch done. Time for epoch = {epoch_time.time():.2f} (s)')
         log.info(f'Epoch loss: {train_loss.avg}')
 
