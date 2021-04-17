@@ -2,7 +2,7 @@ import re
 
 import numpy as np
 import pandas as pd
-from sklearn.metrics import f1_score, multilabel_confusion_matrix, ndcg_score, roc_curve, auc
+from sklearn.metrics import f1_score, multilabel_confusion_matrix, ndcg_score
 from tqdm import tqdm
 
 from utils import log
@@ -11,7 +11,6 @@ from utils.utils import Timer, dump_log
 
 def evaluate(config, model, dataset_loader, eval_metric, split='dev', dump=True):
     timer = Timer()
-    metrics = MultiLabelMetric(config.num_class, thresholds=config.metrics_thresholds)
     eval_metric.clear()
     progress_bar = tqdm(dataset_loader)
 
@@ -22,12 +21,7 @@ def evaluate(config, model, dataset_loader, eval_metric, split='dev', dump=True)
 
         batch_labels = batch_labels.cpu().detach().numpy()
         batch_label_scores = batch_label_scores.cpu().detach().numpy()
-        metrics.add_batch(batch_labels, batch_label_scores)
         eval_metric.add_batch(batch_labels, batch_label_scores)
-
-        if not config.display_iter or idx % config.display_iter == 0:
-            last_metrics = metrics.get_metrics()
-            progress_bar.set_postfix(**last_metrics)
 
     log.info(f'Time for evaluating {split} set = {timer.time():.2f} (s)')
     print(eval_metric)
@@ -133,151 +127,6 @@ class FewShotMetrics():
         return df.to_markdown(index=False)
 
 
-class MetricTypes:
-    F1 = 'F1'
-    PRECISION = 'Precision'
-    RECALL = 'Recall'
-    NDCG = 'NDCG'
-
-
-class MultiLabelMetric(object):
-    def __init__(self, class_num, thresholds=None, n_workers=1):
-        if thresholds is None:
-            thresholds = [0.5]
-        self.class_num = class_num
-        self.thresholds = thresholds
-        self.n_workers = n_workers
-        self.reset()
-
-    def reset(self):
-        # multilabel confusion matrix
-        self.mcm = [np.zeros((self.class_num, 2, 2), dtype=np.uint32)
-                    for _ in self.thresholds]
-        self.count = 0
-        self.preds = []
-        self.targets = []
-        self._last_metrics = [{MetricTypes.PRECISION: 0, MetricTypes.RECALL: 0,
-                               MetricTypes.F1: 0, MetricTypes.NDCG: 0} for _ in self.thresholds]
-        self._ndcg = 0
-
-    @staticmethod
-    def ndcg_worker(targets, preds, procnum, return_dict):
-        score = ndcg_score(targets, preds)
-        return_dict[procnum] = score * len(targets)
-
-    def eval(self, beta=1):
-        if not self.preds:
-            return self._last_metrics
-
-        # stack collect instances
-        preds = np.vstack(self.preds)
-        target_one_hot = np.vstack(self.targets)
-
-        self.preds, self.targets = [], []
-
-        batch_size = preds.shape[0]
-        worker_batch_size = max(batch_size // self.n_workers, 500)
-        self.count += batch_size
-
-        # compute mcm for each thresholds
-        for idx, threshold in enumerate(self.thresholds):
-            pred_one_hot = preds >= threshold
-            batch_mcm = multilabel_confusion_matrix(
-                target_one_hot, pred_one_hot)
-            self.mcm[idx] += batch_mcm.astype(np.uint64)
-            mcm_ = self.mcm[idx]
-
-            metrics = {}
-
-            # with mcm, precision, recall and f1 is trivial
-            # https://github.com/scikit-learn/scikit-learn/blob/b194674c4/sklearn/metrics/_classification.py#L1488
-            tp_sum = mcm_[:, 1, 1]
-            pred_sum = tp_sum + mcm_[:, 0, 1]
-            true_sum = tp_sum + mcm_[:, 1, 0]
-
-            # 'micro' average
-            tp_sum = np.array([tp_sum.sum()])
-            pred_sum = np.array([pred_sum.sum()])
-            true_sum = np.array([true_sum.sum()])
-
-            precision = _prf_divide(tp_sum, pred_sum, 'precision',
-                                    'predicted', average='micro', warn_for={}, zero_division='warn')
-            recall = _prf_divide(tp_sum, true_sum, 'recall',
-                                 'true', average='micro', warn_for={}, zero_division='warn')
-            beta2 = beta ** 2
-            denom = beta2 * precision + recall
-            denom[denom == 0.] = 1  # avoid division by 0
-            f_score = (1 + beta2) * precision * recall / denom
-
-            metrics[MetricTypes.PRECISION], metrics[MetricTypes.RECALL], metrics[MetricTypes.F1] = float(precision), float(recall), float(f_score)
-            self._last_metrics[idx] = metrics  # cache metrics
-
-        return self._last_metrics
-
-    def add_batch(self, targets, preds):
-        """
-        Add a batch of instances to calculate metrics
-        """
-        assert len(preds) == len(
-            targets), f'Different number of pred({len(preds)}) and target({len(targets)})'
-        self.preds.append(np.array(preds))
-        self.targets.append(np.array(targets))
-
-    def add(self, target, pred):
-        """
-        Add instance to calculate metrics
-        """
-        self.preds.append(np.array(pred))
-        self.targets.append(np.array(target))
-
-    def get_metrics(self, beta=1):
-        return self.eval(beta=beta)[0]
-
-    def __str__(self):
-        """Return matrics plot in markdown language"""
-        last_metrics = self.eval()
-        repr_ = "| Threshold | Precision | Recall    | F1        |\n" + \
-                "| --------- | --------- | --------- | --------- |\n"
-
-        for idx, threshold in enumerate(self.thresholds):
-            metrics = last_metrics[idx]
-            repr_ += f"| {threshold:<9g} | {metrics[MetricTypes.PRECISION] * 100:<9g} | {metrics[MetricTypes.RECALL] * 100:<9g} | {metrics[MetricTypes.F1] * 100:<9g} |\n"
-
-        return repr_
-
-    def __getitem__(self, idx):
-        """Make metrics accessiable by index"""
-        return self.eval()[idx]
-
-
-def _prf_divide(numerator, denominator, metric,
-                modifier, average, warn_for, zero_division="warn"):
-    """Performs division and handles divide-by-zero.
-    On zero-division, sets the corresponding result elements equal to
-    0 or 1 (according to ``zero_division``). Plus, if
-    ``zero_division != "warn"`` raises a warning.
-    The metric, modifier and average arguments are used only for determining
-    an appropriate warning.
-    """
-    mask = denominator == 0.0
-    denominator = denominator.copy()
-    denominator[mask] = 1  # avoid infs/nans
-    result = numerator / denominator
-
-    if not np.any(mask):
-        return result
-
-    # if ``zero_division=1``, set those with denominator == 0 equal to 1
-    result[mask] = 0.0 if zero_division in ["warn", 0] else 1.0
-
-    # the user will be removing warnings if zero_division is set to something
-    # different than its default value. If we are computing only f-score
-    # the warning will be raised only if precision and recall are ill-defined
-    if zero_division != "warn" or metric not in warn_for:
-        return result
-
-    return result
-
 def macro_precision(yhat, y):
     num = intersect_size(yhat, y, 0) / (yhat.sum(axis=0) + 1e-10)
     return np.mean(num)
@@ -295,9 +144,6 @@ def macro_f1(yhat, y):
         f1 = 2*(prec*rec)/(prec+rec)
     return f1
 
-# ##############
-# # AT-K
-# ##############
 
 def recall_at_k(yhat_raw, y, k):
     #num true labels in top k predictions / num true labels
@@ -316,12 +162,13 @@ def recall_at_k(yhat_raw, y, k):
 
     return np.mean(vals)
 
+
 def precision_at_k(yhat_raw, y, k):
     #num true labels in top k predictions / k
     sortd = np.argsort(yhat_raw)[:,::-1]
     topk = sortd[:,:k]
 
-    #get precision at k for each example
+    # get precision at k for each example
     vals = []
     for i, tk in enumerate(topk):
         if len(tk) > 0:
@@ -330,6 +177,7 @@ def precision_at_k(yhat_raw, y, k):
             vals.append(num_true_in_top_k / float(denom))
 
     return np.mean(vals)
+
 
 # ##########################################################################
 # #MICRO METRICS: treat every prediction as an individual binary prediction
