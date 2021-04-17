@@ -69,7 +69,7 @@ Put texts and labels in the training and test set separately in `train_text.txt`
 - a ratio in [0,1] to indicate the percentage of training data allocated for validation
 - an integer to indicate the number of training data allocated for validation
 
-### Examples of a text file and a label file: 
+### Examples of a text file and a label file:
 - **texts**: one sample per line
 ```
 recov recov recov recov excit ...
@@ -84,7 +84,7 @@ C24 CCAT
 
 ## Training and Prediction
 ### Training
-In the training progress, you can build a model from scratch or start from some pre-obtained information. 
+In the training progress, you can build a model from scratch or start from some pre-obtained information.
 ```
 python main.py --config CONFIG_PATH [--load_checkpoint CHECKPOINT_PATH] \
 [--embed_file EMBED_NAME_OR_EMBED_PATH] [--vocab_file VOCAB_CSV_PATH]
@@ -93,7 +93,7 @@ python main.py --config CONFIG_PATH [--load_checkpoint CHECKPOINT_PATH] \
 
 If a model was trained before by this package, the training procedure can start with it.
 
-- **load_checkpoint**: specify the path to a pre-trained model. 
+- **load_checkpoint**: specify the path to a pre-trained model.
 
 To use your own word embeddings or vocabulary set, specify the following parameters:
 
@@ -105,9 +105,15 @@ To use your own word embeddings or vocabulary set, specify the following paramet
 - **vocab_file**: set the file path to a predefined vocabulary set that contains lines of words.
 
 
-### Evaluation
-In the evaluation progress, you can evaluate the model with a set of evaluation metrics. Set `monitor_metrics` to define what you want to print on the screen. `val_metric` is the metric for picking the best model. Example:
+### Validation
+In the validation progress, you can evaluate the model with a set of evaluation metrics. Set `monitor_metrics` to define what you want to print on the screen. `val_metric` is the metric for picking the best model. Example:
 ```yaml
 monitor_metrics: [P@1, P@3, P@5]
 val_metric: P@1
+```
+
+### Evaluation
+In the evaluation progress, you can evaluate a model from a pre-obtained checkpoint.
+```
+python main.py --eval --load_checkpoint CHECKPOINT_PATH --test_path TEST_DATA_PATH
 ```

@@ -9,7 +9,7 @@ from utils import log
 from utils.utils import Timer, dump_log
 
 
-def evaluate(config, model, dataset_loader, eval_metric, split='dev', dump=True):
+def evaluate(config, model, dataset_loader, eval_metric, split='val', dump=True):
     timer = Timer()
     metrics = MultiLabelMetric(config.num_class, thresholds=config.metrics_thresholds)
     eval_metric.clear()
@@ -39,30 +39,30 @@ def evaluate(config, model, dataset_loader, eval_metric, split='dev', dump=True)
 
 
 class FewShotMetrics():
-    def __init__(self, config, dataset, few_shot_limit=5, target_label='label'):
+    def __init__(self, config, dataset=None, few_shot_limit=5, target_label='label'):
         # read train / test labels
         # dev is not considered for now
-        test_labels = np.hstack([instance[target_label]
-                                 for instance in dataset['test']])
-        train_labels = np.hstack([instance[target_label]
-                                  for instance in dataset['train']])
+        # test_labels = np.hstack([instance[target_label]
+                                 # for instance in dataset['test']])
+        # train_labels = np.hstack([instance[target_label]
+                                  # for instance in dataset['train']])
 
         self.config = config
-        self.class_num = dataset['train'].num_class
+        self.class_num = config.num_class
         # get ALL, Z, F, S
-        unique, counts = np.unique(train_labels, return_counts=True)
-        self.frequent_labels_idx = unique[counts > few_shot_limit].astype(int).tolist()
-        self.few_shot_labels_idx = unique[counts <= few_shot_limit].astype(int).tolist()
-        self.zero_shot_labels_idx = list(set(test_labels) - set(train_labels))
+        # unique, counts = np.unique(train_labels, return_counts=True)
+        # self.frequent_labels_idx = unique[counts > few_shot_limit].astype(int).tolist()
+        # self.few_shot_labels_idx = unique[counts <= few_shot_limit].astype(int).tolist()
+        # self.zero_shot_labels_idx = list(set(test_labels) - set(train_labels))
 
         # label groups
         self.label_groups = [[list(range(self.class_num)), 'ALL']]
-        if len(self.few_shot_labels_idx) > 0:
-            self.label_groups.extend([
-                [self.frequent_labels_idx, 'S'],
-                [self.few_shot_labels_idx, 'F'],
-                [self.zero_shot_labels_idx, 'Z']
-            ])
+        # if len(self.few_shot_labels_idx) > 0:
+            # self.label_groups.extend([
+                # [self.frequent_labels_idx, 'S'],
+                # [self.few_shot_labels_idx, 'F'],
+                # [self.zero_shot_labels_idx, 'Z']
+            # ])
 
         self.clear()
 

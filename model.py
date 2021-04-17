@@ -87,9 +87,11 @@ class Model(object):
     # --------------------------------------------------------------------------
 
     @log.enter('train')
-    def train(self, train_dataset, dev_dataset, eval_metric):
-        train_loader = data_utils.get_dataset_loader(self.config, train_dataset, train=True)
-        dev_loader = data_utils.get_dataset_loader(self.config, dev_dataset, train=False)
+    def train(self, train_data, val_data, eval_metric):
+        train_loader = data_utils.get_dataset_loader(
+            self.config, train_data, self.word_dict, self.classes, train=True)
+        val_loader = data_utils.get_dataset_loader(
+            self.config, val_data, self.word_dict, self.classes, train=False)
 
         log.info('Start training')
         try:
@@ -105,10 +107,10 @@ class Model(object):
                 self.train_epoch(train_loader)
 
                 log.info('Start validate Dev Dataset')
-                dev_metrics = evaluate(self.config, self, dev_loader, eval_metric)
+                val_metrics = evaluate(self.config, self, val_loader, eval_metric)
 
-                if dev_metrics[0][self.config.val_metric] >= self.best_metric:
-                    self.best_metric = dev_metrics[0][self.config.val_metric]
+                if val_metrics[0][self.config.val_metric] >= self.best_metric:
+                    self.best_metric = val_metrics[0][self.config.val_metric]
                     self.save(epoch, is_best=True)
                     patience = self.config.patience
                 else:
