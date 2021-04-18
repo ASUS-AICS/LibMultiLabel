@@ -2,7 +2,7 @@ import re
 
 import numpy as np
 import pandas as pd
-from sklearn.metrics import f1_score, multilabel_confusion_matrix, ndcg_score
+from sklearn.metrics import f1_score
 from tqdm import tqdm
 
 from utils import log
@@ -95,11 +95,8 @@ class FewShotMetrics():
             result['# Instance'] = len(target_y_true)
 
             # micro/macro f1 of the target groups
-            # micro_f1 = f1_score(y_true=target_y_true, y_pred=target_y_pred > threshold, average='micro')
-            # macro_f1 = f1_score(y_true=target_y_true, y_pred=target_y_pred > threshold, average='macro')
-
-            result['Micro-F1'] = micro_f1((target_y_pred > threshold).ravel(), target_y_true.ravel())
-            result['Macro-F1'] = macro_f1(target_y_pred > threshold, target_y_true)
+            result['Micro-F1'] = f1_score(y_true=target_y_true, y_pred=target_y_pred > threshold, average='micro')
+            result['Macro-F1'] = f1_score(y_true=target_y_true, y_pred=target_y_pred > threshold, average='macro')
 
             # find all metric starts with P(Precition) or R(Recall)
             pattern = re.compile('(?:P|R)@\d+')
@@ -125,24 +122,6 @@ class FewShotMetrics():
         df = pd.DataFrame(results).applymap(
             lambda x: f'{x * 100:.4f}' if isinstance(x, (np.floating, float)) else x)
         return df.to_markdown(index=False)
-
-
-def macro_precision(yhat, y):
-    num = intersect_size(yhat, y, 0) / (yhat.sum(axis=0) + 1e-10)
-    return np.mean(num)
-
-def macro_recall(yhat, y):
-    num = intersect_size(yhat, y, 0) / (y.sum(axis=0) + 1e-10)
-    return np.mean(num)
-
-def macro_f1(yhat, y):
-    prec = macro_precision(yhat, y)
-    rec = macro_recall(yhat, y)
-    if prec + rec == 0:
-        f1 = 0.
-    else:
-        f1 = 2*(prec*rec)/(prec+rec)
-    return f1
 
 
 def recall_at_k(yhat_raw, y, k):
@@ -177,30 +156,3 @@ def precision_at_k(yhat_raw, y, k):
             vals.append(num_true_in_top_k / float(denom))
 
     return np.mean(vals)
-
-
-# ##########################################################################
-# #MICRO METRICS: treat every prediction as an individual binary prediction
-# ##########################################################################
-
-# def micro_accuracy(yhatmic, ymic):
-#     return intersect_size(yhatmic, ymic, 0) / union_size(yhatmic, ymic, 0)
-
-def micro_precision(yhatmic, ymic):
-    return intersect_size(yhatmic, ymic, 0) / yhatmic.sum(axis=0)
-
-def micro_recall(yhatmic, ymic):
-    return intersect_size(yhatmic, ymic, 0) / ymic.sum(axis=0)
-
-def micro_f1(yhatmic, ymic):
-    prec = micro_precision(yhatmic, ymic)
-    rec = micro_recall(yhatmic, ymic)
-    if prec + rec == 0:
-        f1 = 0.
-    else:
-        f1 = 2*(prec*rec)/(prec+rec)
-    return f1
-
-def intersect_size(yhat, y, axis):
-    #axis=0 for label-level union (macro). axis=1 for instance-level
-    return np.logical_and(yhat, y).sum(axis=axis).astype(float)
