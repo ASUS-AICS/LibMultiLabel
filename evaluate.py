@@ -5,6 +5,7 @@ import pandas as pd
 from sklearn.metrics import f1_score
 from tqdm import tqdm
 
+from metrics import macro_f1, precision_at_k, recall_at_k
 from utils import log
 from utils.utils import Timer, dump_log
 
@@ -33,12 +34,12 @@ def evaluate(config, model, dataset_loader, eval_metric, split='dev', dump=True)
 
 
 class FewShotMetrics():
-    def __init__(self, config, dataset, few_shot_limit=5, target_label='label'):
-        # read train / test labels
-        # dev is not considered for now
-        test_labels = np.hstack([instance[target_label]
+    def __init__(self, config, dataset, few_shot_limit=5):
+        # if dataset does not have train in the test mode?
+
+        test_labels = np.hstack([instance['label']
                                  for instance in dataset['test']])
-        train_labels = np.hstack([instance[target_label]
+        train_labels = np.hstack([instance['label']
                                   for instance in dataset['train']])
 
         self.config = config
@@ -96,7 +97,9 @@ class FewShotMetrics():
 
             # micro/macro f1 of the target groups
             result['Micro-F1'] = f1_score(y_true=target_y_true, y_pred=target_y_pred > threshold, average='micro')
-            result['Macro-F1'] = f1_score(y_true=target_y_true, y_pred=target_y_pred > threshold, average='macro')
+            # result['Macro-F1'] = f1_score(y_true=target_y_true, y_pred=target_y_pred > threshold, average='macro')
+            # result['Micro-F1'] = micro_f1((target_y_pred > threshold).ravel(), target_y_true.ravel())
+            result['Macro-F1'] = macro_f1(target_y_true, target_y_pred > threshold)
 
             # find all metric starts with P(Precition) or R(Recall)
             pattern = re.compile('(?:P|R)@\d+')
@@ -104,8 +107,8 @@ class FewShotMetrics():
                 for pr_metric in re.findall(pattern, metric):
                     metric_type, top_k = pr_metric.split('@')
                     top_k = int(top_k)
-                    metric_at_k = precision_at_k(target_y_pred, target_y_true, k=top_k) if metric_type == 'P' \
-                                    else recall_at_k(target_y_pred, target_y_true, k=top_k)
+                    metric_at_k = precision_at_k(target_y_true, target_y_pred, k=top_k) if metric_type == 'P' \
+                                    else recall_at_k(target_y_true, target_y_pred, k=top_k)
                     result[pr_metric] = metric_at_k
 
             results.append(result)
@@ -122,37 +125,3 @@ class FewShotMetrics():
         df = pd.DataFrame(results).applymap(
             lambda x: f'{x * 100:.4f}' if isinstance(x, (np.floating, float)) else x)
         return df.to_markdown(index=False)
-
-
-def recall_at_k(yhat_raw, y, k):
-    #num true labels in top k predictions / num true labels
-    sortd = np.argsort(yhat_raw)[:,::-1]
-    topk = sortd[:,:k]
-
-    #get recall at k for each example
-    vals = []
-    for i, tk in enumerate(topk):
-        num_true_in_top_k = y[i,tk].sum()
-        denom = y[i,:].sum()
-        vals.append(num_true_in_top_k / float(denom))
-
-    vals = np.array(vals)
-    vals[np.isnan(vals)] = 0.
-
-    return np.mean(vals)
-
-
-def precision_at_k(yhat_raw, y, k):
-    #num true labels in top k predictions / k
-    sortd = np.argsort(yhat_raw)[:,::-1]
-    topk = sortd[:,:k]
-
-    # get precision at k for each example
-    vals = []
-    for i, tk in enumerate(topk):
-        if len(tk) > 0:
-            num_true_in_top_k = y[i,tk].sum()
-            denom = len(tk)
-            vals.append(num_true_in_top_k / float(denom))
-
-    return np.mean(vals)
