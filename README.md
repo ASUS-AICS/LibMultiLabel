@@ -1,4 +1,4 @@
-# LibMultiLabel -- a Library for Multi-label Text Classification
+# LibMultiLabel — a Library for Multi-label Text Classification
 
 LibMultiLabel is a simple tool with the following functionalities.
 
