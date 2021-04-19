@@ -22,7 +22,7 @@ This is an on-going development so many improvements are still being made. Comme
 ### Step 1. Data Preparation
 - Create the data directory.
 ```sh
-mkdir data/rcv1
+mkdir -p data/rcv1
 cd data/rcv1
 ```
 - Download the `rcv1` dataset from [the LIBSVM website](https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel.html#rcv1v2%20(topics;%20full%20sets)).
