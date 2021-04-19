@@ -65,21 +65,17 @@ Each parameter can also be specified through the command line.
 
 ## Data Format
 
-Put texts and labels in the training and test set separately in `train_text.txt`, `test_text.txt`, `train_labels.txt`, and `test_labels.txt`. The program internally splits the training set to two parts for training and validation. To specify the size of the validation set, use `dev_size` in one of the following two ways:
+Put texts and labels in the training, validation, and test set separately in `train.txt`, `valid.txt`, and `test.txt`, or specifying the path by the arguments  `train_path`, `valid_path`, and `test_path`. The program internally splits the training set to two parts for training and validation. To specify the size of the validation set, use `dev_size` in one of the following two ways:
 - a ratio in [0,1] to indicate the percentage of training data allocated for validation
 - an integer to indicate the number of training data allocated for validation
 
-### Examples of a text file and a label file:
-- **texts**: one sample per line
+### Examples of a training file:
+- one sample per line
+- seperate labels and texts by `<TAB>`
+- labels are split by spaces
 ```
-recov recov recov recov excit ...
-uruguay uruguay compan compan compan ...
-```
-
-- **labels**: one sample per line; labels are split by space
-```
-E11 ECAT M11 M12 MCAT
-C24 CCAT
+E11 ECAT M11 M12 MCAT<TAB>recov recov recov recov excit ...
+C24 CCAT<TAB>uruguay uruguay compan compan compan ...
 ```
 
 ## Training and Prediction
