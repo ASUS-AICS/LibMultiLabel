@@ -65,14 +65,22 @@ Each parameter can also be specified through the command line.
 
 ## Data Format
 
-Put texts and labels in the training, validation, and test set separately in `train.txt`, `valid.txt`, and `test.txt`, or specifying the path by the arguments  `train_path`, `valid_path`, and `test_path`. The program internally splits the training set to two parts for training and validation. To specify the size of the validation set, use `dev_size` in one of the following two ways:
+Put texts and labels in the training, validation, and test set separately in `train.txt`, `valid.txt`, and `test.txt`, or specifying the path by the arguments  `train_path`, `valid_path`, and `test_path`. If validation set is not provided, then the program internally splits the training set to two parts for training and validation. To specify the size of the validation set, use `dev_size` in one of the following two ways:
 - a ratio in [0,1] to indicate the percentage of training data allocated for validation
 - an integer to indicate the number of training data allocated for validation
 
 ### Examples of a training file:
 - one sample per line
-- seperate labels and texts by `<TAB>`
+- seperate ID, labels and texts by `<TAB>` (the ID column is optional)
 - labels are split by spaces
+
+With ID column:
+```
+2286<TAB>E11 ECAT M11 M12 MCAT<TAB>recov recov recov recov excit ...
+2287<TAB>C24 CCAT<TAB>uruguay uruguay compan compan compan ...
+```
+
+Without ID column:
 ```
 E11 ECAT M11 M12 MCAT<TAB>recov recov recov recov excit ...
 C24 CCAT<TAB>uruguay uruguay compan compan compan ...
