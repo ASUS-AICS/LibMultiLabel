@@ -111,5 +111,5 @@ val_metric: P@1
 ### Evaluation
 In the evaluation progress, you can evaluate a model from a pre-obtained checkpoint.
 ```
-python main.py --eval --load_checkpoint CHECKPOINT_PATH --test_path TEST_DATA_PATH
+python main.py --config CONFIG_PATH --eval --load_checkpoint CHECKPOINT_PATH --test_path TEST_DATA_PATH
 ```
