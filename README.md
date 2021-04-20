@@ -14,7 +14,7 @@ This is an on-going development so many improvements are still being made. Comme
 
 To install the latest development version, run:
 ```
-pip install -r requirement.txt
+pip install -r requirements.txt
 ```
 
 ## Table of Contents
