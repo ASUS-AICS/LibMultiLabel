@@ -95,7 +95,8 @@ def load_datasets(config):
         datasets['train'], datasets['val'] = train_test_split(
             datasets['train'], test_size=config.val_size, random_state=42)
 
-    log.info(f"Finish loading dataset (train: {len(datasets['train'])} / test: {len(datasets['test'])} / val: {len(datasets['val'])})")
+    msg = ' / '.join(f'{k}: {len(v)}' for k, v in datasets.items())
+    log.info(f'Finish loading dataset ({msg})')
     return datasets
 
 
