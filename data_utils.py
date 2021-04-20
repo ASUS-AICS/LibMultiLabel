@@ -67,13 +67,14 @@ def tokenize(text):
     return [t.lower() for t in tokenizer.tokenize(text) if not t.isnumeric()]
 
 
-def _load_raw_data(path):
+def _load_raw_data(path, is_test=False):
     log.info(f'Load data from {path}.')
     data = pd.read_csv(path, sep='\t', names=['label', 'text'],
                        converters={'label': lambda s: s.split(),
                                    'text': tokenize})
     data = data.reset_index().to_dict('records')
-    data = [d for d in data if len(d['label']) > 0]
+    if not is_test:
+        data = [d for d in data if len(d['label']) > 0]
     return data
 
 
@@ -82,7 +83,7 @@ def load_datasets(config):
     datasets = {}
     test_path = config.test_path or os.path.join(config.data_dir, 'test.txt')
     if os.path.exists(test_path):
-        datasets['test'] = _load_raw_data(test_path)
+        datasets['test'] = _load_raw_data(test_path, is_test=True)
     if config.eval:
         return datasets
 

@@ -85,6 +85,7 @@ Without ID column:
 E11 ECAT M11 M12 MCAT<TAB>recov recov recov recov excit ...
 C24 CCAT<TAB>uruguay uruguay compan compan compan ...
 ```
+In the test set, the labels are used to calculate accuracy or errors. If it's unknown, an any string (or empty) is fine.
 
 ## Training and Prediction
 ### Training
