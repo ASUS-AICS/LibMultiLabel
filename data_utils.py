@@ -82,7 +82,7 @@ def _load_raw_data(path, is_test=False):
 def load_datasets(config):
     datasets = {}
     test_path = config.test_path or os.path.join(config.data_dir, 'test.txt')
-    if os.path.exists(test_path):
+    if config.eval or os.path.exists(test_path):
         datasets['test'] = _load_raw_data(test_path, is_test=True)
     if config.eval:
         return datasets
