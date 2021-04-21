@@ -32,7 +32,7 @@ def evaluate(config, model, dataset_loader, eval_metric, split='val', dump=True)
     return metrics
 
 
-class FewShotMetrics():
+class MultiLabelMetrics():
     def __init__(self, config, dataset):
         self.config = config
         self.clear()
