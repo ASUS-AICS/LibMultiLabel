@@ -109,8 +109,8 @@ class Model(object):
                 log.info('Start validate Dev Dataset')
                 val_metrics = evaluate(self.config, self, val_loader, eval_metric)
 
-                if val_metrics[0][self.config.val_metric] >= self.best_metric:
-                    self.best_metric = val_metrics[0][self.config.val_metric]
+                if val_metrics[self.config.val_metric] >= self.best_metric:
+                    self.best_metric = val_metrics[self.config.val_metric]
                     self.save(epoch, is_best=True)
                     patience = self.config.patience
                 else:
