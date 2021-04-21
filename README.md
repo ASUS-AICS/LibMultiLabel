@@ -91,8 +91,8 @@ E11 ECAT M11 M12 MCAT<TAB>recov recov recov recov excit ...
 C24 CCAT<TAB>uruguay uruguay compan compan compan ...
 ```
 
-### Examples of a training file:
-In the test set, the labels are used to calculate accuracy or errors. If it's unknown, any string (or empty) is fine.
+### Examples of a test file:
+In the test set, the labels are used to calculate accuracy or errors. If it's unknown, any string (even an empty one) is fine. For example,
 
 With ID column:
 ```
