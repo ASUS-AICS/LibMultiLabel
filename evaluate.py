@@ -1,7 +1,6 @@
 import re
 
 import numpy as np
-import pandas as pd
 from sklearn.metrics import f1_score
 from tqdm import tqdm
 
@@ -76,8 +75,7 @@ class FewShotMetrics():
         return self.eval(y_true, y_pred)
 
     def __repr__(self):
-        results = self.get_metrics()
-        print(f'results: {results}')
-        df = pd.DataFrame([results]).applymap(
-            lambda x: f'{x * 100:.4f}' if isinstance(x, (np.floating, float)) else x)
-        return df.to_markdown(index=False)
+        result = self.get_metrics()
+        header = '|'.join([f'{k:^13}' for k in result.keys()])
+        values = '|'.join([f'{x * 100:^13.4f}' if isinstance(x, (np.floating, float)) else f'{x:^13}' for x in result.values()])
+        return f"|{header}|\n|{'------------:|' * len(result)}\n|{values}|"
