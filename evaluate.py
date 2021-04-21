@@ -52,7 +52,7 @@ class FewShotMetrics():
 
     def eval(self, y_true, y_pred, threshold=0.5):
         result = {
-            'Label Size': self.config.num_class,
+            'Label Size': self.config.num_classes,
             '# Instance': len(y_true),
             'Micro-F1': f1_score(y_true, y_pred > threshold, average='micro'), # sklearn's micro-f1
             'Macro-F1': macro_f1(y_true, y_pred > threshold) # caml's macro-f1

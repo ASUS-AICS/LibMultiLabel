@@ -20,11 +20,11 @@ class CamlConvAttnPool(BaseModel):
         xavier_uniform_(self.conv.weight)
 
         # Context vectors for computing attention as in 2.2
-        self.U = nn.Linear(num_filter_maps, config.num_class)
+        self.U = nn.Linear(num_filter_maps, config.num_classes)
         xavier_uniform_(self.U.weight)
 
         # Final layer: create a matrix to use for the L binary classifiers as in 2.3
-        self.final = nn.Linear(num_filter_maps, config.num_class)
+        self.final = nn.Linear(num_filter_maps, config.num_classes)
         xavier_uniform_(self.final.weight)
 
     def forward(self, text):

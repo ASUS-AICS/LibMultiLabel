@@ -24,7 +24,7 @@ class TextDataset(Dataset):
         self.word_dict = word_dict
         self.classes = classes
         self.max_seq_length = max_seq_length
-        self.num_class = len(self.classes)
+        self.num_classes = len(self.classes)
         self.label_binarizer = MultiLabelBinarizer().fit([classes])
 
     def __len__(self):

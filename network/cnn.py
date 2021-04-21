@@ -18,7 +18,7 @@ class VanillaConv(BaseModel):
         xavier_uniform_(self.conv.weight)
 
         # linear output
-        self.fc = nn.Linear(num_filter_maps, config.num_class)
+        self.fc = nn.Linear(num_filter_maps, config.num_classes)
         xavier_uniform_(self.fc.weight)
 
     def forward(self, text):

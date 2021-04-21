@@ -53,7 +53,7 @@ class Model(object):
                 self.word_dict.load_vectors(config.embed_file)
             else:
                 raise NotImplementedError
-        self.config.num_class = len(self.classes)
+        self.config.num_classes = len(self.classes)
 
         embed_vecs = self.word_dict.vectors
         self.network = get_network(config, embed_vecs).to(self.device)
