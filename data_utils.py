@@ -82,19 +82,19 @@ def _load_raw_data(path, is_test=False):
 def load_datasets(config):
     datasets = {}
     test_path = config.test_path or os.path.join(config.data_dir, 'test.txt')
-    if config.eval or os.path.exists(test_path):
-        datasets['test'] = _load_raw_data(test_path, is_test=True)
     if config.eval:
-        return datasets
-
-    train_path = config[f'train_path'] or os.path.join(config.data_dir, 'train.txt')
-    datasets['train'] = _load_raw_data(train_path)
-    val_path = config[f'val_path'] or os.path.join(config.data_dir, 'valid.txt')
-    if os.path.exists(val_path):
-        datasets['val'] = _load_raw_data(val_path)
+        datasets['test'] = _load_raw_data(test_path, is_test=True)
     else:
-        datasets['train'], datasets['val'] = train_test_split(
-            datasets['train'], test_size=config.val_size, random_state=42)
+        if os.path.exists(test_path):
+            datasets['test'] = _load_raw_data(test_path, is_test=True)
+        train_path = config.train_path or os.path.join(config.data_dir, 'train.txt')
+        datasets['train'] = _load_raw_data(train_path)
+        val_path = config.val_path or os.path.join(config.data_dir, 'valid.txt')
+        if os.path.exists(val_path):
+            datasets['val'] = _load_raw_data(val_path)
+        else:
+            datasets['train'], datasets['val'] = train_test_split(
+                datasets['train'], test_size=config.val_size, random_state=42)
 
     msg = ' / '.join(f'{k}: {len(v)}' for k, v in datasets.items())
     log.info(f'Finish loading dataset ({msg})')
