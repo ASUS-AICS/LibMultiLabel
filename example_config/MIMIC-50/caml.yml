@@ -1,0 +1,34 @@
+# https://github.com/jamesmullenbach/caml-mimic/blob/master/predictions/CAML_mimic3_50/train_new_model.sh
+# data
+data_dir: data/MIMIC-50
+data_name: MIMIC-50
+min_vocab_freq: 3
+max_seq_length: 2500
+
+# train
+seed: 1337
+epochs: 200
+batch_size: 16
+optimizer: adam
+learning_rate: 0.0001
+weight_decay: 0
+patience: 10
+
+# eval
+eval_batch_size: 1
+monitor_metrics: ['P@1','P@3','P@5']
+val_metric: P@5
+
+# model
+model_name: caml
+num_filter_maps: 50
+filter_size: 10
+dropout: 0.2
+
+# pretrained vocab / embeddings
+vocab_file: data/MIMIC-50/vocab.csv
+embed_file: data/MIMIC-50/processed_full.embed
+
+# others
+data_workers: 1
+display_iter: 100
