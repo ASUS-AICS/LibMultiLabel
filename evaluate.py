@@ -48,7 +48,7 @@ class FewShotMetrics():
                                   # for instance in dataset['train']])
 
         self.config = config
-        self.class_num = config.num_class
+        self.num_class = config.num_class
         # get ALL, Z, F, S
         # unique, counts = np.unique(train_labels, return_counts=True)
         # self.frequent_labels_idx = unique[counts > few_shot_limit].astype(int).tolist()
@@ -56,7 +56,7 @@ class FewShotMetrics():
         # self.zero_shot_labels_idx = list(set(test_labels) - set(train_labels))
 
         # label groups
-        self.label_groups = [[list(range(self.class_num)), 'ALL']]
+        self.label_groups = [[list(range(self.num_class)), 'ALL']]
         # if len(self.few_shot_labels_idx) > 0:
             # self.label_groups.extend([
                 # [self.frequent_labels_idx, 'S'],
@@ -82,7 +82,7 @@ class FewShotMetrics():
         """1. Instances that do not contains labels idxs are removed
            2. Labels that do not contains in the label idxs are removed
         """
-        mask_np = np.zeros(self.class_num)
+        mask_np = np.zeros(self.num_class)
         mask_np[label_idxs] = 1
 
         valid_instances_idxs = list()
@@ -141,17 +141,17 @@ class MetricTypes:
 
 
 class MultiLabelMetric(object):
-    def __init__(self, class_num, thresholds=None, n_workers=1):
+    def __init__(self, num_class, thresholds=None, n_workers=1):
         if thresholds is None:
             thresholds = [0.5]
-        self.class_num = class_num
+        self.num_class = num_class
         self.thresholds = thresholds
         self.n_workers = n_workers
         self.reset()
 
     def reset(self):
         # multilabel confusion matrix
-        self.mcm = [np.zeros((self.class_num, 2, 2), dtype=np.uint32)
+        self.mcm = [np.zeros((self.num_class, 2, 2), dtype=np.uint32)
                     for _ in self.thresholds]
         self.count = 0
         self.preds = []
