@@ -7,10 +7,15 @@ LibMultiLabel is a simple tool with the following functionalities.
 
 This is an on-going development so many improvements are still being made. Comments are very welcome.
 
-## Environment
+## Environments and Installation
 - Python: 3.6+
 - CUDA: 10.2 (if GPU used)
 - Pytorch 1.8+
+
+To install the latest development version, run:
+```
+pip install -r requirements.txt
+```
 
 ## Table of Contents
 - [Quick Start via an Example](#Quick-Start-via-an-Example)
