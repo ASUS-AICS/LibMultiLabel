@@ -65,7 +65,7 @@ Each parameter can also be specified through the command line.
 
 ## Data Format
 
-Put texts and labels in the training, validation, and test set separately in `train.txt`, `valid.txt`, and `test.txt`, or specifying the path by the arguments  `train_path`, `valid_path`, and `test_path`. If validation set is not provided, then the program internally splits the training set to two parts for training and validation. To specify the size of the validation set, use `dev_size` in one of the following two ways:
+Put labels and texts in the training, validation, and test set separately in `train.txt`, `valid.txt`, and `test.txt`, or specifying the path by the arguments  `train_path`, `valid_path`, and `test_path`. If validation set is not provided, then the program internally splits the training set to two parts for training and validation. To specify the size of the validation set, use `val_size` in one of the following two ways:
 - a ratio in [0,1] to indicate the percentage of training data allocated for validation
 - an integer to indicate the number of training data allocated for validation
 
@@ -85,7 +85,21 @@ Without ID column:
 E11 ECAT M11 M12 MCAT<TAB>recov recov recov recov excit ...
 C24 CCAT<TAB>uruguay uruguay compan compan compan ...
 ```
-In the test set, the labels are used to calculate accuracy or errors. If it's unknown, an any string (or empty) is fine.
+
+### Examples of a training file:
+In the test set, the labels are used to calculate accuracy or errors. If it's unknown, any string (or empty) is fine.
+
+With ID column:
+```
+2286<TAB><TAB>recov recov recov recov excit ...
+2287<TAB><TAB>uruguay uruguay compan compan compan ...
+```
+
+Without ID column:
+```
+<TAB>recov recov recov recov excit ...
+<TAB>uruguay uruguay compan compan compan ...
+```
 
 ## Training and Prediction
 ### Training
