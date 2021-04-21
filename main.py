@@ -28,12 +28,15 @@ def get_config():
             config = yaml.load(fp, Loader=yaml.SafeLoader)
 
     # path / directory
-    parser.add_argument('--data_dir', default='./data', help='The directory to load data (default: %(default)s)')
+    parser.add_argument('--data_dir', default='./data/rcv1', help='The directory to load data (default: %(default)s)')
     parser.add_argument('--result_dir', default='./runs', help='The directory to save checkpoints and logs (default: %(default)s)')
 
     # data
     parser.add_argument('--data_name', default='rcv1', help='Dataset name (default: %(default)s)')
-    parser.add_argument('--dev_size', type=float, default=0.2, help='Training-validation split: a ratio in [0, 1] or an integer for the size of the validation set (default: %(default)s).')
+    parser.add_argument('--train_path', help='Path to training data (default: [data_dir]/train.txt)')
+    parser.add_argument('--val_path', help='Path to validation data (default: [data_dir]/valid.txt)')
+    parser.add_argument('--test_path', help='Path to test data (default: [data_dir]/test.txt)')
+    parser.add_argument('--val_size', type=float, default=0.2, help='Training-validation split: a ratio in [0, 1] or an integer for the size of the validation set (default: %(default)s).')
     parser.add_argument('--min_vocab_freq', type=int, default=1, help='The minimum frequency needed to include a token in the vocabulary (default: %(default)s)')
     parser.add_argument('--max_seq_length', type=int, default=500, help='The maximum number of tokens of a sample (default: %(default)s)')
     parser.add_argument('--vocab_label_map', help='Path to a file storing vocabulary and label mappings (default: %(default)s)')
@@ -64,6 +67,7 @@ def get_config():
     # pretrained vocab / embeddings
     parser.add_argument('--vocab_file', type=str, help='Path to a file holding vocabuaries (default: %(default)s)')
     parser.add_argument('--embed_file', type=str, help='Path to a file holding pre-trained embeddings (default: %(default)s)')
+    parser.add_argument('--label_file', type=str, help='Path to a file holding all labels (default: %(default)s)')
 
     # others
     parser.add_argument('--cpu', action='store_true', help='Disable CUDA')
@@ -114,22 +118,26 @@ def init_env(config):
 def main():
     config = get_config()
     config = init_env(config)
-    datasets = data_utils.load_dataset(config)
+    datasets = data_utils.load_datasets(config)
 
-    eval_metric = FewShotMetrics(config, datasets)
     if config.eval:
         model = Model.load(config, config.load_checkpoint)
+        eval_metric = FewShotMetrics(config, datasets)
+        test_loader = data_utils.get_dataset_loader(config, datasets['test'], model.word_dict, model.classes, train=False)
+        evaluate(config, model, test_loader, eval_metric, split='test', dump=False)
     else:
         if config.load_checkpoint:
             model = Model.load(config, config.load_checkpoint)
         else:
-            word_dict = datasets['train'].word_dict
-            classes = datasets['train'].classes
+            word_dict = data_utils.load_or_build_text_dict(config, datasets['train'])
+            classes = data_utils.load_or_build_label(config, datasets)
             model = Model(config, word_dict, classes)
-        model.train(datasets['train'], datasets['dev'], eval_metric)
+        eval_metric = FewShotMetrics(config, datasets)
+        model.train(datasets['train'], datasets['val'], eval_metric)
         model.load_best()
-    test_loader = data_utils.get_dataset_loader(config, datasets['test'], train=False)
-    evaluate(config, model, test_loader, eval_metric, split='test', dump=not config.eval)
+        if 'test' in datasets:
+            test_loader = data_utils.get_dataset_loader(config, datasets['test'], model.word_dict, model.classes, train=False)
+            evaluate(config, model, test_loader, eval_metric, split='test', dump=True)
 
 
 if __name__ == '__main__':

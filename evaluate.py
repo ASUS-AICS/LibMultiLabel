@@ -10,7 +10,7 @@ from utils import log
 from utils.utils import Timer, dump_log
 
 
-def evaluate(config, model, dataset_loader, eval_metric, split='dev', dump=True):
+def evaluate(config, model, dataset_loader, eval_metric, split='val', dump=True):
     timer = Timer()
     eval_metric.clear()
     progress_bar = tqdm(dataset_loader)
@@ -37,28 +37,28 @@ class FewShotMetrics():
     def __init__(self, config, dataset, few_shot_limit=5):
         # if dataset does not have train in the test mode?
 
-        test_labels = np.hstack([instance['label']
-                                 for instance in dataset['test']])
-        train_labels = np.hstack([instance['label']
-                                  for instance in dataset['train']])
+        # test_labels = np.hstack([instance['label']
+        #                          for instance in dataset['test']])
+        # train_labels = np.hstack([instance['label']
+        #                           for instance in dataset['train']])
 
         self.config = config
-        self.class_num = dataset['train'].num_class
+        self.num_class = config.num_class
         # get ALL, Z, F, S
-        unique, counts = np.unique(train_labels, return_counts=True)
-        self.frequent_labels_idx = unique[counts > few_shot_limit].astype(int).tolist()
-        self.few_shot_labels_idx = unique[counts <= few_shot_limit].astype(int).tolist()
-        self.zero_shot_labels_idx = list(set(test_labels) - set(train_labels))
+        # unique, counts = np.unique(train_labels, return_counts=True)
+        # self.frequent_labels_idx = unique[counts > few_shot_limit].astype(int).tolist()
+        # self.few_shot_labels_idx = unique[counts <= few_shot_limit].astype(int).tolist()
+        # self.zero_shot_labels_idx = list(set(test_labels) - set(train_labels))
 
         # label groups
-        self.label_groups = [[list(range(self.class_num)), 'ALL']]
-        if len(self.few_shot_labels_idx) > 0:
-            self.label_groups.extend([
-                [self.frequent_labels_idx, 'S'],
-                [self.few_shot_labels_idx, 'F'],
-                [self.zero_shot_labels_idx, 'Z']
-            ])
-        
+        self.label_groups = [[list(range(self.num_class)), 'ALL']]
+        # if len(self.few_shot_labels_idx) > 0:
+            # self.label_groups.extend([
+                # [self.frequent_labels_idx, 'S'],
+                # [self.few_shot_labels_idx, 'F'],
+                # [self.zero_shot_labels_idx, 'Z']
+            # ])
+
         self.clear()
 
     def clear(self):
@@ -77,7 +77,7 @@ class FewShotMetrics():
         """1. Instances that do not contains labels idxs are removed
            2. Labels that do not contains in the label idxs are removed
         """
-        mask_np = np.zeros(self.class_num)
+        mask_np = np.zeros(self.num_class)
         mask_np[label_idxs] = 1
 
         valid_instances_idxs = list()

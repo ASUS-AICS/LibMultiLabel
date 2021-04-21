@@ -1,14 +1,12 @@
 import collections
-import copy
-import itertools
 import os
-import pickle
-import random
 
 import torch
 import tqdm
 import numpy as np
+import pandas as pd
 from nltk.tokenize import RegexpTokenizer
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer
 from torch.utils.data import Dataset
 from torch.nn.utils.rnn import pad_sequence
@@ -51,7 +49,8 @@ def generate_batch(data_batch):
     }
 
 
-def get_dataset_loader(config, dataset, shuffle=False, train=True):
+def get_dataset_loader(config, data, word_dict, classes, shuffle=False, train=True):
+    dataset = TextDataset(data, word_dict, classes, config.max_seq_length)
     dataset_loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=config.batch_size if train else config.eval_batch_size,
@@ -63,116 +62,75 @@ def get_dataset_loader(config, dataset, shuffle=False, train=True):
     return dataset_loader
 
 
-def _load_raw_data(config, data_dir):
-    raw_data_cache = config.get('raw_data_cache')
-    if raw_data_cache and os.path.exists(raw_data_cache):
-        log.info(f'Load existing raw data cache from {raw_data_cache}.')
-        with open(raw_data_cache, 'rb') as fp:
-            dataset = pickle.load(fp)
-        if 'labels' in next(iter(dataset.values())):
-            for split in dataset:
-                dataset[split]['label'] = dataset[split].pop('labels')
-        return dataset
+def tokenize(text):
+    tokenizer = RegexpTokenizer(r'\w+')
+    return [t.lower() for t in tokenizer.tokenize(text) if not t.isnumeric()]
 
-    log.info(f'Load data from train_texts.txt, train_labels.txt, test_texts.txt, and text_labels.txt.')
-    dataset = {k: {} for k in ['train', 'test']}
-    for split in ['train', 'test']:
-        with open(os.path.join(data_dir, f'{split}_texts.txt')) as f:
-            texts = f.readlines()
-            dataset[split]['text'] = [text for text in texts]
-        with open(os.path.join(data_dir, f'{split}_labels.txt')) as f:
-            labels = f.readlines()
-            dataset[split]['label'] = [label.split() for label in labels]
-        dataset[split]['index'] = list(range(len(dataset[split]['text'])))
-    return dataset
+
+def _load_raw_data(path, is_test=False):
+    log.info(f'Load data from {path}.')
+    data = pd.read_csv(path, sep='\t', names=['label', 'text'],
+                       converters={'label': lambda s: s.split(),
+                                   'text': tokenize})
+    data = data.reset_index().to_dict('records')
+    if not is_test:
+        data = [d for d in data if len(d['label']) > 0]
+    return data
 
 
 @log.enter('load_dataset')
-def load_dataset(config):
-    """Preparing TextDataset from raw data."""
-    data_dir = os.path.join(config['data_dir'], config['data_name'])
-    os.makedirs(data_dir, exist_ok=True)
-
-    # Load from cache if exists, otherwise load raw data and tokenize
-    cache_path = os.path.join(data_dir, 'cache.pkl')
-    if os.path.exists(cache_path):
-        log.info(f'Load existing cache from {cache_path}.')
-        with open(cache_path, 'rb') as fp:
-            datasets = pickle.load(fp)
+def load_datasets(config):
+    datasets = {}
+    test_path = config.test_path or os.path.join(config.data_dir, 'test.txt')
+    if config.eval:
+        datasets['test'] = _load_raw_data(test_path, is_test=True)
     else:
-        datasets = _load_raw_data(config, data_dir)
-        for split in datasets.keys():
-            datasets[split] = _preprocess_on_split(datasets[split])
-        with open(cache_path, 'wb') as fp:
-            pickle.dump(datasets, fp)
+        if os.path.exists(test_path):
+            datasets['test'] = _load_raw_data(test_path, is_test=True)
+        train_path = config.train_path or os.path.join(config.data_dir, 'train.txt')
+        datasets['train'] = _load_raw_data(train_path)
+        val_path = config.val_path or os.path.join(config.data_dir, 'valid.txt')
+        if os.path.exists(val_path):
+            datasets['val'] = _load_raw_data(val_path)
+        else:
+            datasets['train'], datasets['val'] = train_test_split(
+                datasets['train'], test_size=config.val_size, random_state=42)
 
-    map_path = os.path.join(data_dir, f'vocab_label_map_{config["min_vocab_freq"]}.pkl')
-    map_path = config['vocab_label_map'] or map_path
-    if map_path and os.path.exists(map_path):
-        log.info(f'Load existing Vocab and classes from {map_path}.')
-        with open(map_path, 'rb') as fp:
-            text_dict, classes = pickle.load(fp)
+    msg = ' / '.join(f'{k}: {len(v)}' for k, v in datasets.items())
+    log.info(f'Finish loading dataset ({msg})')
+    return datasets
+
+
+def load_or_build_text_dict(config, dataset):
+    if config.vocab_file:
+        log.info(f'Load vocab from {config.vocab_file}')
+        with open(config.vocab_file, 'r') as fp:
+            vocab_list = ['**PAD**'] + [vocab.strip() for vocab in fp.readlines()]
+        vocabs = Vocab(collections.Counter(vocab_list), specials=['<unk>'],
+                       min_freq=1, specials_first=False)
+    else:
+        counter = collections.Counter()
+        for data in dataset:
+            unique_tokens = set(example['text'])
+            counter.update(unique_tokens)
+        vocabs = Vocab(counter, specials=['<pad>', '<unk>'],
+                       min_freq=config.min_vocab_freq)
+    log.info(f'Read {len(vocabs)} vocabularies.')
+    return vocabs
+
+
+def load_or_build_label(config, datasets):
+    if config.label_file:
+        log.info('Load labels from {config.label_file}')
+        with open(config.label_file, 'r') as fp:
+            classes = sorted([s.strip() for s in fp.readlines()])
     else:
         classes = set()
         for dataset in datasets.values():
             for d in tqdm.tqdm(dataset):
                 classes.update(d['label'])
         classes = sorted(classes)
-
-        text_dict = build_text_dict(datasets['train'], config['min_vocab_freq'], config['vocab_file'])
-        with open(map_path, 'wb') as fp:
-            pickle.dump((text_dict, classes), fp)
-        log.info(f'Save {map_path}')
-
-    if 'dev' not in datasets:
-        dev_size = config['dev_size'] if config['dev_size'].is_integer() else int(config['dev_size'] * len(datasets['train']))
-        train_size = len(datasets['train']) - dev_size
-        datasets['train'], datasets['dev'] = torch.utils.data.random_split(datasets['train'], [train_size, dev_size], generator=torch.Generator().manual_seed(42))
-
-    for split in datasets.keys():
-        datasets[split] = TextDataset(datasets[split], text_dict, classes, config['max_seq_length'])
-
-    log.info(f"Finish loading dataset (train: {len(datasets['train'])} / test: {len(datasets['test'])} / dev: {len(datasets['dev'])})")
-    return datasets
-
-
-def _get_tokenizer():
-    def caml_tokenizer(text):
-        tokenizer = RegexpTokenizer(r'\w+')
-        return [t.lower() for t in tokenizer.tokenize(text) if not t.isnumeric()]
-
-    # attention xml
-    # [token.lower() if token != sep else token for token in word_tokenize(sentence)
-    #     if len(re.sub(r'[^\w]', '', token)) > 0]
-    return caml_tokenizer
-
-
-def _preprocess_on_split(dataset):
-    # split text: https://pytorch.org/text/_modules/torchtext/data/utils.html
-    # tokenizer = get_tokenizer(tokenizer=None)
-    tokenizer = _get_tokenizer()
-    dataset['text'] = [tokenizer(text) for text in dataset['text']]
-    dataset = [dict(zip(dataset, v)) for v in zip(*dataset.values())]
-    dataset = [d for d in dataset if len(d['label']) > 0]
-
-    return dataset
-
-
-def build_text_dict(examples, min_vocab_freq, vocab_file=None):
-    if vocab_file:
-        log.info(f'Load vocab from {vocab_file}')
-        with open(vocab_file, 'r') as f:
-            vocab_list = ['**PAD**'] + [vocab.strip() for vocab in f.readlines()]
-        vocabs = Vocab(collections.Counter(vocab_list), specials=['<unk>'], min_freq=1, specials_first=False)
-    else:
-        counter = collections.Counter()
-        for example in examples:
-            unique_tokens = set(example['text'])
-            counter.update(unique_tokens)
-        vocabs = Vocab(counter, specials=['<pad>', '<unk>'], min_freq=min_vocab_freq)
-
-    log.info(f'Read {len(vocabs)} vocabularies.')
-    return vocabs
+    return classes
 
 
 def get_embedding_weights_from_file(word_dict, embed_file):
