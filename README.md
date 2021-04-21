@@ -33,10 +33,8 @@ cd data/rcv1
 - Download the `rcv1` dataset from [the LIBSVM website](https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel.html#rcv1v2%20(topics;%20full%20sets)).
 
 ```sh
-wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/train_texts.txt.bz2
-wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/train_labels.txt.bz2
-wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/test_texts.txt.bz2
-wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/test_labels.txt.bz2
+wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/train.txt.bz2
+wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/test.txt.bz2
 ```
 - Uncompress data and go back to the main directory.
 ```sh
