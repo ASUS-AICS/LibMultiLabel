@@ -111,7 +111,7 @@ def load_or_build_text_dict(config, dataset):
     else:
         counter = collections.Counter()
         for data in dataset:
-            unique_tokens = set(example['text'])
+            unique_tokens = set(data['text'])
             counter.update(unique_tokens)
         vocabs = Vocab(counter, specials=['<pad>', '<unk>'],
                        min_freq=config.min_vocab_freq)
