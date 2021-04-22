@@ -11,7 +11,7 @@ import data_utils
 from model import Model
 from utils import log
 from utils.utils import ArgDict
-from evaluate import evaluate, FewShotMetrics
+from evaluate import evaluate, MultiLabelMetrics
 
 
 def get_config():
@@ -72,7 +72,7 @@ def get_config():
     # others
     parser.add_argument('--cpu', action='store_true', help='Disable CUDA')
     parser.add_argument('--display_iter', type=int, default=100, help='Log state after every n steps (default: %(default)s)')
-    parser.add_argument('--data_workers', type=int, default=1, help='Use multi-cpu core for data pre-processing (default: %(default)s)')
+    parser.add_argument('--data_workers', type=int, default=4, help='Use multi-cpu core for data pre-processing (default: %(default)s)')
     parser.add_argument('--eval', action='store_true', help='Only run evaluation on the test set (default: %(default)s)')
     parser.add_argument('--load_checkpoint', help='The checkpoint to warm-up with (default: %(default)s)')
     parser.add_argument('-h', '--help', action='help')
@@ -122,9 +122,8 @@ def main():
 
     if config.eval:
         model = Model.load(config, config.load_checkpoint)
-        eval_metric = FewShotMetrics(config, datasets)
         test_loader = data_utils.get_dataset_loader(config, datasets['test'], model.word_dict, model.classes, train=False)
-        evaluate(config, model, test_loader, eval_metric, split='test', dump=False)
+        evaluate(config, model, test_loader, split='test', dump=False)
     else:
         if config.load_checkpoint:
             model = Model.load(config, config.load_checkpoint)
@@ -132,12 +131,11 @@ def main():
             word_dict = data_utils.load_or_build_text_dict(config, datasets['train'])
             classes = data_utils.load_or_build_label(config, datasets)
             model = Model(config, word_dict, classes)
-        eval_metric = FewShotMetrics(config, datasets)
-        model.train(datasets['train'], datasets['val'], eval_metric)
+        model.train(datasets['train'], datasets['val'])
         model.load_best()
         if 'test' in datasets:
             test_loader = data_utils.get_dataset_loader(config, datasets['test'], model.word_dict, model.classes, train=False)
-            evaluate(config, model, test_loader, eval_metric, split='test', dump=True)
+            evaluate(config, model, test_loader, split='test', dump=True)
 
 
 if __name__ == '__main__':

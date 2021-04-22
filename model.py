@@ -11,7 +11,7 @@ import torch.optim as optim
 from tqdm import tqdm
 
 import data_utils
-from evaluate import MultiLabelMetric, evaluate
+from evaluate import evaluate
 from network import get_network
 from utils import log
 from utils.utils import (AverageMeter, Timer)
@@ -21,10 +21,6 @@ class Model(object):
     """High level model that handles initializing the underlying network
     architecture, saving, updating examples, and predicting examples.
     """
-
-    # --------------------------------------------------------------------------
-    # Initialization
-    # --------------------------------------------------------------------------
 
     def __init__(self, config, word_dict=None, classes=None, ckpt=None):
         self.config = config
@@ -53,7 +49,7 @@ class Model(object):
                 self.word_dict.load_vectors(config.embed_file)
             else:
                 raise NotImplementedError
-        self.config.num_class = len(self.classes)
+        self.config.num_classes = len(self.classes)
 
         embed_vecs = self.word_dict.vectors
         self.network = get_network(config, embed_vecs).to(self.device)
@@ -82,12 +78,8 @@ class Model(object):
 
         torch.nn.utils.clip_grad_value_(parameters, 0.5)
 
-    # --------------------------------------------------------------------------
-    # Learning
-    # --------------------------------------------------------------------------
-
     @log.enter('train')
-    def train(self, train_data, val_data, eval_metric):
+    def train(self, train_data, val_data):
         train_loader = data_utils.get_dataset_loader(
             self.config, train_data, self.word_dict, self.classes, train=True)
         val_loader = data_utils.get_dataset_loader(
@@ -107,10 +99,10 @@ class Model(object):
                 self.train_epoch(train_loader)
 
                 log.info('Start validate Dev Dataset')
-                val_metrics = evaluate(self.config, self, val_loader, eval_metric)
+                val_metrics = evaluate(self.config, self, val_loader)
 
-                if val_metrics[0][self.config.val_metric] >= self.best_metric:
-                    self.best_metric = val_metrics[0][self.config.val_metric]
+                if val_metrics[self.config.val_metric] >= self.best_metric:
+                    self.best_metric = val_metrics[self.config.val_metric]
                     self.save(epoch, is_best=True)
                     patience = self.config.patience
                 else:
@@ -126,20 +118,14 @@ class Model(object):
         """Run through one epoch of model training with the provided data loader."""
 
         train_loss = AverageMeter()
-        metrics = MultiLabelMetric(self.config.num_class)
         epoch_time = Timer()
         progress_bar = tqdm(data_loader)
 
         for idx, batch in enumerate(progress_bar):
             loss, batch_label_scores = self.train_step(batch)
             train_loss.update(loss)
-
-            # training metrics
-            batch_labels = batch['label'].cpu().detach().numpy()
-            batch_label_scores = batch_label_scores.cpu().detach().numpy()
-            metrics.add_batch(batch_labels, batch_label_scores)
             progress_bar.set_postfix(loss=train_loss.avg)
-        log.info(metrics.get_metrics())
+
         log.info(f'Epoch done. Time for epoch = {epoch_time.time():.2f} (s)')
         log.info(f'Epoch loss: {train_loss.avg}')
 
@@ -200,10 +186,6 @@ class Model(object):
             'logits': logits,
             'outputs': outputs,
         }
-
-    # --------------------------------------------------------------------------
-    # Saving and loading
-    # --------------------------------------------------------------------------
 
     def save(self, epoch, is_best=False):
         self.network.eval()
