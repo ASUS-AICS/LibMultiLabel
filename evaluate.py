@@ -33,7 +33,7 @@ def evaluate(config, model, dataset_loader, eval_metric, split='val', dump=True)
 
 
 class MultiLabelMetrics():
-    def __init__(self, config, dataset):
+    def __init__(self, config):
         self.config = config
         self.clear()
 

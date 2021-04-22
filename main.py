@@ -122,7 +122,7 @@ def main():
 
     if config.eval:
         model = Model.load(config, config.load_checkpoint)
-        eval_metric = MultiLabelMetrics(config, datasets)
+        eval_metric = MultiLabelMetrics(config)
         test_loader = data_utils.get_dataset_loader(config, datasets['test'], model.word_dict, model.classes, train=False)
         evaluate(config, model, test_loader, eval_metric, split='test', dump=False)
     else:
@@ -132,7 +132,7 @@ def main():
             word_dict = data_utils.load_or_build_text_dict(config, datasets['train'])
             classes = data_utils.load_or_build_label(config, datasets)
             model = Model(config, word_dict, classes)
-        eval_metric = MultiLabelMetrics(config, datasets)
+        eval_metric = MultiLabelMetrics(config)
         model.train(datasets['train'], datasets['val'], eval_metric)
         model.load_best()
         if 'test' in datasets:
