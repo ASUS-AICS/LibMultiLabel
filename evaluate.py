@@ -58,14 +58,16 @@ class MultiLabelMetrics():
         }
 
         # add metric like P@k, R@k to the result dict
-        pattern = re.compile('(?:P|R)@\d+')
         for metric in self.config.monitor_metrics:
-            for pr_metric in re.findall(pattern, metric):
-                metric_type, top_k = pr_metric.split('@')
-                top_k = int(top_k)
-                metric_at_k = precision_at_k(y_true, y_pred, k=top_k) if metric_type == 'P' \
-                    else recall_at_k(y_true, y_pred, k=top_k)
-                result[pr_metric] = metric_at_k
+            if re.match('P@\d+', metric):
+                top_k = int(metric[2:])
+                metric_at_k = precision_at_k(y_true, y_pred, k=top_k)
+            elif re.match('R@\d+', metric):
+                top_k = int(metric[2:])
+                metric_at_k = recall_at_k(y_true, y_pred, k=top_k)
+            else:
+                raise ValueError(f'Invalid metric: {metric}')
+            result[metric] = metric_at_k
 
         return result
 
