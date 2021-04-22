@@ -14,7 +14,7 @@ This is an on-going development so many improvements are still being made. Comme
 
 To install the latest development version, run:
 ```
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
 ## Table of Contents
@@ -33,8 +33,8 @@ cd data/rcv1
 - Download the `rcv1` dataset from [the LIBSVM website](https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel.html#rcv1v2%20(topics;%20full%20sets)).
 
 ```sh
-wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/train.txt.bz2
-wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/test.txt.bz2
+wget -O train.txt.bz2 https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/train.txt.bz2
+wget -O test.txt.bz2 https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/test.txt.bz2
 ```
 - Uncompress data and go back to the main directory.
 ```sh
@@ -45,7 +45,7 @@ cd ../..
 ### Step 2. Training and Prediction
 Train a cnn model and predict the test set by  an example config. Use `--cpu` to run the program on the cpu.
 ```
-python main.py --config example_config/rcv1/cnn.yml
+python3 main.py --config example_config/rcv1/cnn.yml
 ```
 
 ## Usage
@@ -62,7 +62,7 @@ The LibMultiLabel toolkit uses a yaml file to configure the dataset and the trai
 
 For more information, run `--help` or check [the example configs](./example_config).
 ```
-python main.py --help
+python3 main.py --help
 ```
 Each parameter can also be specified through the command line.
 
@@ -106,9 +106,9 @@ Without ID column:
 
 ## Training and Prediction
 ### Training
-In the training progress, you can build a model from scratch or start from some pre-obtained information.
+In the training procedure, you can build a model from scratch or start from some pre-obtained information.
 ```
-python main.py --config CONFIG_PATH [--load_checkpoint CHECKPOINT_PATH] \
+python3 main.py --config CONFIG_PATH [--load_checkpoint CHECKPOINT_PATH] \
 [--embed_file EMBED_NAME_OR_EMBED_PATH] [--vocab_file VOCAB_CSV_PATH]
 ```
 - **config**: configure parameters in a yaml file. See the section [Usage](#Usage).
@@ -126,16 +126,16 @@ To use your own word embeddings or vocabulary set, specify the following paramet
     ```
 - **vocab_file**: set the file path to a predefined vocabulary set that contains lines of words.
 
-
-### Validation
-In the validation progress, you can evaluate the model with a set of evaluation metrics. Set `monitor_metrics` to define what you want to print on the screen. `val_metric` is the metric for picking the best model. Example:
+For the validation process in the training procedure, you can evaluate the model with a set of evaluation metrics. Set `monitor_metrics` to define what you want to print on the screen. The argument `val_metric` is the metric for picking the best model. Example:
 ```yaml
 monitor_metrics: [P@1, P@3, P@5]
 val_metric: P@1
 ```
 
+If `test_path` is specified or `DATA_DIR/test.txt` exists, the model with the highest `val_metric` will be evaluated after training.
+
 ### Evaluation
-In the evaluation progress, you can evaluate a model from a pre-obtained checkpoint.
+In the evaluation procedure, you can evaluate a model from a pre-obtained checkpoint.
 ```
-python main.py --config CONFIG_PATH --eval --load_checkpoint CHECKPOINT_PATH --test_path TEST_DATA_PATH
+python3 main.py --config CONFIG_PATH --eval --load_checkpoint CHECKPOINT_PATH --test_path TEST_DATA_PATH
 ```
