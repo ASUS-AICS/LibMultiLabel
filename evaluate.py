@@ -9,7 +9,7 @@ from utils import log
 from utils.utils import Timer, dump_log
 
 
-def evaluate(config, model, dataset_loader, eval_metric, split='val', dump=True):
+def evaluate(config, model, dataset_loader, split='val', dump=True):
     timer = Timer()
     progress_bar = tqdm(dataset_loader)
     eval_metric = MultiLabelMetrics(config)
