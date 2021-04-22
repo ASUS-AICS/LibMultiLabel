@@ -1,4 +1,4 @@
-"""Metrics different to sklearn are placed here. 
+"""Metrics different to sklearn are placed here.
 Some of the functions are from CAML-MIMIC:
 (https://github.com/jamesmullenbach/caml-mimic/blob/master/evaluation.py)."""
 
@@ -12,18 +12,18 @@ def intersect_size(y_true, y_pred, axis):
 
 
 def macro_precision(y_true, y_pred):
-    num = intersect_size(y_pred, y_true, 0) / (y_pred.sum(axis=0) + 1e-10)
+    num = intersect_size(y_true, y_pred, 0) / (y_pred.sum(axis=0) + 1e-10)
     return np.mean(num)
 
 
 def macro_recall(y_true, y_pred):
-    num = intersect_size(y_pred, y_true, 0) / (y_true.sum(axis=0) + 1e-10)
+    num = intersect_size(y_true, y_pred, 0) / (y_true.sum(axis=0) + 1e-10)
     return np.mean(num)
 
 
 def macro_f1(y_true, y_pred):
-    prec = macro_precision(y_pred, y_true)
-    rec = macro_recall(y_pred, y_true)
+    prec = macro_precision(y_true, y_pred)
+    rec = macro_recall(y_true, y_pred)
     if prec + rec == 0:
         f1 = 0.
     else:
