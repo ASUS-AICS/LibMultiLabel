@@ -53,10 +53,7 @@ def recall_at_k(y_true, y_pred, k):
     vals = []
     for i, tk in enumerate(topk):
         num_true_in_top_k = y_true[i,tk].sum()
-        denom = y_true[i,:].sum()
+        denom = y_true[i,:].sum() + 1e-10
         vals.append(num_true_in_top_k / float(denom))
-
-    vals = np.array(vals)
-    vals[np.isnan(vals)] = 0.
 
     return np.mean(vals)
