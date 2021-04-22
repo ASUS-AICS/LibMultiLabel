@@ -24,10 +24,7 @@ def macro_recall(y_true, y_pred):
 def macro_f1(y_true, y_pred):
     prec = macro_precision(y_true, y_pred)
     rec = macro_recall(y_true, y_pred)
-    if prec + rec == 0:
-        f1 = 0.
-    else:
-        f1 = 2*(prec*rec)/(prec+rec)
+    f1 = 2 * (prec * rec) / (prec + rec + 1e-10)
     return f1
 
 
