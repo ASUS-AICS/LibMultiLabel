@@ -11,8 +11,8 @@ from utils.utils import Timer, dump_log
 
 def evaluate(config, model, dataset_loader, eval_metric, split='val', dump=True):
     timer = Timer()
-    eval_metric.clear()
     progress_bar = tqdm(dataset_loader)
+    eval_metric = MultiLabelMetrics(config)
 
     for idx, batch in enumerate(progress_bar):
         batch_labels = batch['label']
@@ -57,7 +57,7 @@ class MultiLabelMetrics():
             'Macro-F1': macro_f1(y_true, y_pred > threshold) # caml's macro-f1
         }
 
-        # add metric like P@k, R@k to the result dict
+        # add metrics like P@k, R@k to the result dict
         for metric in self.config.monitor_metrics:
             if re.match('P@\d+', metric):
                 top_k = int(metric[2:])

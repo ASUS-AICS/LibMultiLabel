@@ -22,10 +22,6 @@ class Model(object):
     architecture, saving, updating examples, and predicting examples.
     """
 
-    # --------------------------------------------------------------------------
-    # Initialization
-    # --------------------------------------------------------------------------
-
     def __init__(self, config, word_dict=None, classes=None, ckpt=None):
         self.config = config
         self.device = config.device
@@ -82,12 +78,8 @@ class Model(object):
 
         torch.nn.utils.clip_grad_value_(parameters, 0.5)
 
-    # --------------------------------------------------------------------------
-    # Learning
-    # --------------------------------------------------------------------------
-
     @log.enter('train')
-    def train(self, train_data, val_data, eval_metric):
+    def train(self, train_data, val_data):
         train_loader = data_utils.get_dataset_loader(
             self.config, train_data, self.word_dict, self.classes, train=True)
         val_loader = data_utils.get_dataset_loader(
@@ -107,7 +99,7 @@ class Model(object):
                 self.train_epoch(train_loader)
 
                 log.info('Start validate Dev Dataset')
-                val_metrics = evaluate(self.config, self, val_loader, eval_metric)
+                val_metrics = evaluate(self.config, self, val_loader)
 
                 if val_metrics[self.config.val_metric] >= self.best_metric:
                     self.best_metric = val_metrics[self.config.val_metric]
@@ -194,10 +186,6 @@ class Model(object):
             'logits': logits,
             'outputs': outputs,
         }
-
-    # --------------------------------------------------------------------------
-    # Saving and loading
-    # --------------------------------------------------------------------------
 
     def save(self, epoch, is_best=False):
         self.network.eval()
