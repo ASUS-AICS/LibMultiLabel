@@ -31,7 +31,7 @@ def evaluate(config, model, dataset_loader, split='val', dump=True):
         dump_log(config, metrics, split)
 
     if split == 'test':
-        dump_top_k_prediction(model.classes, eval_metric.y_pred)
+        dump_top_k_prediction(config, model.classes, eval_metric.y_pred)
 
     return metrics
 

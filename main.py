@@ -69,6 +69,9 @@ def get_config():
     parser.add_argument('--embed_file', type=str, help='Path to a file holding pre-trained embeddings (default: %(default)s)')
     parser.add_argument('--label_file', type=str, help='Path to a file holding all labels (default: %(default)s)')
 
+    # log
+    parser.add_argument('--predict_path', help='Path to the a file holding top 100 label results (default: %(default)s)')
+    
     # others
     parser.add_argument('--cpu', action='store_true', help='Disable CUDA')
     parser.add_argument('--display_iter', type=int, default=100, help='Log state after every n steps (default: %(default)s)')

@@ -2,6 +2,8 @@ import json
 import os
 import time
 
+import numpy as np
+
 
 class ArgDict(dict):
     def __init__(self, *args, **kwargs):
@@ -78,10 +80,15 @@ def dump_top_k_prediction(config, classes, y_pred, k=100):
     <label1>:<value1> <label2>:<value2> ...
     """
 
-    predict_path = os.path.join(config.result_dir, config.run_name, 'prediction.txt')
+    if config.predict_path:
+        predict_path = config.predict_path
+    else:
+        predict_path = os.path.join(config.result_dir, config.run_name, 'prediction.txt')
+    
+    os.makedirs(os.path.dirname(predict_path), exist_ok=True)
     print(f'Dump top {k} prediction to {predict_path}.')
-    with open(predict_path) as fp:
-        for pred in np.vstack(eval_metric.y_pred):
+    with open(predict_path, 'w') as fp:
+        for pred in np.vstack(y_pred):
             label_ids = np.argsort(-pred).tolist()[:k]
-            out_str = ' '.join([f'{model.classes[i]}:{pred[i]:.4}' for i in label_ids])
+            out_str = ' '.join([f'{classes[i]}:{pred[i]:.4}' for i in label_ids])
             fp.write(out_str+'\n')
