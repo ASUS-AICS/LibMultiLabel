@@ -71,3 +71,17 @@ def dump_log(config, metrics, split):
         result[split] = [metrics]
     with open(log_path, 'w') as fp:
         json.dump(result, fp)
+
+
+def dump_top_k_prediction(config, classes, y_pred, k=100):
+    """Dump top k prediction to the predict_path. The format of this files is:
+    <label1>:<value1> <label2>:<value2> ...
+    """
+
+    predict_path = os.path.join(config.result_dir, config.run_name, 'prediction.txt')
+    print(f'Dump top {k} prediction to {predict_path}.')
+    with open(predict_path) as fp:
+        for pred in np.vstack(eval_metric.y_pred):
+            label_ids = np.argsort(-pred).tolist()[:k]
+            out_str = ' '.join([f'{model.classes[i]}:{pred[i]:.4}' for i in label_ids])
+            fp.write(out_str+'\n')

@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 from metrics import macro_f1, precision_at_k, recall_at_k
 from utils import log
-from utils.utils import Timer, dump_log
+from utils.utils import Timer, dump_log, dump_top_k_prediction
 
 
 def evaluate(config, model, dataset_loader, split='val', dump=True):
@@ -26,8 +26,12 @@ def evaluate(config, model, dataset_loader, split='val', dump=True):
     log.info(f'Time for evaluating {split} set = {timer.time():.2f} (s)')
     print(eval_metric)
     metrics = eval_metric.get_metrics()
+    
     if dump:
         dump_log(config, metrics, split)
+
+    if split == 'test':
+        dump_top_k_prediction(model.classes, eval_metric.y_pred)
 
     return metrics
 
