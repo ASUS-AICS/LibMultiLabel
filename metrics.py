@@ -4,6 +4,7 @@ Some of the functions are from CAML-MIMIC:
 
 
 import numpy as np
+from sklearn.metrics import precision_recall_fscore_support
 
 
 def intersect_size(y_true, y_pred, axis):
@@ -11,19 +12,8 @@ def intersect_size(y_true, y_pred, axis):
     return np.logical_and(y_pred, y_true).sum(axis=axis).astype(float)
 
 
-def macro_precision(y_true, y_pred):
-    num = intersect_size(y_true, y_pred, 0) / (y_pred.sum(axis=0) + 1e-10)
-    return np.mean(num)
-
-
-def macro_recall(y_true, y_pred):
-    num = intersect_size(y_true, y_pred, 0) / (y_true.sum(axis=0) + 1e-10)
-    return np.mean(num)
-
-
 def macro_f1(y_true, y_pred):
-    prec = macro_precision(y_true, y_pred)
-    rec = macro_recall(y_true, y_pred)
+    prec, rec, _, _ = precision_recall_fscore_support(y_true, y_pred, average='macro')
     f1 = 2 * (prec * rec) / (prec + rec + 1e-10)
     return f1
 
