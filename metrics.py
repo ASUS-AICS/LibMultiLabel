@@ -7,11 +7,6 @@ import numpy as np
 from sklearn.metrics import precision_recall_fscore_support
 
 
-def intersect_size(y_true, y_pred, axis):
-    # axis=0 for label-level union (macro). axis=1 for instance-level
-    return np.logical_and(y_pred, y_true).sum(axis=axis).astype(float)
-
-
 def macro_f1(y_true, y_pred):
     prec, rec, _, _ = precision_recall_fscore_support(y_true, y_pred, average='macro')
     f1 = 2 * (prec * rec) / (prec + rec + 1e-10)
