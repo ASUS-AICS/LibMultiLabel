@@ -36,10 +36,8 @@ def precision_at_k(y_true, y_pred, k):
     # get precision at k for each example
     vals = []
     for i, tk in enumerate(topk):
-        if len(tk) > 0:
-            num_true_in_top_k = y_true[i,tk].sum()
-            denom = len(tk)
-            vals.append(num_true_in_top_k / float(denom))
+        num_true_in_top_k = y_true[i,tk].sum()
+        vals.append(num_true_in_top_k / float(k))
 
     return np.mean(vals)
 
