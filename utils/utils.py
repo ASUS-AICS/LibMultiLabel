@@ -76,7 +76,7 @@ def dump_log(config, metrics, split):
 
 
 def dump_top_k_prediction(config, classes, y_pred, k=100):
-    """Dump top k prediction to the predict_path. The format of this files is:
+    """Dump top k prediction to the predict_path. The format of this file is:
     <label1>:<value1> <label2>:<value2> ...
     """
 
