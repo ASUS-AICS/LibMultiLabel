@@ -35,15 +35,8 @@ def evaluate(config, model, dataset_loader, split='val', dump=True):
 class MultiLabelMetrics():
     def __init__(self, config):
         self.config = config
-        self.clear()
-
-    def clear(self):
         self.y_true = []
         self.y_pred = []
-
-    def add(self, y_true, y_pred):
-        self.y_true.append(y_true)
-        self.y_pred.append(y_pred)
 
     def add_batch(self, y_true, y_pred):
         self.y_true.append(y_true)
@@ -53,8 +46,9 @@ class MultiLabelMetrics():
         result = {
             'Label Size': self.config.num_classes,
             '# Instance': len(y_true),
-            'Micro-F1': f1_score(y_true, y_pred > threshold, average='micro'), # sklearn's micro-f1
-            'Macro-F1': macro_f1(y_true, y_pred > threshold) # caml's macro-f1
+            'Micro-F1': f1_score(y_true, y_pred > threshold, average='micro'),
+            'Macro-F1': f1_score(y_true, y_pred > threshold, average='macro'),
+            'Macro*-F1': macro_f1(y_true, y_pred > threshold) # caml's macro-f1
         }
 
         # add metrics like P@k, R@k to the result dict
