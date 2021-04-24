@@ -22,7 +22,7 @@ def precision_at_k(y_true, y_pred_vals, k):
     vals = []
     for i, tk in enumerate(topk):
         num_true_in_top_k = y_true[i,tk].sum()
-        vals.append(num_true_in_top_k / float(k))
+        vals.append(num_true_in_top_k / k)
 
     return np.mean(vals)
 
