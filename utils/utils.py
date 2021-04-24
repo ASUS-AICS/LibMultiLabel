@@ -76,18 +76,18 @@ def dump_log(config, metrics, split):
 
 
 def dump_top_k_prediction(config, classes, y_pred, k=100):
-    """Dump top k prediction to the predict_path. The format of this file is:
+    """Dump top k predictions to the predict_out_path. The format of this file is:
     <label1>:<value1> <label2>:<value2> ...
     """
 
-    if config.predict_path:
-        predict_path = config.predict_path
+    if config.predict_out_path:
+        predict_out_path = config.predict_out_path
     else:
-        predict_path = os.path.join(config.result_dir, config.run_name, 'prediction.txt')
+        predict_out_path = os.path.join(config.result_dir, config.run_name, 'predictions.txt')
     
-    os.makedirs(os.path.dirname(predict_path), exist_ok=True)
-    print(f'Dump top {k} prediction to {predict_path}.')
-    with open(predict_path, 'w') as fp:
+    os.makedirs(os.path.dirname(predict_out_path), exist_ok=True)
+    print(f'Dump top {k} prediction to {predict_out_path}.')
+    with open(predict_out_path, 'w') as fp:
         for pred in np.vstack(y_pred):
             label_ids = np.argsort(-pred).tolist()[:k]
             out_str = ' '.join([f'{classes[i]}:{pred[i]:.4}' for i in label_ids])

@@ -8,8 +8,8 @@ from sklearn.metrics import precision_recall_fscore_support
 
 
 def macro_f1(y_true, y_pred):
-    prec, rec, _, _ = precision_recall_fscore_support(y_true, y_pred, average='macro')
-    f1 = 2 * (prec * rec) / (prec + rec + 1e-10)
+    macro_prec, macro_rec, _, _ = precision_recall_fscore_support(y_true, y_pred, average='macro')
+    f1 = 2 * (macro_prec * macro_rec) / (macro_prec + macro_rec + 1e-10)
     return f1
 
 

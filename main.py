@@ -70,7 +70,7 @@ def get_config():
     parser.add_argument('--label_file', type=str, help='Path to a file holding all labels (default: %(default)s)')
 
     # log
-    parser.add_argument('--predict_path', help='Path to the a file holding top 100 label results (default: %(default)s)')
+    parser.add_argument('--predict_out_path', help='Path to the an output file holding top 100 label results (default: %(default)s)')
     
     # others
     parser.add_argument('--cpu', action='store_true', help='Disable CUDA')
