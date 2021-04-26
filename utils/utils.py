@@ -78,6 +78,11 @@ def dump_log(config, metrics, split):
 def dump_top_k_prediction(config, classes, y_pred, k=100):
     """Dump top k predictions to the predict_out_path. The format of this file is:
     <label1>:<value1> <label2>:<value2> ...
+
+    Parameters:
+    classes (list): list of class names
+    y_pred (list): list of ndarray (shape: number of samples * number of classes)
+    k (int): number of classes considered as the correct labels
     """
 
     if config.predict_out_path:
@@ -88,7 +93,7 @@ def dump_top_k_prediction(config, classes, y_pred, k=100):
     os.makedirs(os.path.dirname(predict_out_path), exist_ok=True)
     print(f'Dump top {k} prediction to {predict_out_path}.')
     with open(predict_out_path, 'w') as fp:
-        for pred in np.vstack(y_pred):
+        for pred in y_pred:
             label_ids = np.argsort(-pred).tolist()[:k]
             out_str = ' '.join([f'{classes[i]}:{pred[i]:.4}' for i in label_ids])
             fp.write(out_str+'\n')

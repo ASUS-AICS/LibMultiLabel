@@ -31,7 +31,7 @@ def evaluate(config, model, dataset_loader, split='val', dump=True):
         dump_log(config, metrics, split)
 
     if split == 'test':
-        dump_top_k_prediction(config, model.classes, eval_metric.y_pred)
+        dump_top_k_prediction(config, model.classes, eval_metric.get_y_pred())
 
     return metrics
 
@@ -68,6 +68,9 @@ class MultiLabelMetrics():
             result[metric] = metric_at_k
 
         return result
+
+    def get_y_pred(self):
+        return np.vstack(self.y_pred)
 
     def get_metrics(self):
         y_true = np.vstack(self.y_true)
