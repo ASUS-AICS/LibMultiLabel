@@ -3,12 +3,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.init import xavier_uniform_
 
-from network.base import BaseModel
+from networks.base import BaseModel
 
 
-class VanillaConv(BaseModel):
+class KimCNN(BaseModel):
     def __init__(self, config, embed_vecs):
-        super(VanillaConv, self).__init__(config, embed_vecs)
+        super(KimCNN, self).__init__(config, embed_vecs)
 
         num_filter_maps = config.num_filter_maps
         filter_size = config.filter_size
