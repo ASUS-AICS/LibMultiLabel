@@ -52,8 +52,7 @@ def get_config():
     parser.add_argument('--patience', type=int, default=5, help='Number of epochs to wait for improvement before early stopping (default: %(default)s)')
 
     # model
-    parser.add_argument('--model_name', default='cnn', choices=['caml', 'cnn'], help='Model to be used (default: %(default)s)')
-    # default
+    parser.add_argument('--model_name', default='KimCNN',help='Model to be used (default: %(default)s)')
     parser.add_argument('--num_filter_maps', type=int, default=128, help='Number of filters in convolutional layers (default: %(default)s)')
     parser.add_argument('--filter_size', type=int, default=4, help='Size of convolutional filter (default: %(default)s)')
     parser.add_argument('--dropout', type=float, default=0.2, help='Optional specification of dropout (default: %(default)s)')
