@@ -21,7 +21,7 @@ monitor_metrics: [P@1, P@3, P@5]
 val_metric: P@1
 
 # model
-model_name: cnn
+model_name: KimCNN
 num_filter_map: 128 # filter channels
 filter_size: 4 # no filter sizes
 dropout: 0.2
@@ -30,5 +30,5 @@ dropout: 0.2
 embed_file: glove.6B.300d
 
 # others
-data_workers: 1
+data_workers: 4
 display_iter: 100

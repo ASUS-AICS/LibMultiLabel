@@ -19,7 +19,7 @@ monitor_metrics: ['P@1','P@3','P@5']
 val_metric: P@5
 
 # model
-model_name: cnn
+model_name: KimCNN
 num_filter_maps: 500
 filter_size: 4
 dropout: 0.2
@@ -29,5 +29,5 @@ vocab_file: data/MIMIC-50/vocab.csv
 embed_file: data/MIMIC-50/processed_full.embed
 
 # others
-data_workers: 1
+data_workers: 4
 display_iter: 100

@@ -5,12 +5,12 @@ import torch
 import torch.nn as nn
 from torch.nn.init import xavier_uniform_
 
-from network.base import BaseModel
+from networks.base import BaseModel
 
 
-class CamlConvAttnPool(BaseModel):
+class CAML(BaseModel):
     def __init__(self, config, embed_vecs):
-        super(CamlConvAttnPool, self).__init__(config, embed_vecs)
+        super(CAML, self).__init__(config, embed_vecs)
 
         num_filter_maps = config.num_filter_maps
         filter_size = config.filter_size

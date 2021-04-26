@@ -11,9 +11,10 @@ import torch.optim as optim
 from tqdm import tqdm
 
 import data_utils
+import networks
 from evaluate import evaluate
-from network import get_network
-from utils import AverageMeter, Timer
+from utils import log
+from utils.utils import (AverageMeter, Timer)
 
 
 class Model(object):
@@ -51,7 +52,7 @@ class Model(object):
         self.config.num_classes = len(self.classes)
 
         embed_vecs = self.word_dict.vectors
-        self.network = get_network(config, embed_vecs).to(self.device)
+        self.network = getattr(networks, config.model_name)(config, embed_vecs).to(self.device)
         self.init_optimizer()
 
         if ckpt:
