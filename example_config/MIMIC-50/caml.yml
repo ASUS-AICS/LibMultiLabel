@@ -31,4 +31,3 @@ embed_file: data/MIMIC-50/processed_full.embed
 
 # others
 data_workers: 4
-display_iter: 100
