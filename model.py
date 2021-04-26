@@ -13,8 +13,10 @@ from tqdm import tqdm
 import data_utils
 from evaluate import evaluate
 from network import get_network
-from utils import log
 from utils.utils import (AverageMeter, Timer)
+
+
+logging.getLogger().setLevel(logging.INFO)
 
 
 class Model(object):
@@ -41,11 +43,11 @@ class Model(object):
 
             # load embedding
             if os.path.exists(config.embed_file):
-                log.info(f'Load pretrained embedding from file: {config.embed_file}.')
+                logging.info(f'Load pretrained embedding from file: {config.embed_file}.')
                 embedding_weights = data_utils.get_embedding_weights_from_file(self.word_dict, config.embed_file)
                 self.word_dict.set_vectors(self.word_dict.stoi, embedding_weights,dim=embedding_weights.shape[1], unk_init=False)
             elif not config.embed_file.isdigit():
-                log.info(f'Load pretrained embedding from torchtext.')
+                logging.info(f'Load pretrained embedding from torchtext.')
                 self.word_dict.load_vectors(config.embed_file)
             else:
                 raise NotImplementedError
@@ -78,27 +80,26 @@ class Model(object):
 
         torch.nn.utils.clip_grad_value_(parameters, 0.5)
 
-    @log.enter('train')
     def train(self, train_data, val_data):
         train_loader = data_utils.get_dataset_loader(
             self.config, train_data, self.word_dict, self.classes, train=True)
         val_loader = data_utils.get_dataset_loader(
             self.config, val_data, self.word_dict, self.classes, train=False)
 
-        log.info('Start training')
+        logging.info('Start training')
         try:
             epoch = self.start_epoch + 1
             patience = self.config.patience
             while epoch <= self.config.epochs:
                 if patience == 0:
-                    log.info('Reach training patience. Stopping...')
+                    logging.info('Reach training patience. Stopping...')
                     break
 
-                log.info(f'============= Starting epoch {epoch} =============')
+                logging.info(f'============= Starting epoch {epoch} =============')
 
                 self.train_epoch(train_loader)
 
-                log.info('Start validate Dev Dataset')
+                logging.info('Start validate Dev Dataset')
                 val_metrics = evaluate(self.config, self, val_loader)
 
                 if val_metrics[self.config.val_metric] >= self.best_metric:
@@ -106,13 +107,13 @@ class Model(object):
                     self.save(epoch, is_best=True)
                     patience = self.config.patience
                 else:
-                    log.info(f'Performance does not increase, training will stop in {patience} epochs')
+                    logging.info(f'Performance does not increase, training will stop in {patience} epochs')
                     self.save(epoch)
                     patience -= 1
 
                 epoch += 1
         except KeyboardInterrupt:
-            log.info('training terminated')
+            logging.info('training terminated')
 
     def train_epoch(self, data_loader):
         """Run through one epoch of model training with the provided data loader."""
@@ -126,8 +127,8 @@ class Model(object):
             train_loss.update(loss)
             progress_bar.set_postfix(loss=train_loss.avg)
 
-        log.info(f'Epoch done. Time for epoch = {epoch_time.time():.2f} (s)')
-        log.info(f'Epoch loss: {train_loss.avg}')
+        logging.info(f'Epoch done. Time for epoch = {epoch_time.time():.2f} (s)')
+        logging.info(f'Epoch loss: {train_loss.avg}')
 
     def train_step(self, inputs):
         """Forward a batch of examples; stop the optimizer to update weights.
@@ -201,11 +202,11 @@ class Model(object):
         ckpt_path = os.path.join(self.config.result_dir,
                                  self.config.run_name, 'model_last.pt')
         os.makedirs(os.path.dirname(ckpt_path), exist_ok=True)
-        log.info(f"Save current  model: {ckpt_path}")
+        logging.info(f"Save current  model: {ckpt_path}")
         torch.save(ckpt, ckpt_path)
         if is_best:
             best_ckpt_path = ckpt_path.replace('last', 'best')
-            log.info(f"Save best model ({self.config.val_metric}: {self.best_metric}): {best_ckpt_path}")
+            logging.info(f"Save best model ({self.config.val_metric}: {self.best_metric}): {best_ckpt_path}")
             shutil.copyfile(ckpt_path, best_ckpt_path)
         self.network.train()
 

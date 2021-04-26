@@ -1,3 +1,4 @@
+import logging
 import re
 
 import numpy as np
@@ -5,8 +6,10 @@ from sklearn.metrics import f1_score
 from tqdm import tqdm
 
 from metrics import macro_f1, precision_at_k, recall_at_k
-from utils import log
 from utils.utils import Timer, dump_log, dump_top_k_prediction
+
+
+logging.getLogger().setLevel(logging.INFO)
 
 
 def evaluate(config, model, dataset_loader, split='val', dump=True):
@@ -23,7 +26,7 @@ def evaluate(config, model, dataset_loader, split='val', dump=True):
         batch_label_scores = batch_label_scores.cpu().detach().numpy()
         eval_metric.add_values(batch_labels, batch_label_scores)
 
-    log.info(f'Time for evaluating {split} set = {timer.time():.2f} (s)')
+    logging.info(f'Time for evaluating {split} set = {timer.time():.2f} (s)')
     print(eval_metric)
     metrics = eval_metric.get_metrics()
     

@@ -1,4 +1,5 @@
 import argparse
+import logging
 from datetime import datetime
 from pathlib import Path
 
@@ -9,9 +10,11 @@ import numpy as np
 
 import data_utils
 from model import Model
-from utils import log
 from utils.utils import ArgDict
 from evaluate import evaluate, MultiLabelMetrics
+
+
+# logger = logging.getLogger(__name__)
 
 
 def get_config():
@@ -97,7 +100,7 @@ def init_env(config):
             torch.set_deterministic(True)
             torch.backends.cudnn.benchmark = False
         else:
-            log.warning(f'the random seed should be a non-negative integer')
+            logging.warning(f'the random seed should be a non-negative integer')
 
     config.device = None
     if not config.cpu and torch.cuda.is_available():
@@ -106,18 +109,17 @@ def init_env(config):
         config.device = torch.device('cpu')
         # https://github.com/pytorch/pytorch/issues/11201
         torch.multiprocessing.set_sharing_strategy('file_system')
-    log.info(f'Using device: {config.device}')
+    logging.info(f'Using device: {config.device}')
 
     config.run_name = '{}_{}_{}'.format(
         config.data_name,
         Path(config.config).stem if config.config else config.model_name,
         datetime.now().strftime('%Y%m%d%H%M%S'),
     )
-    log.info(f'Run name: {config.run_name}')
+    logging.info(f'Run name: {config.run_name}')
     return config
 
 
-@log.enter('main')
 def main():
     config = get_config()
     config = init_env(config)
