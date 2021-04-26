@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 import time
@@ -63,10 +64,14 @@ class Timer(object):
 def dump_log(config, metrics, split):
     log_path = os.path.join(config.result_dir, config.run_name, 'logs.json')
     os.makedirs(os.path.dirname(log_path), exist_ok=True)
-    result = {}
     if os.path.isfile(log_path):
         with open(log_path) as fp:
             result = json.load(fp)
+    else:
+        config_to_save = copy.deepcopy(config)
+        del config_to_save['device']
+        result = {'config': config_to_save}
+
     if split in result:
         result[split].append(metrics)
     else:
@@ -89,7 +94,7 @@ def dump_top_k_prediction(config, classes, y_pred, k=100):
         predict_out_path = config.predict_out_path
     else:
         predict_out_path = os.path.join(config.result_dir, config.run_name, 'predictions.txt')
-    
+
     os.makedirs(os.path.dirname(predict_out_path), exist_ok=True)
     print(f'Dump top {k} prediction to {predict_out_path}.')
     with open(predict_out_path, 'w') as fp:
