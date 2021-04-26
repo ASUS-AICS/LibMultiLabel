@@ -81,7 +81,7 @@ def dump_top_k_prediction(config, classes, y_pred, k=100):
 
     Parameters:
     classes (list): list of class names
-    y_pred (list): list of ndarray (shape: number of samples * number of classes)
+    y_pred (ndarray): predictions (shape: number of samples * number of classes)
     k (int): number of classes considered as the correct labels
     """
 

@@ -21,7 +21,7 @@ def evaluate(config, model, dataset_loader, split='val', dump=True):
 
         batch_labels = batch_labels.cpu().detach().numpy()
         batch_label_scores = batch_label_scores.cpu().detach().numpy()
-        eval_metric.add_batch(batch_labels, batch_label_scores)
+        eval_metric.add_values(batch_labels, batch_label_scores)
 
     log.info(f'Time for evaluating {split} set = {timer.time():.2f} (s)')
     print(eval_metric)
@@ -42,7 +42,13 @@ class MultiLabelMetrics():
         self.y_true = []
         self.y_pred = []
 
-    def add_batch(self, y_true, y_pred):
+    def add_values(self, y_true, y_pred):
+        """Add batch of y_true and y_pred.
+
+        Parameters:
+        y_true (ndarray): a 2D array with ground truth labels (shape: batch_size * number of classes)  
+        y_pred (ndarray): a 2d array with predicted labels (shape: batch_size * number of classes)
+        """
         self.y_true.append(y_true)
         self.y_pred.append(y_pred)
 
