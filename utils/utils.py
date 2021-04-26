@@ -2,6 +2,8 @@ import json
 import os
 import time
 
+import numpy as np
+
 
 class ArgDict(dict):
     def __init__(self, *args, **kwargs):
@@ -71,3 +73,27 @@ def dump_log(config, metrics, split):
         result[split] = [metrics]
     with open(log_path, 'w') as fp:
         json.dump(result, fp)
+
+
+def dump_top_k_prediction(config, classes, y_pred, k=100):
+    """Dump top k predictions to the predict_out_path. The format of this file is:
+    <label1>:<value1> <label2>:<value2> ...
+
+    Parameters:
+    classes (list): list of class names
+    y_pred (ndarray): predictions (shape: number of samples * number of classes)
+    k (int): number of classes considered as the correct labels
+    """
+
+    if config.predict_out_path:
+        predict_out_path = config.predict_out_path
+    else:
+        predict_out_path = os.path.join(config.result_dir, config.run_name, 'predictions.txt')
+    
+    os.makedirs(os.path.dirname(predict_out_path), exist_ok=True)
+    print(f'Dump top {k} prediction to {predict_out_path}.')
+    with open(predict_out_path, 'w') as fp:
+        for pred in y_pred:
+            label_ids = np.argsort(-pred).tolist()[:k]
+            out_str = ' '.join([f'{classes[i]}:{pred[i]:.4}' for i in label_ids])
+            fp.write(out_str+'\n')

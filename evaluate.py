@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 from metrics import macro_f1, precision_at_k, recall_at_k
 from utils import log
-from utils.utils import Timer, dump_log
+from utils.utils import Timer, dump_log, dump_top_k_prediction
 
 
 def evaluate(config, model, dataset_loader, split='val', dump=True):
@@ -21,13 +21,17 @@ def evaluate(config, model, dataset_loader, split='val', dump=True):
 
         batch_labels = batch_labels.cpu().detach().numpy()
         batch_label_scores = batch_label_scores.cpu().detach().numpy()
-        eval_metric.add_batch(batch_labels, batch_label_scores)
+        eval_metric.add_values(batch_labels, batch_label_scores)
 
     log.info(f'Time for evaluating {split} set = {timer.time():.2f} (s)')
     print(eval_metric)
     metrics = eval_metric.get_metrics()
+    
     if dump:
         dump_log(config, metrics, split)
+
+    if split == 'test':
+        dump_top_k_prediction(config, model.classes, eval_metric.get_y_pred())
 
     return metrics
 
@@ -35,17 +39,16 @@ def evaluate(config, model, dataset_loader, split='val', dump=True):
 class MultiLabelMetrics():
     def __init__(self, config):
         self.config = config
-        self.clear()
-
-    def clear(self):
         self.y_true = []
         self.y_pred = []
 
-    def add(self, y_true, y_pred):
-        self.y_true.append(y_true)
-        self.y_pred.append(y_pred)
+    def add_values(self, y_true, y_pred):
+        """Add batch of y_true and y_pred.
 
-    def add_batch(self, y_true, y_pred):
+        Parameters:
+        y_true (ndarray): a 2D array with ground truth labels (shape: batch_size * number of classes)  
+        y_pred (ndarray): a 2d array with predicted labels (shape: batch_size * number of classes)
+        """
         self.y_true.append(y_true)
         self.y_pred.append(y_pred)
 
@@ -53,8 +56,9 @@ class MultiLabelMetrics():
         result = {
             'Label Size': self.config.num_classes,
             '# Instance': len(y_true),
-            'Micro-F1': f1_score(y_true, y_pred > threshold, average='micro'), # sklearn's micro-f1
-            'Macro-F1': macro_f1(y_true, y_pred > threshold) # caml's macro-f1
+            'Micro-F1': f1_score(y_true, y_pred > threshold, average='micro'),
+            'Macro-F1': f1_score(y_true, y_pred > threshold, average='macro'),
+            'Macro*-F1': macro_f1(y_true, y_pred > threshold) # caml's macro-f1
         }
 
         # add metrics like P@k, R@k to the result dict
@@ -70,6 +74,12 @@ class MultiLabelMetrics():
             result[metric] = metric_at_k
 
         return result
+
+    def get_y_pred(self):
+        """Convert 3D array (shape: number of batches * batch_size * number of classes
+        to 2D array (shape: number of samples * number of classes).
+        """
+        return np.vstack(self.y_pred)
 
     def get_metrics(self):
         y_true = np.vstack(self.y_true)
