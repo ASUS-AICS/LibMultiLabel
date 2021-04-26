@@ -58,6 +58,9 @@ class Model(object):
         if ckpt:
             self.network.load_state_dict(ckpt['state_dict'])
             self.optimizer.load_state_dict(ckpt['optimizer'])
+        else:
+            init_weights = networks.get_weight_init_func(config)
+            self.network.apply(init_weights)
 
     def init_optimizer(self, optimizer=None):
         """Initialize an optimizer for the free parameters of the network.
