@@ -2,6 +2,7 @@ import torch.nn as nn
 
 from networks.caml import CAML
 from networks.kim_cnn import KimCNN
+from networks.xml_cnn import XMLCNN
 
 
 def get_weight_init_func(config):
