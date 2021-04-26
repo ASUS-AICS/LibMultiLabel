@@ -76,6 +76,9 @@ class MultiLabelMetrics():
         return result
 
     def get_y_pred(self):
+        """Convert 3D array (shape: number of batches * batch_size * number of classes
+        to 2D array (shape: number of samples * number of classes).
+        """
         return np.vstack(self.y_pred)
 
     def get_metrics(self):
