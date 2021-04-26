@@ -10,7 +10,7 @@ import numpy as np
 
 import data_utils
 from model import Model
-from utils.utils import ArgDict
+from utils import ArgDict
 from evaluate import evaluate, MultiLabelMetrics
 
 

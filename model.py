@@ -13,7 +13,7 @@ from tqdm import tqdm
 import data_utils
 from evaluate import evaluate
 from network import get_network
-from utils.utils import (AverageMeter, Timer)
+from utils import AverageMeter, Timer
 
 
 logging.getLogger().setLevel(logging.INFO)

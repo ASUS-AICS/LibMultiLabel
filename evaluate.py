@@ -6,7 +6,7 @@ from sklearn.metrics import f1_score
 from tqdm import tqdm
 
 from metrics import macro_f1, precision_at_k, recall_at_k
-from utils.utils import Timer, dump_log, dump_top_k_prediction
+from utils import Timer, dump_log, dump_top_k_prediction
 
 
 logging.getLogger().setLevel(logging.INFO)
