@@ -13,7 +13,6 @@ from tqdm import tqdm
 import data_utils
 import networks
 from evaluate import evaluate
-from utils import log
 from utils.utils import (AverageMeter, Timer)
 
 

@@ -14,6 +14,9 @@ from torch.nn.utils.rnn import pad_sequence
 from torchtext.vocab import Vocab
 from torchtext.data.utils import get_tokenizer
 
+UNK = Vocab.UNK
+PAD = '<pad>'
+
 
 class TextDataset(Dataset):
     """Class for text dataset"""
@@ -66,14 +69,24 @@ def tokenize(text):
     return [t.lower() for t in tokenizer.tokenize(text) if not t.isnumeric()]
 
 
+<<<<<<< 2a15a7b0d6345d800ca5f817382724ae7363daa6
 def _load_raw_data(path, is_test=False):
     logging.info(f'Load data from {path}.')
+=======
+def _load_raw_data(config, path, is_test=False):
+    log.info(f'Load data from {path}.')
+>>>>>>> allow fixed length
     data = pd.read_csv(path, sep='\t', names=['label', 'text'],
                        converters={'label': lambda s: s.split(),
                                    'text': tokenize})
     data = data.reset_index().to_dict('records')
     if not is_test:
         data = [d for d in data if len(d['label']) > 0]
+    if config.fixed_length:
+        pad_seq = [PAD] * config.max_seq_length
+        for i in range(len(data)):
+            pad_len = config.max_seq_length - len(data[i]['text'])
+            data[i]['text'] += pad_seq[:pad_len]
     return data
 
 
@@ -81,15 +94,15 @@ def load_datasets(config):
     datasets = {}
     test_path = config.test_path or os.path.join(config.data_dir, 'test.txt')
     if config.eval:
-        datasets['test'] = _load_raw_data(test_path, is_test=True)
+        datasets['test'] = _load_raw_data(config, test_path, is_test=True)
     else:
         if os.path.exists(test_path):
-            datasets['test'] = _load_raw_data(test_path, is_test=True)
+            datasets['test'] = _load_raw_data(config, test_path, is_test=True)
         train_path = config.train_path or os.path.join(config.data_dir, 'train.txt')
-        datasets['train'] = _load_raw_data(train_path)
+        datasets['train'] = _load_raw_data(config, train_path)
         val_path = config.val_path or os.path.join(config.data_dir, 'valid.txt')
         if os.path.exists(val_path):
-            datasets['val'] = _load_raw_data(val_path)
+            datasets['val'] = _load_raw_data(config, val_path)
         else:
             datasets['train'], datasets['val'] = train_test_split(
                 datasets['train'], test_size=config.val_size, random_state=42)
@@ -103,15 +116,15 @@ def load_or_build_text_dict(config, dataset):
     if config.vocab_file:
         logging.info(f'Load vocab from {config.vocab_file}')
         with open(config.vocab_file, 'r') as fp:
-            vocab_list = ['**PAD**'] + [vocab.strip() for vocab in fp.readlines()]
-        vocabs = Vocab(collections.Counter(vocab_list), specials=['<unk>'],
+            vocab_list = [PAD] + [vocab.strip() for vocab in fp.readlines()]
+        vocabs = Vocab(collections.Counter(vocab_list), specials=[UNK],
                        min_freq=1, specials_first=False)
     else:
         counter = collections.Counter()
         for data in dataset:
             unique_tokens = set(data['text'])
             counter.update(unique_tokens)
-        vocabs = Vocab(counter, specials=['<pad>', '<unk>'],
+        vocabs = Vocab(counter, specials=[PAD, UNK],
                        min_freq=config.min_vocab_freq)
     logging.info(f'Read {len(vocabs)} vocabularies.')
     return vocabs
