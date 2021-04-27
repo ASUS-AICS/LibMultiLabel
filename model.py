@@ -16,9 +16,6 @@ from network import get_network
 from utils import AverageMeter, Timer
 
 
-logging.getLogger().setLevel(logging.INFO)
-
-
 class Model(object):
     """High level model that handles initializing the underlying network
     architecture, saving, updating examples, and predicting examples.

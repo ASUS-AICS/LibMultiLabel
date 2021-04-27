@@ -14,7 +14,7 @@ from utils import ArgDict
 from evaluate import evaluate, MultiLabelMetrics
 
 
-# logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(message)s')
 
 
 def get_config():
@@ -74,7 +74,7 @@ def get_config():
 
     # log
     parser.add_argument('--predict_out_path', help='Path to the an output file holding top 100 label results (default: %(default)s)')
-    
+
     # others
     parser.add_argument('--cpu', action='store_true', help='Disable CUDA')
     parser.add_argument('--display_iter', type=int, default=100, help='Log state after every n steps (default: %(default)s)')

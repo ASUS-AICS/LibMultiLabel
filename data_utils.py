@@ -15,9 +15,6 @@ from torchtext.vocab import Vocab
 from torchtext.data.utils import get_tokenizer
 
 
-logging.getLogger().setLevel(logging.INFO)
-
-
 class TextDataset(Dataset):
     """Class for text dataset"""
 

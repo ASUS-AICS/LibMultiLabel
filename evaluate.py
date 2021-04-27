@@ -9,9 +9,6 @@ from metrics import macro_f1, precision_at_k, recall_at_k
 from utils import Timer, dump_log, dump_top_k_prediction
 
 
-logging.getLogger().setLevel(logging.INFO)
-
-
 def evaluate(config, model, dataset_loader, split='val', dump=True):
     timer = Timer()
     progress_bar = tqdm(dataset_loader)
@@ -29,7 +26,7 @@ def evaluate(config, model, dataset_loader, split='val', dump=True):
     logging.info(f'Time for evaluating {split} set = {timer.time():.2f} (s)')
     print(eval_metric)
     metrics = eval_metric.get_metrics()
-    
+
     if dump:
         dump_log(config, metrics, split)
 
@@ -49,7 +46,7 @@ class MultiLabelMetrics():
         """Add batch of y_true and y_pred.
 
         Parameters:
-        y_true (ndarray): a 2D array with ground truth labels (shape: batch_size * number of classes)  
+        y_true (ndarray): a 2D array with ground truth labels (shape: batch_size * number of classes)
         y_pred (ndarray): a 2d array with predicted labels (shape: batch_size * number of classes)
         """
         self.y_true.append(y_true)
