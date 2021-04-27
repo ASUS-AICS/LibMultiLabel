@@ -110,7 +110,7 @@ class Model(object):
 
                 epoch += 1
         except KeyboardInterrupt:
-            logging.info('training terminated')
+            logging.info('Training process terminated')
 
     def train_epoch(self, data_loader):
         """Run through one epoch of model training with the provided data loader."""
