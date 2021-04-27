@@ -1,4 +1,5 @@
 import collections
+import logging
 import os
 
 import torch
@@ -12,8 +13,6 @@ from torch.utils.data import Dataset
 from torch.nn.utils.rnn import pad_sequence
 from torchtext.vocab import Vocab
 from torchtext.data.utils import get_tokenizer
-
-from utils import log
 
 
 class TextDataset(Dataset):
@@ -68,7 +67,7 @@ def tokenize(text):
 
 
 def _load_raw_data(path, is_test=False):
-    log.info(f'Load data from {path}.')
+    logging.info(f'Load data from {path}.')
     data = pd.read_csv(path, sep='\t', names=['label', 'text'],
                        converters={'label': lambda s: s.split(),
                                    'text': tokenize})
@@ -78,7 +77,6 @@ def _load_raw_data(path, is_test=False):
     return data
 
 
-@log.enter('load_dataset')
 def load_datasets(config):
     datasets = {}
     test_path = config.test_path or os.path.join(config.data_dir, 'test.txt')
@@ -97,13 +95,13 @@ def load_datasets(config):
                 datasets['train'], test_size=config.val_size, random_state=42)
 
     msg = ' / '.join(f'{k}: {len(v)}' for k, v in datasets.items())
-    log.info(f'Finish loading dataset ({msg})')
+    logging.info(f'Finish loading dataset ({msg})')
     return datasets
 
 
 def load_or_build_text_dict(config, dataset):
     if config.vocab_file:
-        log.info(f'Load vocab from {config.vocab_file}')
+        logging.info(f'Load vocab from {config.vocab_file}')
         with open(config.vocab_file, 'r') as fp:
             vocab_list = ['**PAD**'] + [vocab.strip() for vocab in fp.readlines()]
         vocabs = Vocab(collections.Counter(vocab_list), specials=['<unk>'],
@@ -115,13 +113,13 @@ def load_or_build_text_dict(config, dataset):
             counter.update(unique_tokens)
         vocabs = Vocab(counter, specials=['<pad>', '<unk>'],
                        min_freq=config.min_vocab_freq)
-    log.info(f'Read {len(vocabs)} vocabularies.')
+    logging.info(f'Read {len(vocabs)} vocabularies.')
     return vocabs
 
 
 def load_or_build_label(config, datasets):
     if config.label_file:
-        log.info('Load labels from {config.label_file}')
+        logging.info('Load labels from {config.label_file}')
         with open(config.label_file, 'r') as fp:
             classes = sorted([s.strip() for s in fp.readlines()])
     else:
@@ -152,7 +150,7 @@ def get_embedding_weights_from_file(word_dict, embed_file):
         embedding_weights[word_dict[word]] = vector
         vec_counts += 1
 
-    log.info(f'loaded {vec_counts}/{len(word_dict)} word embeddings')
+    logging.info(f'loaded {vec_counts}/{len(word_dict)} word embeddings')
 
     """ Add UNK embedding.
     Attention xml: np.random.uniform(-1.0, 1.0, emb_size)

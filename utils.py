@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import time
 
@@ -89,9 +90,9 @@ def dump_top_k_prediction(config, classes, y_pred, k=100):
         predict_out_path = config.predict_out_path
     else:
         predict_out_path = os.path.join(config.result_dir, config.run_name, 'predictions.txt')
-    
+
     os.makedirs(os.path.dirname(predict_out_path), exist_ok=True)
-    print(f'Dump top {k} prediction to {predict_out_path}.')
+    logging.info(f'Dump top {k} predictions to {predict_out_path}.')
     with open(predict_out_path, 'w') as fp:
         for pred in y_pred:
             label_ids = np.argsort(-pred).tolist()[:k]

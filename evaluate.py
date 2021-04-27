@@ -1,3 +1,4 @@
+import logging
 import re
 
 import numpy as np
@@ -5,8 +6,7 @@ from sklearn.metrics import f1_score
 from tqdm import tqdm
 
 from metrics import macro_f1, precision_at_k, recall_at_k
-from utils import log
-from utils.utils import Timer, dump_log, dump_top_k_prediction
+from utils import Timer, dump_log, dump_top_k_prediction
 
 
 def evaluate(config, model, dataset_loader, split='val', dump=True):
@@ -23,10 +23,10 @@ def evaluate(config, model, dataset_loader, split='val', dump=True):
         batch_label_scores = batch_label_scores.cpu().detach().numpy()
         eval_metric.add_values(batch_labels, batch_label_scores)
 
-    log.info(f'Time for evaluating {split} set = {timer.time():.2f} (s)')
+    logging.info(f'Time for evaluating {split} set = {timer.time():.2f} (s)')
     print(eval_metric)
     metrics = eval_metric.get_metrics()
-    
+
     if dump:
         dump_log(config, metrics, split)
 
@@ -46,7 +46,7 @@ class MultiLabelMetrics():
         """Add batch of y_true and y_pred.
 
         Parameters:
-        y_true (ndarray): a 2D array with ground truth labels (shape: batch_size * number of classes)  
+        y_true (ndarray): a 2D array with ground truth labels (shape: batch_size * number of classes)
         y_pred (ndarray): a 2d array with predicted labels (shape: batch_size * number of classes)
         """
         self.y_true.append(y_true)
