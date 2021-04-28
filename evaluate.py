@@ -28,6 +28,7 @@ def evaluate(config, model, dataset_loader, split='val', dump=True):
     metrics = eval_metric.get_metrics()
 
     if dump:
+        print(metrics)
         dump_log(config, metrics, split)
 
     if split == 'test':
@@ -62,16 +63,26 @@ class MultiLabelMetrics():
         }
 
         # add metrics like P@k, R@k to the result dict
+        precision_top_ks = list()
+        recall_top_ks = list()
+
         for metric in self.config.monitor_metrics:
             if re.match('P@\d+', metric):
                 top_k = int(metric[2:])
-                metric_at_k = precision_at_k(y_true, y_pred, k=top_k)
+                precision_top_ks.append(top_k)
             elif re.match('R@\d+', metric):
                 top_k = int(metric[2:])
-                metric_at_k = recall_at_k(y_true, y_pred, k=top_k)
+                recall_top_ks.append(top_k)
             else:
                 raise ValueError(f'Invalid metric: {metric}')
-            result[metric] = metric_at_k
+
+        precision_at_k_scores = precision_at_k(y_true, y_pred, top_ks=precision_top_ks)
+        recall_at_k_scores = recall_at_k(y_true, y_pred, top_ks=recall_top_ks)
+
+        for i, top_k_score in enumerate(precision_at_k_scores):
+            result[f'P@{precision_top_ks[i]}'] = top_k_score
+        for i, top_k_score in enumerate(recall_at_k_scores):
+            result[f'R@{recall_top_ks[i]}'] = top_k_score
 
         return result
 

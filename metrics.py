@@ -13,30 +13,23 @@ def macro_f1(y_true, y_pred):
     return f1
 
 
-def precision_at_k(y_true, y_pred_vals, k):
-    # num true labels in top k predictions / k
-    sortd = np.argsort(y_pred_vals)[:,::-1]
-    topk = sortd[:,:k]
-
-    # get precision at k for each example
-    vals = []
-    for i, tk in enumerate(topk):
-        num_true_in_top_k = y_true[i,tk].sum()
-        vals.append(num_true_in_top_k / k)
-
-    return np.mean(vals)
+def precision_at_k(y_true, y_pred_vals, top_ks):
+    rank_mat = np.argsort(-y_pred_vals)
+    scores = list()
+    for k in top_ks:
+        y_pred = np.take_along_axis(y_true, rank_mat[:,:k], axis=1)
+        score = np.mean(np.sum(y_pred, axis=1) / k).item()
+        scores.append(score)
+    return scores
 
 
-def recall_at_k(y_true, y_pred_vals, k):
+def recall_at_k(y_true, y_pred_vals, top_ks):
     # num true labels in top k predictions / num true labels
-    sortd = np.argsort(y_pred_vals)[:,::-1]
-    topk = sortd[:,:k]
-
-    # get recall at k for each example
-    vals = []
-    for i, tk in enumerate(topk):
-        num_true_in_top_k = y_true[i,tk].sum()
-        denom = y_true[i,:].sum() + 1e-10
-        vals.append(num_true_in_top_k / float(denom))
-
-    return np.mean(vals)
+    rank_mat = np.argsort(-y_pred_vals)
+    scores = list()
+    for k in top_ks:
+        fp = np.take_along_axis(y_true, rank_mat[:, :k], axis=1).sum(axis=1)
+        denom = y_true.sum(axis=1) + 1e-10
+        score = np.mean(fp / denom).item()
+        scores.append(score)
+    return scores
