@@ -64,10 +64,7 @@ class MultiLabelMetrics():
         # add metrics like P@k, R@k to the result dict
         top_ks = set()
         for metric in self.config.monitor_metrics:
-            if re.match('P@\d+', metric):
-                top_k = int(metric[2:])
-                top_ks.add(top_k)
-            elif re.match('R@\d+', metric):
+            if re.match('[P|R]@\d+', metric):
                 top_k = int(metric[2:])
                 top_ks.add(top_k)
             else:

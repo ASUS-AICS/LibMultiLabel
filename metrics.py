@@ -19,8 +19,6 @@ def precision_recall_at_ks(y_true, y_pred_vals, top_ks):
     scores = {}
     for k in top_ks:
         y_pred = np.take_along_axis(y_true, rank_mat[:,:k], axis=1)
-        precision_at_k = np.mean(np.sum(y_pred, axis=1) / k).item()  # precision at k
-        recall_at_k = np.mean(y_pred.sum(axis=1) / denom).item()  # recall at k
-        scores[f'P@{k}'] = precision_at_k
-        scores[f'R@{k}'] = recall_at_k
+        scores[f'P@{k}'] = np.mean(np.sum(y_pred, axis=1) / k).item()  # precision at k
+        scores[f'R@{k}'] = np.mean(y_pred.sum(axis=1) / denom).item()  # recall at k
     return scores
