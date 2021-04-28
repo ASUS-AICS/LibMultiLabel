@@ -14,11 +14,11 @@ def macro_f1(y_true, y_pred):
 
 
 def precision_recall_at_ks(y_true, y_pred_vals, top_ks):
-    y_pred_rank = np.argsort(-y_pred_vals)
+    y_pred_ranked_idx = np.argsort(-y_pred_vals)
     n_pos = y_true.sum(axis=1)
     scores = {}
     for k in top_ks:
-        n_pos_in_top_k = np.take_along_axis(y_true, y_pred_rank[:,:k], axis=1).sum(axis=1)
+        n_pos_in_top_k = np.take_along_axis(y_true, y_pred_ranked_idx[:,:k], axis=1).sum(axis=1)
         scores[f'P@{k}'] = np.mean(n_pos_in_top_k / k).item()  # precision at k
         scores[f'R@{k}'] = np.mean(n_pos_in_top_k / (n_pos + 1e-10)).item()  # recall at k
     return scores

@@ -71,8 +71,7 @@ class MultiLabelMetrics():
                 raise ValueError(f'Invalid metric: {metric}')
 
         scores = precision_recall_at_ks(y_true, y_pred, top_ks=top_ks)
-        for metric in self.config.monitor_metrics:
-            result[metric] = scores[metric]
+        result.update({metric: scores[metric] for metric in self.config.monitor_metrics})
         return result
 
     def get_y_pred(self):
