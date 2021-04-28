@@ -31,6 +31,3 @@ dropout2: 0.5
 
 # pretrained vocab / embeddings
 embed_file: glove.6B.300d
-
-# others
-data_workers: 4
