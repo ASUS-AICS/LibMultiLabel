@@ -5,7 +5,7 @@ import numpy as np
 from sklearn.metrics import f1_score
 from tqdm import tqdm
 
-from metrics import macro_f1, precision_at_k, recall_at_k
+from metrics import macro_f1, precision_recall_at_ks
 from utils import Timer, dump_log, dump_top_k_prediction
 
 
@@ -28,7 +28,6 @@ def evaluate(config, model, dataset_loader, split='val', dump=True):
     metrics = eval_metric.get_metrics()
 
     if dump:
-        print(metrics)
         dump_log(config, metrics, split)
 
     if split == 'test':
@@ -63,27 +62,20 @@ class MultiLabelMetrics():
         }
 
         # add metrics like P@k, R@k to the result dict
-        precision_top_ks = list()
-        recall_top_ks = list()
-
+        top_ks = set()
         for metric in self.config.monitor_metrics:
             if re.match('P@\d+', metric):
                 top_k = int(metric[2:])
-                precision_top_ks.append(top_k)
+                top_ks.add(top_k)
             elif re.match('R@\d+', metric):
                 top_k = int(metric[2:])
-                recall_top_ks.append(top_k)
+                top_ks.add(top_k)
             else:
                 raise ValueError(f'Invalid metric: {metric}')
 
-        precision_at_k_scores = precision_at_k(y_true, y_pred, top_ks=precision_top_ks)
-        recall_at_k_scores = recall_at_k(y_true, y_pred, top_ks=recall_top_ks)
-
-        for i, top_k_score in enumerate(precision_at_k_scores):
-            result[f'P@{precision_top_ks[i]}'] = top_k_score
-        for i, top_k_score in enumerate(recall_at_k_scores):
-            result[f'R@{recall_top_ks[i]}'] = top_k_score
-
+        scores = precision_recall_at_ks(y_true, y_pred, top_ks=top_ks)
+        for metric in self.config.monitor_metrics:
+            result[metric] = scores[metric]
         return result
 
     def get_y_pred(self):

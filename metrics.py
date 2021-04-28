@@ -13,23 +13,14 @@ def macro_f1(y_true, y_pred):
     return f1
 
 
-def precision_at_k(y_true, y_pred_vals, top_ks):
+def precision_recall_at_ks(y_true, y_pred_vals, top_ks):
     rank_mat = np.argsort(-y_pred_vals)
-    scores = list()
+    denom = y_true.sum(axis=1) + 1e-10
+    scores = {}
     for k in top_ks:
         y_pred = np.take_along_axis(y_true, rank_mat[:,:k], axis=1)
-        score = np.mean(np.sum(y_pred, axis=1) / k).item()
-        scores.append(score)
-    return scores
-
-
-def recall_at_k(y_true, y_pred_vals, top_ks):
-    # num true labels in top k predictions / num true labels
-    rank_mat = np.argsort(-y_pred_vals)
-    scores = list()
-    for k in top_ks:
-        fp = np.take_along_axis(y_true, rank_mat[:, :k], axis=1).sum(axis=1)
-        denom = y_true.sum(axis=1) + 1e-10
-        score = np.mean(fp / denom).item()
-        scores.append(score)
+        precision_at_k = np.mean(np.sum(y_pred, axis=1) / k).item()  # precision at k
+        recall_at_k = np.mean(y_pred.sum(axis=1) / denom).item()  # recall at k
+        scores[f'P@{k}'] = precision_at_k
+        scores[f'R@{k}'] = recall_at_k
     return scores
