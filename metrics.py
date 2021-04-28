@@ -13,30 +13,12 @@ def macro_f1(y_true, y_pred):
     return f1
 
 
-def precision_at_k(y_true, y_pred_vals, k):
-    # num true labels in top k predictions / k
-    sortd = np.argsort(y_pred_vals)[:,::-1]
-    topk = sortd[:,:k]
-
-    # get precision at k for each example
-    vals = []
-    for i, tk in enumerate(topk):
-        num_true_in_top_k = y_true[i,tk].sum()
-        vals.append(num_true_in_top_k / k)
-
-    return np.mean(vals)
-
-
-def recall_at_k(y_true, y_pred_vals, k):
-    # num true labels in top k predictions / num true labels
-    sortd = np.argsort(y_pred_vals)[:,::-1]
-    topk = sortd[:,:k]
-
-    # get recall at k for each example
-    vals = []
-    for i, tk in enumerate(topk):
-        num_true_in_top_k = y_true[i,tk].sum()
-        denom = y_true[i,:].sum() + 1e-10
-        vals.append(num_true_in_top_k / float(denom))
-
-    return np.mean(vals)
+def precision_recall_at_ks(y_true, y_pred_vals, top_ks):
+    y_pred_ranked_idx = np.argsort(-y_pred_vals)
+    n_pos = y_true.sum(axis=1)
+    scores = {}
+    for k in top_ks:
+        n_pos_in_top_k = np.take_along_axis(y_true, y_pred_ranked_idx[:,:k], axis=1).sum(axis=1)
+        scores[f'P@{k}'] = np.mean(n_pos_in_top_k / k).item()  # precision at k
+        scores[f'R@{k}'] = np.mean(n_pos_in_top_k / (n_pos + 1e-10)).item()  # recall at k
+    return scores
