@@ -17,6 +17,8 @@ from torchtext.data.utils import get_tokenizer
 UNK = Vocab.UNK
 PAD = '<pad>'
 
+UNK = Vocab.UNK
+PAD = '<pad>'
 
 class TextDataset(Dataset):
     """Class for text dataset"""
@@ -69,13 +71,8 @@ def tokenize(text):
     return [t.lower() for t in tokenizer.tokenize(text) if not t.isnumeric()]
 
 
-<<<<<<< 2a15a7b0d6345d800ca5f817382724ae7363daa6
-def _load_raw_data(path, is_test=False):
-    logging.info(f'Load data from {path}.')
-=======
 def _load_raw_data(config, path, is_test=False):
-    log.info(f'Load data from {path}.')
->>>>>>> allow fixed length
+    logging.info(f'Load data from {path}.')
     data = pd.read_csv(path, sep='\t', names=['label', 'text'],
                        converters={'label': lambda s: s.split(),
                                    'text': tokenize})
