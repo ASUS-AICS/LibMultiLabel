@@ -13,7 +13,7 @@ from tqdm import tqdm
 import data_utils
 import networks
 from evaluate import evaluate
-from utils.utils import (AverageMeter, Timer)
+from utils import AverageMeter, Timer
 
 
 class Model(object):
@@ -58,8 +58,8 @@ class Model(object):
             self.network.load_state_dict(ckpt['state_dict'])
             self.optimizer.load_state_dict(ckpt['optimizer'])
         else:
-            init_weights = networks.get_weight_init_func(config)
-            self.network.apply(init_weights)
+            init_weight = networks.get_init_weight_func(config)
+            self.network.apply(init_weight)
 
     def init_optimizer(self, optimizer=None):
         """Initialize an optimizer for the free parameters of the network.
