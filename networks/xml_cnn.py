@@ -62,10 +62,10 @@ class XMLCNN(BaseModel):
             h = torch.cat(h_list, 1)
         else:
             h = h_list[0]
-        h = F.relu(h) # (batch_size, N * num_filter)
+        h = self.activation(h) # (batch_size, N * num_filter)
 
         # linear output
-        h = F.relu(self.linear1(h))
+        h = self.activation(self.linear1(h))
         h = self.dropout2(h)
         h = self.linear2(h)
         return {'logits': h}

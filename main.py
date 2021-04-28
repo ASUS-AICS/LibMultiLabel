@@ -57,6 +57,7 @@ def get_config():
     # model
     parser.add_argument('--model_name', default='KimCNN',help='Model to be used (default: %(default)s)')
     parser.add_argument('--init_weight', default='kaiming_uniform', help='Weight initialization to be used (default: %(default)s)')
+    parser.add_argument('--activation', default='relu', help='Activation function to be used (default: %(default)s)')
     parser.add_argument('--num_filter_maps', type=int, default=128, help='Number of filters in convolutional layers (default: %(default)s)')
     parser.add_argument('--filter_size', type=int, default=4, help='Size of convolutional filter (default: %(default)s)')
     parser.add_argument('--dropout', type=float, default=0.2, help='Optional specification of dropout (default: %(default)s)')

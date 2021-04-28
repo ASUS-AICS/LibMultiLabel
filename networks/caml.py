@@ -33,8 +33,8 @@ class CAML(BaseModel):
         x = self.embed_drop(x)
         x = x.transpose(1,2)
 
-        # Apply convolution and nonlinearity (tanh / prelu)
-        x = torch.tanh(self.conv(x).transpose(1,2))
+        # Apply convolution and nonlinearity (tanh / relu)
+        x = self.activation(self.conv(x).transpose(1,2))
 
         # Apply attention
         #    batch * text_length * 1200
