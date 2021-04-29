@@ -15,10 +15,8 @@ from torchtext.vocab import Vocab
 from torchtext.data.utils import get_tokenizer
 
 UNK = Vocab.UNK
-PAD = '<pad>'
+PAD = '**PAD**'
 
-UNK = Vocab.UNK
-PAD = '<pad>'
 
 class TextDataset(Dataset):
     """Class for text dataset"""
