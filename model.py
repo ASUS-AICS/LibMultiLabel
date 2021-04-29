@@ -57,7 +57,7 @@ class Model(object):
         if ckpt:
             self.network.load_state_dict(ckpt['state_dict'])
             self.optimizer.load_state_dict(ckpt['optimizer'])
-        else:
+        elif config.init_weight is not None:
             init_weight = networks.get_init_weight_func(config)
             self.network.apply(init_weight)
 

@@ -21,8 +21,10 @@ val_metric: P@5
 # model
 model_name: KimCNN
 num_filter_maps: 500
-filter_size: 4
+filter_sizes: [4]
+strides: [1]
 dropout: 0.2
+init_weight: xavier_uniform
 
 # pretrained vocab / embeddings
 vocab_file: data/MIMIC-50/vocab.csv
