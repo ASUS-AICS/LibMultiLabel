@@ -26,11 +26,11 @@ class XMLCNN(BaseModel):
         self.poolings = nn.ModuleList()
 
         for filter_size, p, stride in zip(self.filter_sizes, d_max_pool_p, strides):
-            conv = nn.Conv2d(
-                in_channels=1,
+            conv = nn.Conv1d(
+                in_channels=emb_dim,
                 out_channels=num_filter_maps,
-                kernel_size=(filter_size, emb_dim),
-                stride=(stride, emb_dim))
+                kernel_size=filter_size,
+                stride=stride)
 
             # Dynamic Max-Pooling
             conv_out_size = out_size(config.max_seq_length, filter_size, num_filter_maps, stride=stride)
@@ -48,12 +48,12 @@ class XMLCNN(BaseModel):
     def forward(self, text):
         h = self.embedding(text) # (batch_size, length, embed_dim)
         h = self.embed_drop(h)
-        h = h.view(h.shape[0], 1, h.shape[1], h.shape[2]) # (batch_size, 1, length, embed_dim)
+        h = h.view(h.shape[0], h.shape[2], h.shape[1]) # (batch_size, embed_dim, length)
 
         h_list = []
         for i in range(len(self.filter_sizes)):
-            h_sub = self.convs[i](h) # (batch_size, num_filter, H, 1)
-            h_sub = h_sub.view(h_sub.shape[0], 1, h_sub.shape[1] * h_sub.shape[2]) # (batch_size, 1, num_filter * H)
+            h_sub = self.convs[i](h) # (batch_size, num_filter, length)
+            h_sub = h_sub.view(h_sub.shape[0], 1, h_sub.shape[1] * h_sub.shape[2]) # (batch_size, 1, num_filter * length)
             h_sub = self.poolings[i](h_sub) # (batch_size, 1, P)
             h_sub = h_sub.view(h_sub.shape[0], -1) # (batch_size, P)
             h_list.append(h_sub)
