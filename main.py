@@ -42,7 +42,7 @@ def get_config():
     parser.add_argument('--val_size', type=float, default=0.2, help='Training-validation split: a ratio in [0, 1] or an integer for the size of the validation set (default: %(default)s).')
     parser.add_argument('--min_vocab_freq', type=int, default=1, help='The minimum frequency needed to include a token in the vocabulary (default: %(default)s)')
     parser.add_argument('--max_seq_length', type=int, default=500, help='The maximum number of tokens of a sample (default: %(default)s)')
-    parser.add_argument('--vocab_label_map', help='Path to a file storing vocabulary and label mappings (default: %(default)s)')
+    parser.add_argument('--fixed_length', action='store_true', help='Whether to pad all sequence to MAX_SEQ_LENGTH (default: %(default)s)')
 
     # train
     parser.add_argument('--seed', type=int, help='Random seed (default: %(default)s)')
@@ -55,9 +55,10 @@ def get_config():
     parser.add_argument('--patience', type=int, default=5, help='Number of epochs to wait for improvement before early stopping (default: %(default)s)')
 
     # model
-    parser.add_argument('--model_name', default='cnn', choices=['caml', 'cnn'], help='Model to be used (default: %(default)s)')
-    # default
-    parser.add_argument('--num_filter_maps', type=int, default=128, help='Number of filters in convolutional layers (default: %(default)s)')
+    parser.add_argument('--model_name', default='KimCNN',help='Model to be used (default: %(default)s)')
+    parser.add_argument('--init_weight', default='kaiming_uniform', help='Weight initialization to be used (default: %(default)s)')
+    parser.add_argument('--activation', default='relu', help='Activation function to be used (default: %(default)s)')
+    parser.add_argument('--num_filter_per_size', type=int, default=128, help='Number of filters in convolutional layers in each size (default: %(default)s)')
     parser.add_argument('--filter_size', type=int, default=4, help='Size of convolutional filter (default: %(default)s)')
     parser.add_argument('--dropout', type=float, default=0.2, help='Optional specification of dropout (default: %(default)s)')
 
@@ -77,7 +78,6 @@ def get_config():
 
     # others
     parser.add_argument('--cpu', action='store_true', help='Disable CUDA')
-    parser.add_argument('--display_iter', type=int, default=100, help='Log state after every n steps (default: %(default)s)')
     parser.add_argument('--data_workers', type=int, default=4, help='Use multi-cpu core for data pre-processing (default: %(default)s)')
     parser.add_argument('--eval', action='store_true', help='Only run evaluation on the test set (default: %(default)s)')
     parser.add_argument('--load_checkpoint', help='The checkpoint to warm-up with (default: %(default)s)')

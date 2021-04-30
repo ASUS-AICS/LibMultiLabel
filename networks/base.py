@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 class BaseModel(nn.Module):
@@ -15,3 +16,4 @@ class BaseModel(nn.Module):
         self.embedding = nn.Embedding(len(embed_vecs), embed_vecs.shape[1], padding_idx=0)
         self.embedding.weight.data = embed_vecs.clone()
         self.embed_drop = nn.Dropout(p=config.dropout)
+        self.activation = getattr(F, config.activation)

@@ -20,15 +20,13 @@ monitor_metrics: ['P@1','P@3','P@5']
 val_metric: P@5
 
 # model
-model_name: caml
-num_filter_maps: 50
+model_name: CAML
+num_filter_per_size: 50
 filter_size: 10
 dropout: 0.2
+init_weight: null
+activation: tanh
 
 # pretrained vocab / embeddings
 vocab_file: data/MIMIC-50/vocab.csv
 embed_file: data/MIMIC-50/processed_full.embed
-
-# others
-data_workers: 1
-display_iter: 100
