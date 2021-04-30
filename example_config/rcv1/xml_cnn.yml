@@ -22,9 +22,9 @@ val_metric: P@1
 # model
 model_name: XMLCNN
 num_filter_per_size: 128 # filter channels
-d_max_pool_p: [125, 128, 128]
+pool_size: 2
 filter_sizes: [2, 4, 8]
-strides: [2, 1, 1]
+strides: [1, 1, 1]
 hidden_dim: 512
 dropout: 0.5
 dropout2: 0.5

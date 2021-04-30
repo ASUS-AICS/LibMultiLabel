@@ -7,11 +7,11 @@ import torch.nn.functional as F
 from networks.base import BaseModel
 
 
-def out_size(l_in, kernel_size, channels, padding=0, dilation=1, stride=1):
+def out_size(l_in, kernel_size, padding=0, dilation=1, stride=1):
     # refer to https://pytorch.org/docs/stable/generated/torch.nn.Conv1d.html
     a = l_in + 2 * padding - dilation * (kernel_size - 1) - 1
     l_out = math.floor(a / stride + 1)
-    return l_out * channels
+    return l_out
 
 
 class XMLCNN(BaseModel):
@@ -23,12 +23,13 @@ class XMLCNN(BaseModel):
         num_filter_per_size = config.num_filter_per_size
         emb_dim = embed_vecs.shape[1]
         strides = config.strides
-        d_max_pool_p = config.d_max_pool_p
+        pool_size = config.pool_size
 
         self.convs = nn.ModuleList()
         self.poolings = nn.ModuleList()
 
-        for filter_size, p, stride in zip(self.filter_sizes, d_max_pool_p, strides):
+        total_output_size = 0
+        for filter_size, stride in zip(self.filter_sizes, strides):
             conv = nn.Conv1d(
                 in_channels=emb_dim,
                 out_channels=num_filter_per_size,
@@ -36,16 +37,14 @@ class XMLCNN(BaseModel):
                 stride=stride)
 
             # Dynamic Max-Pooling
-            conv_output_size = out_size(config.max_seq_length, filter_size, num_filter_per_size, stride=stride)
-            assert conv_output_size % p == 0
-            pool_size = conv_output_size // p
+            conv_output_size = out_size(config.max_seq_length, filter_size, stride=stride)
             pool = nn.MaxPool1d(pool_size, stride=pool_size)
+            total_output_size += num_filter_per_size * out_size(conv_output_size, pool_size, stride=pool_size)
             self.convs.append(conv)
             self.poolings.append(pool)
-        conv_output_size = sum(d_max_pool_p)
 
         self.dropout2 = nn.Dropout(config.dropout2)
-        self.linear1 = nn.Linear(conv_output_size, config.hidden_dim)
+        self.linear1 = nn.Linear(total_output_size, config.hidden_dim)
         self.linear2 = nn.Linear(config.hidden_dim, config.num_classes)
 
     def forward(self, text):
@@ -55,10 +54,9 @@ class XMLCNN(BaseModel):
 
         h_list = []
         for i in range(len(self.filter_sizes)):
-            h_sub = self.convs[i](h) # (batch_size, num_filter, length)
-            h_sub = h_sub.view(h_sub.shape[0], 1, h_sub.shape[1] * h_sub.shape[2]) # (batch_size, 1, num_filter * length)
-            h_sub = self.poolings[i](h_sub) # (batch_size, 1, p)
-            h_sub = h_sub.view(h_sub.shape[0], -1) # (batch_size, p)
+            h_sub = self.convs[i](h) # (batch_size, num_filter, length')
+            h_sub = self.poolings[i](h_sub) # (batch_size, num_filter, length'')
+            h_sub = h_sub.view(h_sub.shape[0], -1) # (batch_size, num_filter * length'')
             h_list.append(h_sub)
 
         if len(self.filter_sizes) > 1:
