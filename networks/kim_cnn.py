@@ -11,7 +11,7 @@ class KimCNN(BaseModel):
 
         self.filter_sizes = config.filter_sizes
         emb_dim = embed_vecs.shape[1]
-        num_filter_maps = config.num_filter_maps
+        num_filter_per_size = config.num_filter_per_size
         strides = config.strides
 
         self.convs = nn.ModuleList()
@@ -19,11 +19,11 @@ class KimCNN(BaseModel):
         for filter_size, stride in zip(self.filter_sizes, strides):
             conv = nn.Conv1d(
                 in_channels=emb_dim,
-                out_channels=num_filter_maps,
+                out_channels=num_filter_per_size,
                 kernel_size=filter_size,
                 stride=stride)
             self.convs.append(conv)
-        conv_output_size = num_filter_maps * len(self.filter_sizes)
+        conv_output_size = num_filter_per_size * len(self.filter_sizes)
 
         self.linear = nn.Linear(conv_output_size, config.num_classes)
 

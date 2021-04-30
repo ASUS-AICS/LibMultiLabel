@@ -12,19 +12,19 @@ class CAML(BaseModel):
     def __init__(self, config, embed_vecs):
         super(CAML, self).__init__(config, embed_vecs)
 
-        num_filter_maps = config.num_filter_maps
+        num_filter_per_size = config.num_filter_per_size
         filter_size = config.filter_size
 
         # initialize conv layer as in 2.1
-        self.conv = nn.Conv1d(embed_vecs.shape[1], num_filter_maps, kernel_size=filter_size, padding=int(floor(filter_size/2)))
+        self.conv = nn.Conv1d(embed_vecs.shape[1], num_filter_per_size, kernel_size=filter_size, padding=int(floor(filter_size/2)))
         xavier_uniform_(self.conv.weight)
 
         # Context vectors for computing attention as in 2.2
-        self.U = nn.Linear(num_filter_maps, config.num_classes)
+        self.U = nn.Linear(num_filter_per_size, config.num_classes)
         xavier_uniform_(self.U.weight)
 
         # Final layer: create a matrix to use for the L binary classifiers as in 2.3
-        self.final = nn.Linear(num_filter_maps, config.num_classes)
+        self.final = nn.Linear(num_filter_per_size, config.num_classes)
         xavier_uniform_(self.final.weight)
 
     def forward(self, text):

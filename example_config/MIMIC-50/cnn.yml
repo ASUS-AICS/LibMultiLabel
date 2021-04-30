@@ -20,7 +20,7 @@ val_metric: P@5
 
 # model
 model_name: KimCNN
-num_filter_maps: 500
+num_filter_per_size: 500
 filter_sizes: [4]
 strides: [1]
 dropout: 0.2

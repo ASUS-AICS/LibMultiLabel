@@ -21,7 +21,7 @@ val_metric: P@1
 
 # model
 model_name: XMLCNN
-num_filter_map: 128 # filter channels
+num_filter_per_size: 128 # filter channels
 d_max_pool_p: [125, 128, 128]
 filter_sizes: [2, 4, 8]
 strides: [2, 1, 1]

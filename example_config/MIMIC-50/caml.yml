@@ -21,7 +21,7 @@ val_metric: P@5
 
 # model
 model_name: CAML
-num_filter_maps: 50
+num_filter_per_size: 50
 filter_size: 10
 dropout: 0.2
 init_weight: null
