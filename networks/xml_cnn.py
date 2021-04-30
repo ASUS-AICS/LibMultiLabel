@@ -1,3 +1,5 @@
+import math
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -6,9 +8,10 @@ from networks.base import BaseModel
 
 
 def out_size(l_in, kernel_size, channels, padding=0, dilation=1, stride=1):
+    # refer to https://pytorch.org/docs/stable/generated/torch.nn.Conv1d.html
     a = l_in + 2 * padding - dilation * (kernel_size - 1) - 1
-    b = int(a / stride)
-    return (b + 1) * channels
+    l_out = math.floor(a / stride + 1)
+    return l_out * channels
 
 
 class XMLCNN(BaseModel):
@@ -17,8 +20,8 @@ class XMLCNN(BaseModel):
         assert config.fixed_length is True
 
         self.filter_sizes = config.filter_sizes
-        emb_dim = embed_vecs.shape[1]
         num_filter_per_size = config.num_filter_per_size
+        emb_dim = embed_vecs.shape[1]
         strides = config.strides
         d_max_pool_p = config.d_max_pool_p
 
@@ -33,9 +36,9 @@ class XMLCNN(BaseModel):
                 stride=stride)
 
             # Dynamic Max-Pooling
-            conv_out_size = out_size(config.max_seq_length, filter_size, num_filter_per_size, stride=stride)
-            assert conv_out_size % p == 0
-            pool_size = conv_out_size // p
+            conv_output_size = out_size(config.max_seq_length, filter_size, num_filter_per_size, stride=stride)
+            assert conv_output_size % p == 0
+            pool_size = conv_output_size // p
             pool = nn.MaxPool1d(pool_size, stride=pool_size)
             self.convs.append(conv)
             self.poolings.append(pool)
@@ -54,15 +57,15 @@ class XMLCNN(BaseModel):
         for i in range(len(self.filter_sizes)):
             h_sub = self.convs[i](h) # (batch_size, num_filter, length)
             h_sub = h_sub.view(h_sub.shape[0], 1, h_sub.shape[1] * h_sub.shape[2]) # (batch_size, 1, num_filter * length)
-            h_sub = self.poolings[i](h_sub) # (batch_size, 1, P)
-            h_sub = h_sub.view(h_sub.shape[0], -1) # (batch_size, P)
+            h_sub = self.poolings[i](h_sub) # (batch_size, 1, p)
+            h_sub = h_sub.view(h_sub.shape[0], -1) # (batch_size, p)
             h_list.append(h_sub)
 
         if len(self.filter_sizes) > 1:
             h = torch.cat(h_list, 1)
         else:
             h = h_list[0]
-        h = self.activation(h) # (batch_size, N * num_filter)
+        h = self.activation(h) # (batch_size, total_num_filter)
 
         # linear output
         h = self.activation(self.linear1(h))
