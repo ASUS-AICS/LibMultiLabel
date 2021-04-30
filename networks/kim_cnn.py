@@ -30,7 +30,7 @@ class KimCNN(BaseModel):
     def forward(self, text):
         h = self.embedding(text) # (batch_size, length, embed_dim)
         h = self.embed_drop(h)
-        h = h.view(h.shape[0], h.shape[2], h.shape[1]) # (batch_size, embed_dim, length)
+        h = h.transpose(1, 2) # (batch_size, embed_dim, length)
 
         h_list = []
         for conv in self.convs:
