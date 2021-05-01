@@ -47,7 +47,7 @@ cd ../..
 ### Step 2. Training and Prediction
 Train a cnn model and predict the test set by an example config. Use `--cpu` to run the program on the cpu.
 ```
-python3 main.py --config example_config/rcv1/cnn.yml
+python3 main.py --config example_config/rcv1/kim_cnn.yml
 ```
 
 ## Usage
