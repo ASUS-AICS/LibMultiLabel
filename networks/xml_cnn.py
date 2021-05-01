@@ -22,22 +22,20 @@ class XMLCNN(BaseModel):
         self.filter_sizes = config.filter_sizes
         num_filter_per_size = config.num_filter_per_size
         emb_dim = embed_vecs.shape[1]
-        strides = config.strides
         pool_size = config.pool_size
 
         self.convs = nn.ModuleList()
         self.poolings = nn.ModuleList()
 
         total_output_size = 0
-        for filter_size, stride in zip(self.filter_sizes, strides):
+        for filter_size in self.filter_sizes:
             conv = nn.Conv1d(
                 in_channels=emb_dim,
                 out_channels=num_filter_per_size,
-                kernel_size=filter_size,
-                stride=stride)
+                kernel_size=filter_size)
 
             # Dynamic Max-Pooling
-            conv_output_size = out_size(config.max_seq_length, filter_size, stride=stride)
+            conv_output_size = out_size(config.max_seq_length, filter_size)
             pool = nn.MaxPool1d(pool_size, stride=pool_size)
             total_output_size += num_filter_per_size * out_size(conv_output_size, pool_size, stride=pool_size)
             self.convs.append(conv)
