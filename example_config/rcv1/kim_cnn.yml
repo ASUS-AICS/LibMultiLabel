@@ -1,8 +1,6 @@
-# https://github.com/yu54ku/xml-cnn/blob/master/params.yml
 # data
 data_dir: data/rcv1
 data_name: rcv1
-dev_size: 0.25
 min_vocab_freq: 1
 max_seq_length: 500
 
@@ -21,14 +19,12 @@ monitor_metrics: [P@1, P@3, P@5]
 val_metric: P@1
 
 # model
-model_name: cnn
-num_filter_map: 128 # filter channels
-filter_size: 4 # no filter sizes
+model_name: KimCNN
+num_filter_per_size: 128 # filter channels
+#filter_size: 4 # no filter sizes
+filter_sizes: [2, 4, 8]
+strides: [1, 1, 1]
 dropout: 0.2
 
 # pretrained vocab / embeddings
 embed_file: glove.6B.300d
-
-# others
-data_workers: 1
-display_iter: 100

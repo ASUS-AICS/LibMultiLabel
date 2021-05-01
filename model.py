@@ -11,8 +11,8 @@ import torch.optim as optim
 from tqdm import tqdm
 
 import data_utils
+import networks
 from evaluate import evaluate
-from network import get_network
 from utils import AverageMeter, Timer
 
 
@@ -51,12 +51,15 @@ class Model(object):
         self.config.num_classes = len(self.classes)
 
         embed_vecs = self.word_dict.vectors
-        self.network = get_network(config, embed_vecs).to(self.device)
+        self.network = getattr(networks, config.model_name)(config, embed_vecs).to(self.device)
         self.init_optimizer()
 
         if ckpt:
             self.network.load_state_dict(ckpt['state_dict'])
             self.optimizer.load_state_dict(ckpt['optimizer'])
+        elif config.init_weight is not None:
+            init_weight = networks.get_init_weight_func(config)
+            self.network.apply(init_weight)
 
     def init_optimizer(self, optimizer=None):
         """Initialize an optimizer for the free parameters of the network.
