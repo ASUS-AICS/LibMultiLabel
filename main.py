@@ -61,6 +61,8 @@ def get_config():
     parser.add_argument('--num_filter_per_size', type=int, default=128, help='Number of filters in convolutional layers in each size (default: %(default)s)')
     parser.add_argument('--filter_size', type=int, default=4, help='Size of convolutional filter (default: %(default)s)')
     parser.add_argument('--dropout', type=float, default=0.2, help='Optional specification of dropout (default: %(default)s)')
+    parser.add_argument('--dropout2', type=float, default=0.2, help='Optional specification of the second dropout (default: %(default)s)')
+    parser.add_argument('--pool_size', type=int, default=2, help='Polling size for dynamic max-pooling (default: %(default)s)')
 
     # eval
     parser.add_argument('--eval_batch_size', type=int, default=256, help='Size of evaluating batches (default: %(default)s)')
@@ -74,6 +76,7 @@ def get_config():
     parser.add_argument('--label_file', type=str, help='Path to a file holding all labels (default: %(default)s)')
 
     # log
+    parser.add_argument('--save_k_predictions', type=int, nargs='?', const=100, default=0, help='Save top k predictions on test set. k=%(const)s if not specified. (default: %(default)s)')
     parser.add_argument('--predict_out_path', help='Path to the an output file holding top 100 label results (default: %(default)s)')
 
     # others

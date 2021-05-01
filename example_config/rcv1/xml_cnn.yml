@@ -24,7 +24,6 @@ model_name: XMLCNN
 num_filter_per_size: 128 # filter channels
 pool_size: 2
 filter_sizes: [2, 4, 8]
-strides: [1, 1, 1]
 hidden_dim: 512
 dropout: 0.5
 dropout2: 0.5
