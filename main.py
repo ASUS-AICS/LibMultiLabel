@@ -76,7 +76,7 @@ def get_config():
     parser.add_argument('--label_file', type=str, help='Path to a file holding all labels (default: %(default)s)')
 
     # log
-    parser.add_argument('--save_predict_k', type=int, nargs='?', const=100, default=0, help='Save top k predictions on test set. k=%(const)s if not specified. (default: %(default)s)')
+    parser.add_argument('--save_k_predictions', type=int, nargs='?', const=100, default=0, help='Save top k predictions on test set. k=%(const)s if not specified. (default: %(default)s)')
     parser.add_argument('--predict_out_path', help='Path to the an output file holding top 100 label results (default: %(default)s)')
 
     # others
