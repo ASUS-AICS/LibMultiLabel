@@ -37,6 +37,9 @@ class KimCNN(BaseModel):
             h_sub = h_sub.view(h_sub.shape[0], -1) # (batch_size, num_filter)
             h_list.append(h_sub)
 
+        # Max-pooling and monotonely increasing non-linearities commute. Here
+        # we apply the activation function after max-pooling for better
+        # efficiency.
         if len(self.filter_sizes) > 1:
             h = torch.cat(h_list, 1)
         else:
