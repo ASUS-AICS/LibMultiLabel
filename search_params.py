@@ -14,21 +14,6 @@ from main import init_env
 from utils import ArgDict
 
 
-def objective(step, model_config):
-    datasets = data_utils.load_datasets(model_config)
-    word_dict = data_utils.load_or_build_text_dict(model_config, datasets['train'])
-    classes = data_utils.load_or_build_label(model_config, datasets)
-
-    model = Model(model_config, word_dict, classes)
-    model.train(datasets['train'], datasets['val'])
-    model.load_best()
-
-    # return best eval metric
-    dev_loader = data_utils.get_dataset_loader(model_config, datasets['dev'], model.word_dict, model.classes, train=False)
-    metrics = evaluate(model_config, model, dev_loader, split='dev', dump=True)
-    return metrics[model_config['val_metric']]
-
-
 def init_model_config(config_path):
     with open(config_path) as fp:
         args = yaml.load(fp, Loader=yaml.SafeLoader)
@@ -45,9 +30,18 @@ def training_function(config):
     model_config["num_filter_maps"] = config["num_filter_maps"]
     model_config["filter_size"] = config["filter_size"]
 
-    for step in range(1):
-        intermediate_score = objective(step, model_config)
-        tune.report(pak=intermediate_score)
+    datasets = data_utils.load_datasets(model_config)
+    word_dict = data_utils.load_or_build_text_dict(model_config, datasets['train'])
+    classes = data_utils.load_or_build_label(model_config, datasets)
+
+    model = Model(model_config, word_dict, classes)
+    model.train(datasets['train'], datasets['val'])
+    model.load_best()
+
+    # return best eval metric
+    dev_loader = data_utils.get_dataset_loader(model_config, datasets['dev'], model.word_dict, model.classes, train=False)
+    metrics = evaluate(model_config, model, dev_loader, split='dev', dump=True)
+    tune.report(pak=metrics[model_config['val_metric']])
 
 
 def run_random_sampling(config):
