@@ -19,12 +19,11 @@ monitor_metrics: ['P@1','P@3','P@5']
 val_metric: P@5
 
 # model
-model_name: KimCNN
+model_name: VanillaCNN
 num_filter_per_size: 500
 filter_sizes: [4]
-strides: [1]
 dropout: 0.2
-init_weight: xavier_uniform
+init_weight: null
 activation: tanh
 
 # pretrained vocab / embeddings
