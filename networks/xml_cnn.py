@@ -61,6 +61,9 @@ class XMLCNN(BaseModel):
             h = torch.cat(h_list, 1)
         else:
             h = h_list[0]
+        # Max-pooling and monotonely increasing non-linearities commute. Here
+        # we apply the activation function after max-pooling for better
+        # efficiency.
         h = self.activation(h) # (batch_size, total_num_filter)
 
         # linear output
