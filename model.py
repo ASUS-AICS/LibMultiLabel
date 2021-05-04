@@ -5,7 +5,6 @@ import shutil
 
 import torch
 import numpy as np
-import pandas as pd
 import torch.nn.functional as F
 import torch.optim as optim
 from tqdm import tqdm
