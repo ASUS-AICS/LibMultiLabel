@@ -25,35 +25,39 @@ def init_model_config(config_path):
 
     model_config = ArgDict(args)
     model_config = init_env(model_config)
-    return model_config.__dict__
+    return model_config
 
 
-def get_search_algorithm(search_alg):
+def get_search_algorithm(search_alg, metric=None, mode=None):
     """Specify a search algorithm. You should pip install this search algorithm first.
     See more details here: https://docs.ray.io/en/master/tune/api_docs/suggestion.html"""
+
     if search_alg == 'optuna':
+        assert metric and mode, "metric and mode cannot be None for optuna search"
         from ray.tune.suggest.optuna import OptunaSearch
-        return OptunaSearch()
+        return OptunaSearch(metric=metric, mode=mode)
     elif search_alg == 'hyperopt':
+        assert metric and mode, "metric and mode cannot be None for hyperopt search"
         from ray.tune.suggest.hyperopt import HyperOptSearch
-        return HyperOptSearch()
+        return HyperOptSearch(metric=metric, mode=mode)
     print('No search algorithm is found, run BasicVariantGenerator().')
 
 
 def training_function(config):
-    config = ArgDict(config)
-    datasets = data_utils.load_datasets(config)
-    word_dict = data_utils.load_or_build_text_dict(config, datasets['train'])
-    classes = data_utils.load_or_build_label(config, datasets)
+    model_config = ArgDict(config)
+    model_config.filter_sizes = [model_config.filter_size]
+    datasets = data_utils.load_datasets(model_config)
+    word_dict = data_utils.load_or_build_text_dict(model_config, datasets['train'])
+    classes = data_utils.load_or_build_label(model_config, datasets)
 
-    model = Model(config, word_dict, classes)
+    model = Model(model_config, word_dict, classes)
     model.train(datasets['train'], datasets['val'])
     model.load_best()
 
     # return best eval metric
-    dev_loader = data_utils.get_dataset_loader(config, datasets['dev'], model.word_dict, model.classes, train=False)
-    metrics = evaluate(config, model, dev_loader, split='dev', dump=True)
-    tune.report(pak=metrics[config['val_metric']])
+    dev_loader = data_utils.get_dataset_loader(model_config, datasets['val'], model.word_dict, model.classes, train=False)
+    results = evaluate(model_config, model, dev_loader, split='val', dump=True)
+    yield results
 
 
 def main():
@@ -68,26 +72,31 @@ def main():
     parser.add_argument('--search_alg', default=None, help='Number of running samples (default: %(default)s)')
     args = vars(parser.parse_args())
 
-    config = init_model_config(args['config'])
-    config.learning_rate = tune.choice([0.001, 0.003, 0.0001, 0.0003])
-    config.dropout = tune.choice([0.2, 0.4, 0.6, 0.8])
-    config.num_filter_per_size = tune.choice([(50 + 100*i) for i in range(6)])
-    config.filter_sizes = [tune.choice([2, 4, 6, 8, 10])]
+    """Parse `model_config` to dict will make `model_config` be recognized as a resolved value.
+    https://github.com/ray-project/ray/blob/34d3d9294c50aea4005b7367404f6a5d9e0c2698/python/ray/tune/suggest/variant_generator.py#L333
+    """
+    model_config = init_model_config(args['config'])
+    model_config.learning_rate = tune.choice([0.001, 0.003, 0.0001, 0.0003])
+    model_config.dropout = tune.choice([0.2, 0.4, 0.6, 0.8])
+    model_config.num_filter_per_size = tune.choice([(50 + 100*i) for i in range(6)])
+    model_config.filter_size = tune.choice([2, 4, 6, 8, 10])
 
-    # run tune analysis
-    """If no search algorithm is specified, the defautl search algorighm is BasicVariantGenerator.
+    """Run tune analysis.
+    If no search algorithm is specified, the default search algorighm is BasicVariantGenerator.
     https://docs.ray.io/en/master/tune/api_docs/suggestion.html#tune-basicvariant
     """
+    search_alg = get_search_algorithm(
+        args['search_alg'], metric=model_config['val_metric'], mode=args['mode'])
     tune.run(
         training_function,
-        search_alg=get_search_algorithm(args['search_alg']),
+        search_alg=search_alg,
         local_dir=args['local_dir'],
-        metric='pak',
+        metric=model_config['val_metric'],
         mode=args['mode'],
         num_samples=args['num_samples'],
         resources_per_trial={
             'cpu': args['cpu_count'], 'gpu': args['gpu_count']},
-        config=config)
+        config=model_config)
 
 
 # calculate wall time.
