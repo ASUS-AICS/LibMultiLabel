@@ -72,7 +72,7 @@ def main():
     parser.add_argument('--search_alg', default=None, help='Number of running samples (default: %(default)s)')
     args = vars(parser.parse_args())
 
-    """Parse `model_config` to dict will make `model_config` be recognized as a resolved value.
+    """Other args in the model config are viewed as resolved values that are ignored from tune.
     https://github.com/ray-project/ray/blob/34d3d9294c50aea4005b7367404f6a5d9e0c2698/python/ray/tune/suggest/variant_generator.py#L333
     """
     model_config = init_model_config(args['config'])
