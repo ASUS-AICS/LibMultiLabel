@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 from torch.nn.init import xavier_uniform_
 
-from networks.base import BaseModel
+from libmultilabel.networks.base import BaseModel
 
 
 class CAML(BaseModel):

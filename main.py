@@ -8,10 +8,10 @@ import torch
 import yaml
 import numpy as np
 
-import data_utils
-from model import Model
-from utils import ArgDict
-from evaluate import evaluate, MultiLabelMetrics
+from libmultilabel import data_utils
+from libmultilabel.model import Model
+from libmultilabel.utils import ArgDict
+from libmultilabel.evaluate import evaluate, MultiLabelMetrics
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(message)s')

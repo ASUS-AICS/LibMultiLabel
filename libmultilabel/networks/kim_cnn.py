@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from networks.base import BaseModel
+from libmultilabel.networks.base import BaseModel
 
 
 class KimCNN(BaseModel):
