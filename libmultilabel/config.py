@@ -7,9 +7,10 @@ from pathlib import Path
 class Config:
     def __init__(self, config_path):
         self.set_to_default_values()
-        self.config = config_path
         if os.path.exists(config_path):
             self.load(config_path)
+        self.config = config_path
+        self.set_run_name()
 
     def load(self, config_path):
         """Read a configuration from a yaml file."""
