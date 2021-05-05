@@ -69,7 +69,7 @@ def dump_log(config, metrics, split):
         with open(log_path) as fp:
             result = json.load(fp)
     else:
-        config_to_save = copy.deepcopy(config)
+        config_to_save = copy.deepcopy(config.__dict__)
         del config_to_save['device']
         result = {'config': config_to_save}
 

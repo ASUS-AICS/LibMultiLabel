@@ -1,10 +1,13 @@
 import os
 import yaml
+from datetime import datetime
+from pathlib import Path
 
 
-class Config(dict):
+class Config:
     def __init__(self, config_path):
         self.set_to_default_values()
+        self.config = config_path
         if os.path.exists(config_path):
             self.load(config_path)
 
@@ -29,6 +32,7 @@ class Config(dict):
         self.embed_file = None
         self.vocab_file = None
         self.label_file = None
+        self.predict_out_path = None
 
         # dataset
         self.data_dir = './data/rcv1'
@@ -67,4 +71,10 @@ class Config(dict):
 
         # log
         self.save_k_predictions = 100
-        self.predict_out_path = None
+
+    def set_run_name(self):
+        self.run_name = '{}_{}_{}'.format(
+            self.data_name,
+            Path(self.config).stem if self.config else self.model_name,
+            datetime.now().strftime('%Y%m%d%H%M%S'),
+        )
