@@ -2,7 +2,7 @@ import logging
 import re
 
 import numpy as np
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, precision_recall_fscore_support
 from tqdm import tqdm
 
 from libmultilabel.metrics import another_macro_f1, precision_recall_at_ks
@@ -23,9 +23,9 @@ def evaluate(config, model, dataset_loader, split='val', dump=True):
         batch_label_scores = batch_label_scores.cpu().detach().numpy()
         eval_metric.add_values(batch_labels, batch_label_scores)
 
-    logging.info(f'Time for evaluating {split} set = {timer.time():.2f} (s)')
     print(eval_metric)
     metrics = eval_metric.get_metrics()
+    logging.info(f'Time for evaluating {split} set = {timer.time():.2f} (s)')
 
     if dump:
         dump_log(config, metrics, split)
@@ -41,6 +41,7 @@ class MultiLabelMetrics():
         self.config = config
         self.y_true = []
         self.y_pred = []
+        self.cache_result = {}
 
     def add_values(self, y_true, y_pred):
         """Add batch of y_true and y_pred.
@@ -53,10 +54,13 @@ class MultiLabelMetrics():
         self.y_pred.append(y_pred)
 
     def eval(self, y_true, y_pred, threshold=0.5):
+        precision, recall, micro_f1, _ = precision_recall_fscore_support(y_true, y_pred > threshold, average='micro')
         result = {
             'Label Size': self.config.num_classes,
             '# Instance': len(y_true),
-            'Micro-F1': f1_score(y_true, y_pred > threshold, average='micro'),
+            'Precision': precision,
+            'Recall': recall,
+            'Micro-F1': micro_f1,
             'Macro-F1': f1_score(y_true, y_pred > threshold, average='macro'),
             'Macro*-F1': another_macro_f1(y_true, y_pred > threshold) # caml's macro-f1
         }
@@ -80,10 +84,12 @@ class MultiLabelMetrics():
         """
         return np.vstack(self.y_pred)
 
-    def get_metrics(self):
-        y_true = np.vstack(self.y_true)
-        y_pred = np.vstack(self.y_pred)
-        return self.eval(y_true, y_pred)
+    def get_metrics(self, use_cache=False):
+        if not use_cache:
+            y_true = np.vstack(self.y_true)
+            y_pred = np.vstack(self.y_pred)
+            self.cache_result = self.eval(y_true, y_pred)
+        return self.cache_result
 
     def __repr__(self):
         result = self.get_metrics()
