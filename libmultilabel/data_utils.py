@@ -111,7 +111,7 @@ def load_or_build_text_dict(config, dataset):
     if config.vocab_file:
         logging.info(f'Load vocab from {config.vocab_file}')
         with open(config.vocab_file, 'r') as fp:
-            vocab_list = [PAD] + [vocab.strip() for vocab in fp.readlines()]
+            vocab_list = [PAD] + [vocab.strip() for vocab in fp.readlines()] # <pad>
         vocabs = Vocab(collections.Counter(vocab_list), specials=[UNK],
                        min_freq=1, specials_first=False) # specials_first=False to keep PAD index 0
     else:

@@ -5,8 +5,8 @@ import numpy as np
 from sklearn.metrics import f1_score, precision_recall_fscore_support
 from tqdm import tqdm
 
-from libmultilabel.metrics import another_macro_f1, precision_recall_at_ks
-from libmultilabel.utils import Timer, dump_log, dump_top_k_prediction
+from .metrics import another_macro_f1, precision_recall_at_ks
+from .utils import Timer, dump_log, dump_top_k_prediction
 
 
 def evaluate(config, model, dataset_loader, split='val', dump=True):

@@ -9,10 +9,10 @@ import torch.nn.functional as F
 import torch.optim as optim
 from tqdm import tqdm
 
-from libmultilabel import data_utils
-from libmultilabel import networks
-from libmultilabel.evaluate import evaluate
-from libmultilabel.utils import AverageMeter, Timer
+from . import data_utils
+from . import networks
+from .evaluate import evaluate
+from .utils import AverageMeter, Timer
 
 
 class Model(object):

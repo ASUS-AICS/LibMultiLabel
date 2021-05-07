@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from libmultilabel.networks.base import BaseModel
+from ..networks.base import BaseModel
 
 
 def out_size(l_in, kernel_size, padding=0, dilation=1, stride=1):
