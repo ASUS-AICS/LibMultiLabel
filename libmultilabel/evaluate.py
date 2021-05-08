@@ -6,15 +6,15 @@ from sklearn.metrics import f1_score, precision_recall_fscore_support
 from tqdm import tqdm
 
 from .metrics import another_macro_f1, precision_recall_at_ks
-from .utils import Timer, dump_log, dump_top_k_prediction
+from .utils import Timer, dump_log, save_top_k_prediction
 
 
-def evaluate(config, model, dataset_loader, split='val', dump=True):
+def evaluate(model, dataset_loader, monitor_metrics, predict_out_path=None, save_k_predictions=0):
     timer = Timer()
     progress_bar = tqdm(dataset_loader)
-    eval_metric = MultiLabelMetrics(config.num_classes, config.monitor_metrics)
+    eval_metric = MultiLabelMetrics(num_classes=len(model.classes), monitor_metrics=monitor_metrics)
 
-    for idx, batch in enumerate(progress_bar):
+    for batch in progress_bar:
         batch_labels = batch['label']
         predict_results = model.predict(batch)
         batch_label_scores = predict_results['scores']
@@ -25,13 +25,10 @@ def evaluate(config, model, dataset_loader, split='val', dump=True):
 
     metrics = eval_metric.get_metrics()
     print(eval_metric)
-    logging.info(f'Time for evaluating {split} set = {timer.time():.2f} (s)')
+    logging.info(f'Time for evaluating = {timer.time():.2f} (s)')
 
-    if dump:
-        dump_log(config, metrics, split)
-
-    if split == 'test' and config.save_k_predictions > 0:
-        dump_top_k_prediction(config, model.classes, eval_metric.get_y_pred(), k=config.save_k_predictions)
+    if save_k_predictions > 0:
+        save_top_k_prediction(model.classes, eval_metric.get_y_pred(), predict_out_path, k=save_k_predictions)
 
     return metrics
 

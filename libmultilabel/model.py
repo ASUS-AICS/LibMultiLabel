@@ -12,7 +12,7 @@ from tqdm import tqdm
 from . import data_utils
 from . import networks
 from .evaluate import evaluate
-from .utils import AverageMeter, Timer
+from .utils import AverageMeter, Timer, dump_log
 
 
 class Model(object):
@@ -99,7 +99,8 @@ class Model(object):
                 self.train_epoch(train_loader)
 
                 logging.info('Start predicting a validation set')
-                val_metrics = evaluate(self.config, self, val_loader)
+                val_metrics = evaluate(model=self, dataset_loader=val_loader, monitor_metrics=self.config.monitor_metrics)
+                dump_log(self.config, val_metrics, split='val')
 
                 if val_metrics[self.config.val_metric] > self.best_metric:
                     self.best_metric = val_metrics[self.config.val_metric]

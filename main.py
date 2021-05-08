@@ -8,10 +8,10 @@ import torch
 import yaml
 import numpy as np
 
-from libmultilabel import data_utils
-from libmultilabel.model import Model
-from libmultilabel.utils import ArgDict
-from libmultilabel.evaluate import evaluate, MultiLabelMetrics
+from .libmultilabel import data_utils
+from .libmultilabel.model import Model
+from .libmultilabel.utils import ArgDict, dump_log
+from .libmultilabel.evaluate import evaluate, MultiLabelMetrics
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(message)s')
@@ -120,6 +120,11 @@ def init_env(config):
         datetime.now().strftime('%Y%m%d%H%M%S'),
     )
     logging.info(f'Run name: {config.run_name}')
+
+    if not config.predict_out_path:
+        config.predict_out_path = os.path.join(config.result_dir, config.run_name, 'predictions.txt')
+    logging.info(f'Path to save top-k predictions: {config.predict_out_path}')
+
     return config
 
 
@@ -131,7 +136,7 @@ def main():
     if config.eval:
         model = Model.load(config, config.load_checkpoint)
         test_loader = data_utils.get_dataset_loader(config, datasets['test'], model.word_dict, model.classes, train=False)
-        evaluate(config, model, test_loader, split='test', dump=False)
+        evaluate(model, test_loader, config.monitor_metrics, config.predict_out_path, config.save_k_predictions)
     else:
         if config.load_checkpoint:
             model = Model.load(config, config.load_checkpoint)
@@ -143,7 +148,8 @@ def main():
         model.load_best()
         if 'test' in datasets:
             test_loader = data_utils.get_dataset_loader(config, datasets['test'], model.word_dict, model.classes, train=False)
-            evaluate(config, model, test_loader, split='test', dump=True)
+            test_metrics = evaluate(model, test_loader, config.monitor_metrics, config.predict_out_path, config.save_k_predictions)
+            dump_log(config=config, metrics=test_metrics, split='test')
 
 
 if __name__ == '__main__':
