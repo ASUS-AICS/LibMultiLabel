@@ -12,7 +12,7 @@ from .utils import Timer, dump_log, dump_top_k_prediction
 def evaluate(config, model, dataset_loader, split='val', dump=True):
     timer = Timer()
     progress_bar = tqdm(dataset_loader)
-    eval_metric = MultiLabelMetrics(config)
+    eval_metric = MultiLabelMetrics(config.num_classes, config.monitor_metrics)
 
     for idx, batch in enumerate(progress_bar):
         batch_labels = batch['label']
@@ -37,8 +37,9 @@ def evaluate(config, model, dataset_loader, split='val', dump=True):
 
 
 class MultiLabelMetrics():
-    def __init__(self, config):
-        self.config = config
+    def __init__(self, num_classes, monitor_metrics):
+        self.num_classes = num_classes
+        self.monitor_metrics = monitor_metrics
         self.y_true = []
         self.y_pred = []
         self.cache_result = {}
@@ -56,7 +57,7 @@ class MultiLabelMetrics():
     def eval(self, y_true, y_pred, threshold=0.5):
         precision, recall, micro_f1, _ = precision_recall_fscore_support(y_true, y_pred > threshold, average='micro')
         result = {
-            'Label Size': self.config.num_classes,
+            'Label Size': self.num_classes,
             '# Instance': len(y_true),
             'Precision': precision,
             'Recall': recall,
@@ -67,7 +68,7 @@ class MultiLabelMetrics():
 
         # add metrics like P@k, R@k to the result dict
         top_ks = set()
-        for metric in self.config.monitor_metrics:
+        for metric in self.monitor_metrics:
             if re.match('[P|R]@\d+', metric):
                 top_k = int(metric[2:])
                 top_ks.add(top_k)
@@ -75,7 +76,7 @@ class MultiLabelMetrics():
                 raise ValueError(f'Invalid metric: {metric}')
 
         scores = precision_recall_at_ks(y_true, y_pred, top_ks=top_ks)
-        result.update({metric: scores[metric] for metric in self.config.monitor_metrics})
+        result.update({metric: scores[metric] for metric in self.monitor_metrics})
         return result
 
     def get_y_pred(self):
