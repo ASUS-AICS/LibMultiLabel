@@ -23,8 +23,8 @@ def evaluate(config, model, dataset_loader, split='val', dump=True):
         batch_label_scores = batch_label_scores.cpu().detach().numpy()
         eval_metric.add_values(batch_labels, batch_label_scores)
 
-    print(eval_metric)
     metrics = eval_metric.get_metrics()
+    print(eval_metric)
     logging.info(f'Time for evaluating {split} set = {timer.time():.2f} (s)')
 
     if dump:
@@ -55,17 +55,17 @@ class MultiLabelMetrics():
         self.y_pred.append(y_pred)
 
     def eval(self, y_true, y_pred, threshold=0.5):
+        """Evaluate precision, recall, micro-f1, macro-f1, and P@k/R@k listed in the monitor_metrics."""
+        y_true = np.vstack(self.y_true)
+        y_pred = np.vstack(self.y_pred)
         precision, recall, micro_f1, _ = precision_recall_fscore_support(y_true, y_pred > threshold, average='micro')
         result = {
-            'Label Size': self.num_classes,
-            '# Instance': len(y_true),
             'Precision': precision,
             'Recall': recall,
             'Micro-F1': micro_f1,
             'Macro-F1': f1_score(y_true, y_pred > threshold, average='macro'),
-            'Macro*-F1': another_macro_f1(y_true, y_pred > threshold) # caml's macro-f1
+            'Another-Macro-F1': another_macro_f1(y_true, y_pred > threshold) # caml's macro-f1
         }
-
         # add metrics like P@k, R@k to the result dict
         top_ks = set()
         for metric in self.monitor_metrics:
@@ -74,10 +74,9 @@ class MultiLabelMetrics():
                 top_ks.add(top_k)
             else:
                 raise ValueError(f'Invalid metric: {metric}')
-
         scores = precision_recall_at_ks(y_true, y_pred, top_ks=top_ks)
         result.update({metric: scores[metric] for metric in self.monitor_metrics})
-        return result
+        self.cache_result = result
 
     def get_y_pred(self):
         """Convert 3D array (shape: number of batches * batch_size * number of classes
@@ -87,13 +86,11 @@ class MultiLabelMetrics():
 
     def get_metrics(self, use_cache=False):
         if not use_cache:
-            y_true = np.vstack(self.y_true)
-            y_pred = np.vstack(self.y_pred)
-            self.cache_result = self.eval(y_true, y_pred)
+            self.eval(self.y_true, self.y_pred)
         return self.cache_result
 
     def __repr__(self):
-        result = self.get_metrics()
-        header = '|'.join([f'{k:^13}' for k in result.keys()])
-        values = '|'.join([f'{x * 100:^13.4f}' if isinstance(x, (np.floating, float)) else f'{x:^13}' for x in result.values()])
-        return f"|{header}|\n|{'------------:|' * len(result)}\n|{values}|"
+        """Return cache results in markdown."""
+        header = '|'.join([f'{k:^20}' for k in self.cache_result.keys()])
+        values = '|'.join([f'{x * 100:^20.4f}' if isinstance(x, (np.floating, float)) else f'{x:^20}' for x in self.cache_result.values()])
+        return f"|{header}|\n|{'-------------------:|' * len(self.cache_result)}\n|{values}|"
