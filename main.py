@@ -11,7 +11,7 @@ import numpy as np
 from .libmultilabel import data_utils
 from .libmultilabel.model import Model
 from .libmultilabel.utils import ArgDict, dump_log
-from .libmultilabel.evaluate import evaluate, MultiLabelMetrics
+from .libmultilabel.evaluate import evaluate
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(message)s')
@@ -136,7 +136,7 @@ def main():
     if config.eval:
         model = Model.load(config, config.load_checkpoint)
         test_loader = data_utils.get_dataset_loader(config, datasets['test'], model.word_dict, model.classes, train=False)
-        evaluate(model, test_loader, config.monitor_metrics, config.num_classes, config.predict_out_path, config.save_k_predictions)
+        evaluate(model, test_loader, config.monitor_metrics, config.predict_out_path, config.save_k_predictions)
     else:
         if config.load_checkpoint:
             model = Model.load(config, config.load_checkpoint)
@@ -148,7 +148,7 @@ def main():
         model.load_best()
         if 'test' in datasets:
             test_loader = data_utils.get_dataset_loader(config, datasets['test'], model.word_dict, model.classes, train=False)
-            test_metrics = evaluate(model, test_loader, config.num_classes, config.monitor_metrics, config.predict_out_path, config.save_k_predictions)
+            test_metrics = evaluate(model, test_loader, config.monitor_metrics, config.predict_out_path, config.save_k_predictions)
             dump_log(config=config, metrics=test_metrics, split='test')
 
 

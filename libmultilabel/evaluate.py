@@ -9,13 +9,12 @@ from .metrics import another_macro_f1, precision_recall_at_ks
 from .utils import Timer, dump_log, save_top_k_prediction
 
 
-def evaluate(model, dataset_loader, num_classes, monitor_metrics, label_key='label', predict_out_path=None, save_k_predictions=0):
+def evaluate(model, dataset_loader, monitor_metrics, label_key='label', predict_out_path=None, save_k_predictions=0):
     """Evaluate model and save top-k prediction to file if the number of top_k_prediction > 0.
 
     Args:
         model (Model): a high level class used to initialize network, predict examples and load/save model
-        dataset_loader (DataLoader)
-        num_classes (int): the number of the labels
+        dataset_loader (DataLoader): pytorch dataloader (torch.utils.data.DataLoader)
         monitor_metrics (list): metrics to monitor while validating
         label_key (str, optional): the key to label in the dataset. Defaults to 'label'.
         predict_out_path (str, optional): path to file for saving the top k predictions. Defaults to None.
@@ -23,7 +22,7 @@ def evaluate(model, dataset_loader, num_classes, monitor_metrics, label_key='lab
     """
     timer = Timer()
     progress_bar = tqdm(dataset_loader)
-    eval_metric = MultiLabelMetrics(num_classes, monitor_metrics=monitor_metrics)
+    eval_metric = MultiLabelMetrics(monitor_metrics=monitor_metrics)
 
     for batch in progress_bar:
         batch_labels = batch[label_key] # set label_key in os.env or sync naming
@@ -45,8 +44,7 @@ def evaluate(model, dataset_loader, num_classes, monitor_metrics, label_key='lab
 
 
 class MultiLabelMetrics():
-    def __init__(self, num_classes, monitor_metrics):
-        self.num_classes = num_classes
+    def __init__(self, monitor_metrics):
         self.monitor_metrics = monitor_metrics
         self.y_true = []
         self.y_pred = []

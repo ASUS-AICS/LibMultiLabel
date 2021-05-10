@@ -99,7 +99,7 @@ class Model(object):
                 self.train_epoch(train_loader)
 
                 logging.info('Start predicting a validation set')
-                val_metrics = evaluate(model=self, dataset_loader=val_loader, num_classes=self.config.num_classes, monitor_metrics=self.config.monitor_metrics)
+                val_metrics = evaluate(model=self, dataset_loader=val_loader, monitor_metrics=self.config.monitor_metrics)
                 dump_log(self.config, val_metrics, split='val')
 
                 if val_metrics[self.config.val_metric] > self.best_metric:
