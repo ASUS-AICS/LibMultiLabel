@@ -157,4 +157,3 @@ if __name__ == '__main__':
     wall_time = Timer()
     main()
     print(f'Wall time: {wall_time.time():.2f} (s)')
-
