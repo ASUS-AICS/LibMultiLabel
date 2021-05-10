@@ -2,7 +2,7 @@ import logging
 import re
 
 import numpy as np
-from sklearn.metrics import f1_score, precision_recall_fscore_support
+from sklearn.metrics import classification_report
 from tqdm import tqdm
 
 from .metrics import another_macro_f1, precision_recall_at_ks
@@ -64,15 +64,15 @@ class MultiLabelMetrics():
         """Evaluate precision, recall, micro-f1, macro-f1, and P@k/R@k listed in the monitor_metrics."""
         y_true = np.vstack(self.y_true)
         y_pred = np.vstack(self.y_pred)
-        precision, recall, micro_f1, _ = precision_recall_fscore_support(y_true, y_pred > threshold, average='micro')
+        report_dict = classification_report(y_true, y_pred > threshold, output_dict=True)
         result = {
-            'Precision': precision,
-            'Recall': recall,
-            'Micro-F1': micro_f1,
-            'Macro-F1': f1_score(y_true, y_pred > threshold, average='macro'),
+            'Precision': report_dict['micro avg']['precision'],
+            'Recall': report_dict['micro avg']['recall'],
+            'Micro-F1': report_dict['micro avg']['f1-score'],
+            'Macro-F1': report_dict['macro avg']['f1-score'],
             'Another-Macro-F1': another_macro_f1(y_true, y_pred > threshold) # caml's macro-f1
         }
-        # add metrics like P@k, R@k to the result dict
+        # add metrics like Patk(P@k), Ratk(R@k) to the result dict
         top_ks = set()
         for metric in self.monitor_metrics:
             if re.match('[P|R]@\d+', metric):
@@ -97,6 +97,6 @@ class MultiLabelMetrics():
 
     def __repr__(self):
         """Return cache results in markdown."""
-        header = '|'.join([f'{k:^20}' for k in self.cache_result.keys()])
-        values = '|'.join([f'{x * 100:^20.4f}' if isinstance(x, (np.floating, float)) else f'{x:^20}' for x in self.cache_result.values()])
+        header = '|'.join([f'{k:^18}' for k in self.cache_result.keys()])
+        values = '|'.join([f'{x * 100:^18.4f}' if isinstance(x, (np.floating, float)) else f'{x:^18}' for x in self.cache_result.values()])
         return f"|{header}|\n|{'-------------------:|' * len(self.cache_result)}\n|{values}|"
