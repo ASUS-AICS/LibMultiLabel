@@ -23,7 +23,7 @@ def evaluate(model, dataset_loader, monitor_metrics, label_key='label'):
     eval_metric = MultiLabelMetrics(monitor_metrics=monitor_metrics)
 
     for batch in progress_bar:
-        batch_labels = batch[label_key] # set label_key in os.env or sync naming
+        batch_labels = batch[label_key]
         predict_results = model.predict(batch)
         batch_label_scores = predict_results['scores']
 
@@ -84,10 +84,7 @@ class MultiLabelMetrics():
         """
         return np.vstack(self.y_pred)
 
-    # to do : get cache result
-    def get_metrics(self, use_cache=False):
-        if not use_cache:
-            self.eval()
+    def get_metrics(self):
         return self.cache_result
 
     def __repr__(self):

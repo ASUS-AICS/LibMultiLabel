@@ -135,11 +135,6 @@ def main():
 
     if config.eval:
         model = Model.load(config, config.load_checkpoint)
-        test_loader = data_utils.get_dataset_loader(config, datasets['test'], model.word_dict, model.classes, train=False)
-        test_metrics = evaluate(model, test_loader, config.monitor_metrics)
-        dump_log(config=config, metrics=test_metrics.get_metrics(), split='test')
-        if config.save_k_predictions > 0:
-            save_top_k_prediction(model.classes, test_metrics.get_y_pred(), config.predict_out_path, config.save_k_predictions)
     else:
         if config.load_checkpoint:
             model = Model.load(config, config.load_checkpoint)
@@ -149,12 +144,13 @@ def main():
             model = Model(config, word_dict, classes)
         model.train(datasets['train'], datasets['val'])
         model.load_best()
-        if 'test' in datasets:
-            test_loader = data_utils.get_dataset_loader(config, datasets['test'], model.word_dict, model.classes, train=False)
-            test_metrics = evaluate(model, test_loader, config.monitor_metrics)
-            dump_log(config=config, metrics=test_metrics.get_metrics(), split='test')
-            if config.save_k_predictions > 0:
-                save_top_k_prediction(model.classes, test_metrics.get_y_pred(), config.predict_out_path, config.save_k_predictions)
+
+    if 'test' in datasets:
+        test_loader = data_utils.get_dataset_loader(config, datasets['test'], model.word_dict, model.classes, train=False)
+        test_metrics = evaluate(model, test_loader, config.monitor_metrics)
+        dump_log(config=config, metrics=test_metrics.get_metrics(), split='test')
+        if config.save_k_predictions > 0:
+            save_top_k_prediction(model.classes, test_metrics.get_y_pred(), config.predict_out_path, config.save_k_predictions)
 
 
 if __name__ == '__main__':
