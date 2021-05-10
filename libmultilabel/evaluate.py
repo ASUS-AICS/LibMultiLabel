@@ -9,7 +9,7 @@ from .metrics import another_macro_f1, precision_recall_at_ks
 from .utils import Timer, dump_log, save_top_k_prediction
 
 
-def evaluate(model, dataset_loader, monitor_metrics, label_key='label'):
+def evaluate(model, dataset_loader, monitor_metrics, label_key='label', threshold=0.5):
     """Evaluate model and save top-k prediction to file if the number of top_k_prediction > 0.
 
     Args:
@@ -17,6 +17,7 @@ def evaluate(model, dataset_loader, monitor_metrics, label_key='label'):
         dataset_loader (DataLoader): pytorch dataloader (torch.utils.data.DataLoader)
         monitor_metrics (list): metrics to monitor while validating
         label_key (str, optional): the key to label in the dataset. Defaults to 'label'.
+        threshold (float, optional): threshold for calculating precision, recall, and f1 scores. Defaults to 0.5.
     """
     timer = Timer()
     progress_bar = tqdm(dataset_loader)
