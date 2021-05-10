@@ -81,12 +81,12 @@ def dump_log(config, metrics, split):
         json.dump(result, fp)
 
 
-def save_top_k_prediction(classes, y_pred, predict_out_path, k=100):
+def save_top_k_prediction(class_names, y_pred, predict_out_path, k=100):
     """Save top k predictions to the predict_out_path. The format of this file is:
     <label1>:<value1> <label2>:<value2> ...
 
     Parameters:
-    classes (list): list of class names
+    class_names (list): list of class names
     y_pred (ndarray): predictions (shape: number of samples * number of classes)
     k (int): number of classes considered as the correct labels
     """
@@ -96,5 +96,5 @@ def save_top_k_prediction(classes, y_pred, predict_out_path, k=100):
     with open(predict_out_path, 'w') as fp:
         for pred in y_pred:
             label_ids = np.argsort(-pred).tolist()[:k]
-            out_str = ' '.join([f'{classes[i]}:{pred[i]:.4}' for i in label_ids])
+            out_str = ' '.join([f'{class_names[i]}:{pred[i]:.4}' for i in label_ids])
             fp.write(out_str+'\n')
