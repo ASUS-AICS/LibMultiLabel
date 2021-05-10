@@ -11,7 +11,7 @@ import numpy as np
 from libmultilabel import data_utils
 from libmultilabel.model import Model
 from libmultilabel.utils import ArgDict, Timer, dump_log
-from libmultilabel.evaluate import evaluate
+from libmultilabel.evaluate import evaluate, save_top_k_prediction
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(message)s')
@@ -136,8 +136,10 @@ def main():
     if config.eval:
         model = Model.load(config, config.load_checkpoint)
         test_loader = data_utils.get_dataset_loader(config, datasets['test'], model.word_dict, model.classes, train=False)
-        test_metrics = evaluate(model, test_loader, config.monitor_metrics, predict_out_path=config.predict_out_path, save_k_predictions=config.save_k_predictions)
-        dump_log(config=config, metrics=test_metrics, split='test')
+        test_metrics = evaluate(model, test_loader, config.monitor_metrics)
+        dump_log(config=config, metrics=test_metrics.get_metrics(), split='test')
+        if config.save_k_predictions > 0:
+            save_top_k_prediction(model.classes, test_metrics.get_y_pred(), config.predict_out_path, config.save_k_predictions)
     else:
         if config.load_checkpoint:
             model = Model.load(config, config.load_checkpoint)
@@ -149,8 +151,10 @@ def main():
         model.load_best()
         if 'test' in datasets:
             test_loader = data_utils.get_dataset_loader(config, datasets['test'], model.word_dict, model.classes, train=False)
-            test_metrics = evaluate(model, test_loader, config.monitor_metrics, predict_out_path=config.predict_out_path, save_k_predictions=config.save_k_predictions)
-            dump_log(config=config, metrics=test_metrics, split='test')
+            test_metrics = evaluate(model, test_loader, config.monitor_metrics)
+            dump_log(config=config, metrics=test_metrics.get_metrics(), split='test')
+            if config.save_k_predictions > 0:
+                save_top_k_prediction(model.classes, test_metrics.get_y_pred(), config.predict_out_path, config.save_k_predictions)
 
 
 if __name__ == '__main__':

@@ -9,7 +9,7 @@ from .metrics import another_macro_f1, precision_recall_at_ks
 from .utils import Timer, dump_log, save_top_k_prediction
 
 
-def evaluate(model, dataset_loader, monitor_metrics, label_key='label', predict_out_path=None, save_k_predictions=0):
+def evaluate(model, dataset_loader, monitor_metrics, label_key='label'):
     """Evaluate model and save top-k prediction to file if the number of top_k_prediction > 0.
 
     Args:
@@ -17,8 +17,6 @@ def evaluate(model, dataset_loader, monitor_metrics, label_key='label', predict_
         dataset_loader (DataLoader): pytorch dataloader (torch.utils.data.DataLoader)
         monitor_metrics (list): metrics to monitor while validating
         label_key (str, optional): the key to label in the dataset. Defaults to 'label'.
-        predict_out_path (str, optional): path to file for saving the top k predictions. Defaults to None.
-        save_k_predictions (int, optional): top k label scores to save for each sample. Defaults to 0.
     """
     timer = Timer()
     progress_bar = tqdm(dataset_loader)
@@ -33,14 +31,10 @@ def evaluate(model, dataset_loader, monitor_metrics, label_key='label', predict_
         batch_label_scores = batch_label_scores.cpu().detach().numpy()
         eval_metric.add_values(batch_labels, batch_label_scores)
 
-    metrics = eval_metric.get_metrics()
-    print(eval_metric)
+    eval_metric.eval()
     logging.info(f'Time for evaluating = {timer.time():.2f} (s)')
 
-    if save_k_predictions > 0:
-        save_top_k_prediction(model.classes, eval_metric.get_y_pred(), predict_out_path, k=save_k_predictions)
-
-    return metrics
+    return eval_metric
 
 
 class MultiLabelMetrics():
@@ -60,19 +54,19 @@ class MultiLabelMetrics():
         self.y_true.append(y_true)
         self.y_pred.append(y_pred)
 
-    def eval(self, y_true, y_pred, threshold=0.5):
+    def eval(self, threshold=0.5):
         """Evaluate precision, recall, micro-f1, macro-f1, and P@k/R@k listed in the monitor_metrics."""
         y_true = np.vstack(self.y_true)
         y_pred = np.vstack(self.y_pred)
         report_dict = classification_report(y_true, y_pred > threshold, output_dict=True)
         result = {
-            'Precision': report_dict['micro avg']['precision'],
-            'Recall': report_dict['micro avg']['recall'],
+            'Micro-Precision': report_dict['micro avg']['precision'],
+            'Micro-Recall': report_dict['micro avg']['recall'],
             'Micro-F1': report_dict['micro avg']['f1-score'],
             'Macro-F1': report_dict['macro avg']['f1-score'],
             'Another-Macro-F1': another_macro_f1(y_true, y_pred > threshold) # caml's macro-f1
         }
-        # add metrics like Patk(P@k), Ratk(R@k) to the result dict
+        # add metrics like P@k, R@k to the result dict
         top_ks = set()
         for metric in self.monitor_metrics:
             if re.match('[P|R]@\d+', metric):
@@ -90,13 +84,14 @@ class MultiLabelMetrics():
         """
         return np.vstack(self.y_pred)
 
+    # to do : get cache result
     def get_metrics(self, use_cache=False):
         if not use_cache:
-            self.eval(self.y_true, self.y_pred)
+            self.eval()
         return self.cache_result
 
     def __repr__(self):
         """Return cache results in markdown."""
         header = '|'.join([f'{k:^18}' for k in self.cache_result.keys()])
         values = '|'.join([f'{x * 100:^18.4f}' if isinstance(x, (np.floating, float)) else f'{x:^18}' for x in self.cache_result.values()])
-        return f"|{header}|\n|{'-------------------:|' * len(self.cache_result)}\n|{values}|"
+        return f"|{header}|\n|{'-----------------:|' * len(self.cache_result)}\n|{values}|"
