@@ -105,7 +105,7 @@ class Model(object):
                 logging.info(f'Time for evaluating val set = {timer.time():.2f} (s)')
 
                 dump_log(self.config, val_metrics, split='val')
-                print(val_metrics)
+                print(evaluator)
 
                 if val_metrics[self.config.val_metric] > self.best_metric:
                     self.best_metric = val_metrics[self.config.val_metric]

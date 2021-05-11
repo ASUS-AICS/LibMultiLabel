@@ -10,8 +10,8 @@ import numpy as np
 
 from libmultilabel import data_utils
 from libmultilabel.model import Model
-from libmultilabel.utils import ArgDict, Timer, dump_log
-from libmultilabel.evaluate import evaluate, save_top_k_prediction
+from libmultilabel.utils import ArgDict, Timer, dump_log, save_top_k_prediction
+from libmultilabel.evaluate import evaluate
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(message)s')
