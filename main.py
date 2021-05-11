@@ -148,12 +148,12 @@ def main():
 
     if 'test' in datasets:
         test_loader = data_utils.get_dataset_loader(config, datasets['test'], model.word_dict, model.classes, train=False)
-        evaluator = evaluate(model, test_loader, config.monitor_metrics)
-        test_metrics = evaluator.get_metrics(use_cache=False)
-        dump_log(config=config, metrics=test_metrics, split='test')
-        print(evaluator)
+        test_metrics = evaluate(model, test_loader, config.monitor_metrics)
+        metric_dict = test_metrics.get_metric_dict(use_cache=False)
+        dump_log(config=config, metrics=metric_dict, split='test')
+        print(test_metrics)
         if config.save_k_predictions > 0:
-            save_top_k_prediction(model.classes, evaluator.get_y_pred(
+            save_top_k_prediction(model.classes, test_metrics.get_y_pred(
             ), config.predict_out_path, config.save_k_predictions)
 
 

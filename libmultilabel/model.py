@@ -1,10 +1,8 @@
 import logging
 import os
-import pickle
 import shutil
 
 import torch
-import numpy as np
 import torch.nn.functional as F
 import torch.optim as optim
 from tqdm import tqdm
@@ -101,15 +99,15 @@ class Model(object):
 
                 timer = Timer()
                 logging.info('Start predicting a validation set')
-                evaluator = evaluate(model=self, dataset_loader=val_loader, monitor_metrics=self.config.monitor_metrics)
-                val_metrics = evaluator.get_metrics(use_cache=False)
+                val_metrics = evaluate(model=self, dataset_loader=val_loader, monitor_metrics=self.config.monitor_metrics)
+                metric_dict = val_metrics.get_metric_dict(use_cache=False)
                 logging.info(f'Time for evaluating val set = {timer.time():.2f} (s)')
 
-                dump_log(self.config, val_metrics, split='val')
-                print(evaluator)
+                dump_log(self.config, metric_dict, split='val')
+                print(val_metrics)
 
-                if val_metrics[self.config.val_metric] > self.best_metric:
-                    self.best_metric = val_metrics[self.config.val_metric]
+                if metric_dict[self.config.val_metric] > self.best_metric:
+                    self.best_metric = metric_dict[self.config.val_metric]
                     self.save(epoch, is_best=True)
                     patience = self.config.patience
                 else:

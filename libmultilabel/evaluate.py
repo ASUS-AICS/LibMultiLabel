@@ -42,8 +42,8 @@ class MultiLabelMetrics():
         """Add batch of y_true and y_pred.
 
         Args:
-            y_true (ndarray): a 2D array with ground truth labels (shape: batch_size * number of classes)
-            y_pred (ndarray): a 2d array with predicted labels (shape: batch_size * number of classes)
+            y_true (ndarray): an array with ground truth labels (shape: batch_size * number of classes)
+            y_pred (ndarray): an array with predicted labels (shape: batch_size * number of classes)
         """
         self.y_true.append(y_true)
         self.y_pred.append(y_pred)
@@ -78,7 +78,7 @@ class MultiLabelMetrics():
         """
         return np.vstack(self.y_pred)
 
-    def get_metrics(self, threshold=0.5, use_cache=True):
+    def get_metric_dict(self, threshold=0.5, use_cache=True):
         """Evaluate or get score dictionary from cache.
 
         Args:
