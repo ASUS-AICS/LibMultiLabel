@@ -5,7 +5,6 @@ import shutil
 
 import torch
 import numpy as np
-import pandas as pd
 import torch.nn.functional as F
 import torch.optim as optim
 from tqdm import tqdm
@@ -82,7 +81,8 @@ class Model(object):
 
     def train(self, train_data, val_data):
         train_loader = data_utils.get_dataset_loader(
-            self.config, train_data, self.word_dict, self.classes, train=True)
+            self.config, train_data, self.word_dict, self.classes,
+            shuffle=self.config.shuffle, train=True)
         val_loader = data_utils.get_dataset_loader(
             self.config, val_data, self.word_dict, self.classes, train=False)
 
