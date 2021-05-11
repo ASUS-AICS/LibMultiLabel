@@ -10,7 +10,7 @@ import numpy as np
 
 from libmultilabel import data_utils
 from libmultilabel.model import Model
-from libmultilabel.utils import ArgDict, Timer, dump_log, save_top_k_prediction
+from libmultilabel.utils import ArgDict, Timer, dump_log, save_top_k_predictions
 from libmultilabel.evaluate import evaluate
 
 
@@ -153,7 +153,7 @@ def main():
         dump_log(config=config, metrics=metric_dict, split='test')
         print(test_metrics)
         if config.save_k_predictions > 0:
-            save_top_k_prediction(model.classes, test_metrics.get_y_pred(
+            save_top_k_predictions(model.classes, test_metrics.get_y_pred(
             ), config.predict_out_path, config.save_k_predictions)
 
 

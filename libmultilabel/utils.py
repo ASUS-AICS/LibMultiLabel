@@ -81,7 +81,7 @@ def dump_log(config, metrics, split):
         json.dump(result, fp)
 
 
-def save_top_k_prediction(class_names, y_pred, predict_out_path, k=100):
+def save_top_k_predictions(class_names, y_pred, predict_out_path, k=100):
     """Save top k predictions to the predict_out_path. The format of this file is:
     <label1>:<value1> <label2>:<value2> ...
 
