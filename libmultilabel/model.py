@@ -98,14 +98,17 @@ class Model(object):
 
                 self.train_epoch(train_loader)
 
+                timer = Timer()
                 logging.info('Start predicting a validation set')
-                val_metrics = evaluate(model=self, dataset_loader=val_loader, monitor_metrics=self.config.monitor_metrics)
-                val_results = val_metrics.get_metrics()
-                dump_log(self.config, val_results, split='val')
+                evaluator = evaluate(model=self, dataset_loader=val_loader, monitor_metrics=self.config.monitor_metrics)
+                val_metrics = evaluator.get_metrics(use_cache=False)
+                logging.info(f'Time for evaluating val set = {timer.time():.2f} (s)')
+
+                dump_log(self.config, val_metrics, split='val')
                 print(val_metrics)
 
-                if val_results[self.config.val_metric] > self.best_metric:
-                    self.best_metric = val_results[self.config.val_metric]
+                if val_metrics[self.config.val_metric] > self.best_metric:
+                    self.best_metric = val_metrics[self.config.val_metric]
                     self.save(epoch, is_best=True)
                     patience = self.config.patience
                 else:

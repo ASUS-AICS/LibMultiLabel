@@ -6,20 +6,17 @@ from sklearn.metrics import classification_report
 from tqdm import tqdm
 
 from .metrics import another_macro_f1, precision_recall_at_ks
-from .utils import Timer, dump_log, save_top_k_prediction
 
 
-def evaluate(model, dataset_loader, monitor_metrics, label_key='label', threshold=0.5):
-    """Evaluate model and save top-k prediction to file if the number of top_k_prediction > 0.
+def evaluate(model, dataset_loader, monitor_metrics, label_key='label'):
+    """Evaluate model and add the predictions to MultiLabelMetrics.
 
     Args:
         model (Model): a high level class used to initialize network, predict examples and load/save model
         dataset_loader (DataLoader): pytorch dataloader (torch.utils.data.DataLoader)
         monitor_metrics (list): metrics to monitor while validating
         label_key (str, optional): the key to label in the dataset. Defaults to 'label'.
-        threshold (float, optional): threshold for calculating precision, recall, and f1 scores. Defaults to 0.5.
     """
-    timer = Timer()
     progress_bar = tqdm(dataset_loader)
     eval_metric = MultiLabelMetrics(monitor_metrics=monitor_metrics)
 
@@ -31,10 +28,6 @@ def evaluate(model, dataset_loader, monitor_metrics, label_key='label', threshol
         batch_labels = batch_labels.cpu().detach().numpy()
         batch_label_scores = batch_label_scores.cpu().detach().numpy()
         eval_metric.add_values(batch_labels, batch_label_scores)
-
-    eval_metric.eval()
-    logging.info(f'Time for evaluating = {timer.time():.2f} (s)')
-
     return eval_metric
 
 
@@ -43,7 +36,7 @@ class MultiLabelMetrics():
         self.monitor_metrics = monitor_metrics
         self.y_true = []
         self.y_pred = []
-        self.cache_result = {}
+        self.cached_results = {}
 
     def add_values(self, y_true, y_pred):
         """Add batch of y_true and y_pred.
@@ -77,7 +70,7 @@ class MultiLabelMetrics():
                 raise ValueError(f'Invalid metric: {metric}')
         scores = precision_recall_at_ks(y_true, y_pred, top_ks=top_ks)
         result.update({metric: scores[metric] for metric in self.monitor_metrics})
-        self.cache_result = result
+        self.cached_results = result
 
     def get_y_pred(self):
         """Convert 3D array (shape: number of batches * batch_size * number of classes
@@ -85,11 +78,19 @@ class MultiLabelMetrics():
         """
         return np.vstack(self.y_pred)
 
-    def get_metrics(self):
-        return self.cache_result
+    def get_metrics(self, threshold=0.5, use_cache=True):
+        """Evaluate or get score dictionary from cache.
+
+        Args:
+            threshold (float, optional): threshold to evaluate precision, recall, and f1 score. Defaults to 0.5.
+            use_cache (bool, optional): return a cached results or not. Defaults to True.
+        """
+        if not use_cache:
+            self.eval(threshold)
+        return self.cached_results
 
     def __repr__(self):
         """Return cache results in markdown."""
-        header = '|'.join([f'{k:^18}' for k in self.cache_result.keys()])
-        values = '|'.join([f'{x * 100:^18.4f}' if isinstance(x, (np.floating, float)) else f'{x:^18}' for x in self.cache_result.values()])
-        return f"|{header}|\n|{'-----------------:|' * len(self.cache_result)}\n|{values}|"
+        header = '|'.join([f'{k:^18}' for k in self.cached_results.keys()])
+        values = '|'.join([f'{x * 100:^18.4f}' if isinstance(x, (np.floating, float)) else f'{x:^18}' for x in self.cached_results.values()])
+        return f"|{header}|\n|{'-----------------:|' * len(self.cached_results)}\n|{values}|"
