@@ -151,6 +151,7 @@ def main():
         evaluator = evaluate(model, test_loader, config.monitor_metrics)
         test_metrics = evaluator.get_metrics(use_cache=False)
         dump_log(config=config, metrics=test_metrics, split='test')
+        print(evaluator)
         if config.save_k_predictions > 0:
             save_top_k_prediction(model.classes, evaluator.get_y_pred(
             ), config.predict_out_path, config.save_k_predictions)
