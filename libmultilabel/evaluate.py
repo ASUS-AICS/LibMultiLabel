@@ -38,6 +38,14 @@ class MultiLabelMetrics():
         self.y_pred = []
         self.cached_results = {}
 
+        self.top_ks = set()
+        for metric in self.monitor_metrics:
+            if re.match('[P|R]@\d+', metric):
+                top_k = int(metric[2:])
+                self.top_ks.add(top_k)
+            else:
+                raise ValueError(f'Invalid metric: {metric}')
+
     def add_values(self, y_true, y_pred):
         """Add batch of y_true and y_pred.
 
@@ -61,14 +69,7 @@ class MultiLabelMetrics():
             'Another-Macro-F1': another_macro_f1(y_true, y_pred > threshold) # caml's macro-f1
         }
         # add metrics like P@k, R@k to the result dict
-        top_ks = set()
-        for metric in self.monitor_metrics:
-            if re.match('[P|R]@\d+', metric):
-                top_k = int(metric[2:])
-                top_ks.add(top_k)
-            else:
-                raise ValueError(f'Invalid metric: {metric}')
-        scores = precision_recall_at_ks(y_true, y_pred, top_ks=top_ks)
+        scores = precision_recall_at_ks(y_true, y_pred, top_ks=self.top_ks)
         result.update({metric: scores[metric] for metric in self.monitor_metrics})
         self.cached_results = result
 
