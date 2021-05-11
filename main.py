@@ -122,10 +122,6 @@ def init_env(config):
     )
     logging.info(f'Run name: {config.run_name}')
 
-    if not config.predict_out_path:
-        config.predict_out_path = os.path.join(config.result_dir, config.run_name, 'predictions.txt')
-    logging.info(f'Path to save top-k predictions: {config.predict_out_path}')
-
     return config
 
 
@@ -153,6 +149,8 @@ def main():
         dump_log(config=config, metrics=metric_dict, split='test')
         print(test_metrics)
         if config.save_k_predictions > 0:
+            if not config.predict_out_path:
+                config.predict_out_path = os.path.join(config.result_dir, config.run_name, 'predictions.txt')
             save_top_k_predictions(model.classes, test_metrics.get_y_pred(
             ), config.predict_out_path, config.save_k_predictions)
 
