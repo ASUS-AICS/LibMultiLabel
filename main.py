@@ -151,8 +151,7 @@ def main():
         if config.save_k_predictions > 0:
             if not config.predict_out_path:
                 config.predict_out_path = os.path.join(config.result_dir, config.run_name, 'predictions.txt')
-            save_top_k_predictions(model.classes, test_metrics.get_y_pred(
-            ), config.predict_out_path, config.save_k_predictions)
+            save_top_k_predictions(model.classes, test_metrics.get_y_pred(), config.predict_out_path, config.save_k_predictions)
 
 
 if __name__ == '__main__':
