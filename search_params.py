@@ -1,10 +1,8 @@
 import argparse
 import os
 import time
-import torch
 import yaml
 
-from datetime import datetime
 from ray import tune
 
 import data_utils
@@ -69,17 +67,27 @@ def main():
     parser.add_argument('--local_dir', default=os.getcwd(), help='Directory to save training results (default: %(default)s)')
     parser.add_argument('--num_samples', type=int, default=50, help='Number of running samples (default: %(default)s)')
     parser.add_argument('--mode', default='max', choices=['min', 'max'], help='Determines whether objective is minimizing or maximizing the metric attribute. (default: %(default)s)')
-    parser.add_argument('--search_alg', default=None, help='Number of running samples (default: %(default)s)')
+    parser.add_argument('--search_alg', default=None, choices=['random', 'grid', 'bayesopt', 'optuna', 'hyperopt'], help='Search algorithms (default: %(default)s)')
     args = vars(parser.parse_args())
 
     """Other args in the model config are viewed as resolved values that are ignored from tune.
     https://github.com/ray-project/ray/blob/34d3d9294c50aea4005b7367404f6a5d9e0c2698/python/ray/tune/suggest/variant_generator.py#L333
     """
     model_config = init_model_config(args['config'])
-    model_config.learning_rate = tune.choice([0.001, 0.003, 0.0001, 0.0003])
-    model_config.dropout = tune.choice([0.2, 0.4, 0.6, 0.8])
-    model_config.num_filter_per_size = tune.choice([(50 + 100*i) for i in range(6)])
-    model_config.filter_size = tune.choice([2, 4, 6, 8, 10])
+
+    # grid search
+    if args.search_algo == 'grid':
+        model_config.learning_rate = tune.grid_search([0.001, 0.003, 0.0001, 0.0003])
+        model_config.dropout = tune.grid_search([0.2, 0.4, 0.6, 0.8])
+        model_config.num_filter_per_size = tune.grid_search((50 + 100*i) for i in range(6)])
+        model_config.filter_size = tune.grid_search([2, 4, 6, 8, 10])
+
+    else:
+        model_config.learning_rate = tune.choice([0.001, 0.003, 0.0001, 0.0003])
+        model_config.dropout = tune.choice([0.2, 0.4, 0.6, 0.8])
+        model_config.num_filter_per_size = tune.choice([(50 + 100*i) for i in range(6)])
+        model_config.filter_size = tune.choice([2, 4, 6, 8, 10])
+
 
     """Run tune analysis.
     If no search algorithm is specified, the default search algorighm is BasicVariantGenerator.
