@@ -114,7 +114,7 @@ def set_seed(seed):
                 f'the random seed should be a non-negative integer')
 
 
-def get_device(use_cpu=False):
+def init_device(use_cpu=False):
     if not use_cpu and torch.cuda.is_available():
         # set a debug environment variable CUBLAS_WORKSPACE_CONFIG to ":16:8" (may limit overall performance) or ":4096:8" (will increase library footprint in GPU memory by approximately 24MiB).
         # https://docs.nvidia.com/cuda/cublas/index.html
