@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import time
+import torch
 
 import numpy as np
 
@@ -98,3 +99,30 @@ def save_top_k_predictions(class_names, y_pred, predict_out_path, k=100):
             label_ids = np.argsort(-pred).tolist()[:k]
             out_str = ' '.join([f'{class_names[i]}:{pred[i]:.4}' for i in label_ids])
             fp.write(out_str+'\n')
+
+
+def set_seed(seed):
+    """Set seeds for numpy and pytorch."""
+    if seed is not None:
+        if seed >= 0:
+            np.random.seed(seed)
+            torch.manual_seed(seed)
+            torch.set_deterministic(True)
+            torch.backends.cudnn.benchmark = False
+        else:
+            logging.warning(
+                f'the random seed should be a non-negative integer')
+
+
+def get_device(use_cpu=False):
+    if not use_cpu and torch.cuda.is_available():
+        # set a debug environment variable CUBLAS_WORKSPACE_CONFIG to ":16:8" (may limit overall performance) or ":4096:8" (will increase library footprint in GPU memory by approximately 24MiB).
+        # https://docs.nvidia.com/cuda/cublas/index.html
+        os.environ['CUBLAS_WORKSPACE_CONFIG'] = ":4096:8"
+        device = torch.device('cuda')
+    else:
+        device = torch.device('cpu')
+        # https://github.com/pytorch/pytorch/issues/11201
+        torch.multiprocessing.set_sharing_strategy('file_system')
+    logging.info(f'Using device: {device}')
+    return device

@@ -10,7 +10,7 @@ import numpy as np
 
 from libmultilabel import data_utils
 from libmultilabel.model import Model
-from libmultilabel.utils import ArgDict, Timer, dump_log, save_top_k_predictions
+from libmultilabel.utils import ArgDict, Timer, set_seed, init_device, dump_log, save_top_k_predictions
 from libmultilabel.evaluate import evaluate
 
 
@@ -93,27 +93,10 @@ def get_config():
     return config
 
 
-def init_env(config):
-    # set a debug environment variable CUBLAS_WORKSPACE_CONFIG to ":16:8" (may limit overall performance) or ":4096:8" (will increase library footprint in GPU memory by approximately 24MiB).
-    # https://docs.nvidia.com/cuda/cublas/index.html
-    os.environ['CUBLAS_WORKSPACE_CONFIG'] = ":4096:8"
-    if config.seed is not None:
-        if config.seed >= 0:
-            np.random.seed(config.seed)
-            torch.manual_seed(config.seed)
-            torch.set_deterministic(True)
-            torch.backends.cudnn.benchmark = False
-        else:
-            logging.warning(f'the random seed should be a non-negative integer')
-
-    config.device = None
-    if not config.cpu and torch.cuda.is_available():
-        config.device = torch.device('cuda')
-    else:
-        config.device = torch.device('cpu')
-        # https://github.com/pytorch/pytorch/issues/11201
-        torch.multiprocessing.set_sharing_strategy('file_system')
-    logging.info(f'Using device: {config.device}')
+def main():
+    config = get_config()
+    set_seed(seed=config.seed)
+    config.device = init_device(config.cpu)
 
     config.run_name = '{}_{}_{}'.format(
         config.data_name,
@@ -122,12 +105,6 @@ def init_env(config):
     )
     logging.info(f'Run name: {config.run_name}')
 
-    return config
-
-
-def main():
-    config = get_config()
-    config = init_env(config)
     datasets = data_utils.load_datasets(config)
 
     if config.eval:
