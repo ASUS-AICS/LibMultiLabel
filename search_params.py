@@ -19,8 +19,6 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(mess
 
 def training_function(config):
     model_config = ArgDict(config)
-    # model_config.filter_sizes = [model_config.filter_size]
-    print(model_config.filter_sizes)
     datasets = data_utils.load_datasets(model_config)
     word_dict = data_utils.load_or_build_text_dict(model_config, datasets['train'])
     classes = data_utils.load_or_build_label(model_config, datasets)
