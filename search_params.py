@@ -1,15 +1,18 @@
 import argparse
+import logging
 import os
 import time
 import yaml
 
 from ray import tune
 
-import data_utils
-from evaluate import evaluate
-from main import init_env
-from model import Model
-from utils import ArgDict
+from libmultilabel import data_utils
+from libmultilabel.evaluate import evaluate
+from libmultilabel.model import Model
+from libmultilabel.utils import ArgDict, set_seed, init_device
+
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(message)s')
 
 
 def init_model_config(config_path):
@@ -22,7 +25,8 @@ def init_model_config(config_path):
             args[k] = os.path.abspath(v)
 
     model_config = ArgDict(args)
-    model_config = init_env(model_config)
+    set_seed(seed=model_config.seed)
+    model_config.device = init_device(model_config.cpu)
     return model_config
 
 
@@ -38,7 +42,7 @@ def get_search_algorithm(search_alg, metric=None, mode=None):
         assert metric and mode, "metric and mode cannot be None for hyperopt search"
         from ray.tune.suggest.bayesopt import BayesOptSearch
         return BayesOptSearch(metric=metric, mode=mode)
-    print(f'{search_alg} search is found, run BasicVariantGenerator().')
+    logging.info(f'{search_alg} search is found, run BasicVariantGenerator().')
 
 
 def training_function(config):
@@ -118,4 +122,4 @@ def main():
 # calculate wall time.
 wall_time_start = time.time()
 main()
-print(f"\nWall time: {time.time()-wall_time_start}")
+logging.info(f"\nWall time: {time.time()-wall_time_start}")
