@@ -4,9 +4,7 @@ from datetime import datetime
 from pathlib import Path
 
 import os
-import torch
 import yaml
-import numpy as np
 
 from libmultilabel import data_utils
 from libmultilabel.model import Model
