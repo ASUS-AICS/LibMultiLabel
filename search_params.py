@@ -3,6 +3,8 @@ import logging
 import os
 import time
 import yaml
+from datetime import datetime
+from pathlib import Path
 
 from ray import tune
 
@@ -44,6 +46,12 @@ def init_model_config(config_path):
     model_config = ArgDict(args)
     set_seed(seed=model_config.seed)
     model_config.device = init_device(model_config.cpu)
+    model_config.run_name = '{}_{}_{}'.format(
+        model_config.data_name,
+        Path(model_config.config).stem if model_config.config else model_config.model_name,
+        datetime.now().strftime('%Y%m%d%H%M%S'),
+    )
+    logging.info(f'Run name: {model_config.run_name}')
     return model_config
 
 
