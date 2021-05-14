@@ -34,16 +34,16 @@ def get_search_algorithm(search_alg, metric=None, mode=None):
         assert metric and mode, "metric and mode cannot be None for optuna search"
         from ray.tune.suggest.optuna import OptunaSearch
         return OptunaSearch(metric=metric, mode=mode)
-    elif search_alg == 'hyperopt':
+    elif search_alg == 'bayesopt':
         assert metric and mode, "metric and mode cannot be None for hyperopt search"
-        from ray.tune.suggest.hyperopt import HyperOptSearch
-        return HyperOptSearch(metric=metric, mode=mode)
-    print('No search algorithm is found, run BasicVariantGenerator().')
+        from ray.tune.suggest.bayesopt import BayesOptSearch
+        return BayesOptSearch(metric=metric, mode=mode)
+    print(f'{search_alg} search is found, run BasicVariantGenerator().')
 
 
 def training_function(config):
     model_config = ArgDict(config)
-    model_config.filter_sizes = [model_config.filter_size]
+    # model_config.filter_sizes = [model_config.filter_size]
     datasets = data_utils.load_datasets(model_config)
     word_dict = data_utils.load_or_build_text_dict(model_config, datasets['train'])
     classes = data_utils.load_or_build_label(model_config, datasets)
@@ -58,6 +58,21 @@ def training_function(config):
     yield results
 
 
+def init_search_space(values, search_alg):
+    """Initialize the search space by the given search algorithm.
+    Currently, the search algorithm decides what search function is used for all parameters.
+    """
+    if search_alg == 'grid':
+        return tune.grid_search(values)
+    elif search_alg == 'random':
+        # sample an option uniformly from list of values
+        return tune.choice(values)
+    elif search_alg == 'bayesopt':
+        assert len(values) == 2 and values[0] < values[1]
+        # sample an option uniformly between values[0] and values[1]
+        return tune.uniform(values[0], values[1])
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -67,43 +82,36 @@ def main():
     parser.add_argument('--local_dir', default=os.getcwd(), help='Directory to save training results (default: %(default)s)')
     parser.add_argument('--num_samples', type=int, default=50, help='Number of running samples (default: %(default)s)')
     parser.add_argument('--mode', default='max', choices=['min', 'max'], help='Determines whether objective is minimizing or maximizing the metric attribute. (default: %(default)s)')
-    parser.add_argument('--search_alg', default=None, choices=['random', 'grid', 'bayesopt', 'optuna', 'hyperopt'], help='Search algorithms (default: %(default)s)')
-    args = vars(parser.parse_args())
+
+    parser.add_argument('--search_alg', default=None, choices=['random', 'grid', 'bayesopt', 'optuna'], help='Search algorithms (default: %(default)s)')
+    parser.add_argument('--search_params', default=None, nargs='+', help='List of search parameters.')
+    parser.add_argument('--current_best_params', default=None,
+                        help='Initial parameters suggestions to be run first.')
+    args = parser.parse_args()
 
     """Other args in the model config are viewed as resolved values that are ignored from tune.
     https://github.com/ray-project/ray/blob/34d3d9294c50aea4005b7367404f6a5d9e0c2698/python/ray/tune/suggest/variant_generator.py#L333
     """
-    model_config = init_model_config(args['config'])
-
-    # grid search
-    if args.search_algo == 'grid':
-        model_config.learning_rate = tune.grid_search([0.001, 0.003, 0.0001, 0.0003])
-        model_config.dropout = tune.grid_search([0.2, 0.4, 0.6, 0.8])
-        model_config.num_filter_per_size = tune.grid_search((50 + 100*i) for i in range(6)])
-        model_config.filter_size = tune.grid_search([2, 4, 6, 8, 10])
-
-    else:
-        model_config.learning_rate = tune.choice([0.001, 0.003, 0.0001, 0.0003])
-        model_config.dropout = tune.choice([0.2, 0.4, 0.6, 0.8])
-        model_config.num_filter_per_size = tune.choice([(50 + 100*i) for i in range(6)])
-        model_config.filter_size = tune.choice([2, 4, 6, 8, 10])
-
+    model_config = init_model_config(args.config)
+    for param in args.search_params:
+        assert param in model_config, f'Please specify {param} in the config. (Ex. dropout: [0.2, 0.4, 0.6, 0.8])'
+        model_config[param] = init_search_space(
+            model_config[param], args.search_alg)
 
     """Run tune analysis.
     If no search algorithm is specified, the default search algorighm is BasicVariantGenerator.
     https://docs.ray.io/en/master/tune/api_docs/suggestion.html#tune-basicvariant
     """
-    search_alg = get_search_algorithm(
-        args['search_alg'], metric=model_config['val_metric'], mode=args['mode'])
+    search_alg = get_search_algorithm(args.search_alg, metric=model_config.val_metric, mode=args.mode)
     tune.run(
         training_function,
         search_alg=search_alg,
-        local_dir=args['local_dir'],
-        metric=model_config['val_metric'],
-        mode=args['mode'],
-        num_samples=args['num_samples'],
+        local_dir=args.local_dir,
+        metric=model_config.val_metric,
+        mode=args.mode,
+        num_samples=args.num_samples,
         resources_per_trial={
-            'cpu': args['cpu_count'], 'gpu': args['gpu_count']},
+            'cpu': args.cpu_count, 'gpu': args.gpu_count},
         config=model_config)
 
 
