@@ -69,7 +69,7 @@ def dump_log(config, metrics, split):
         with open(log_path) as fp:
             result = json.load(fp)
     else:
-        config_to_save = copy.deepcopy(config)
+        config_to_save = copy.deepcopy(config.__dict__)
         del config_to_save['device']
         result = {'config': config_to_save}
 
@@ -81,24 +81,20 @@ def dump_log(config, metrics, split):
         json.dump(result, fp)
 
 
-def dump_top_k_prediction(config, classes, y_pred, k=100):
-    """Dump top k predictions to the predict_out_path. The format of this file is:
+def save_top_k_predictions(class_names, y_pred, predict_out_path, k=100):
+    """Save top k predictions to the predict_out_path. The format of this file is:
     <label1>:<value1> <label2>:<value2> ...
 
     Parameters:
-    classes (list): list of class names
+    class_names (list): list of class names
     y_pred (ndarray): predictions (shape: number of samples * number of classes)
     k (int): number of classes considered as the correct labels
     """
+    assert predict_out_path, "Please specify the output path to the prediction results."
 
-    if config.predict_out_path:
-        predict_out_path = config.predict_out_path
-    else:
-        predict_out_path = os.path.join(config.result_dir, config.run_name, 'predictions.txt')
-
-    logging.info(f'Dump top {k} predictions to {predict_out_path}.')
+    logging.info(f'Save top {k} predictions to {predict_out_path}.')
     with open(predict_out_path, 'w') as fp:
         for pred in y_pred:
             label_ids = np.argsort(-pred).tolist()[:k]
-            out_str = ' '.join([f'{classes[i]}:{pred[i]:.4}' for i in label_ids])
+            out_str = ' '.join([f'{class_names[i]}:{pred[i]:.4}' for i in label_ids])
             fp.write(out_str+'\n')

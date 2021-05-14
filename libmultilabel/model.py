@@ -1,19 +1,16 @@
 import logging
 import os
-import pickle
 import shutil
 
 import torch
-import numpy as np
-import pandas as pd
 import torch.nn.functional as F
 import torch.optim as optim
 from tqdm import tqdm
 
-import data_utils
-import networks
-from evaluate import evaluate
-from utils import AverageMeter, Timer
+from . import data_utils
+from . import networks
+from .evaluate import evaluate
+from .utils import AverageMeter, Timer, dump_log
 
 
 class Model(object):
@@ -82,7 +79,8 @@ class Model(object):
 
     def train(self, train_data, val_data):
         train_loader = data_utils.get_dataset_loader(
-            self.config, train_data, self.word_dict, self.classes, train=True)
+            self.config, train_data, self.word_dict, self.classes,
+            shuffle=self.config.shuffle, train=True)
         val_loader = data_utils.get_dataset_loader(
             self.config, val_data, self.word_dict, self.classes, train=False)
 
@@ -99,11 +97,17 @@ class Model(object):
 
                 self.train_epoch(train_loader)
 
+                timer = Timer()
                 logging.info('Start predicting a validation set')
-                val_metrics = evaluate(self.config, self, val_loader)
+                val_metrics = evaluate(model=self, dataset_loader=val_loader, monitor_metrics=self.config.monitor_metrics)
+                metric_dict = val_metrics.get_metric_dict(use_cache=False)
+                logging.info(f'Time for evaluating val set = {timer.time():.2f} (s)')
 
-                if val_metrics[self.config.val_metric] > self.best_metric:
-                    self.best_metric = val_metrics[self.config.val_metric]
+                dump_log(self.config, metric_dict, split='val')
+                print(val_metrics)
+
+                if metric_dict[self.config.val_metric] > self.best_metric:
+                    self.best_metric = metric_dict[self.config.val_metric]
                     self.save(epoch, is_best=True)
                     patience = self.config.patience
                 else:

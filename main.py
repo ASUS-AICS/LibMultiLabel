@@ -8,10 +8,10 @@ import torch
 import yaml
 import numpy as np
 
-import data_utils
-from model import Model
-from utils import ArgDict
-from evaluate import evaluate, MultiLabelMetrics
+from libmultilabel import data_utils
+from libmultilabel.model import Model
+from libmultilabel.utils import ArgDict, Timer, dump_log, save_top_k_predictions
+from libmultilabel.evaluate import evaluate
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(message)s')
@@ -43,6 +43,7 @@ def get_config():
     parser.add_argument('--min_vocab_freq', type=int, default=1, help='The minimum frequency needed to include a token in the vocabulary (default: %(default)s)')
     parser.add_argument('--max_seq_length', type=int, default=500, help='The maximum number of tokens of a sample (default: %(default)s)')
     parser.add_argument('--fixed_length', action='store_true', help='Whether to pad all sequence to MAX_SEQ_LENGTH (default: %(default)s)')
+    parser.add_argument('--shuffle', type=bool, default=True, help='Whether to shuffle training data before each epoch (default: %(default)s)')
 
     # train
     parser.add_argument('--seed', type=int, help='Random seed (default: %(default)s)')
@@ -120,6 +121,7 @@ def init_env(config):
         datetime.now().strftime('%Y%m%d%H%M%S'),
     )
     logging.info(f'Run name: {config.run_name}')
+
     return config
 
 
@@ -130,8 +132,6 @@ def main():
 
     if config.eval:
         model = Model.load(config, config.load_checkpoint)
-        test_loader = data_utils.get_dataset_loader(config, datasets['test'], model.word_dict, model.classes, train=False)
-        evaluate(config, model, test_loader, split='test', dump=False)
     else:
         if config.load_checkpoint:
             model = Model.load(config, config.load_checkpoint)
@@ -141,10 +141,20 @@ def main():
             model = Model(config, word_dict, classes)
         model.train(datasets['train'], datasets['val'])
         model.load_best()
-        if 'test' in datasets:
-            test_loader = data_utils.get_dataset_loader(config, datasets['test'], model.word_dict, model.classes, train=False)
-            evaluate(config, model, test_loader, split='test', dump=True)
+
+    if 'test' in datasets:
+        test_loader = data_utils.get_dataset_loader(config, datasets['test'], model.word_dict, model.classes, train=False)
+        test_metrics = evaluate(model, test_loader, config.monitor_metrics)
+        metric_dict = test_metrics.get_metric_dict(use_cache=False)
+        dump_log(config=config, metrics=metric_dict, split='test')
+        print(test_metrics)
+        if config.save_k_predictions > 0:
+            if not config.predict_out_path:
+                config.predict_out_path = os.path.join(config.result_dir, config.run_name, 'predictions.txt')
+            save_top_k_predictions(model.classes, test_metrics.get_y_pred(), config.predict_out_path, config.save_k_predictions)
 
 
 if __name__ == '__main__':
+    wall_time = Timer()
     main()
+    print(f'Wall time: {wall_time.time():.2f} (s)')
