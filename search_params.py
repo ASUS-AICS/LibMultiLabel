@@ -20,6 +20,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(mess
 def training_function(config):
     model_config = ArgDict(config)
     # model_config.filter_sizes = [model_config.filter_size]
+    print(model_config.filter_sizes)
     datasets = data_utils.load_datasets(model_config)
     word_dict = data_utils.load_or_build_text_dict(model_config, datasets['train'])
     classes = data_utils.load_or_build_label(model_config, datasets)
@@ -105,7 +106,11 @@ def main():
     model_config = init_model_config(args.config)
     for param in args.search_params:
         assert param in model_config, f'Please specify {param} in the config. (Ex. dropout: [0.2, 0.4, 0.6, 0.8])'
-        model_config[param] = init_search_space(model_config[param], args.search_alg)
+        if isinstance(model_config[param][0], list): # filter_sizes
+            model_config[param] = [init_search_space(
+                sub_param, args.search_alg) for sub_param in model_config[param]]
+        else:
+            model_config[param] = init_search_space(model_config[param], args.search_alg)
 
     """Run tune analysis.
     If no search algorithm is specified, the default search algorighm is BasicVariantGenerator.
