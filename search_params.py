@@ -15,36 +15,6 @@ from libmultilabel.utils import ArgDict, set_seed, init_device
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(message)s')
 
 
-def init_model_config(config_path):
-    with open(config_path) as fp:
-        args = yaml.load(fp, Loader=yaml.SafeLoader)
-
-    # set relative path to absolute path (_path, _file, _dir)
-    for k, v in args.items():
-        if isinstance(v, str) and (os.path.isfile(v) or os.path.isdir(v)):
-            args[k] = os.path.abspath(v)
-
-    model_config = ArgDict(args)
-    set_seed(seed=model_config.seed)
-    model_config.device = init_device(model_config.cpu)
-    return model_config
-
-
-def get_search_algorithm(search_alg, metric=None, mode=None):
-    """Specify a search algorithm. You should pip install this search algorithm first.
-    See more details here: https://docs.ray.io/en/master/tune/api_docs/suggestion.html"""
-
-    if search_alg == 'optuna':
-        assert metric and mode, "metric and mode cannot be None for optuna search"
-        from ray.tune.suggest.optuna import OptunaSearch
-        return OptunaSearch(metric=metric, mode=mode)
-    elif search_alg == 'bayesopt':
-        assert metric and mode, "metric and mode cannot be None for hyperopt search"
-        from ray.tune.suggest.bayesopt import BayesOptSearch
-        return BayesOptSearch(metric=metric, mode=mode)
-    logging.info(f'{search_alg} search is found, run BasicVariantGenerator().')
-
-
 def training_function(config):
     model_config = ArgDict(config)
     # model_config.filter_sizes = [model_config.filter_size]
@@ -62,19 +32,49 @@ def training_function(config):
     yield results
 
 
+def init_model_config(config_path):
+    with open(config_path) as fp:
+        args = yaml.load(fp, Loader=yaml.SafeLoader)
+
+    # set relative path to absolute path (_path, _file, _dir)
+    for k, v in args.items():
+        if isinstance(v, str) and (os.path.isfile(v) or os.path.isdir(v)):
+            args[k] = os.path.abspath(v)
+
+    model_config = ArgDict(args)
+    set_seed(seed=model_config.seed)
+    model_config.device = init_device(model_config.cpu)
+    return model_config
+
+
 def init_search_space(values, search_alg):
     """Initialize the search space by the given search algorithm.
     Currently, the search algorithm decides what search function is used for all parameters.
     """
     if search_alg == 'grid':
         return tune.grid_search(values)
-    elif search_alg == 'random':
+    elif search_alg == 'random' or search_alg == 'optuna':
         # sample an option uniformly from list of values
         return tune.choice(values)
     elif search_alg == 'bayesopt':
         assert len(values) == 2 and values[0] < values[1]
         # sample an option uniformly between values[0] and values[1]
         return tune.uniform(values[0], values[1])
+
+
+def get_search_algorithm(search_alg, metric=None, mode=None):
+    """Specify a search algorithm. You should pip install this search algorithm first.
+    See more details here: https://docs.ray.io/en/master/tune/api_docs/suggestion.html"""
+
+    if search_alg == 'optuna':
+        assert metric and mode, "metric and mode cannot be None for optuna search"
+        from ray.tune.suggest.optuna import OptunaSearch
+        return OptunaSearch(metric=metric, mode=mode)
+    elif search_alg == 'bayesopt':
+        assert metric and mode, "metric and mode cannot be None for hyperopt search"
+        from ray.tune.suggest.bayesopt import BayesOptSearch
+        return BayesOptSearch(metric=metric, mode=mode)
+    logging.info(f'{search_alg} search is found, run BasicVariantGenerator().')
 
 
 def main():
@@ -86,11 +86,9 @@ def main():
     parser.add_argument('--local_dir', default=os.getcwd(), help='Directory to save training results (default: %(default)s)')
     parser.add_argument('--num_samples', type=int, default=50, help='Number of running samples (default: %(default)s)')
     parser.add_argument('--mode', default='max', choices=['min', 'max'], help='Determines whether objective is minimizing or maximizing the metric attribute. (default: %(default)s)')
-
     parser.add_argument('--search_alg', default=None, choices=['random', 'grid', 'bayesopt', 'optuna'], help='Search algorithms (default: %(default)s)')
-    parser.add_argument('--search_params', default=None, nargs='+', help='List of search parameters.')
-    parser.add_argument('--current_best_params', default=None,
-                        help='Initial parameters suggestions to be run first.')
+    parser.add_argument('--search_params', default=None, nargs='+',
+                        help='List of search parameters.(default: %(default)s)')
     args = parser.parse_args()
 
     """Other args in the model config are viewed as resolved values that are ignored from tune.
@@ -99,8 +97,7 @@ def main():
     model_config = init_model_config(args.config)
     for param in args.search_params:
         assert param in model_config, f'Please specify {param} in the config. (Ex. dropout: [0.2, 0.4, 0.6, 0.8])'
-        model_config[param] = init_search_space(
-            model_config[param], args.search_alg)
+        model_config[param] = init_search_space(model_config[param], args.search_alg)
 
     """Run tune analysis.
     If no search algorithm is specified, the default search algorighm is BasicVariantGenerator.
