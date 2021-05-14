@@ -9,7 +9,7 @@ seed: 1337
 epochs: 200
 batch_size: 16
 optimizer: adam
-learning_rate: [0.001, 0.003, 0.0001, 0.0003]
+learning_rate: ['choice', [0.001, 0.003, 0.0001, 0.0003]]
 weight_decay: 0
 patience: 10
 shuffle: false
@@ -21,9 +21,9 @@ val_metric: P@5
 
 # model
 model_name: CAML
-num_filter_per_size: [50, 150, 250, 350, 450, 550]
-filter_sizes: [[2, 4, 6, 8, 10]]
-dropout: [0.2, 0.4, 0.6, 0.8]
+num_filter_per_size: ['choice', [50, 150, 250, 350, 450, 550]]
+filter_sizes: [['choice', [2, 4, 6, 8, 10]]]
+dropout: ['choice', [0.2, 0.4, 0.6, 0.8]]
 init_weight: null
 activation: tanh
 

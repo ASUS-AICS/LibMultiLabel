@@ -54,25 +54,25 @@ def init_model_config(config_path):
     return model_config
 
 
-def init_search_space(values, search_alg):
+def init_search_space(search_func, values):
     """Initialize the search space by the given search algorithm.
     Currently, the search algorithm decides what search function is used for all parameters.
     """
-    if search_alg == 'grid':
+    if search_func == 'grid':
         return tune.grid_search(values)
-    elif search_alg == 'random' or search_alg == 'optuna':
-        # sample an option uniformly from list of values
-        return tune.choice(values)
-    elif search_alg == 'bayesopt':
+    elif search_func == 'uniform':
         assert len(values) == 2 and values[0] < values[1]
         # sample an option uniformly between values[0] and values[1]
         return tune.uniform(values[0], values[1])
+    else:
+        # sample an option uniformly from list of values
+        return tune.choice(values)
 
 
 def get_search_algorithm(search_alg, metric=None, mode=None):
     """Specify a search algorithm. You should pip install this search algorithm first.
-    See more details here: https://docs.ray.io/en/master/tune/api_docs/suggestion.html"""
-
+    See more details here: https://docs.ray.io/en/master/tune/api_docs/suggestion.html
+    """
     if search_alg == 'optuna':
         assert metric and mode, "metric and mode cannot be None for optuna search"
         from ray.tune.suggest.optuna import OptunaSearch
@@ -88,7 +88,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '--config', help='Path to configuration file (default: %(default)s). Please specify a config with all arguments in LibMultiLabel/main.py::get_config.')
-    parser.add_argument('--cpu_count', type=int, default=1, help='Number of CPU (default: %(default)s)')
+    parser.add_argument('--cpu_count', type=int, default=4, help='Number of CPU (default: %(default)s)')
     parser.add_argument('--gpu_count', type=int, default=1, help='Number of GPU (default: %(default)s)')
     parser.add_argument('--local_dir', default=os.getcwd(), help='Directory to save training results (default: %(default)s)')
     parser.add_argument('--num_samples', type=int, default=50, help='Number of running samples (default: %(default)s)')
@@ -103,12 +103,11 @@ def main():
     """
     model_config = init_model_config(args.config)
     for param in args.search_params:
-        assert param in model_config, f'Please specify {param} in the config. (Ex. dropout: [0.2, 0.4, 0.6, 0.8])'
+        assert param in model_config, f"Please specify {param} in the config. (Ex. dropout: [[0.2, 0.4, 0.6, 0.8], 'choice')"
         if isinstance(model_config[param][0], list): # filter_sizes
-            model_config[param] = [init_search_space(
-                sub_param, args.search_alg) for sub_param in model_config[param]]
+            model_config[param] = [init_search_space(search_func, values) for search_func, values in model_config[param]]
         else:
-            model_config[param] = init_search_space(model_config[param], args.search_alg)
+            model_config[param] = init_search_space(*model_config[param])
 
     """Run tune analysis.
     If no search algorithm is specified, the default search algorighm is BasicVariantGenerator.
