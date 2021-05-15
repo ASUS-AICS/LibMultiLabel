@@ -64,7 +64,7 @@ class Timer(object):
 
 
 def dump_log(config, metrics, split):
-    """Write log includes config and the evaluation scores.
+    """Write log including config and the evaluation scores.
 
     Args:
         config (dict): config to save
