@@ -70,7 +70,7 @@ def init_search_space(search_func, values):
 
 
 def get_search_algorithm(search_alg, metric=None, mode=None):
-    """Specify a search algorithm. You should pip install this search algorithm first.
+    """Specify a search algorithm and you must pip install it first.
     See more details here: https://docs.ray.io/en/master/tune/api_docs/suggestion.html
     """
     if search_alg == 'optuna':
