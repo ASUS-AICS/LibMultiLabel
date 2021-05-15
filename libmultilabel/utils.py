@@ -64,7 +64,7 @@ class Timer(object):
 
 
 def dump_log(config, metrics, split):
-    """Write log includes config and the evaluation scores.
+    """Write log including config and the evaluation scores.
 
     Args:
         config (dict): config to save
@@ -125,7 +125,7 @@ def set_seed(seed):
 
 def init_device(use_cpu=False):
     if not use_cpu and torch.cuda.is_available():
-        # set a debug environment variable CUBLAS_WORKSPACE_CONFIG to ":16:8" (may limit overall performance) or ":4096:8" (will increase library footprint in GPU memory by approximately 24MiB).
+        # Set a debug environment variable CUBLAS_WORKSPACE_CONFIG to ":16:8" (may limit overall performance) or ":4096:8" (will increase library footprint in GPU memory by approximately 24MiB).
         # https://docs.nvidia.com/cuda/cublas/index.html
         os.environ['CUBLAS_WORKSPACE_CONFIG'] = ":4096:8"
         device = torch.device('cuda')
