@@ -94,7 +94,7 @@ def get_config():
 def main():
     config = get_config()
     set_seed(seed=config.seed)
-    config.device = init_device(config.cpu)
+    config.device = init_device(use_cpu=config.cpu)
 
     config.run_name = '{}_{}_{}'.format(
         config.data_name,
