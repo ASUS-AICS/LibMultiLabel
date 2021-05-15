@@ -28,8 +28,8 @@ def training_function(config):
     model.load_best()
 
     # return best eval metric
-    dev_loader = data_utils.get_dataset_loader(model_config, datasets['val'], model.word_dict, model.classes, train=False)
-    results = evaluate(model_config, model, dev_loader, split='val', dump=True)
+    val_loader = data_utils.get_dataset_loader(model_config, datasets['val'], model.word_dict, model.classes, train=False)
+    results = evaluate(model, val_loader, config.monitor_metrics)
     yield results
 
 
