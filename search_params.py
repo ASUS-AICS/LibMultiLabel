@@ -29,8 +29,8 @@ def training_function(config):
 
     # return best eval metric
     val_loader = data_utils.get_dataset_loader(model_config, datasets['val'], model.word_dict, model.classes, train=False)
-    results = evaluate(model, val_loader, config.monitor_metrics)
-    yield results
+    results = evaluate(model, val_loader, model_config.monitor_metrics)
+    yield results.get_metric_dict(use_cache=False)
 
 
 def init_model_config(config_path):
