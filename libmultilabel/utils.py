@@ -62,6 +62,49 @@ class Timer(object):
         return self.total
 
 
+def pad_sequence(sequences, batch_first=False, padding_value=0.0, max_len=None):
+    # type: (List[Tensor], bool, float) -> Tensor
+    r"""Pad a list of variable length Tensors with ``padding_value``
+
+    Modified from pytorch.nn.utils.rnn.pad_sequence to support length specification
+    https://pytorch.org/docs/stable/_modules/torch/nn/utils/rnn.html#pad_sequence
+
+    Args:
+        sequences (list[Tensor]): list of variable length sequences.
+        batch_first (bool, optional): output will be in ``B x T x *`` if True, or in
+            ``T x B x *`` otherwise
+        padding_value (float, optional): value for padded elements. Default: 0.
+        max_len (int, optional): length to pad if given, or calculate from
+			sequences otherwise. Default: 0.
+
+    Returns:
+        Tensor of size ``T x B x *`` if :attr:`batch_first` is ``False``.
+        Tensor of size ``B x T x *`` otherwise
+    """
+
+    # assuming trailing dimensions and type of all the Tensors
+    # in sequences are same and fetching those from sequences[0]
+    max_size = sequences[0].size()
+    trailing_dims = max_size[1:]
+    if max_len is None:
+        max_len = max([s.size(0) for s in sequences])
+    if batch_first:
+        out_dims = (len(sequences), max_len) + trailing_dims
+    else:
+        out_dims = (max_len, len(sequences)) + trailing_dims
+
+    out_tensor = sequences[0].new_full(out_dims, padding_value)
+    for i, tensor in enumerate(sequences):
+        length = tensor.size(0)
+        # use index notation to prevent duplicate references to the tensor
+        if batch_first:
+            out_tensor[i, :length, ...] = tensor
+        else:
+            out_tensor[:length, i, ...] = tensor
+
+    return out_tensor
+
+
 def dump_log(config, metrics, split):
     log_path = os.path.join(config.result_dir, config.run_name, 'logs.json')
     os.makedirs(os.path.dirname(log_path), exist_ok=True)
