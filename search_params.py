@@ -74,11 +74,11 @@ def get_search_algorithm(search_alg, metric=None, mode=None):
     See more details here: https://docs.ray.io/en/master/tune/api_docs/suggestion.html
     """
     if search_alg == 'optuna':
-        assert metric and mode, "metric and mode cannot be None for optuna search"
+        assert metric and mode, "Metric and mode cannot be None for optuna."
         from ray.tune.suggest.optuna import OptunaSearch
         return OptunaSearch(metric=metric, mode=mode)
     elif search_alg == 'bayesopt':
-        assert metric and mode, "metric and mode cannot be None for hyperopt search"
+        assert metric and mode, "Metric and mode cannot be None for bayesian optimization."
         from ray.tune.suggest.bayesopt import BayesOptSearch
         return BayesOptSearch(metric=metric, mode=mode)
     logging.info(f'{search_alg} search is found, run BasicVariantGenerator().')
@@ -105,6 +105,8 @@ def main():
     for param in args.search_params:
         assert param in model_config, f"Please specify {param} in the config. (Ex. dropout: [[0.2, 0.4, 0.6, 0.8], 'choice')"
         if isinstance(model_config[param][0], list): # filter_sizes
+            if args.search_alg == 'bayesopt' or args.search_algo == 'optuna':
+                raise TypeError(f'{args.search_alg} does not support list of search spaces.')
             model_config[param] = [init_search_space(search_func, values) for search_func, values in model_config[param]]
         else:
             model_config[param] = init_search_space(*model_config[param])

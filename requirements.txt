@@ -1,10 +1,12 @@
-bayesian-optimization
+bayesian-optimization # ray[tune]
 nltk
-optuna==2.6.0
+optuna==2.6.0 # ray[tune]
 pandas
 PyYAML
 ray
 scikit-learn
+tabulate # ray[tune]
+tensorboardX # ray[tune]
 torch==1.8.0
 torchtext==0.9.0
 tqdm

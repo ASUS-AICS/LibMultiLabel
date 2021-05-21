@@ -22,7 +22,7 @@ val_metric: P@5
 # model
 model_name: CAML
 num_filter_per_size: ['choice', [50, 150, 250, 350, 450, 550]]
-filter_sizes: [['choice', [2, 4, 6, 8, 10]]]
+filter_sizes: [10]
 dropout: ['choice', [0.2, 0.4, 0.6, 0.8]]
 init_weight: null
 activation: tanh
@@ -32,7 +32,7 @@ vocab_file: data/MIMIC-50/vocab.csv
 embed_file: data/MIMIC-50/processed_full.embed
 
 # other parameters specified in main.py::get_args
-config: example_config/MIMIC-50/caml.yml
+config: example_config/MIMIC-50/caml_tune.yml
 cpu: false
 data_workers: 1
 display_iter: 100
