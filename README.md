@@ -146,17 +146,18 @@ python3 main.py --eval --config CONFIG_PATH --load_checkpoint CHECKPOINT_PATH --
 
 
 ### Hyperparameter Search
+We leverage Ray Tune, which is a python library for hyperparameter tuning, to select parameters. We provide a program `search_params.py` to demonstrate how to run LibMultiLabel with Ray Tune. An example to run it as follows.
 ```
 python search_params.py  --config example_config/MIMIC-50/caml_tune.yml
                          --search_alg random
                          --search_params dropout learning_rate filter_sizes num_filter_per_size
 ```
 
-- **config**: configure *all* parameters in a yaml file. You can define the search space of continuous or discrete parameters by the functions listed [here](https://docs.ray.io/en/master/tune/api_docs/search_space.html#tune-sample-docs). An example of configuring the parameters is presented as follows:
+- **config**: configure *all* parameters in a yaml file. You can define a continuous, a discrete, or other types of search space (see a list [here](https://docs.ray.io/en/master/tune/api_docs/search_space.html#tune-sample-docs)). An example of configuring the parameters is presented as follows:
 ```yaml
 dropout: ['choice', [0.2, 0.4, 0.6, 0.8]] # discrete
 learning_rate: ['uniform', [0.2, 0.8]] # continuous
 activation: tanh # not for hyperparameter search
 ```
-- **search_algo**: specify a search algorithm defined in [tune.suggest](https://docs.ray.io/en/master/tune/api_docs/suggestion.html). We support `grid`, `random`, `bayesopt`, and `optuna` search.
+- **search_algo**: specify a search algorithm considered in [ray](https://docs.ray.io/en/master/tune/api_docs/suggestion.html). We support grid, random, bayesopt, and optuna.
 - **search_params**: pass the search parameters with this option.
