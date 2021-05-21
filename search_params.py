@@ -54,11 +54,13 @@ def init_model_config(config_path):
     return model_config
 
 
-def init_search_space(search_func, values):
+def init_search_space(search_alg, search_func, values):
     """Initialize the search space by the given search algorithm.
     Currently, the search algorithm decides what search function is used for all parameters.
     """
     if search_func == 'grid':
+        if search_alg != 'grid':
+            raise ValueError(f'{search_alg} does not support grid search.')
         return tune.grid_search(values)
     elif search_func == 'uniform':
         assert len(values) == 2 and values[0] < values[1]
@@ -66,6 +68,8 @@ def init_search_space(search_func, values):
         return tune.uniform(values[0], values[1])
     else:
         # sample an option uniformly from list of values
+        if search_alg == 'bayesopt':
+            raise ValueError(f'{search_alg} does not support discrete search spaces.')
         return tune.choice(values)
 
 
@@ -107,9 +111,9 @@ def main():
         if isinstance(model_config[param][0], list): # filter_sizes
             if args.search_alg == 'bayesopt' or args.search_algo == 'optuna':
                 raise TypeError(f'{args.search_alg} does not support list of search spaces.')
-            model_config[param] = [init_search_space(search_func, values) for search_func, values in model_config[param]]
+            model_config[param] = [init_search_space(args.search_alg, search_func, values) for search_func, values in model_config[param]]
         else:
-            model_config[param] = init_search_space(*model_config[param])
+            model_config[param] = init_search_space(args.search_alg, *model_config[param])
 
     """Run tune analysis.
     If no search algorithm is specified, the default search algorighm is BasicVariantGenerator.
