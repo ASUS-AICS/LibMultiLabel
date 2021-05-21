@@ -159,5 +159,5 @@ dropout: ['choice', [0.2, 0.4, 0.6, 0.8]] # discrete
 learning_rate: ['uniform', [0.2, 0.8]] # continuous
 activation: tanh # not for hyperparameter search
 ```
-- **search_algo**: specify a search algorithm considered in [ray](https://docs.ray.io/en/master/tune/api_docs/suggestion.html). We support grid, random, bayesopt, and optuna.
+- **search_algo**: specify a search algorithm considered in [Ray Tune](https://docs.ray.io/en/master/tune/api_docs/suggestion.html). We support grid, random, bayesopt, and optuna.
 - **search_params**: pass the search parameters with this option.
