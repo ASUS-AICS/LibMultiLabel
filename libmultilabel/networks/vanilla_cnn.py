@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.init import xavier_uniform_
 
-from networks.base import BaseModel
+from ..networks.base import BaseModel
 
 
 class VanillaCNN(BaseModel):
