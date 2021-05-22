@@ -1,0 +1,52 @@
+# data
+data_dir: data/MIMIC-50
+data_name: MIMIC-50
+min_vocab_freq: 3
+max_seq_length: 2500
+
+# train
+seed: 1337
+epochs: 200
+batch_size: 16
+optimizer: adam
+learning_rate: ['choice', [0.001, 0.003, 0.0001, 0.0003]]
+weight_decay: 0
+patience: 10
+shuffle: false
+
+# eval
+eval_batch_size: 1
+monitor_metrics: ['P@1','P@3','P@5']
+val_metric: P@5
+
+# model
+model_name: CAML
+num_filter_per_size: ['choice', [50, 150, 250, 350, 450, 550]]
+filter_sizes: [10]
+dropout: ['choice', [0.2, 0.4, 0.6, 0.8]]
+init_weight: null
+activation: tanh
+
+# pretrained vocab / embeddings
+vocab_file: data/MIMIC-50/vocab.csv
+embed_file: data/MIMIC-50/processed_full.embed
+
+# other parameters specified in main.py::get_args
+config: example_config/MIMIC-50/caml_tune.yml
+cpu: false
+data_workers: 1
+display_iter: 100
+eval: false
+fixed_length: false
+label_file: null
+load_checkpoint: null
+metrics_thresholds: [0.5]
+momentum: 0.9
+predict_out_path: null
+result_dir: runs/optuna-50
+test_path: data/MIMIC-50/test.txt
+train_path: data/MIMIC-50/train.txt
+val_path: null
+val_size: 0.2
+vocab_file: data/MIMIC-50/vocab.csv
+vocab_label_map: null
