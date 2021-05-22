@@ -16,7 +16,7 @@ If you have a different version of CUDA, go to the [website](https://pytorch.org
 
 To install the latest development version, run:
 ```
-pip3 install -r requirements.txt
+pip3 install -Ur requirements.txt
 ```
 
 ## Table of Contents
