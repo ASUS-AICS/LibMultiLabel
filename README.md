@@ -16,7 +16,7 @@ If you have a different version of CUDA, go to the [website](https://pytorch.org
 
 To install the latest development version, run:
 ```
-pip3 install -Ur requirements.txt
+pip3 install -r requirements.txt
 ```
 
 ## Table of Contents
@@ -146,7 +146,11 @@ python3 main.py --eval --config CONFIG_PATH --load_checkpoint CHECKPOINT_PATH --
 
 
 ### Hyperparameter Search
-We leverage Ray Tune, which is a python library for hyperparameter tuning, to select parameters. We provide a program `search_params.py` to demonstrate how to run LibMultiLabel with Ray Tune. An example to run it as follows.
+We leverage [Ray Tune](https://docs.ray.io/en/master/tune/index.html), which is a python library for hyperparameter tuning, to select parameters. Due to the dependency of Ray Tune, first make sure your python version is not greater than 3.8. Then, install the related packages with:
+```
+pip3 install -Ur requirements_parameter_search.txt
+```
+We provide a program `search_params.py` to demonstrate how to run LibMultiLabel with Ray Tune. An example is as follows.
 ```
 python search_params.py  --config example_config/MIMIC-50/caml_tune.yml
                          --search_alg random

@@ -1,9 +1,6 @@
-bayesian-optimization # ray[tune]
 nltk
-optuna # ray[tune]
 pandas
 PyYAML
-ray[tune]
 scikit-learn
 torch==1.8.0
 torchtext==0.9.0
