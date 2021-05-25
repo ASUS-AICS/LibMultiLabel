@@ -146,7 +146,7 @@ python3 main.py --eval --config CONFIG_PATH --load_checkpoint CHECKPOINT_PATH --
 
 
 ### Hyperparameter Search
-We leverage Ray Tune, which is a python library for hyperparameter tuning, to select parameters. Due to the dependency of Ray Tune, first make sure your python version is not greater than 3.8. Then, install the related packages with:
+We leverage [Ray Tune](https://docs.ray.io/en/master/tune/index.html), which is a python library for hyperparameter tuning, to select parameters. Due to the dependency of Ray Tune, first make sure your python version is not greater than 3.8. Then, install the related packages with:
 ```
 pip3 install -Ur requirements_parameter_search.txt
 ```
