@@ -98,7 +98,6 @@ def main():
     """
     model_config = init_model_config(args.config)
     model_config = init_sample_spaces(model_config)
-    print(model_config)
     search_alg = args.search_alg if args.search_alg else model_config.search_alg
 
     """Run tune analysis.
