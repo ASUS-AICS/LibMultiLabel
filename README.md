@@ -154,8 +154,8 @@ We provide a program `search_params.py` to demonstrate how to run LibMultiLabel 
 ```
 python search_params.py  --config example_config/MIMIC-50/caml_tune.yml
                          --search_alg random
-                         --search_params dropout learning_rate filter_sizes num_filter_per_size
 ```
+You can also define the `search_alg` in the config file.
 
 - **config**: configure *all* parameters in a yaml file. You can define a continuous, a discrete, or other types of search space (see a list [here](https://docs.ray.io/en/master/tune/api_docs/search_space.html#tune-sample-docs)). An example of configuring the parameters is presented as follows:
 ```yaml
@@ -164,5 +164,4 @@ num_filter_per_size: ['choice', [350, 450, 550]] # discrete
 learning_rate: ['uniform', 0.2, 0.8] # continuous
 activation: tanh # not for hyperparameter search
 ```
-- **search_algo**: specify a search algorithm considered in [Ray Tune](https://docs.ray.io/en/master/tune/api_docs/suggestion.html). We support grid, random, bayesopt, and optuna.
-- **search_params**: pass the search parameters with this option.
+- **search_alg**: specify a search algorithm considered in [Ray Tune](https://docs.ray.io/en/master/tune/api_docs/suggestion.html). We support grid, random, bayesopt, and optuna.
