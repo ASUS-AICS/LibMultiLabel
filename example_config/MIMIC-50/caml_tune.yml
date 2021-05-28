@@ -9,7 +9,7 @@ seed: 1337
 epochs: 200
 batch_size: 16
 optimizer: adam
-learning_rate: ['choice', [0.001, 0.003, 0.0001, 0.0003]]
+learning_rate: ['uniform', 0.0003, 0.003]
 weight_decay: 0
 patience: 10
 shuffle: false

@@ -62,7 +62,7 @@ def init_sample_spaces(model_config):
                     'qloguniform', 'randn', 'qrandn', 'randint', 'qrandint']
     for key, value in model_config.items():
         if isinstance(value, list) and len(value) >= 2 and value[0] in sample_spaces:
-            model_config[key] = getattr(tune, value[0])(*value[1])
+            model_config[key] = getattr(tune, value[0])(*value[1:])
     return model_config
 
 
