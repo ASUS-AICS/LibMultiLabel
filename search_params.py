@@ -54,14 +54,14 @@ def init_model_config(config_path):
     return model_config
 
 
-def init_sample_spaces(model_config):
+def init_search_params_spaces(model_config):
     """Initialize the sample space defined in ray tune.
     See the random distributions API listed here: https://docs.ray.io/en/master/tune/api_docs/search_space.html#random-distributions-api
     """
-    sample_spaces = ['choice', 'grid_search', 'uniform', 'quniform', 'loguniform',
+    search_spaces = ['choice', 'grid_search', 'uniform', 'quniform', 'loguniform',
                     'qloguniform', 'randn', 'qrandn', 'randint', 'qrandint']
     for key, value in model_config.items():
-        if isinstance(value, list) and len(value) >= 2 and value[0] in sample_spaces:
+        if isinstance(value, list) and len(value) >= 2 and value[0] in search_spaces:
             model_config[key] = getattr(tune, value[0])(*value[1:])
     return model_config
 
@@ -97,7 +97,7 @@ def main():
     https://github.com/ray-project/ray/blob/34d3d9294c50aea4005b7367404f6a5d9e0c2698/python/ray/tune/suggest/variant_generator.py#L333
     """
     model_config = init_model_config(args.config)
-    model_config = init_sample_spaces(model_config)
+    model_config = init_search_params_spaces(model_config)
     search_alg = args.search_alg if args.search_alg else model_config.search_alg
 
     """Run tune analysis.
