@@ -145,8 +145,8 @@ python3 main.py --eval --config CONFIG_PATH --load_checkpoint CHECKPOINT_PATH --
 - Use `--predict_out_path` to specify the file for storing the predicted top-K labels/scores.
 
 
-### Hyperparameter Search
-We leverage [Ray Tune](https://docs.ray.io/en/master/tune/index.html), which is a python library for hyperparameter tuning, to select parameters. Due to the dependency of Ray Tune, first make sure your python version is not greater than 3.8. Then, install the related packages with:
+## Hyperparameter Search
+Parameter selection is known to be extremely important in machine learning practice; see a powerful reminder in "[this paper](https://www.csie.ntu.edu.tw/~cjlin/papers/parameter_selection/acl2021_parameter_selection.pdf)". Here we leverage [Ray Tune](https://docs.ray.io/en/master/tune/index.html), which is a python library for hyperparameter tuning, to select parameters. Due to the dependency of Ray Tune, first make sure your python version is not greater than 3.8. Then, install the related packages with:
 ```
 pip3 install -Ur requirements_parameter_search.txt
 ```
