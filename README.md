@@ -152,7 +152,7 @@ pip3 install -Ur requirements_parameter_search.txt
 ```
 We provide a program `search_params.py` to demonstrate how to run LibMultiLabel with Ray Tune. An example is as follows.
 ```
-python search_params.py  --config example_config/MIMIC-50/caml_tune.yml
+python search_params.py  --config example_config/rcv1/cnn_tune.yml
                          --search_alg random
 ```
 
