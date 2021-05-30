@@ -54,26 +54,19 @@ def init_model_config(config_path):
     return model_config
 
 
-def init_search_space(search_alg, search_func, values):
-    """Initialize the search space by the given search algorithm.
-    Currently, the search algorithm decides what search function is used for all parameters.
+def init_search_params_spaces(model_config):
+    """Initialize the sample space defined in ray tune.
+    See the random distributions API listed here: https://docs.ray.io/en/master/tune/api_docs/search_space.html#random-distributions-api
     """
-    if search_func == 'grid':
-        if search_alg != 'grid':
-            raise ValueError(f'{search_alg} does not support grid search.')
-        return tune.grid_search(values)
-    elif search_func == 'uniform':
-        assert len(values) == 2 and values[0] < values[1]
-        # sample an option uniformly between values[0] and values[1]
-        return tune.uniform(values[0], values[1])
-    else:
-        # sample an option uniformly from list of values
-        if search_alg == 'bayesopt':
-            raise ValueError(f'{search_alg} does not support discrete search spaces.')
-        return tune.choice(values)
+    search_spaces = ['choice', 'grid_search', 'uniform', 'quniform', 'loguniform',
+                    'qloguniform', 'randn', 'qrandn', 'randint', 'qrandint']
+    for key, value in model_config.items():
+        if isinstance(value, list) and len(value) >= 2 and value[0] in search_spaces:
+            model_config[key] = getattr(tune, value[0])(*value[1:])
+    return model_config
 
 
-def get_search_algorithm(search_alg, metric=None, mode=None):
+def init_search_algorithm(search_alg, metric=None, mode=None):
     """Specify a search algorithm and you must pip install it first.
     See more details here: https://docs.ray.io/en/master/tune/api_docs/suggestion.html
     """
@@ -98,31 +91,22 @@ def main():
     parser.add_argument('--num_samples', type=int, default=50, help='Number of running samples (default: %(default)s)')
     parser.add_argument('--mode', default='max', choices=['min', 'max'], help='Determines whether objective is minimizing or maximizing the metric attribute. (default: %(default)s)')
     parser.add_argument('--search_alg', default=None, choices=['random', 'grid', 'bayesopt', 'optuna'], help='Search algorithms (default: %(default)s)')
-    parser.add_argument('--search_params', default=None, nargs='+',
-                        help='List of search parameters.(default: %(default)s)')
     args = parser.parse_args()
 
     """Other args in the model config are viewed as resolved values that are ignored from tune.
     https://github.com/ray-project/ray/blob/34d3d9294c50aea4005b7367404f6a5d9e0c2698/python/ray/tune/suggest/variant_generator.py#L333
     """
     model_config = init_model_config(args.config)
-    for param in args.search_params:
-        assert param in model_config, f"Please specify {param} in the config. (Ex. dropout: [[0.2, 0.4, 0.6, 0.8], 'choice')"
-        if isinstance(model_config[param][0], list): # filter_sizes
-            if args.search_alg == 'bayesopt' or args.search_algo == 'optuna':
-                raise TypeError(f'{args.search_alg} does not support list of search spaces.')
-            model_config[param] = [init_search_space(args.search_alg, search_func, values) for search_func, values in model_config[param]]
-        else:
-            model_config[param] = init_search_space(args.search_alg, *model_config[param])
+    model_config = init_search_params_spaces(model_config)
+    search_alg = args.search_alg if args.search_alg else model_config.search_alg
 
     """Run tune analysis.
     If no search algorithm is specified, the default search algorighm is BasicVariantGenerator.
     https://docs.ray.io/en/master/tune/api_docs/suggestion.html#tune-basicvariant
     """
-    search_alg = get_search_algorithm(args.search_alg, metric=model_config.val_metric, mode=args.mode)
     tune.run(
         training_function,
-        search_alg=search_alg,
+        search_alg=init_search_algorithm(search_alg, metric=model_config.val_metric, mode=args.mode),
         local_dir=args.local_dir,
         metric=model_config.val_metric,
         mode=args.mode,
