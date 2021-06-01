@@ -19,6 +19,16 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(mess
 
 def training_function(config):
     model_config = ArgDict(config)
+    model_config.run_name = '{}_{}_{}_{}'.format(
+        model_config.data_name,
+        Path(model_config.config).stem if model_config.config else model_config.model_name,
+        datetime.now().strftime('%Y%m%d%H%M%S'),
+        tune.get_trial_id()
+    )
+    logging.info(f'Run name: {model_config.run_name}')
+
+    # hot fix
+    model_config['filter_sizes'] = [model_config['filter_sizes']]
     datasets = data_utils.load_datasets(model_config)
     word_dict = data_utils.load_or_build_text_dict(model_config, datasets['train'])
     classes = data_utils.load_or_build_label(model_config, datasets)
@@ -39,18 +49,11 @@ def init_model_config(config_path):
 
     # set relative path to absolute path (_path, _file, _dir)
     for k, v in args.items():
-        if isinstance(v, str) and (os.path.isfile(v) or os.path.isdir(v)):
+        if isinstance(v, str) and (os.path.exists(v) or k.endswith(('_path', '_file', '_dir'))):
             args[k] = os.path.abspath(v)
-
     model_config = ArgDict(args)
     set_seed(seed=model_config.seed)
     model_config.device = init_device(model_config.cpu)
-    model_config.run_name = '{}_{}_{}'.format(
-        model_config.data_name,
-        Path(model_config.config).stem if model_config.config else model_config.model_name,
-        datetime.now().strftime('%Y%m%d%H%M%S'),
-    )
-    logging.info(f'Run name: {model_config.run_name}')
     return model_config
 
 
