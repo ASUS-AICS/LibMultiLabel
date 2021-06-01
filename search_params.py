@@ -88,9 +88,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '--config', help='Path to configuration file (default: %(default)s). Please specify a config with all arguments in LibMultiLabel/main.py::get_config.')
-    parser.add_argument('--cpu_count', type=int, default=4, help='Number of CPU (default: %(default)s)')
-    parser.add_argument('--gpu_count', type=int, default=1, help='Number of GPU (default: %(default)s)')
-    parser.add_argument('--local_dir', default=os.getcwd(), help='Directory to save training results (default: %(default)s)')
+    parser.add_argument('--cpu_count', type=int, default=4, help='Number of CPU per trial(default: %(default)s)')
+    parser.add_argument('--gpu_count', type=int, default=1, help='Number of GPU per trial(default: %(default)s)')
+    parser.add_argument('--local_dir', default=os.getcwd(), help='Directory to save training results of tune (default: %(default)s)')
     parser.add_argument('--num_samples', type=int, default=50, help='Number of running samples (default: %(default)s)')
     parser.add_argument('--mode', default='max', choices=['min', 'max'], help='Determines whether objective is minimizing or maximizing the metric attribute. (default: %(default)s)')
     parser.add_argument('--search_alg', default=None, choices=['random', 'grid', 'bayesopt', 'optuna'], help='Search algorithms (default: %(default)s)')
