@@ -116,6 +116,7 @@ def main():
         num_samples=args.num_samples,
         resources_per_trial={
             'cpu': args.cpu_count, 'gpu': args.gpu_count},
+        progress_reporter=tune.CLIReporter(metric_columns=model_config.monitor_metrics),
         config=model_config)
 
 
