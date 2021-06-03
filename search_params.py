@@ -27,8 +27,6 @@ def training_function(config):
     )
     logging.info(f'Run name: {model_config.run_name}')
 
-    # hot fix
-    model_config['filter_sizes'] = [model_config['filter_sizes']]
     datasets = data_utils.load_datasets(model_config)
     word_dict = data_utils.load_or_build_text_dict(model_config, datasets['train'])
     classes = data_utils.load_or_build_label(model_config, datasets)
