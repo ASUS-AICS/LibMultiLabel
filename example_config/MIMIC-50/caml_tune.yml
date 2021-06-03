@@ -51,5 +51,4 @@ test_path: data/MIMIC-50/test.txt
 train_path: data/MIMIC-50/train.txt
 val_path: null
 val_size: 0.2
-vocab_file: data/MIMIC-50/vocab.csv
 vocab_label_map: null
