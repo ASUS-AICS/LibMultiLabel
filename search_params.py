@@ -11,7 +11,7 @@ from ray import tune
 from libmultilabel import data_utils
 from libmultilabel.evaluate import evaluate
 from libmultilabel.model import Model
-from libmultilabel.utils import ArgDict, set_seed, init_device
+from libmultilabel.utils import ArgDict, dump_log, init_device, set_seed
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(message)s')
@@ -19,6 +19,14 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(mess
 
 def training_function(config):
     model_config = ArgDict(config)
+    model_config.run_name = '{}_{}_{}_{}'.format(
+        model_config.data_name,
+        Path(model_config.config).stem if model_config.config else model_config.model_name,
+        datetime.now().strftime('%Y%m%d%H%M%S'),
+        tune.get_trial_id()
+    )
+    logging.info(f'Run name: {model_config.run_name}')
+
     datasets = data_utils.load_datasets(model_config)
     word_dict = data_utils.load_or_build_text_dict(model_config, datasets['train'])
     classes = data_utils.load_or_build_label(model_config, datasets)
@@ -27,10 +35,17 @@ def training_function(config):
     model.train(datasets['train'], datasets['val'])
     model.load_best()
 
-    # return best eval metric
+    # run and dump test result
+    if 'test' in datasets:
+        test_loader = data_utils.get_dataset_loader(model_config, datasets['test'], model.word_dict, model.classes, train=False)
+        test_metrics = evaluate(model, test_loader, model_config.monitor_metrics)
+        metric_dict = test_metrics.get_metric_dict(use_cache=False)
+        dump_log(config=model_config, metrics=metric_dict, split='test')
+
+    # return best val result
     val_loader = data_utils.get_dataset_loader(model_config, datasets['val'], model.word_dict, model.classes, train=False)
-    results = evaluate(model, val_loader, model_config.monitor_metrics)
-    yield results.get_metric_dict(use_cache=False)
+    val_results = evaluate(model, val_loader, model_config.monitor_metrics)
+    yield val_results.get_metric_dict(use_cache=False)
 
 
 def init_model_config(config_path):
@@ -38,19 +53,14 @@ def init_model_config(config_path):
         args = yaml.load(fp, Loader=yaml.SafeLoader)
 
     # set relative path to absolute path (_path, _file, _dir)
+    os.makedirs(args['result_dir'], exist_ok=True)
     for k, v in args.items():
-        if isinstance(v, str) and (os.path.isfile(v) or os.path.isdir(v)):
+        if isinstance(v, str) and os.path.exists(v):
             args[k] = os.path.abspath(v)
 
     model_config = ArgDict(args)
     set_seed(seed=model_config.seed)
     model_config.device = init_device(model_config.cpu)
-    model_config.run_name = '{}_{}_{}'.format(
-        model_config.data_name,
-        Path(model_config.config).stem if model_config.config else model_config.model_name,
-        datetime.now().strftime('%Y%m%d%H%M%S'),
-    )
-    logging.info(f'Run name: {model_config.run_name}')
     return model_config
 
 
@@ -85,12 +95,13 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '--config', help='Path to configuration file (default: %(default)s). Please specify a config with all arguments in LibMultiLabel/main.py::get_config.')
-    parser.add_argument('--cpu_count', type=int, default=4, help='Number of CPU (default: %(default)s)')
-    parser.add_argument('--gpu_count', type=int, default=1, help='Number of GPU (default: %(default)s)')
-    parser.add_argument('--local_dir', default=os.getcwd(), help='Directory to save training results (default: %(default)s)')
+    parser.add_argument('--cpu_count', type=int, default=4, help='Number of CPU per trial (default: %(default)s)')
+    parser.add_argument('--gpu_count', type=int, default=1, help='Number of GPU per trial (default: %(default)s)')
+    parser.add_argument('--local_dir', default=os.getcwd(), help='Directory to save training results of tune (default: %(default)s)')
     parser.add_argument('--num_samples', type=int, default=50, help='Number of running samples (default: %(default)s)')
     parser.add_argument('--mode', default='max', choices=['min', 'max'], help='Determines whether objective is minimizing or maximizing the metric attribute. (default: %(default)s)')
-    parser.add_argument('--search_alg', default=None, choices=['random', 'grid', 'bayesopt', 'optuna'], help='Search algorithms (default: %(default)s)')
+    parser.add_argument('--search_alg', default='basic_variant', choices=[
+                        'basic_variant', 'bayesopt', 'optuna'], help='Search algorithms (default: %(default)s)')
     args = parser.parse_args()
 
     """Other args in the model config are viewed as resolved values that are ignored from tune.
@@ -113,6 +124,7 @@ def main():
         num_samples=args.num_samples,
         resources_per_trial={
             'cpu': args.cpu_count, 'gpu': args.gpu_count},
+        progress_reporter=tune.CLIReporter(metric_columns=model_config.monitor_metrics),
         config=model_config)
 
 
