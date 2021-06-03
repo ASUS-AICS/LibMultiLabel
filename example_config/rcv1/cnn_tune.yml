@@ -32,7 +32,7 @@ embed_file: glove.6B.300d
 vocab_file: null
 
 # hyperparamter search
-search_alg: random
+search_alg: basic_variant
 
 # other parameters specified in main.py::get_args
 config: example_config/rcv1/cnn_tune.yml
