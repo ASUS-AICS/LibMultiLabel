@@ -12,6 +12,7 @@ optimizer: adam
 learning_rate: ['uniform', 0.0003, 0.001]
 weight_decay: 0
 patience: 5
+shuffle: true
 
 # eval
 eval_batch_size: 256
@@ -23,12 +24,15 @@ model_name: KimCNN
 num_filter_per_size: 128 # filter channels
 filter_sizes: [2, 4, 8]
 dropout: ['choice', [0.2, 0.4, 0.6, 0.8]]
+init_weight: kaiming_uniform
+activation: relu
 
 # pretrained vocab / embeddings
 embed_file: glove.6B.300d
+vocab_file: null
 
 # hyperparamter search
-search_alg: random
+search_alg: basic_variant
 
 # other parameters specified in main.py::get_args
 config: example_config/rcv1/cnn_tune.yml
@@ -47,5 +51,4 @@ test_path: data/rcv1/test.txt
 train_path: data/rcv1/train.txt
 val_path: null
 val_size: 0.2
-vocab_file: null
 vocab_label_map: null

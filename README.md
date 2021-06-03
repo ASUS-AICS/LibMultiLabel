@@ -163,4 +163,8 @@ num_filter_per_size: ['choice', [350, 450, 550]] # discrete
 learning_rate: ['uniform', 0.2, 0.8] # continuous
 activation: tanh # not for hyperparameter search
 ```
-- **search_alg**: specify a search algorithm considered in [Ray Tune](https://docs.ray.io/en/master/tune/api_docs/suggestion.html). We support grid, random, bayesopt, and optuna. You can also define `search_alg` in the config file.
+- **search_alg**: specify a search algorithm considered in [Ray Tune](https://docs.ray.io/en/master/tune/api_docs/suggestion.html). We support basic_variant (e.g., grid/random), bayesopt, and optuna. You can also define `search_alg` in the config file. For example, if you want to run grid search over `learning_rate`, the config is like this:
+```yaml
+search_alg: basic_variant
+learning_rate: ['grid_search', [0.2, 0.4, 0.6, 0.8]]
+```
