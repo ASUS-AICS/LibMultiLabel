@@ -48,9 +48,11 @@ def init_model_config(config_path):
         args = yaml.load(fp, Loader=yaml.SafeLoader)
 
     # set relative path to absolute path (_path, _file, _dir)
+    os.makedirs(args['result_dir'], exist_ok=True)
     for k, v in args.items():
-        if isinstance(v, str) and (os.path.exists(v) or k.endswith(('_path', '_file', '_dir'))):
+        if isinstance(v, str) and os.path.exists(v):
             args[k] = os.path.abspath(v)
+
     model_config = ArgDict(args)
     set_seed(seed=model_config.seed)
     model_config.device = init_device(model_config.cpu)
