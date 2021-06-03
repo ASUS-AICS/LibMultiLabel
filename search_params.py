@@ -11,7 +11,7 @@ from ray import tune
 from libmultilabel import data_utils
 from libmultilabel.evaluate import evaluate
 from libmultilabel.model import Model
-from libmultilabel.utils import ArgDict, set_seed, init_device
+from libmultilabel.utils import ArgDict, dump_log, init_device, set_seed
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(message)s')
@@ -35,10 +35,17 @@ def training_function(config):
     model.train(datasets['train'], datasets['val'])
     model.load_best()
 
-    # return best eval metric
+    # run and dump test result
+    if 'test' in datasets:
+        test_loader = data_utils.get_dataset_loader(model_config, datasets['test'], model.word_dict, model.classes, train=False)
+        test_metrics = evaluate(model, test_loader, model_config.monitor_metrics)
+        metric_dict = test_metrics.get_metric_dict(use_cache=False)
+        dump_log(config=model_config, metrics=metric_dict, split='test')
+
+    # return best val result
     val_loader = data_utils.get_dataset_loader(model_config, datasets['val'], model.word_dict, model.classes, train=False)
-    results = evaluate(model, val_loader, model_config.monitor_metrics)
-    yield results.get_metric_dict(use_cache=False)
+    val_results = evaluate(model, val_loader, model_config.monitor_metrics)
+    yield val_results.get_metric_dict(use_cache=False)
 
 
 def init_model_config(config_path):
