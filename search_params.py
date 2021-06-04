@@ -17,35 +17,39 @@ from libmultilabel.utils import ArgDict, dump_log, init_device, set_seed
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(message)s')
 
 
-def training_function(config):
-    model_config = ArgDict(config)
-    model_config.run_name = '{}_{}_{}_{}'.format(
-        model_config.data_name,
-        Path(model_config.config).stem if model_config.config else model_config.model_name,
-        datetime.now().strftime('%Y%m%d%H%M%S'),
-        tune.get_trial_id()
-    )
-    logging.info(f'Run name: {model_config.run_name}')
+class Trainable(tune.Trainable):
+    def setup(self, config):
+        self.config = ArgDict(config)
+        self.datasets = data_utils.load_datasets(self.config)
+        self.word_dict = data_utils.load_or_build_text_dict(self.config, self.datasets['train'])
+        self.classes = data_utils.load_or_build_label(self.config, self.datasets)
 
-    datasets = data_utils.load_datasets(model_config)
-    word_dict = data_utils.load_or_build_text_dict(model_config, datasets['train'])
-    classes = data_utils.load_or_build_label(model_config, datasets)
+    def train(self):
+        self.config.run_name = '{}_{}_{}_{}'.format(
+            self.config.data_name,
+            Path(
+                self.config.config).stem if self.config.config else self.config.model_name,
+            datetime.now().strftime('%Y%m%d%H%M%S'),
+            self.trial_id
+        )
+        logging.info(f'Run name: {self.config.run_name}')
 
-    model = Model(model_config, word_dict, classes)
-    model.train(datasets['train'], datasets['val'])
-    model.load_best()
+        model = Model(self.config, self.word_dict, self.classes)
+        model.train(self.datasets['train'], self.datasets['val'])
+        model.load_best()
 
-    # run and dump test result
-    if 'test' in datasets:
-        test_loader = data_utils.get_dataset_loader(model_config, datasets['test'], model.word_dict, model.classes, train=False)
-        test_metrics = evaluate(model, test_loader, model_config.monitor_metrics)
-        metric_dict = test_metrics.get_metric_dict(use_cache=False)
-        dump_log(config=model_config, metrics=metric_dict, split='test')
+        # run and dump test result
+        if 'test' in self.datasets:
+            test_loader = data_utils.get_dataset_loader(self.config, self.datasets['test'], model.word_dict, model.classes, train=False)
+            test_metrics = evaluate(model, test_loader, self.config.monitor_metrics)
+            metric_dict = test_metrics.get_metric_dict(use_cache=False)
+            dump_log(config=self.config, metrics=metric_dict, split='test')
 
-    # return best val result
-    val_loader = data_utils.get_dataset_loader(model_config, datasets['val'], model.word_dict, model.classes, train=False)
-    val_results = evaluate(model, val_loader, model_config.monitor_metrics)
-    yield val_results.get_metric_dict(use_cache=False)
+        # return best val result
+        val_loader = data_utils.get_dataset_loader(
+            self.config, self.datasets['val'], model.word_dict, model.classes, train=False)
+        val_results = evaluate(model, val_loader, self.config.monitor_metrics)
+        return val_results.get_metric_dict(use_cache=False)
 
 
 def init_model_config(config_path):
@@ -118,7 +122,7 @@ def main():
     https://docs.ray.io/en/master/tune/api_docs/suggestion.html#tune-basicvariant
     """
     tune.run(
-        training_function,
+        Trainable,
         search_alg=init_search_algorithm(search_alg, metric=model_config.val_metric, mode=args.mode),
         local_dir=args.local_dir,
         metric=model_config.val_metric,

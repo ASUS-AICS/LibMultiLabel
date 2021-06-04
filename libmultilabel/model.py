@@ -35,16 +35,6 @@ class Model(object):
             self.start_epoch = 0
             self.best_metric = 0
 
-            # load embedding
-            if os.path.exists(config.embed_file):
-                logging.info(f'Load pretrained embedding from file: {config.embed_file}.')
-                embedding_weights = data_utils.get_embedding_weights_from_file(self.word_dict, config.embed_file)
-                self.word_dict.set_vectors(self.word_dict.stoi, embedding_weights,dim=embedding_weights.shape[1], unk_init=False)
-            elif not config.embed_file.isdigit():
-                logging.info(f'Load pretrained embedding from torchtext.')
-                self.word_dict.load_vectors(config.embed_file, cache=config.embed_cache_dir)
-            else:
-                raise NotImplementedError
         self.config.num_classes = len(self.classes)
 
         embed_vecs = self.word_dict.vectors

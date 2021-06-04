@@ -122,6 +122,18 @@ def load_or_build_text_dict(config, dataset):
         vocabs = Vocab(counter, specials=[PAD, UNK],
                        min_freq=config.min_vocab_freq)
     logging.info(f'Read {len(vocabs)} vocabularies.')
+
+    if os.path.exists(config.embed_file):
+        logging.info(f'Load pretrained embedding from file: {config.embed_file}.')
+        embedding_weights = get_embedding_weights_from_file(vocabs, config.embed_file)
+        vocabs.set_vectors(vocabs.stoi, embedding_weights,
+                           dim=embedding_weights.shape[1], unk_init=False)
+    elif not config.embed_file.isdigit():
+        logging.info(f'Load pretrained embedding from torchtext.')
+        vocabs.load_vectors(config.embed_file, cache=config.embed_cache_dir)
+    else:
+        raise NotImplementedError
+
     return vocabs
 
 
