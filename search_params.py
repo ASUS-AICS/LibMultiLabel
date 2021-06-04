@@ -52,8 +52,11 @@ def init_model_config(config_path):
     with open(config_path) as fp:
         args = yaml.load(fp, Loader=yaml.SafeLoader)
 
-    # set relative path to absolute path (_path, _file, _dir)
+    # create directories that hold the shared data
     os.makedirs(args['result_dir'], exist_ok=True)
+    os.makedirs(args['embed_cache_dir'], exist_ok=True)
+
+    # set relative path to absolute path (_path, _file, _dir)
     for k, v in args.items():
         if isinstance(v, str) and os.path.exists(v):
             args[k] = os.path.abspath(v)
@@ -100,8 +103,7 @@ def main():
     parser.add_argument('--local_dir', default=os.getcwd(), help='Directory to save training results of tune (default: %(default)s)')
     parser.add_argument('--num_samples', type=int, default=50, help='Number of running samples (default: %(default)s)')
     parser.add_argument('--mode', default='max', choices=['min', 'max'], help='Determines whether objective is minimizing or maximizing the metric attribute. (default: %(default)s)')
-    parser.add_argument('--search_alg', default=None, choices=[
-                        'basic_variant', 'bayesopt', 'optuna'], help='Search algorithms (default: %(default)s)')
+    parser.add_argument('--search_alg', default=None, choices=['basic_variant', 'bayesopt', 'optuna'], help='Search algorithms (default: %(default)s)')
     args = parser.parse_args()
 
     """Other args in the model config are viewed as resolved values that are ignored from tune.

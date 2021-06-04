@@ -29,6 +29,7 @@ activation: relu
 
 # pretrained vocab / embeddings
 embed_file: glove.6B.300d
+embed_cache_dir: .vector_cache
 vocab_file: null
 
 # hyperparamter search
