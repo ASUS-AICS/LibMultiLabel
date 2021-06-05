@@ -123,6 +123,7 @@ def main():
         test_metrics = evaluate(model, test_loader, config.monitor_metrics)
         metric_dict = test_metrics.get_metric_dict(use_cache=False)
         dump_log(config=config, metrics=metric_dict, split='test')
+        print(f'\nTest results:')
         print(test_metrics)
         if config.save_k_predictions > 0:
             if not config.predict_out_path:
