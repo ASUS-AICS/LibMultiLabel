@@ -169,4 +169,4 @@ activation: tanh # not for hyperparameter search
 search_alg: basic_variant
 learning_rate: ['grid_search', [0.2, 0.4, 0.6, 0.8]]
 ```
-- **disable_tqdm**: decides whether to disable the tqdm progress bars
+- **disable_tqdm**: decides whether to disable the tqdm progress bars.
