@@ -3,7 +3,6 @@ import logging
 import os
 
 import torch
-import tqdm
 import numpy as np
 import pandas as pd
 from nltk.tokenize import RegexpTokenizer
@@ -12,7 +11,7 @@ from sklearn.preprocessing import MultiLabelBinarizer
 from torch.utils.data import Dataset
 from torch.nn.utils.rnn import pad_sequence
 from torchtext.vocab import Vocab
-from torchtext.data.utils import get_tokenizer
+from tqdm import tqdm
 
 UNK = Vocab.UNK
 PAD = '**PAD**'
@@ -145,7 +144,7 @@ def load_or_build_label(config, datasets):
     else:
         classes = set()
         for dataset in datasets.values():
-            for d in tqdm.tqdm(dataset):
+            for d in tqdm(dataset, disable=os.environ.get("DISABLE_TQDM", False)):
                 classes.update(d['label'])
         classes = sorted(classes)
     return classes
@@ -163,7 +162,7 @@ def get_embedding_weights_from_file(word_dict, embed_file):
     embedding_weights = [np.zeros(embed_size) for i in range(len(word_dict))]
 
     vec_counts = 0
-    for word_vector in tqdm.tqdm(word_vectors):
+    for word_vector in tqdm(word_vectors, disable=os.environ.get("DISABLE_TQDM", False)):
         word, vector = word_vector.rstrip().split(' ', 1)
         vector = np.array(vector.split()).astype(np.float)
         vector = vector / float(np.linalg.norm(vector) + 1e-6)

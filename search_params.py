@@ -118,7 +118,10 @@ def main():
     parser.add_argument('--num_samples', type=int, default=50, help='Number of running samples (default: %(default)s)')
     parser.add_argument('--mode', default='max', choices=['min', 'max'], help='Determines whether objective is minimizing or maximizing the metric attribute. (default: %(default)s)')
     parser.add_argument('--search_alg', default=None, choices=['basic_variant', 'bayesopt', 'optuna'], help='Search algorithms (default: %(default)s)')
+    parser.add_argument('--disable_tqdm', action='store_true', help='Disable tqdm')
     args = parser.parse_args()
+
+    os.environ['DISABLE_TQDM'] = str(args.disable_tqdm)
 
     """Other args in the model config are viewed as resolved values that are ignored from tune.
     https://github.com/ray-project/ray/blob/34d3d9294c50aea4005b7367404f6a5d9e0c2698/python/ray/tune/suggest/variant_generator.py#L333

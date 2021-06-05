@@ -1,4 +1,4 @@
-import logging
+import os
 import re
 
 import numpy as np
@@ -17,7 +17,7 @@ def evaluate(model, dataset_loader, monitor_metrics, label_key='label'):
         monitor_metrics (list): metrics to monitor while validating
         label_key (str, optional): the key to label in the dataset. Defaults to 'label'.
     """
-    progress_bar = tqdm(dataset_loader)
+    progress_bar = tqdm(dataset_loader, disable=os.environ.get("DISABLE_TQDM", False))
     eval_metric = MultiLabelMetrics(monitor_metrics=monitor_metrics)
 
     for batch in progress_bar:

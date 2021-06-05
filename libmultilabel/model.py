@@ -114,7 +114,7 @@ class Model(object):
 
         train_loss = AverageMeter()
         epoch_time = Timer()
-        progress_bar = tqdm(data_loader)
+        progress_bar = tqdm(data_loader, disable=os.environ.get("DISABLE_TQDM", False))
 
         for idx, batch in enumerate(progress_bar):
             loss, batch_label_scores = self.train_step(batch)
