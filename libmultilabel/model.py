@@ -94,7 +94,7 @@ class Model(object):
                 logging.info(f'Time for evaluating val set = {timer.time():.2f} (s)')
 
                 dump_log(self.config, metric_dict, split='val')
-                print(f'\nVal results for epoch #{epoch}:')
+                print(f'\nVal result for epoch #{epoch}:')
                 print(val_metrics)
 
                 if metric_dict[self.config.val_metric] > self.best_metric:
