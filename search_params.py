@@ -18,13 +18,13 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(mess
 
 
 class Trainable(tune.Trainable):
-    def setup(self, config):
+    def setup(self, config, data):
         self.config = ArgDict(config)
-        self.datasets = data_utils.load_datasets(self.config)
-        self.word_dict = data_utils.load_or_build_text_dict(self.config, self.datasets['train'])
-        self.classes = data_utils.load_or_build_label(self.config, self.datasets)
+        self.datasets = data['datasets']
+        self.word_dict = data['word_dict']
+        self.classes = data['classes']
 
-    def train(self):
+    def step(self):
         self.config.run_name = '{}_{}_{}_{}'.format(
             self.config.data_name,
             Path(
@@ -58,7 +58,8 @@ def init_model_config(config_path):
 
     # create directories that hold the shared data
     os.makedirs(args['result_dir'], exist_ok=True)
-    os.makedirs(args['embed_cache_dir'], exist_ok=True)
+    if args['embed_cache_dir']:
+        os.makedirs(args['embed_cache_dir'], exist_ok=True)
 
     # set relative path to absolute path (_path, _file, _dir)
     for k, v in args.items():
@@ -98,6 +99,15 @@ def init_search_algorithm(search_alg, metric=None, mode=None):
     logging.info(f'{search_alg} search is found, run BasicVariantGenerator().')
 
 
+def load_static_data(config):
+    datasets = data_utils.load_datasets(config)
+    return {
+        "datasets": datasets,
+        "word_dict": data_utils.load_or_build_text_dict(config, datasets['train']),
+        "classes": data_utils.load_or_build_label(config, datasets)
+    }
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -116,13 +126,15 @@ def main():
     model_config = init_model_config(args.config)
     model_config = init_search_params_spaces(model_config)
     search_alg = args.search_alg if args.search_alg else model_config.search_alg
+    data = load_static_data(model_config)
 
     """Run tune analysis.
     If no search algorithm is specified, the default search algorighm is BasicVariantGenerator.
     https://docs.ray.io/en/master/tune/api_docs/suggestion.html#tune-basicvariant
     """
     tune.run(
-        Trainable,
+        tune.with_parameters(Trainable, data=data),
+        stop={"training_iteration": 1}, # run one step "libmultilabel.model.train"
         search_alg=init_search_algorithm(search_alg, metric=model_config.val_metric, mode=args.mode),
         local_dir=args.local_dir,
         metric=model_config.val_metric,
