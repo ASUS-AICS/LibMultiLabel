@@ -14,8 +14,6 @@ from torch.nn.utils.rnn import pad_sequence
 from torchtext.vocab import Vocab
 from torchtext.data.utils import get_tokenizer
 
-from libmultilabel.utils import pad_sequence
-
 UNK = Vocab.UNK
 PAD = '**PAD**'
 
@@ -43,12 +41,12 @@ class TextDataset(Dataset):
         }
 
 
-def generate_batch(data_batch, max_len=None):
+def generate_batch(data_batch):
     text_list = [data['text'] for data in data_batch]
     label_list = [data['label'] for data in data_batch]
     return {
         'index': [data['index'] for data in data_batch],
-        'text': pad_sequence(text_list, batch_first=True, max_len=max_len),
+        'text': pad_sequence(text_list, batch_first=True),
         'label': torch.stack(label_list)
     }
 
@@ -56,17 +54,12 @@ def generate_batch(data_batch, max_len=None):
 def get_dataset_loader(config, data, word_dict, classes, shuffle=False, train=True):
     dataset = TextDataset(data, word_dict, classes, config.max_seq_length)
 
-    if config.fixed_length:
-        collate_fn = lambda batch: generate_batch(batch, config.max_seq_length)
-    else:
-        collate_fn = generate_batch
-
     dataset_loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=config.batch_size if train else config.eval_batch_size,
         shuffle=shuffle,
         num_workers=config.data_workers,
-        collate_fn=collate_fn,
+        collate_fn=generate_batch,
         pin_memory='cuda' in config.device.type,
     )
     return dataset_loader
