@@ -61,7 +61,7 @@ def get_config():
     parser.add_argument('--filter_sizes', type=int, nargs='+', default=[4], help='Size of convolutional filters (default: %(default)s)')
     parser.add_argument('--dropout', type=float, default=0.2, help='Optional specification of dropout (default: %(default)s)')
     parser.add_argument('--dropout2', type=float, default=0.2, help='Optional specification of the second dropout (default: %(default)s)')
-    parser.add_argument('--pool_size', type=int, default=2, help='Polling size for dynamic max-pooling (default: %(default)s)')
+    parser.add_argument('--num_pool', type=int, default=1, help='Number of pool for dynamic max-pooling (default: %(default)s)')
 
     # eval
     parser.add_argument('--eval_batch_size', type=int, default=256, help='Size of evaluating batches (default: %(default)s)')
