@@ -12,9 +12,6 @@ from libmultilabel.utils import ArgDict, Timer, set_seed, init_device, dump_log,
 from libmultilabel.evaluate import evaluate
 
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(message)s')
-
-
 def get_config():
     parser = argparse.ArgumentParser(
         add_help=False,
@@ -81,6 +78,7 @@ def get_config():
 
     # others
     parser.add_argument('--cpu', action='store_true', help='Disable CUDA')
+    parser.add_argument('--silent', action='store_true', help='Enable silent mode')
     parser.add_argument('--data_workers', type=int, default=4, help='Use multi-cpu core for data pre-processing (default: %(default)s)')
     parser.add_argument('--eval', action='store_true', help='Only run evaluation on the test set (default: %(default)s)')
     parser.add_argument('--load_checkpoint', help='The checkpoint to warm-up with (default: %(default)s)')
@@ -94,6 +92,8 @@ def get_config():
 
 def main():
     config = get_config()
+    log_level = logging.WARNING if config.silent else logging.INFO
+    logging.basicConfig(level=log_level, format='%(asctime)s %(levelname)s:%(message)s')
     set_seed(seed=config.seed)
     config.device = init_device(use_cpu=config.cpu)
 
@@ -120,11 +120,11 @@ def main():
 
     if 'test' in datasets:
         test_loader = data_utils.get_dataset_loader(config, datasets['test'], model.word_dict, model.classes, train=False)
-        test_metrics = evaluate(model, test_loader, config.monitor_metrics)
+        test_metrics = evaluate(model, test_loader, config.monitor_metrics, config.silent)
         metric_dict = test_metrics.get_metric_dict(use_cache=False)
         dump_log(config=config, metrics=metric_dict, split='test')
-        print(f'\nTest result:')
-        print(test_metrics)
+        if not config.silent:
+            print(test_metrics)
         if config.save_k_predictions > 0:
             if not config.predict_out_path:
                 config.predict_out_path = os.path.join(config.result_dir, config.run_name, 'predictions.txt')

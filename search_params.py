@@ -41,14 +41,14 @@ class Trainable(tune.Trainable):
         # run and dump test result
         if 'test' in self.datasets:
             test_loader = data_utils.get_dataset_loader(self.config, self.datasets['test'], model.word_dict, model.classes, train=False)
-            test_metrics = evaluate(model, test_loader, self.config.monitor_metrics)
+            test_metrics = evaluate(model, test_loader, self.config.monitor_metrics, self.config.silent)
             metric_dict = test_metrics.get_metric_dict(use_cache=False)
             dump_log(config=self.config, metrics=metric_dict, split='test')
 
         # return best val result
         val_loader = data_utils.get_dataset_loader(
             self.config, self.datasets['val'], model.word_dict, model.classes, train=False)
-        val_results = evaluate(model, val_loader, self.config.monitor_metrics)
+        val_results = evaluate(model, val_loader, self.config.monitor_metrics, self.config.silent)
         return val_results.get_metric_dict(use_cache=False)
 
 
@@ -77,7 +77,7 @@ def init_search_params_spaces(model_config):
     See the random distributions API listed here: https://docs.ray.io/en/master/tune/api_docs/search_space.html#random-distributions-api
     """
     search_spaces = ['choice', 'grid_search', 'uniform', 'quniform', 'loguniform',
-                    'qloguniform', 'randn', 'qrandn', 'randint', 'qrandint']
+                     'qloguniform', 'randn', 'qrandn', 'randint', 'qrandint']
     for key, value in model_config.items():
         if isinstance(value, list) and len(value) >= 2 and value[0] in search_spaces:
             model_config[key] = getattr(tune, value[0])(*value[1:])
@@ -115,13 +115,10 @@ def main():
     parser.add_argument('--cpu_count', type=int, default=4, help='Number of CPU per trial (default: %(default)s)')
     parser.add_argument('--gpu_count', type=int, default=1, help='Number of GPU per trial (default: %(default)s)')
     parser.add_argument('--local_dir', default=os.getcwd(), help='Directory to save training results of tune (default: %(default)s)')
-    parser.add_argument('--num_samples', type=int, default=50, help='Number of running samples (default: %(default)s)')
+    parser.add_argument('--num_samples', type=int, default=1, help='Number of running samples (default: %(default)s)')
     parser.add_argument('--mode', default='max', choices=['min', 'max'], help='Determines whether objective is minimizing or maximizing the metric attribute. (default: %(default)s)')
     parser.add_argument('--search_alg', default=None, choices=['basic_variant', 'bayesopt', 'optuna'], help='Search algorithms (default: %(default)s)')
-    parser.add_argument('--disable_tqdm', action='store_true', help='Disable tqdm')
     args = parser.parse_args()
-
-    os.environ['DISABLE_TQDM'] = str(args.disable_tqdm)
 
     """Other args in the model config are viewed as resolved values that are ignored from tune.
     https://github.com/ray-project/ray/blob/34d3d9294c50aea4005b7367404f6a5d9e0c2698/python/ray/tune/suggest/variant_generator.py#L333

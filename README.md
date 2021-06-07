@@ -154,7 +154,6 @@ We provide a program `search_params.py` to demonstrate how to run LibMultiLabel 
 ```
 python3 search_params.py  --config example_config/rcv1/cnn_tune.yml
                           --search_alg basic_variant
-                          --disable_tqdm
 ```
 
 - **config**: configure *all* parameters in a yaml file. You can define a continuous, a discrete, or other types of search space (see a list [here](https://docs.ray.io/en/master/tune/api_docs/search_space.html#tune-sample-docs)). An example of configuring the parameters is presented as follows:
@@ -169,4 +168,3 @@ activation: tanh # not for hyperparameter search
 search_alg: basic_variant
 learning_rate: ['grid_search', [0.2, 0.4, 0.6, 0.8]]
 ```
-- **disable_tqdm**: decides whether to disable the tqdm progress bars.

@@ -124,7 +124,7 @@ def load_or_build_text_dict(config, dataset):
 
     if os.path.exists(config.embed_file):
         logging.info(f'Load pretrained embedding from file: {config.embed_file}.')
-        embedding_weights = get_embedding_weights_from_file(vocabs, config.embed_file)
+        embedding_weights = get_embedding_weights_from_file(vocabs, config.embed_file, config.silent)
         vocabs.set_vectors(vocabs.stoi, embedding_weights,
                            dim=embedding_weights.shape[1], unk_init=False)
     elif not config.embed_file.isdigit():
@@ -144,13 +144,13 @@ def load_or_build_label(config, datasets):
     else:
         classes = set()
         for dataset in datasets.values():
-            for d in tqdm(dataset, disable=os.environ.get("DISABLE_TQDM", False)):
+            for d in tqdm(dataset, disable=config.silent):
                 classes.update(d['label'])
         classes = sorted(classes)
     return classes
 
 
-def get_embedding_weights_from_file(word_dict, embed_file):
+def get_embedding_weights_from_file(word_dict, embed_file, silent=False):
     """If there is an embedding file, load pretrained word embedding.
     Otherwise, assign a zero vector to that word.
     """
@@ -162,7 +162,7 @@ def get_embedding_weights_from_file(word_dict, embed_file):
     embedding_weights = [np.zeros(embed_size) for i in range(len(word_dict))]
 
     vec_counts = 0
-    for word_vector in tqdm(word_vectors, disable=os.environ.get("DISABLE_TQDM", False)):
+    for word_vector in tqdm(word_vectors, disable=silent):
         word, vector = word_vector.rstrip().split(' ', 1)
         vector = np.array(vector.split()).astype(np.float)
         vector = vector / float(np.linalg.norm(vector) + 1e-6)

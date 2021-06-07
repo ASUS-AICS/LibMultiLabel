@@ -30,10 +30,10 @@ activation: tanh
 # pretrained vocab / embeddings
 vocab_file: data/MIMIC-50/vocab.csv
 embed_file: data/MIMIC-50/processed_full.embed
-embed_cache_dir: null
 
 # hyperparamter search
 search_alg: basic_variant
+embed_cache_dir: null
 
 # other parameters specified in main.py::get_args
 config: example_config/MIMIC-50/caml_tune.yml
@@ -48,6 +48,7 @@ metrics_thresholds: [0.5]
 momentum: 0.9
 predict_out_path: null
 result_dir: runs
+silent: true
 test_path: data/MIMIC-50/test.txt
 train_path: data/MIMIC-50/train.txt
 val_path: null

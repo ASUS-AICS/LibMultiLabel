@@ -89,13 +89,14 @@ class Model(object):
 
                 timer = Timer()
                 logging.info('Start predicting a validation set')
-                val_metrics = evaluate(model=self, dataset_loader=val_loader, monitor_metrics=self.config.monitor_metrics)
+                val_metrics = evaluate(model=self, dataset_loader=val_loader,
+                                       monitor_metrics=self.config.monitor_metrics, silent=self.config.silent)
                 metric_dict = val_metrics.get_metric_dict(use_cache=False)
                 logging.info(f'Time for evaluating val set = {timer.time():.2f} (s)')
 
                 dump_log(self.config, metric_dict, split='val')
-                print(f'\nVal result for epoch #{epoch}:')
-                print(val_metrics)
+                if not self.config.silent:
+                    print(val_metrics)
 
                 if metric_dict[self.config.val_metric] > self.best_metric:
                     self.best_metric = metric_dict[self.config.val_metric]
@@ -115,7 +116,7 @@ class Model(object):
 
         train_loss = AverageMeter()
         epoch_time = Timer()
-        progress_bar = tqdm(data_loader, disable=os.environ.get("DISABLE_TQDM", False))
+        progress_bar = tqdm(data_loader, disable=self.config.silent)
 
         for idx, batch in enumerate(progress_bar):
             loss, batch_label_scores = self.train_step(batch)
