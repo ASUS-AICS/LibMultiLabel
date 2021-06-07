@@ -9,20 +9,25 @@ from ..networks.base import BaseModel
 class XMLCNN(BaseModel):
     def __init__(self, config, embed_vecs):
         super(XMLCNN, self).__init__(config, embed_vecs)
+        assert config.seed is None, ("nn.AdaptiveMaxPool1d doesn't have a "
+                                     "deterministic implementation but seed is"
+                                     "specified. Please do not specify seed.")
 
         emb_dim = embed_vecs.shape[1]
 
         self.convs = nn.ModuleList()
-
         for filter_size in config.filter_sizes:
             conv = nn.Conv1d(
                 in_channels=emb_dim,
                 out_channels=config.num_filter_per_size,
-                kernel_size=filter_size,
-                padding=(filter_size // 2),
-            )
+                kernel_size=filter_size)
             self.convs.append(conv)
-        self.pool = nn.AdaptiveMaxPool1d(config.num_pool)
+
+        # Automatically set stride and kernel_size for pooling by output_size
+        # stride = floor(input_size / output_size)
+        # kernel_size = input_size - (output_size - 1) * stride
+        self.pool = nn.AdaptiveMaxPool1d(output_size=config.num_pool)
+
         total_output_size = len(config.filter_sizes) * config.num_filter_per_size * config.num_pool
         self.dropout2 = nn.Dropout(config.dropout2)
         self.linear1 = nn.Linear(total_output_size, config.hidden_dim)
