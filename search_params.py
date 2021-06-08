@@ -1,4 +1,5 @@
 import argparse
+import glob
 import logging
 import os
 import time
@@ -49,6 +50,10 @@ class Trainable(tune.Trainable):
         val_loader = data_utils.get_dataset_loader(
             self.config, self.datasets['val'], model.word_dict, model.classes, train=False)
         val_results = evaluate(model, val_loader, self.config.monitor_metrics, silent=self.config.silent)
+
+        for model_path in glob.glob(os.path.join(self.config.result_dir, self.config.run_name, '*.pt')):
+            logging.info(f'Removing {model_path} ...')
+            os.remove(model_path)
         return val_results.get_metric_dict(use_cache=False)
 
 
@@ -115,7 +120,8 @@ def main():
     parser.add_argument('--cpu_count', type=int, default=4, help='Number of CPU per trial (default: %(default)s)')
     parser.add_argument('--gpu_count', type=int, default=1, help='Number of GPU per trial (default: %(default)s)')
     parser.add_argument('--local_dir', default=os.getcwd(), help='Directory to save training results of tune (default: %(default)s)')
-    parser.add_argument('--num_samples', type=int, default=1, help='Number of running samples (default: %(default)s)')
+    parser.add_argument('--num_samples', type=int, default=50,
+                        help='Number of running trials. If the search space is `grid_search`, the same grid will be repeated `num_samples` times. (default: %(default)s)')
     parser.add_argument('--mode', default='max', choices=['min', 'max'], help='Determines whether objective is minimizing or maximizing the metric attribute. (default: %(default)s)')
     parser.add_argument('--search_alg', default=None, choices=['basic_variant', 'bayesopt', 'optuna'], help='Search algorithms (default: %(default)s)')
     args = parser.parse_args()
