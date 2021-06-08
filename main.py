@@ -120,7 +120,7 @@ def main():
 
     if 'test' in datasets:
         test_loader = data_utils.get_dataset_loader(config, datasets['test'], model.word_dict, model.classes, train=False)
-        test_metrics = evaluate(model, test_loader, config.monitor_metrics, config.silent)
+        test_metrics = evaluate(model, test_loader, config.monitor_metrics, silent=config.silent)
         metric_dict = test_metrics.get_metric_dict(use_cache=False)
         dump_log(config=config, metrics=metric_dict, split='test')
         if not config.silent:

@@ -41,14 +41,14 @@ class Trainable(tune.Trainable):
         # run and dump test result
         if 'test' in self.datasets:
             test_loader = data_utils.get_dataset_loader(self.config, self.datasets['test'], model.word_dict, model.classes, train=False)
-            test_metrics = evaluate(model, test_loader, self.config.monitor_metrics, self.config.silent)
+            test_metrics = evaluate(model, test_loader, self.config.monitor_metrics, silent=self.config.silent)
             metric_dict = test_metrics.get_metric_dict(use_cache=False)
             dump_log(config=self.config, metrics=metric_dict, split='test')
 
         # return best val result
         val_loader = data_utils.get_dataset_loader(
             self.config, self.datasets['val'], model.word_dict, model.classes, train=False)
-        val_results = evaluate(model, val_loader, self.config.monitor_metrics, self.config.silent)
+        val_results = evaluate(model, val_loader, self.config.monitor_metrics, silent=self.config.silent)
         return val_results.get_metric_dict(use_cache=False)
 
 
