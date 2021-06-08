@@ -40,7 +40,6 @@ def get_config():
     parser.add_argument('--val_size', type=float, default=0.2, help='Training-validation split: a ratio in [0, 1] or an integer for the size of the validation set (default: %(default)s).')
     parser.add_argument('--min_vocab_freq', type=int, default=1, help='The minimum frequency needed to include a token in the vocabulary (default: %(default)s)')
     parser.add_argument('--max_seq_length', type=int, default=500, help='The maximum number of tokens of a sample (default: %(default)s)')
-    parser.add_argument('--fixed_length', action='store_true', help='Whether to pad all sequence to MAX_SEQ_LENGTH (default: %(default)s)')
     parser.add_argument('--shuffle', type=bool, default=True, help='Whether to shuffle training data before each epoch (default: %(default)s)')
 
     # train
@@ -61,7 +60,7 @@ def get_config():
     parser.add_argument('--filter_sizes', type=int, nargs='+', default=[4], help='Size of convolutional filters (default: %(default)s)')
     parser.add_argument('--dropout', type=float, default=0.2, help='Optional specification of dropout (default: %(default)s)')
     parser.add_argument('--dropout2', type=float, default=0.2, help='Optional specification of the second dropout (default: %(default)s)')
-    parser.add_argument('--pool_size', type=int, default=2, help='Polling size for dynamic max-pooling (default: %(default)s)')
+    parser.add_argument('--num_pool', type=int, default=1, help='Number of pool for dynamic max-pooling (default: %(default)s)')
 
     # eval
     parser.add_argument('--eval_batch_size', type=int, default=256, help='Size of evaluating batches (default: %(default)s)')

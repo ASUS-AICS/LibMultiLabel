@@ -3,14 +3,13 @@ data_dir: data/EUR-Lex
 data_name: EUR-Lex
 min_vocab_freq: 1
 max_seq_length: 500
-fixed_length: True
 
 # train
-seed: 1337
+#seed: 1337
 epochs: 50
 batch_size: 64
 optimizer: adam
-learning_rate: 0.0005099137446356937
+learning_rate: 0.0005
 weight_decay: 0
 patience: 5
 
@@ -21,12 +20,12 @@ val_metric: P@1
 
 # model
 model_name: XMLCNN
-num_filter_per_size: 128 # filter channels
-pool_size: 2
+num_filter_per_size: 256 # filter channels
+num_pool: 2
 filter_sizes: [2, 4, 8]
 hidden_dim: 512
-dropout: 0.5
-dropout2: 0.5
+dropout: 0.2
+dropout2: 0.2
 
 # pretrained vocab / embeddings
 embed_file: glove.6B.300d
