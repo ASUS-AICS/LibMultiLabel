@@ -1,4 +1,6 @@
 import argparse
+import glob
+import itertools
 import logging
 import os
 import time
@@ -17,43 +19,62 @@ from libmultilabel.utils import ArgDict, dump_log, init_device, set_seed
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(message)s')
 
 
-def training_function(config):
-    model_config = ArgDict(config)
-    model_config.run_name = '{}_{}_{}_{}'.format(
-        model_config.data_name,
-        Path(model_config.config).stem if model_config.config else model_config.model_name,
-        datetime.now().strftime('%Y%m%d%H%M%S'),
-        tune.get_trial_id()
-    )
-    logging.info(f'Run name: {model_config.run_name}')
+class Trainable(tune.Trainable):
+    def setup(self, config, data):
+        self.config = ArgDict(config)
+        self.datasets = data['datasets']
+        self.word_dict = data['word_dict']
+        self.classes = data['classes']
 
-    datasets = data_utils.load_datasets(model_config)
-    word_dict = data_utils.load_or_build_text_dict(model_config, datasets['train'])
-    classes = data_utils.load_or_build_label(model_config, datasets)
+    def step(self):
+        self.config.run_name = '{}_{}_{}_{}'.format(
+            self.config.data_name,
+            Path(
+                self.config.config).stem if self.config.config else self.config.model_name,
+            datetime.now().strftime('%Y%m%d%H%M%S'),
+            self.trial_id
+        )
+        logging.info(f'Run name: {self.config.run_name}')
 
-    model = Model(model_config, word_dict, classes)
-    model.train(datasets['train'], datasets['val'])
-    model.load_best()
+        model = Model(self.config, self.word_dict, self.classes)
+        model.train(self.datasets['train'], self.datasets['val'])
+        model.load_best()
 
-    # run and dump test result
-    if 'test' in datasets:
-        test_loader = data_utils.get_dataset_loader(model_config, datasets['test'], model.word_dict, model.classes, train=False)
-        test_metrics = evaluate(model, test_loader, model_config.monitor_metrics)
-        metric_dict = test_metrics.get_metric_dict(use_cache=False)
-        dump_log(config=model_config, metrics=metric_dict, split='test')
+        test_val_results = dict()
 
-    # return best val result
-    val_loader = data_utils.get_dataset_loader(model_config, datasets['val'], model.word_dict, model.classes, train=False)
-    val_results = evaluate(model, val_loader, model_config.monitor_metrics)
-    yield val_results.get_metric_dict(use_cache=False)
+        # run and dump test result
+        if 'test' in self.datasets:
+            test_loader = data_utils.get_dataset_loader(self.config, self.datasets['test'], model.word_dict, model.classes, train=False)
+            test_metrics = evaluate(model, test_loader, self.config.monitor_metrics, silent=self.config.silent)
+            metric_dict = test_metrics.get_metric_dict(use_cache=False)
+            dump_log(config=self.config, metrics=metric_dict, split='test')
+            for k, v in metric_dict.items():
+                test_val_results[f'test_{k}'] = v
+
+        # return best val result
+        val_loader = data_utils.get_dataset_loader(self.config, self.datasets['val'], model.word_dict, model.classes, train=False)
+        val_metrics = evaluate(model, val_loader, self.config.monitor_metrics, silent=self.config.silent)
+        metric_dict = val_metrics.get_metric_dict(use_cache=False)
+        for k, v in metric_dict.items():
+            test_val_results[f'val_{k}'] = v
+
+        # remove model_best.pt and model_last.pt
+        for model_path in glob.glob(os.path.join(self.config.result_dir, self.config.run_name, '*.pt')):
+            logging.info(f'Removing {model_path} ...')
+            os.remove(model_path)
+        return test_val_results
 
 
 def init_model_config(config_path):
     with open(config_path) as fp:
         args = yaml.load(fp, Loader=yaml.SafeLoader)
 
-    # set relative path to absolute path (_path, _file, _dir)
+    # create directories that hold the shared data
     os.makedirs(args['result_dir'], exist_ok=True)
+    if args['embed_cache_dir']:
+        os.makedirs(args['embed_cache_dir'], exist_ok=True)
+
+    # set relative path to absolute path (_path, _file, _dir)
     for k, v in args.items():
         if isinstance(v, str) and os.path.exists(v):
             args[k] = os.path.abspath(v)
@@ -69,7 +90,7 @@ def init_search_params_spaces(model_config):
     See the random distributions API listed here: https://docs.ray.io/en/master/tune/api_docs/search_space.html#random-distributions-api
     """
     search_spaces = ['choice', 'grid_search', 'uniform', 'quniform', 'loguniform',
-                    'qloguniform', 'randn', 'qrandn', 'randint', 'qrandint']
+                     'qloguniform', 'randn', 'qrandn', 'randint', 'qrandint']
     for key, value in model_config.items():
         if isinstance(value, list) and len(value) >= 2 and value[0] in search_spaces:
             model_config[key] = getattr(tune, value[0])(*value[1:])
@@ -91,6 +112,15 @@ def init_search_algorithm(search_alg, metric=None, mode=None):
     logging.info(f'{search_alg} search is found, run BasicVariantGenerator().')
 
 
+def load_static_data(config):
+    datasets = data_utils.load_datasets(config)
+    return {
+        "datasets": datasets,
+        "word_dict": data_utils.load_or_build_text_dict(config, datasets['train']),
+        "classes": data_utils.load_or_build_label(config, datasets)
+    }
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -98,10 +128,10 @@ def main():
     parser.add_argument('--cpu_count', type=int, default=4, help='Number of CPU per trial (default: %(default)s)')
     parser.add_argument('--gpu_count', type=int, default=1, help='Number of GPU per trial (default: %(default)s)')
     parser.add_argument('--local_dir', default=os.getcwd(), help='Directory to save training results of tune (default: %(default)s)')
-    parser.add_argument('--num_samples', type=int, default=50, help='Number of running samples (default: %(default)s)')
+    parser.add_argument('--num_samples', type=int, default=50,
+                        help='Number of running trials. If the search space is `grid_search`, the same grid will be repeated `num_samples` times. (default: %(default)s)')
     parser.add_argument('--mode', default='max', choices=['min', 'max'], help='Determines whether objective is minimizing or maximizing the metric attribute. (default: %(default)s)')
-    parser.add_argument('--search_alg', default=None, choices=[
-                        'basic_variant', 'bayesopt', 'optuna'], help='Search algorithms (default: %(default)s)')
+    parser.add_argument('--search_alg', default=None, choices=['basic_variant', 'bayesopt', 'optuna'], help='Search algorithms (default: %(default)s)')
     args = parser.parse_args()
 
     """Other args in the model config are viewed as resolved values that are ignored from tune.
@@ -110,21 +140,25 @@ def main():
     model_config = init_model_config(args.config)
     model_config = init_search_params_spaces(model_config)
     search_alg = args.search_alg if args.search_alg else model_config.search_alg
+    data = load_static_data(model_config)
 
     """Run tune analysis.
     If no search algorithm is specified, the default search algorighm is BasicVariantGenerator.
     https://docs.ray.io/en/master/tune/api_docs/suggestion.html#tune-basicvariant
     """
+    all_monitor_metrics = [f'{split}_{metric}' for split, metric in itertools.product(
+        ['val', 'test'], model_config.monitor_metrics)]
     tune.run(
-        training_function,
+        tune.with_parameters(Trainable, data=data),
+        stop={"training_iteration": 1}, # run one step "libmultilabel.model.train"
         search_alg=init_search_algorithm(search_alg, metric=model_config.val_metric, mode=args.mode),
         local_dir=args.local_dir,
-        metric=model_config.val_metric,
+        metric=f'val_{model_config.val_metric}',
         mode=args.mode,
         num_samples=args.num_samples,
         resources_per_trial={
             'cpu': args.cpu_count, 'gpu': args.gpu_count},
-        progress_reporter=tune.CLIReporter(metric_columns=model_config.monitor_metrics),
+        progress_reporter=tune.CLIReporter(metric_columns=all_monitor_metrics),
         config=model_config)
 
 

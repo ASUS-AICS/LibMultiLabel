@@ -3,7 +3,6 @@ import logging
 import os
 
 import torch
-import tqdm
 import numpy as np
 import pandas as pd
 from nltk.tokenize import RegexpTokenizer
@@ -12,7 +11,7 @@ from sklearn.preprocessing import MultiLabelBinarizer
 from torch.utils.data import Dataset
 from torch.nn.utils.rnn import pad_sequence
 from torchtext.vocab import Vocab
-from torchtext.data.utils import get_tokenizer
+from tqdm import tqdm
 
 UNK = Vocab.UNK
 PAD = '**PAD**'
@@ -118,6 +117,18 @@ def load_or_build_text_dict(config, dataset):
         vocabs = Vocab(counter, specials=[PAD, UNK],
                        min_freq=config.min_vocab_freq)
     logging.info(f'Read {len(vocabs)} vocabularies.')
+
+    if os.path.exists(config.embed_file):
+        logging.info(f'Load pretrained embedding from file: {config.embed_file}.')
+        embedding_weights = get_embedding_weights_from_file(vocabs, config.embed_file, config.silent)
+        vocabs.set_vectors(vocabs.stoi, embedding_weights,
+                           dim=embedding_weights.shape[1], unk_init=False)
+    elif not config.embed_file.isdigit():
+        logging.info(f'Load pretrained embedding from torchtext.')
+        vocabs.load_vectors(config.embed_file, cache=config.embed_cache_dir)
+    else:
+        raise NotImplementedError
+
     return vocabs
 
 
@@ -129,13 +140,13 @@ def load_or_build_label(config, datasets):
     else:
         classes = set()
         for dataset in datasets.values():
-            for d in tqdm.tqdm(dataset):
+            for d in tqdm(dataset, disable=config.silent):
                 classes.update(d['label'])
         classes = sorted(classes)
     return classes
 
 
-def get_embedding_weights_from_file(word_dict, embed_file):
+def get_embedding_weights_from_file(word_dict, embed_file, silent=False):
     """If there is an embedding file, load pretrained word embedding.
     Otherwise, assign a zero vector to that word.
     """
@@ -147,7 +158,7 @@ def get_embedding_weights_from_file(word_dict, embed_file):
     embedding_weights = [np.zeros(embed_size) for i in range(len(word_dict))]
 
     vec_counts = 0
-    for word_vector in tqdm.tqdm(word_vectors):
+    for word_vector in tqdm(word_vectors, disable=silent):
         word, vector = word_vector.rstrip().split(' ', 1)
         vector = np.array(vector.split()).astype(np.float)
         vector = vector / float(np.linalg.norm(vector) + 1e-6)
