@@ -35,16 +35,6 @@ class Model(object):
             self.start_epoch = 0
             self.best_metric = 0
 
-            # load embedding
-            if os.path.exists(config.embed_file):
-                logging.info(f'Load pretrained embedding from file: {config.embed_file}.')
-                embedding_weights = data_utils.get_embedding_weights_from_file(self.word_dict, config.embed_file)
-                self.word_dict.set_vectors(self.word_dict.stoi, embedding_weights,dim=embedding_weights.shape[1], unk_init=False)
-            elif not config.embed_file.isdigit():
-                logging.info(f'Load pretrained embedding from torchtext.')
-                self.word_dict.load_vectors(config.embed_file)
-            else:
-                raise NotImplementedError
         self.config.num_classes = len(self.classes)
 
         embed_vecs = self.word_dict.vectors
@@ -99,12 +89,14 @@ class Model(object):
 
                 timer = Timer()
                 logging.info('Start predicting a validation set')
-                val_metrics = evaluate(model=self, dataset_loader=val_loader, monitor_metrics=self.config.monitor_metrics)
+                val_metrics = evaluate(model=self, dataset_loader=val_loader,
+                                       monitor_metrics=self.config.monitor_metrics, silent=self.config.silent)
                 metric_dict = val_metrics.get_metric_dict(use_cache=False)
                 logging.info(f'Time for evaluating val set = {timer.time():.2f} (s)')
 
                 dump_log(self.config, metric_dict, split='val')
-                print(val_metrics)
+                if not self.config.silent:
+                    print(val_metrics)
 
                 if metric_dict[self.config.val_metric] > self.best_metric:
                     self.best_metric = metric_dict[self.config.val_metric]
@@ -124,7 +116,7 @@ class Model(object):
 
         train_loss = AverageMeter()
         epoch_time = Timer()
-        progress_bar = tqdm(data_loader)
+        progress_bar = tqdm(data_loader, disable=self.config.silent)
 
         for idx, batch in enumerate(progress_bar):
             loss, batch_label_scores = self.train_step(batch)

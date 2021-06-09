@@ -3,7 +3,6 @@ import logging
 import os
 
 import torch
-import tqdm
 import numpy as np
 import pandas as pd
 from nltk.tokenize import RegexpTokenizer
@@ -12,7 +11,7 @@ from sklearn.preprocessing import MultiLabelBinarizer
 from torch.utils.data import Dataset
 from torch.nn.utils.rnn import pad_sequence
 from torchtext.vocab import Vocab
-from torchtext.data.utils import get_tokenizer
+from tqdm import tqdm
 
 UNK = Vocab.UNK
 PAD = '**PAD**'
@@ -53,6 +52,7 @@ def generate_batch(data_batch):
 
 def get_dataset_loader(config, data, word_dict, classes, shuffle=False, train=True):
     dataset = TextDataset(data, word_dict, classes, config.max_seq_length)
+
     dataset_loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=config.batch_size if train else config.eval_batch_size,
@@ -69,7 +69,7 @@ def tokenize(text):
     return [t.lower() for t in tokenizer.tokenize(text) if not t.isnumeric()]
 
 
-def _load_raw_data(config, path, is_test=False):
+def _load_raw_data(path, is_test=False):
     logging.info(f'Load data from {path}.')
     data = pd.read_csv(path, sep='\t', names=['label', 'text'],
                        converters={'label': lambda s: s.split(),
@@ -77,11 +77,6 @@ def _load_raw_data(config, path, is_test=False):
     data = data.reset_index().to_dict('records')
     if not is_test:
         data = [d for d in data if len(d['label']) > 0]
-    if config.fixed_length:
-        pad_seq = [PAD] * config.max_seq_length
-        for i in range(len(data)):
-            pad_len = config.max_seq_length - len(data[i]['text'])
-            data[i]['text'] += pad_seq[:pad_len]
     return data
 
 
@@ -89,15 +84,15 @@ def load_datasets(config):
     datasets = {}
     test_path = config.test_path or os.path.join(config.data_dir, 'test.txt')
     if config.eval:
-        datasets['test'] = _load_raw_data(config, test_path, is_test=True)
+        datasets['test'] = _load_raw_data(test_path, is_test=True)
     else:
         if os.path.exists(test_path):
-            datasets['test'] = _load_raw_data(config, test_path, is_test=True)
+            datasets['test'] = _load_raw_data(test_path, is_test=True)
         train_path = config.train_path or os.path.join(config.data_dir, 'train.txt')
-        datasets['train'] = _load_raw_data(config, train_path)
+        datasets['train'] = _load_raw_data(train_path)
         val_path = config.val_path or os.path.join(config.data_dir, 'valid.txt')
         if os.path.exists(val_path):
-            datasets['val'] = _load_raw_data(config, val_path)
+            datasets['val'] = _load_raw_data(val_path)
         else:
             datasets['train'], datasets['val'] = train_test_split(
                 datasets['train'], test_size=config.val_size, random_state=42)
@@ -122,6 +117,18 @@ def load_or_build_text_dict(config, dataset):
         vocabs = Vocab(counter, specials=[PAD, UNK],
                        min_freq=config.min_vocab_freq)
     logging.info(f'Read {len(vocabs)} vocabularies.')
+
+    if os.path.exists(config.embed_file):
+        logging.info(f'Load pretrained embedding from file: {config.embed_file}.')
+        embedding_weights = get_embedding_weights_from_file(vocabs, config.embed_file, config.silent)
+        vocabs.set_vectors(vocabs.stoi, embedding_weights,
+                           dim=embedding_weights.shape[1], unk_init=False)
+    elif not config.embed_file.isdigit():
+        logging.info(f'Load pretrained embedding from torchtext.')
+        vocabs.load_vectors(config.embed_file, cache=config.embed_cache_dir)
+    else:
+        raise NotImplementedError
+
     return vocabs
 
 
@@ -133,13 +140,13 @@ def load_or_build_label(config, datasets):
     else:
         classes = set()
         for dataset in datasets.values():
-            for d in tqdm.tqdm(dataset):
+            for d in tqdm(dataset, disable=config.silent):
                 classes.update(d['label'])
         classes = sorted(classes)
     return classes
 
 
-def get_embedding_weights_from_file(word_dict, embed_file):
+def get_embedding_weights_from_file(word_dict, embed_file, silent=False):
     """If there is an embedding file, load pretrained word embedding.
     Otherwise, assign a zero vector to that word.
     """
@@ -151,7 +158,7 @@ def get_embedding_weights_from_file(word_dict, embed_file):
     embedding_weights = [np.zeros(embed_size) for i in range(len(word_dict))]
 
     vec_counts = 0
-    for word_vector in tqdm.tqdm(word_vectors):
+    for word_vector in tqdm(word_vectors, disable=silent):
         word, vector = word_vector.rstrip().split(' ', 1)
         vector = np.array(vector.split()).astype(np.float)
         vector = vector / float(np.linalg.norm(vector) + 1e-6)
