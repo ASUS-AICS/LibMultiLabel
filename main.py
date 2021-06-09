@@ -69,7 +69,7 @@ def get_config():
     # pretrained vocab / embeddings
     parser.add_argument('--vocab_file', type=str, help='Path to a file holding vocabuaries (default: %(default)s)')
     parser.add_argument('--embed_file', type=str, help='Path to a file holding pre-trained embeddings (default: %(default)s)')
-    parser.add_argument('--embed_cache_dir', type=str, help='Path to directory for cached embeddings. (default: %(default)s)')
+    parser.add_argument('--embed_cache_dir', type=str, help='For parameter search only: path to a directory for storing embeddings for multiple runs. (default: %(default)s)')
     parser.add_argument('--label_file', type=str, help='Path to a file holding all labels (default: %(default)s)')
 
     # log
