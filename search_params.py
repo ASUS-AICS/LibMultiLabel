@@ -25,6 +25,7 @@ class Trainable(tune.Trainable):
         self.datasets = data['datasets']
         self.word_dict = data['word_dict']
         self.classes = data['classes']
+        set_seed(seed=self.config.seed)
 
     def step(self):
         self.config.run_name = '{}_{}_{}_{}'.format(
@@ -80,7 +81,6 @@ def init_model_config(config_path):
             args[k] = os.path.abspath(v)
 
     model_config = ArgDict(args)
-    set_seed(seed=model_config.seed)
     model_config.device = init_device(model_config.cpu)
     return model_config
 
