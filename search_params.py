@@ -1,5 +1,6 @@
 import argparse
 import glob
+import itertools
 import logging
 import os
 import time
@@ -39,22 +40,29 @@ class Trainable(tune.Trainable):
         model.train(self.datasets['train'], self.datasets['val'])
         model.load_best()
 
+        test_val_results = dict()
+
         # run and dump test result
         if 'test' in self.datasets:
             test_loader = data_utils.get_dataset_loader(self.config, self.datasets['test'], model.word_dict, model.classes, train=False)
             test_metrics = evaluate(model, test_loader, self.config.monitor_metrics, silent=self.config.silent)
             metric_dict = test_metrics.get_metric_dict(use_cache=False)
             dump_log(config=self.config, metrics=metric_dict, split='test')
+            for k, v in metric_dict.items():
+                test_val_results[f'test_{k}'] = v
 
         # return best val result
-        val_loader = data_utils.get_dataset_loader(
-            self.config, self.datasets['val'], model.word_dict, model.classes, train=False)
-        val_results = evaluate(model, val_loader, self.config.monitor_metrics, silent=self.config.silent)
+        val_loader = data_utils.get_dataset_loader(self.config, self.datasets['val'], model.word_dict, model.classes, train=False)
+        val_metrics = evaluate(model, val_loader, self.config.monitor_metrics, silent=self.config.silent)
+        metric_dict = val_metrics.get_metric_dict(use_cache=False)
+        for k, v in metric_dict.items():
+            test_val_results[f'val_{k}'] = v
 
+        # remove model_best.pt and model_last.pt
         for model_path in glob.glob(os.path.join(self.config.result_dir, self.config.run_name, '*.pt')):
             logging.info(f'Removing {model_path} ...')
             os.remove(model_path)
-        return val_results.get_metric_dict(use_cache=False)
+        return test_val_results
 
 
 def init_model_config(config_path):
@@ -138,17 +146,19 @@ def main():
     If no search algorithm is specified, the default search algorighm is BasicVariantGenerator.
     https://docs.ray.io/en/master/tune/api_docs/suggestion.html#tune-basicvariant
     """
+    all_monitor_metrics = [f'{split}_{metric}' for split, metric in itertools.product(
+        ['val', 'test'], model_config.monitor_metrics)]
     tune.run(
         tune.with_parameters(Trainable, data=data),
         stop={"training_iteration": 1}, # run one step "libmultilabel.model.train"
         search_alg=init_search_algorithm(search_alg, metric=model_config.val_metric, mode=args.mode),
         local_dir=args.local_dir,
-        metric=model_config.val_metric,
+        metric=f'val_{model_config.val_metric}',
         mode=args.mode,
         num_samples=args.num_samples,
         resources_per_trial={
             'cpu': args.cpu_count, 'gpu': args.gpu_count},
-        progress_reporter=tune.CLIReporter(metric_columns=model_config.monitor_metrics),
+        progress_reporter=tune.CLIReporter(metric_columns=all_monitor_metrics),
         config=model_config)
 
 
