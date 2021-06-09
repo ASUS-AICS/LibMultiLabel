@@ -69,7 +69,6 @@ def get_config():
     # pretrained vocab / embeddings
     parser.add_argument('--vocab_file', type=str, help='Path to a file holding vocabuaries (default: %(default)s)')
     parser.add_argument('--embed_file', type=str, help='Path to a file holding pre-trained embeddings (default: %(default)s)')
-    parser.add_argument('--embed_cache_dir', type=str, help='For parameter search only: path to a directory for storing embeddings for multiple runs. (default: %(default)s)')
     parser.add_argument('--label_file', type=str, help='Path to a file holding all labels (default: %(default)s)')
 
     # log
@@ -80,6 +79,7 @@ def get_config():
     parser.add_argument('--cpu', action='store_true', help='Disable CUDA')
     parser.add_argument('--silent', action='store_true', help='Enable silent mode')
     parser.add_argument('--data_workers', type=int, default=4, help='Use multi-cpu core for data pre-processing (default: %(default)s)')
+    parser.add_argument('--embed_cache_dir', type=str, help='For parameter search only: path to a directory for storing embeddings for multiple runs. (default: %(default)s)')
     parser.add_argument('--eval', action='store_true', help='Only run evaluation on the test set (default: %(default)s)')
     parser.add_argument('--load_checkpoint', help='The checkpoint to warm-up with (default: %(default)s)')
     parser.add_argument('-h', '--help', action='help')
