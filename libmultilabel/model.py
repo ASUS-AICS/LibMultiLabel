@@ -21,7 +21,6 @@ class Model(object):
     def __init__(self, config, word_dict=None, classes=None, ckpt=None):
         self.config = config
         self.device = config.device
-        self.epoch = 0
         self.patience = config.patience
 
         if ckpt:
