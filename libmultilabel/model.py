@@ -102,7 +102,7 @@ class Model(object):
         progress_bar = tqdm(data_loader, disable=self.config.silent)
 
         for idx, batch in enumerate(progress_bar):
-            loss, batch_label_scores = self.train_step(batch)
+            loss = self.train_step(batch)
             train_loss.update(loss)
             progress_bar.set_postfix(loss=train_loss.avg)
 
@@ -145,14 +145,13 @@ class Model(object):
         outputs = self.network(inputs['text'])
         pred_logits = outputs['logits'] if isinstance(outputs, dict) else outputs
         loss = F.binary_cross_entropy_with_logits(pred_logits, target_labels)
-        batch_label_scores = torch.sigmoid(pred_logits)
 
         # Update parameters
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
 
-        return loss.item(), batch_label_scores
+        return loss.item()
 
     def predict(self, inputs):
         """Forward a batch of examples only to get predictions.
