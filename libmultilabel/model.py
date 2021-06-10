@@ -21,18 +21,19 @@ class Model(object):
     def __init__(self, config, word_dict=None, classes=None, ckpt=None):
         self.config = config
         self.device = config.device
-        self.start_epoch = 0
+        self.epoch = 0
+        self.patience = config.patience
 
         if ckpt:
             self.config.run_name = ckpt['run_name']
             self.word_dict = ckpt['word_dict']
             self.classes = ckpt['classes']
             self.best_metric = ckpt['best_metric']
-            self.start_epoch = ckpt['epoch']
+            self.epoch = ckpt['epoch']
         else:
             self.word_dict = word_dict
             self.classes = classes
-            self.start_epoch = 0
+            self.epoch = 0
             self.best_metric = 0
 
         self.config.num_classes = len(self.classes)
@@ -67,47 +68,29 @@ class Model(object):
 
         torch.nn.utils.clip_grad_value_(parameters, 0.5)
 
-    def train(self, train_data, val_data):
+    def get_dataset_loader(self, train_data, val_data):
         train_loader = data_utils.get_dataset_loader(
             self.config, train_data, self.word_dict, self.classes,
             shuffle=self.config.shuffle, train=True)
         val_loader = data_utils.get_dataset_loader(
             self.config, val_data, self.word_dict, self.classes, train=False)
+        return train_loader, val_loader
 
-        logging.info('Start training')
+    def train(self, train_data, val_data):
+        train_loader, val_loader = self.get_dataset_loader(train_data, val_data)
+
         try:
-            epoch = self.start_epoch + 1
-            patience = self.config.patience
-            while epoch <= self.config.epochs:
-                if patience == 0:
+            while self.epoch <= self.config.epochs:
+                if self.patience == 0:
                     logging.info('Reach training patience. Stopping...')
                     break
 
-                logging.info(f'============= Starting epoch {epoch} =============')
+                logging.info(f'============= Starting epoch {self.epoch} =============')
 
                 self.train_epoch(train_loader)
+                self.train_epoch_end(val_loader)
 
-                timer = Timer()
-                logging.info('Start predicting a validation set')
-                val_metrics = evaluate(model=self, dataset_loader=val_loader,
-                                       monitor_metrics=self.config.monitor_metrics, silent=self.config.silent)
-                metric_dict = val_metrics.get_metric_dict(use_cache=False)
-                logging.info(f'Time for evaluating val set = {timer.time():.2f} (s)')
-
-                dump_log(self.config, metric_dict, split='val')
-                if not self.config.silent:
-                    print(val_metrics)
-
-                if metric_dict[self.config.val_metric] > self.best_metric:
-                    self.best_metric = metric_dict[self.config.val_metric]
-                    self.save(epoch, is_best=True)
-                    patience = self.config.patience
-                else:
-                    logging.info(f'Performance does not increase, training will stop in {patience} epochs')
-                    self.save(epoch)
-                    patience -= 1
-
-                epoch += 1
+                self.epoch += 1
         except KeyboardInterrupt:
             logging.info('Training process terminated')
 
@@ -125,6 +108,27 @@ class Model(object):
 
         logging.info(f'Epoch done. Time for epoch = {epoch_time.time():.2f} (s)')
         logging.info(f'Epoch loss: {train_loss.avg}')
+
+    def train_epoch_end(self, val_loader):
+        timer = Timer()
+        logging.info('Start predicting a validation set')
+        val_metrics = evaluate(model=self, dataset_loader=val_loader,
+                               monitor_metrics=self.config.monitor_metrics, silent=self.config.silent)
+        metric_dict = val_metrics.get_metric_dict(use_cache=False)
+        logging.info(f'Time for evaluating val set = {timer.time():.2f} (s)')
+
+        dump_log(self.config, metric_dict, split='val')
+        if not self.config.silent:
+            print(val_metrics)
+
+        if metric_dict[self.config.val_metric] > self.best_metric:
+            self.best_metric = metric_dict[self.config.val_metric]
+            self.save(self.epoch, is_best=True)
+            self.patience = self.config.patience
+        else:
+            logging.info(f'Performance does not increase, training will stop in {self.patience} epochs')
+            self.save(self.epoch)
+            self.patience -= 1
 
     def train_step(self, inputs):
         """Forward a batch of examples; stop the optimizer to update weights.
