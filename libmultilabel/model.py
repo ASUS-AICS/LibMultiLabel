@@ -67,7 +67,7 @@ class Model(object):
 
         torch.nn.utils.clip_grad_value_(parameters, 0.5)
 
-    def get_dataset_loader(self, train_data, val_data):
+    def get_loaders(self, train_data, val_data):
         train_loader = data_utils.get_dataset_loader(
             self.config, train_data, self.word_dict, self.classes,
             shuffle=self.config.shuffle, train=True)
@@ -76,7 +76,7 @@ class Model(object):
         return train_loader, val_loader
 
     def train(self, train_data, val_data):
-        train_loader, val_loader = self.get_dataset_loader(train_data, val_data)
+        train_loader, val_loader = self.get_loaders(train_data, val_data)
 
         try:
             while self.epoch <= self.config.epochs:
