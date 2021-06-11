@@ -139,9 +139,9 @@ class Model(object):
         # Run forward
         target_labels = inputs['label']
         outputs = self.network(inputs['text'])
-        pred_logits = outputs['logits'] if isinstance(outputs, dict) else outputs
-        loss = F.binary_cross_entropy_with_logits(pred_logits, target_labels)
-        batch_label_scores = torch.sigmoid(pred_logits)
+        logits = outputs['logits']
+        loss = F.binary_cross_entropy_with_logits(logits, target_labels)
+        batch_label_scores = torch.sigmoid(logits)
 
         # Update parameters
         self.optimizer.zero_grad()
