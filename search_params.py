@@ -81,6 +81,7 @@ def init_model_config(config_path):
             args[k] = os.path.abspath(v)
 
     model_config = ArgDict(args)
+    set_seed(seed=model_config.seed)
     model_config.device = init_device(model_config.cpu)
     return model_config
 
