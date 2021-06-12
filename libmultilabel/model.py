@@ -69,11 +69,8 @@ class Model(pl.LightningModule):
     def validation_epoch_end(self, step_outputs):
         eval_metric = MultiLabelMetrics(
             monitor_metrics=self.config.monitor_metrics)
-        outputs_dict = {k: [outputs[k] for outputs in step_outputs]
-                        for k in step_outputs[0]}  # collect batch outputs to lists
-        pred_scores = np.vstack(outputs_dict['pred_scores'])
-        target = np.vstack(outputs_dict['target'])
-        eval_metric.add_values(y_pred=pred_scores, y_true=target)
+        for step_output in step_outputs:
+            eval_metric.add_values(y_pred=step_output['pred_scores'], y_true=step_output['target'])
         eval_metric.eval()
         self.log_dict(eval_metric.get_metric_dict())
         self.print(eval_metric)
