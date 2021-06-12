@@ -154,12 +154,14 @@ def main():
         last_checkpoint_path=os.path.join(checkpoint_dir, 'lastest_model.ckpt'),
         monitor=config.val_metric,
         patience=config.patience,
-        verbose=True,
+        verbose=not config.silent,
         mode='max'
     )
 
     trainer = pl.Trainer(checkpoint_callback=False, logger=False,
-                         num_sanity_val_steps=0, gpus=1,
+                         num_sanity_val_steps=0,
+                         gpus=0 if config.cpu else 1,
+                         progress_bar_refresh_rate=0 if config.silent else 1,
                          max_epochs=config.epochs,
                          callbacks=[early_stop_callback])
 

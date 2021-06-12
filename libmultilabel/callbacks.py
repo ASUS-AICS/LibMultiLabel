@@ -16,5 +16,6 @@ class EarlyStoppingWithCheckpoint(EarlyStopping):
         if self.wait_count == 0:  # best metric
             shutil.copyfile(self.last_checkpoint_path,
                             self.best_checkpoint_path)
-            print(f'Saved best model to `{self.best_checkpoint_path}`')
+            if self.verbose:
+                print(f'Saved best model to `{self.best_checkpoint_path}`')
         return ret

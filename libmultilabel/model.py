@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 from . import networks
-from .evaluate import MultiLabelMetrics
+from .metrics import MultiLabelMetrics
 
 
 class Model(pl.LightningModule):
@@ -49,7 +49,7 @@ class Model(pl.LightningModule):
 
         return optimizer
 
-    def run_batch(self, batch):
+    def shared_step(self, batch):
         target_labels = batch['labels'] = batch['label']
         outputs = self.network(batch['text'])
         pred_logits = outputs['logits']
@@ -57,12 +57,11 @@ class Model(pl.LightningModule):
         return loss, pred_logits
 
     def training_step(self, batch, batch_idx):
-        # Run forward
-        loss, _ = self.run_batch(batch)
+        loss, _ = self.shared_step(batch)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        loss, pred_logits = self.run_batch(batch)
+        loss, pred_logits = self.shared_step(batch)
         return {'loss': loss.item(),
                 'pred_scores': torch.sigmoid(pred_logits).detach().cpu().numpy(),
                 'target': batch['labels'].detach().cpu().numpy()}
@@ -77,11 +76,18 @@ class Model(pl.LightningModule):
         eval_metric.add_values(y_pred=pred_scores, y_true=target)
         eval_metric.eval()
         self.log_dict(eval_metric.get_metric_dict())
-        print(eval_metric)
+        self.print(eval_metric)
+        return eval_metric
 
     def test_step(self, batch, batch_idx):
         return self.validation_step(batch, batch_idx)
 
     def test_epoch_end(self, step_outputs):
         self.print('====== Test dataset evaluation result =======')
-        return self.validation_epoch_end(step_outputs)
+        eval_metric = self.validation_epoch_end(step_outputs)
+        self.test_results = eval_metric
+        return eval_metric
+
+    def print(self, string):
+        if not self.config.silent:
+            print(string)
