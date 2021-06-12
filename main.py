@@ -126,12 +126,10 @@ def main():
         )
 
         trainer = pl.Trainer(checkpoint_callback=False, logger=False,
-                             num_sanity_val_steps=0, val_check_interval=1.0,
-                             gpus=1, callbacks=[early_stop_callback])
-        # import torch
-        # import numpy as np
-        # torch.randint(10, 100, (10, 10))
-        # print(torch.random.get_rng_state(), np.random.get_state())
+                             num_sanity_val_steps=0, gpus=1,
+                             max_epochs=config.epochs,
+                             callbacks=[early_stop_callback])
+
         train_loader = data_utils.get_dataset_loader(
             config, datasets['train'], word_dict, classes,
             shuffle=config.shuffle, train=True)
@@ -139,8 +137,6 @@ def main():
             config, datasets['val'], word_dict, classes, train=False)
 
         trainer.fit(model, train_loader, val_loader)
-        # model.train(datasets['train'], datasets['val'])
-        # model.load_best()
 
     if 'test' in datasets:
         test_loader = data_utils.get_dataset_loader(config, datasets['test'], model.word_dict, model.classes, train=False)
