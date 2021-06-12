@@ -40,21 +40,16 @@ class Model(pl.LightningModule):
 
         embed_vecs = self.word_dict.vectors
         self.network = getattr(networks, config.model_name)(
-            config, embed_vecs)
-
-        self.optimizer = self.configure_optimizers_()
+            config, embed_vecs).to(config.device)
 
         if ckpt:
             self.network.load_state_dict(ckpt['state_dict'])
             self.optimizer.load_state_dict(ckpt['optimizer'])
         elif config.init_weight is not None:
             init_weight = networks.get_init_weight_func(config)
-            print(self.network.linear.weight)
             self.apply(init_weight)
-            print(self.network.linear.weight)
 
-
-    def configure_optimizers_(self):
+    def configure_optimizers(self):
         """Initialize an optimizer for the free parameters of the network.
         """
         parameters = [p for p in self.parameters() if p.requires_grad]
@@ -73,9 +68,6 @@ class Model(pl.LightningModule):
         torch.nn.utils.clip_grad_value_(parameters, 0.5)
 
         return optimizer
-
-    def configure_optimizers(self):
-        return self.optimizer
 
     # def get_loaders(self, train_data, val_data):
     #     train_loader = data_utils.get_dataset_loader(
@@ -169,6 +161,7 @@ class Model(pl.LightningModule):
         target = np.vstack(validation_step_outputs_dict['target'])
         eval_metric.add_values(y_pred=pred_scores, y_true=target)
         eval_metric.eval()
+        self.log_dict(eval_metric.get_metric_dict())
         print(eval_metric)
 
     def save(self, epoch, is_best=False):

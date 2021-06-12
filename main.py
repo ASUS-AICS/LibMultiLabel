@@ -12,6 +12,7 @@ from libmultilabel import data_utils
 from libmultilabel.model import Model
 from libmultilabel.utils import ArgDict, Timer, set_seed, init_device, dump_log, save_top_k_predictions
 from libmultilabel.evaluate import evaluate
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 
 def get_config():
@@ -117,9 +118,16 @@ def main():
             classes = data_utils.load_or_build_label(config, datasets)
             model = Model(config, word_dict, classes)
 
+        early_stop_callback = EarlyStopping(
+            monitor=config.val_metric,
+            patience=config.patience,
+            verbose=True,
+            mode='max'
+        )
+
         trainer = pl.Trainer(checkpoint_callback=False, logger=False,
                              num_sanity_val_steps=0, val_check_interval=1.0,
-                             gpus=1)
+                             gpus=1, callbacks=[early_stop_callback])
         # import torch
         # import numpy as np
         # torch.randint(10, 100, (10, 10))
