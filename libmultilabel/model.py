@@ -42,18 +42,19 @@ class Model(pl.LightningModule):
         self.network = getattr(networks, config.model_name)(
             config, embed_vecs)
 
-        if ckpt:
-            self.network.load_state_dict(ckpt['state_dict'])
-            self.optimizer.load_state_dict(ckpt['optimizer'])
-        elif config.init_weight is not None:
-            init_weight = networks.get_init_weight_func(config)
-            self.network.apply(init_weight)
+        # self.optimizer = self.configure_optimizers_()
+
+        # if ckpt:
+        #     self.network.load_state_dict(ckpt['state_dict'])
+        #     self.optimizer.load_state_dict(ckpt['optimizer'])
+        # elif config.init_weight is not None:
+        #     init_weight = networks.get_init_weight_func(config)
+        #     self.network.apply(init_weight)
 
     def configure_optimizers(self):
         """Initialize an optimizer for the free parameters of the network.
         """
-        print('configure_optimizers')
-        parameters = [p for p in self.parameters() if p.requires_grad]
+        parameters = [p for p in self.network.parameters() if p.requires_grad]
         optimizer_name = self.config.optimizer
         if optimizer_name == 'sgd':
             optimizer = optim.SGD(parameters, self.config.learning_rate,
@@ -69,6 +70,9 @@ class Model(pl.LightningModule):
         torch.nn.utils.clip_grad_value_(parameters, 0.5)
 
         return optimizer
+
+    # def configure_optimizers(self):
+    #     return self.optimizer
 
     # def get_loaders(self, train_data, val_data):
     #     train_loader = data_utils.get_dataset_loader(

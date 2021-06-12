@@ -113,14 +113,9 @@ def main():
         if config.load_checkpoint:
             model = Model.load(config, config.load_checkpoint)
         else:
-            import torch
             word_dict = data_utils.load_or_build_text_dict(config, datasets['train'])
             classes = data_utils.load_or_build_label(config, datasets)
-
             model = Model(config, word_dict, classes)
-
-            print(torch.randint(0, 1000, (2, 2)))
-
 
         trainer = pl.Trainer(checkpoint_callback=False, logger=False,
                              num_sanity_val_steps=0, val_check_interval=1.0,
