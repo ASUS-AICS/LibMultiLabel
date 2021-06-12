@@ -124,7 +124,8 @@ def main():
             config, datasets['val'], word_dict, classes, train=False)
 
         trainer = pl.Trainer(checkpoint_callback=False, logger=False,
-                             num_sanity_val_steps=0, val_check_interval=1.0, benchmark=True)
+                             num_sanity_val_steps=0, val_check_interval=1.0,
+                             gpus=1)
         trainer.fit(model, train_loader, val_loader)
         # model.train(datasets['train'], datasets['val'])
         # model.load_best()
