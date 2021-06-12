@@ -148,4 +148,4 @@ tmp*
 *.lock
 *.pt
 *.zip
-apex
+*.ckpt
