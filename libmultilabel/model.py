@@ -50,7 +50,7 @@ class Model(pl.LightningModule):
         return optimizer
 
     def shared_step(self, batch):
-        target_labels = batch['labels'] = batch['label']
+        target_labels = batch['labels']
         outputs = self.network(batch['text'])
         pred_logits = outputs['logits']
         loss = F.binary_cross_entropy_with_logits(pred_logits, target_labels)

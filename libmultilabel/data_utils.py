@@ -35,16 +35,16 @@ class TextDataset(Dataset):
         data = self.data[index]
         return {
             'text': torch.LongTensor([self.word_dict[word] for word in data['text']][:self.max_seq_length]),
-            'label': torch.FloatTensor(self.label_binarizer.transform([data['label']])[0]),
+            'labels': torch.FloatTensor(self.label_binarizer.transform([data['label']])[0]),
         }
 
 
 def generate_batch(data_batch):
     text_list = [data['text'] for data in data_batch]
-    label_list = [data['label'] for data in data_batch]
+    label_list = [data['labels'] for data in data_batch]
     return {
         'text': pad_sequence(text_list, batch_first=True),
-        'label': torch.stack(label_list)
+        'labels': torch.stack(label_list)
     }
 
 
