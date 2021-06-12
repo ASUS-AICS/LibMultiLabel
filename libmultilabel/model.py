@@ -67,13 +67,13 @@ class Model(pl.LightningModule):
                 'pred_scores': torch.sigmoid(pred_logits).detach().cpu().numpy(),
                 'target': batch['labels'].detach().cpu().numpy()}
 
-    def validation_epoch_end(self, validation_step_outputs):
+    def validation_epoch_end(self, step_outputs):
         eval_metric = MultiLabelMetrics(
             monitor_metrics=self.config.monitor_metrics)
-        validation_step_outputs_dict = {k: [outputs[k] for outputs in validation_step_outputs]
-                                        for k in validation_step_outputs[0]}  # collect batch outputs to lists
-        pred_scores = np.vstack(validation_step_outputs_dict['pred_scores'])
-        target = np.vstack(validation_step_outputs_dict['target'])
+        outputs_dict = {k: [outputs[k] for outputs in step_outputs]
+                        for k in step_outputs[0]}  # collect batch outputs to lists
+        pred_scores = np.vstack(outputs_dict['pred_scores'])
+        target = np.vstack(outputs_dict['target'])
         eval_metric.add_values(y_pred=pred_scores, y_true=target)
         eval_metric.eval()
         self.log_dict(eval_metric.get_metric_dict())
@@ -82,5 +82,6 @@ class Model(pl.LightningModule):
     def test_step(self, batch, batch_idx):
         return self.validation_step(batch, batch_idx)
 
-    def test_epoch_end(self, test_step_outputs):
-        return self.validation_epoch_end(test_step_outputs)
+    def test_epoch_end(self, step_outputs):
+        self.print('====== Test dataset evaluation result =======')
+        return self.validation_epoch_end(step_outputs)
