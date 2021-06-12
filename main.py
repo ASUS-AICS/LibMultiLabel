@@ -114,11 +114,9 @@ def main():
             model = Model.load(config, config.load_checkpoint)
         else:
             import torch
-            print(torch.randint(0, 1000, (2, 2)))
             word_dict = data_utils.load_or_build_text_dict(config, datasets['train'])
             classes = data_utils.load_or_build_label(config, datasets)
 
-            print(torch.randint(0, 1000, (2, 2)))
             model = Model(config, word_dict, classes)
 
             print(torch.randint(0, 1000, (2, 2)))
