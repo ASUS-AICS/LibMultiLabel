@@ -60,7 +60,7 @@ class MultiLabelMetrics():
         """Evaluate precision, recall, micro-f1, macro-f1, and P@k/R@k listed in the monitor_metrics."""
         y_true = np.vstack(self.y_true)
         y_pred = np.vstack(self.y_pred)
-        report_dict = classification_report(y_true, y_pred > threshold, output_dict=True)
+        report_dict = classification_report(y_true, y_pred > threshold, output_dict=True, zero_division=0)
         result = {
             'Micro-Precision': report_dict['micro avg']['precision'],
             'Micro-Recall': report_dict['micro avg']['recall'],
