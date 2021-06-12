@@ -5,6 +5,8 @@ from pathlib import Path
 
 import os
 import yaml
+import pytorch_lightning as pl
+
 
 from libmultilabel import data_utils
 from libmultilabel.model import Model
@@ -114,8 +116,18 @@ def main():
             word_dict = data_utils.load_or_build_text_dict(config, datasets['train'])
             classes = data_utils.load_or_build_label(config, datasets)
             model = Model(config, word_dict, classes)
-        model.train(datasets['train'], datasets['val'])
-        model.load_best()
+
+        train_loader = data_utils.get_dataset_loader(
+            config, datasets['train'], word_dict, classes,
+            shuffle=config.shuffle, train=True)
+        val_loader = data_utils.get_dataset_loader(
+            config, datasets['val'], word_dict, classes, train=False)
+
+        trainer = pl.Trainer(checkpoint_callback=False, logger=False,
+                             num_sanity_val_steps=0, val_check_interval=1.0, benchmark=True)
+        trainer.fit(model, train_loader, val_loader)
+        # model.train(datasets['train'], datasets['val'])
+        # model.load_best()
 
     if 'test' in datasets:
         test_loader = data_utils.get_dataset_loader(config, datasets['test'], model.word_dict, model.classes, train=False)
