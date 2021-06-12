@@ -116,16 +116,23 @@ def main():
             word_dict = data_utils.load_or_build_text_dict(config, datasets['train'])
             classes = data_utils.load_or_build_label(config, datasets)
             model = Model(config, word_dict, classes)
+            import torch
+            print(torch.randint(0, 1000, (2, 2)))
 
+
+        trainer = pl.Trainer(checkpoint_callback=False, logger=False,
+                             num_sanity_val_steps=0, val_check_interval=1.0,
+                             gpus=1)
+        # import torch
+        # import numpy as np
+        # torch.randint(10, 100, (10, 10))
+        # print(torch.random.get_rng_state(), np.random.get_state())
         train_loader = data_utils.get_dataset_loader(
             config, datasets['train'], word_dict, classes,
             shuffle=config.shuffle, train=True)
         val_loader = data_utils.get_dataset_loader(
             config, datasets['val'], word_dict, classes, train=False)
 
-        trainer = pl.Trainer(checkpoint_callback=False, logger=False,
-                             num_sanity_val_steps=0, val_check_interval=1.0,
-                             gpus=1)
         trainer.fit(model, train_loader, val_loader)
         # model.train(datasets['train'], datasets['val'])
         # model.load_best()
