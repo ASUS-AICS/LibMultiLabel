@@ -151,7 +151,8 @@ def main():
     checkpoint_dir = os.path.join(config.result_dir, config.run_name)
     early_stop_callback = EarlyStoppingWithCheckpoint(
         best_checkpoint_path=os.path.join(checkpoint_dir, 'best_model.ckpt'),
-        last_checkpoint_path=os.path.join(checkpoint_dir, 'lastest_model.ckpt'),
+        last_checkpoint_path=os.path.join(
+            checkpoint_dir, 'lastest_model.ckpt'),
         monitor=config.val_metric,
         patience=config.patience,
         verbose=not config.silent,
@@ -187,7 +188,8 @@ def main():
     if 'test' in datasets:
         test_loader = data_utils.get_dataset_loader(
             model.config, datasets['test'], model.word_dict, model.classes, train=False)
-        test_results = trainer.test(model, test_dataloaders=test_loader, ckpt_path=os.path.join(checkpoint_dir, 'best_model.ckpt'))
+        test_results = trainer.test(test_dataloaders=test_loader,
+                                    ckpt_path=os.path.join(checkpoint_dir, 'best_model.ckpt'))
 
         # TODO add dump back
         # dump_log(config=config, metrics=metric_dict, split='test')
@@ -195,6 +197,7 @@ def main():
         #     if not config.predict_out_path:
         #         config.predict_out_path = os.path.join(config.result_dir, config.run_name, 'predictions.txt')
         #     save_top_k_predictions(model.classes, test_metrics.get_y_pred(), config.predict_out_path, config.save_k_predictions)
+
 
 if __name__ == '__main__':
     wall_time = Timer()
