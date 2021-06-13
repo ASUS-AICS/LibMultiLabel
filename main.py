@@ -180,7 +180,7 @@ def main():
 
         train_loader = data_utils.get_dataset_loader(
             model.config, datasets['train'], model.word_dict, model.classes,
-            shuffle=config.shuffle, train=True)
+            shuffle=model.config.shuffle, train=True)
         val_loader = data_utils.get_dataset_loader(
             model.config, datasets['val'], model.word_dict, model.classes, train=False)
 
