@@ -93,10 +93,10 @@ class Model(MultiLabelModel):
         self.config.num_classes = len(self.classes)
 
         embed_vecs = self.word_dict.vectors
-        self.network = getattr(networks, config.model_name)(
-            config, embed_vecs).to(config.device)
+        self.network = getattr(networks, self.config.model_name)(
+            self.config, embed_vecs).to(self.config.device)
 
-        init_weight = networks.get_init_weight_func(config)
+        init_weight = networks.get_init_weight_func(self.config)
         self.apply(init_weight)
 
     def shared_step(self, batch):
