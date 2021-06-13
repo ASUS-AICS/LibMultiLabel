@@ -149,3 +149,4 @@ tmp*
 *.pt
 *.zip
 *.ckpt
+*.tfevents.*
