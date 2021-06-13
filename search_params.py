@@ -54,7 +54,7 @@ class Trainable(tune.Trainable):
 
         trainer = pl.Trainer(checkpoint_callback=False, logger=False,
                              num_sanity_val_steps=0,
-                             gpus=0 if config.cpu else 1,
+                             gpus=0 if self.config.cpu else 1,
                              progress_bar_refresh_rate=0 if self.config.silent else 1,
                              max_epochs=self.config.epochs,
                              callbacks=[early_stop_callback])
@@ -108,7 +108,7 @@ def init_model_config(config_path):
         if isinstance(v, str) and os.path.exists(v):
             args[k] = os.path.abspath(v)
 
-    model_config = ArgDict(args)
+    model_config = AttributeDict(args)
     set_seed(seed=model_config.seed)
     model_config.device = init_device(model_config.cpu)
     return model_config
