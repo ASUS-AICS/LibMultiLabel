@@ -76,7 +76,7 @@ class Trainable(tune.Trainable):
         # run and dump test result
         if 'test' in self.datasets:
             test_loader = data_utils.get_dataset_loader(
-                best_model.config, self.datasets['val'], best_model.word_dict, best_model.classes, train=False)
+                best_model.config, self.datasets['test'], best_model.word_dict, best_model.classes, train=False)
             test_metric_dict = trainer.test(best_model, test_dataloaders=test_loader)[0]
             dump_log(config=self.config, metrics=test_metric_dict, split='test')
             for k, v in test_metric_dict.items():
