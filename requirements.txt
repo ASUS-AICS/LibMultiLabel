@@ -4,5 +4,5 @@ PyYAML
 scikit-learn
 torch==1.8.0
 torchtext==0.9.0
-pytorch-lightning==0.9.0
+pytorch-lightning==1.3.5
 tqdm
