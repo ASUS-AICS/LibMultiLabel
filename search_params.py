@@ -69,21 +69,21 @@ class Trainable(tune.Trainable):
 
         trainer.fit(model, train_loader, val_loader)
 
+        best_model = Model.load_from_checkpoint(best_checkpoint_path)
+
         test_val_results = dict()
 
         # run and dump test result
         if 'test' in self.datasets:
             test_loader = data_utils.get_dataset_loader(
-                model.config, self.datasets['val'], model.word_dict, model.classes, train=False)
-            test_metric_dict = trainer.test(test_dataloaders=test_loader,
-                                            ckpt_path=best_checkpoint_path)[0]
+                best_model.config, self.datasets['val'], best_model.word_dict, best_model.classes, train=False)
+            test_metric_dict = trainer.test(best_model, test_dataloaders=test_loader)[0]
             dump_log(config=self.config, metrics=test_metric_dict, split='test')
             for k, v in test_metric_dict.items():
                 test_val_results[f'test_{k}'] = v
 
         # return best val result
-        val_metric_dict = trainer.test(test_dataloaders=val_loader,
-                                       ckpt_path=best_checkpoint_path)[0]
+        val_metric_dict = trainer.test(best_model, test_dataloaders=val_loader)[0]
         for k, v in val_metric_dict.items():
             test_val_results[f'val_{k}'] = v
 
