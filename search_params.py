@@ -4,19 +4,18 @@ import itertools
 import logging
 import os
 import time
-import yaml
 from datetime import datetime
 from pathlib import Path
-import pytorch_lightning as pl
 
-from ray import tune
+import pytorch_lightning as pl
+import yaml
 from pytorch_lightning.utilities.parsing import AttributeDict
-from libmultilabel.callbacks import EarlyStoppingWithCheckpoint
+from ray import tune
 
 from libmultilabel import data_utils
+from libmultilabel.callbacks import EarlyStoppingWithCheckpoint
 from libmultilabel.model import Model
 from libmultilabel.utils import dump_log, init_device, set_seed
-
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s:%(message)s')
