@@ -80,7 +80,8 @@ class MultiLabelModel(pl.LightningModule):
 
     def print(self, string):
         if not self.config.get('silent'):
-            super().print(string)
+            if not self.trainer or self.trainer.is_global_zero:
+                print(string)
 
 
 class Model(MultiLabelModel):
