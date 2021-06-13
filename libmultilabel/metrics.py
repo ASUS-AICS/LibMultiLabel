@@ -10,10 +10,9 @@ from sklearn.metrics import (classification_report,
                              precision_recall_fscore_support)
 
 
-def another_macro_f1(y_true, y_pred):
+def another_macro_f1(macro_prec, macro_rec):
     # The f1 value of macro_precision and macro_recall. This variant of
     # macro_f1 is less preferred but is used in some works
-    macro_prec, macro_rec, _, _ = precision_recall_fscore_support(y_true, y_pred, average='macro', zero_division=0)
     f1 = 2 * (macro_prec * macro_rec) / (macro_prec + macro_rec + 1e-10)
     return f1
 
@@ -64,7 +63,9 @@ class MultiLabelMetrics():
             'Micro-Recall': report_dict['micro avg']['recall'],
             'Micro-F1': report_dict['micro avg']['f1-score'],
             'Macro-F1': report_dict['macro avg']['f1-score'],
-            'Another-Macro-F1': another_macro_f1(y_true, y_pred > threshold) # caml's macro-f1
+            'Another-Macro-F1': another_macro_f1(
+                macro_prec=report_dict['macro avg']['precision'],
+                macro_rec=report_dict['macro avg']['recall'])  # caml's macro-f1
         }
         # add metrics like P@k, R@k to the result dict
         scores = precision_recall_at_ks(y_true, y_pred, top_ks=self.top_ks)
