@@ -28,8 +28,9 @@ def precision_recall_at_ks(y_true, y_pred_vals, top_ks):
 
 
 class MultiLabelMetrics():
-    def __init__(self, monitor_metrics):
-        self.monitor_metrics = monitor_metrics
+    def __init__(self, config):
+        self.monitor_metrics = config.get('monitor_metrics', [])
+        self.metric_threshold = config.get('metric_threshold', 0.5)
         self.y_true = []
         self.y_pred = []
         self.cached_results = {}
@@ -52,11 +53,11 @@ class MultiLabelMetrics():
         self.y_true.append(y_true)
         self.y_pred.append(y_pred)
 
-    def eval(self, threshold=0.5):
+    def eval(self):
         """Evaluate precision, recall, micro-f1, macro-f1, and P@k/R@k listed in the monitor_metrics."""
         y_true = np.vstack(self.y_true)
         y_pred = np.vstack(self.y_pred)
-        report_dict = classification_report(y_true, y_pred > threshold, output_dict=True, zero_division=0)
+        report_dict = classification_report(y_true, y_pred > self.metric_threshold, output_dict=True, zero_division=0)
         result = {
             'Micro-Precision': report_dict['micro avg']['precision'],
             'Micro-Recall': report_dict['micro avg']['recall'],
@@ -77,7 +78,7 @@ class MultiLabelMetrics():
         """
         return np.vstack(self.y_pred)
 
-    def get_metric_dict(self, threshold=0.5, use_cache=True):
+    def get_metric_dict(self, use_cache=True):
         """Evaluate or get score dictionary from cache.
 
         Args:
@@ -85,7 +86,7 @@ class MultiLabelMetrics():
             use_cache (bool, optional): return a cached results or not. Defaults to True.
         """
         if not use_cache:
-            self.eval(threshold)
+            self.eval()
         return self.cached_results
 
     def __repr__(self):

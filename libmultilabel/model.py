@@ -1,10 +1,12 @@
 from abc import abstractmethod
+from argparse import Namespace
 
 import numpy as np
 import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
+from pytorch_lightning.utilities.parsing import AttributeDict
 
 from . import networks
 from .metrics import MultiLabelMetrics
@@ -14,6 +16,10 @@ class MultiLabelModel(pl.LightningModule):
     """Abstract class handling Pytorch Lightning training flow"""
     def __init__(self, config, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if isinstance(config, Namespace):
+            config = vars(config)
+        if isinstance(config, dict):
+            config = AttributeDict(config)
         self.config = config
 
     def configure_optimizers(self):
@@ -52,8 +58,7 @@ class MultiLabelModel(pl.LightningModule):
                 'target': batch['labels'].detach().cpu().numpy()}
 
     def validation_epoch_end(self, step_outputs):
-        eval_metric = MultiLabelMetrics(
-            monitor_metrics=self.config.monitor_metrics)
+        eval_metric = MultiLabelMetrics(self.config)
         for step_output in step_outputs:
             eval_metric.add_values(y_pred=step_output['pred_scores'], y_true=step_output['target'])
         eval_metric.eval()
@@ -79,7 +84,7 @@ class Model(MultiLabelModel):
     def __init__(self, config, word_dict=None, classes=None):
         super().__init__(config)
         self.save_hyperparameters()
-        
+
         self.word_dict = word_dict
         self.classes = classes
         self.config.num_classes = len(self.classes)
