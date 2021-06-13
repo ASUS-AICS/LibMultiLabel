@@ -34,6 +34,9 @@ class MultiLabelModel(pl.LightningModule):
         elif optimizer_name == 'adam':
             optimizer = optim.Adam(
                 parameters, weight_decay=self.config.weight_decay, lr=self.config.learning_rate)
+        elif optimizer_name == 'adamw':
+            optimizer = optim.AdamW(
+                parameters, weight_decay=self.config.weight_decay, lr=self.config.learning_rate)
         else:
             raise RuntimeError('Unsupported optimizer: %s' %
                                self.config.optimizer)
