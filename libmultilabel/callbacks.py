@@ -12,10 +12,11 @@ class EarlyStoppingWithCheckpoint(EarlyStopping):
 
     def on_validation_end(self, trainer, pl_module):
         ret = super().on_validation_end(trainer, pl_module)
-        trainer.save_checkpoint(self.last_checkpoint_path)
-        if self.wait_count == 0:  # best metric
-            shutil.copyfile(self.last_checkpoint_path,
-                            self.best_checkpoint_path)
-            if self.verbose:
-                print(f'Saved best model to `{self.best_checkpoint_path}`')
+        if trainer.is_global_zero:  # only save for main process
+            trainer.save_checkpoint(self.last_checkpoint_path)
+            if self.wait_count == 0:  # best metric
+                shutil.copyfile(self.last_checkpoint_path,
+                                self.best_checkpoint_path)
+                if self.verbose:
+                    print(f'Saved best model to `{self.best_checkpoint_path}`')
         return ret
