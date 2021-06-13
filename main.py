@@ -189,15 +189,14 @@ def main():
     if 'test' in datasets:
         test_loader = data_utils.get_dataset_loader(
             model.config, datasets['test'], model.word_dict, model.classes, train=False)
-        test_results = trainer.test(test_dataloaders=test_loader,
-                                    ckpt_path=best_checkpoint_path)
+        metric_dict = trainer.test(test_dataloaders=test_loader,
+                                   ckpt_path=best_checkpoint_path)[0]
 
-        # TODO add dump back
-        # dump_log(config=config, metrics=metric_dict, split='test')
-        # if config.save_k_predictions > 0:
-        #     if not config.predict_out_path:
-        #         config.predict_out_path = os.path.join(config.result_dir, config.run_name, 'predictions.txt')
-        #     save_top_k_predictions(model.classes, test_metrics.get_y_pred(), config.predict_out_path, config.save_k_predictions)
+        dump_log(config=config, metrics=metric_dict, split='test')
+        if config.save_k_predictions > 0:
+            if not config.predict_out_path:
+                config.predict_out_path = os.path.join(checkpoint_dir, 'predictions.txt')
+            save_top_k_predictions(model.classes, model.test_results.get_y_pred(), config.predict_out_path, config.save_k_predictions)
 
 
 if __name__ == '__main__':
