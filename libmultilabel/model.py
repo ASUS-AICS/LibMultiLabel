@@ -1,3 +1,5 @@
+from abc import abstractmethod
+
 import numpy as np
 import pytorch_lightning as pl
 import torch
@@ -8,26 +10,11 @@ from . import networks
 from .metrics import MultiLabelMetrics
 
 
-class Model(pl.LightningModule):
-    """High level model that handles initializing the underlying network
-    architecture, saving, updating examples, and predicting examples.
-    """
-
-    def __init__(self, config, word_dict=None, classes=None):
-        super().__init__()
-        self.save_hyperparameters()
+class MultiLabelModel(pl.LightningModule):
+    """Abstract class handling Pytorch Lightning training flow"""
+    def __init__(self, config, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.config = config
-
-        self.word_dict = word_dict
-        self.classes = classes
-        self.config.num_classes = len(self.classes)
-
-        embed_vecs = self.word_dict.vectors
-        self.network = getattr(networks, config.model_name)(
-            config, embed_vecs).to(config.device)
-
-        init_weight = networks.get_init_weight_func(config)
-        self.apply(init_weight)
 
     def configure_optimizers(self):
         """Initialize an optimizer for the free parameters of the network.
@@ -49,12 +36,10 @@ class Model(pl.LightningModule):
 
         return optimizer
 
-    def shared_step(self, batch):
-        target_labels = batch['labels']
-        outputs = self.network(batch['text'])
-        pred_logits = outputs['logits']
-        loss = F.binary_cross_entropy_with_logits(pred_logits, target_labels)
-        return loss, pred_logits
+    @abstractmethod
+    def shared_step(batch):
+        """Return loss and predicted logits"""
+        return NotImplemented
 
     def training_step(self, batch, batch_idx):
         loss, _ = self.shared_step(batch)
@@ -88,3 +73,27 @@ class Model(pl.LightningModule):
     def print(self, string):
         if not self.config.silent:
             print(string)
+
+
+class Model(MultiLabelModel):
+    def __init__(self, config, word_dict=None, classes=None):
+        super().__init__(config)
+        self.save_hyperparameters()
+        
+        self.word_dict = word_dict
+        self.classes = classes
+        self.config.num_classes = len(self.classes)
+
+        embed_vecs = self.word_dict.vectors
+        self.network = getattr(networks, config.model_name)(
+            config, embed_vecs).to(config.device)
+
+        init_weight = networks.get_init_weight_func(config)
+        self.apply(init_weight)
+
+    def shared_step(self, batch):
+        target_labels = batch['labels']
+        outputs = self.network(batch['text'])
+        pred_logits = outputs['logits']
+        loss = F.binary_cross_entropy_with_logits(pred_logits, target_labels)
+        return loss, pred_logits
