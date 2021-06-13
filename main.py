@@ -149,10 +149,11 @@ def main():
     datasets = data_utils.load_datasets(config)
 
     checkpoint_dir = os.path.join(config.result_dir, config.run_name)
+    best_checkpoint_path = os.path.join(checkpoint_dir, 'best_model.ckpt')
+    last_checkpoint_path = os.path.join(checkpoint_dir, 'lastest_model.ckpt')
     early_stop_callback = EarlyStoppingWithCheckpoint(
-        best_checkpoint_path=os.path.join(checkpoint_dir, 'best_model.ckpt'),
-        last_checkpoint_path=os.path.join(
-            checkpoint_dir, 'lastest_model.ckpt'),
+        best_checkpoint_path=best_checkpoint_path,
+        last_checkpoint_path=last_checkpoint_path,
         monitor=config.val_metric,
         patience=config.patience,
         verbose=not config.silent,
@@ -189,7 +190,7 @@ def main():
         test_loader = data_utils.get_dataset_loader(
             model.config, datasets['test'], model.word_dict, model.classes, train=False)
         test_results = trainer.test(test_dataloaders=test_loader,
-                                    ckpt_path=os.path.join(checkpoint_dir, 'best_model.ckpt'))
+                                    ckpt_path=best_checkpoint_path)
 
         # TODO add dump back
         # dump_log(config=config, metrics=metric_dict, split='test')
