@@ -185,12 +185,12 @@ def main():
             model.config, datasets['val'], model.word_dict, model.classes, train=False)
 
         trainer.fit(model, train_loader, val_loader)
+        model = Model.load_from_checkpoint(best_checkpoint_path)
 
     if 'test' in datasets:
         test_loader = data_utils.get_dataset_loader(
             model.config, datasets['test'], model.word_dict, model.classes, train=False)
-        metric_dict = trainer.test(test_dataloaders=test_loader,
-                                   ckpt_path=best_checkpoint_path)[0]
+        metric_dict = trainer.test(model, test_dataloaders=test_loader)[0]
 
         dump_log(config=config, metrics=metric_dict, split='test')
         if config.save_k_predictions > 0:
