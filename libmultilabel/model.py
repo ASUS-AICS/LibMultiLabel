@@ -13,7 +13,7 @@ class Model(pl.LightningModule):
     architecture, saving, updating examples, and predicting examples.
     """
 
-    def __init__(self, config, word_dict=None, classes=None, ckpt=None):
+    def __init__(self, config, word_dict=None, classes=None):
         super().__init__()
         self.save_hyperparameters()
         self.config = config
