@@ -6,8 +6,7 @@ They are used for the internal need to compare with CAML."""
 import re
 
 import numpy as np
-from sklearn.metrics import (classification_report,
-                             precision_recall_fscore_support)
+from sklearn.metrics import classification_report
 
 
 def another_macro_f1(macro_prec, macro_rec):
