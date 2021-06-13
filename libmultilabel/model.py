@@ -79,8 +79,8 @@ class MultiLabelModel(pl.LightningModule):
         return eval_metric
 
     def print(self, string):
-        if not self.config.silent:
-            print(string)
+        if not self.config.get('silent'):
+            super().print(string)
 
 
 class Model(MultiLabelModel):
