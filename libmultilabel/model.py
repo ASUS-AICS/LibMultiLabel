@@ -14,6 +14,7 @@ from .metrics import MultiLabelMetrics
 
 class MultiLabelModel(pl.LightningModule):
     """Abstract class handling Pytorch Lightning training flow"""
+
     def __init__(self, config, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if isinstance(config, Namespace):
@@ -32,14 +33,16 @@ class MultiLabelModel(pl.LightningModule):
                                   momentum=self.config.momentum,
                                   weight_decay=self.config.weight_decay)
         elif optimizer_name == 'adam':
-            optimizer = optim.Adam(
-                parameters, weight_decay=self.config.weight_decay, lr=self.config.learning_rate)
+            optimizer = optim.Adam(parameters,
+                                   weight_decay=self.config.weight_decay,
+                                   lr=self.config.learning_rate)
         elif optimizer_name == 'adamw':
-            optimizer = optim.AdamW(
-                parameters, weight_decay=self.config.weight_decay, lr=self.config.learning_rate)
+            optimizer = optim.AdamW(parameters,
+                                    weight_decay=self.config.weight_decay,
+                                    lr=self.config.learning_rate)
         else:
-            raise RuntimeError('Unsupported optimizer: %s' %
-                               self.config.optimizer)
+            raise RuntimeError(
+                'Unsupported optimizer: {self.config.optimizer}')
 
         torch.nn.utils.clip_grad_value_(parameters, 0.5)
 
@@ -63,7 +66,8 @@ class MultiLabelModel(pl.LightningModule):
     def validation_epoch_end(self, step_outputs):
         eval_metric = MultiLabelMetrics(self.config)
         for step_output in step_outputs:
-            eval_metric.add_values(y_pred=step_output['pred_scores'], y_true=step_output['target'])
+            eval_metric.add_values(y_pred=step_output['pred_scores'],
+                                   y_true=step_output['target'])
         eval_metric.eval()
         self.log_dict(eval_metric.get_metric_dict())
         self.print(eval_metric)
