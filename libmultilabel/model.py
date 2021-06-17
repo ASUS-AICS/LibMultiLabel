@@ -49,7 +49,7 @@ class MultiLabelModel(pl.LightningModule):
         return optimizer
 
     @abstractmethod
-    def shared_step(batch):
+    def shared_step(self, batch):
         """Return loss and predicted logits"""
         return NotImplemented
 
