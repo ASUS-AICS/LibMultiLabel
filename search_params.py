@@ -27,6 +27,7 @@ class Trainable(tune.Trainable):
         self.datasets = data['datasets']
         self.word_dict = data['word_dict']
         self.classes = data['classes']
+        set_seed(seed=self.config.seed)
 
     def step(self):
         self.config.run_name = '{}_{}_{}_{}'.format(
