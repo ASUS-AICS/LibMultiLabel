@@ -36,12 +36,12 @@ def get_config():
     # data
     parser.add_argument('--data_name', default='rcv1',
                         help='Dataset name (default: %(default)s)')
-    parser.add_argument(
-        '--train_path', help='Path to training data (default: [data_dir]/train.txt)')
-    parser.add_argument(
-        '--val_path', help='Path to validation data (default: [data_dir]/valid.txt)')
-    parser.add_argument(
-        '--test_path', help='Path to test data (default: [data_dir]/test.txt)')
+    parser.add_argument('--train_path',
+                        help='Path to training data (default: [data_dir]/train.txt)')
+    parser.add_argument('--val_path',
+                        help='Path to validation data (default: [data_dir]/valid.txt)')
+    parser.add_argument('--test_path',
+                        help='Path to test data (default: [data_dir]/test.txt)')
     parser.add_argument('--val_size', type=float, default=0.2,
                         help='Training-validation split: a ratio in [0, 1] or an integer for the size of the validation set (default: %(default)s).')
     parser.add_argument('--min_vocab_freq', type=int, default=1,
@@ -58,8 +58,8 @@ def get_config():
                         help='Number of epochs to train (default: %(default)s)')
     parser.add_argument('--batch_size', type=int, default=16,
                         help='Size of training batches (default: %(default)s)')
-    parser.add_argument('--optimizer', default='adam', choices=[
-                        'adam', 'sgd'], help='Optimizer: SGD or Adam (default: %(default)s)')
+    parser.add_argument('--optimizer', default='adam', choices=['adam', 'sgd'],
+                        help='Optimizer: SGD or Adam (default: %(default)s)')
     parser.add_argument('--learning_rate', type=float, default=0.0001,
                         help='Learning rate for optimizer (default: %(default)s)')
     parser.add_argument('--weight_decay', type=float, default=0,
@@ -90,10 +90,10 @@ def get_config():
     # eval
     parser.add_argument('--eval_batch_size', type=int, default=256,
                         help='Size of evaluating batches (default: %(default)s)')
-    parser.add_argument('--metrics_thresholds', type=float, nargs='+', default=[
-                        0.5], help='Thresholds to monitor for metrics (default: %(default)s)')
-    parser.add_argument('--monitor_metrics', nargs='+', default=[
-                        'P@1', 'P@3', 'P@5'], help='Metrics to monitor while validating (default: %(default)s)')
+    parser.add_argument('--metrics_thresholds', type=float, nargs='+', default=[0.5],
+                        help='Thresholds to monitor for metrics (default: %(default)s)')
+    parser.add_argument('--monitor_metrics', nargs='+', default=['P@1', 'P@3', 'P@5'],
+                        help='Metrics to monitor while validating (default: %(default)s)')
     parser.add_argument('--val_metric', default='P@1',
                         help='The metric to monitor for early stopping (default: %(default)s)')
 
@@ -108,11 +108,12 @@ def get_config():
     # log
     parser.add_argument('--save_k_predictions', type=int, nargs='?', const=100, default=0,
                         help='Save top k predictions on test set. k=%(const)s if not specified. (default: %(default)s)')
-    parser.add_argument(
-        '--predict_out_path', help='Path to the an output file holding top 100 label results (default: %(default)s)')
+    parser.add_argument('--predict_out_path',
+                        help='Path to the an output file holding top 100 label results (default: %(default)s)')
 
     # others
-    parser.add_argument('--cpu', action='store_true', help='Disable CUDA')
+    parser.add_argument('--cpu', action='store_true',
+                        help='Disable CUDA')
     parser.add_argument('--silent', action='store_true',
                         help='Enable silent mode')
     parser.add_argument('--data_workers', type=int, default=4,
@@ -121,8 +122,8 @@ def get_config():
                         help='For parameter search only: path to a directory for storing embeddings for multiple runs. (default: %(default)s)')
     parser.add_argument('--eval', action='store_true',
                         help='Only run evaluation on the test set (default: %(default)s)')
-    parser.add_argument(
-        '--checkpoint_path', help='The checkpoint to warm-up with (default: %(default)s)')
+    parser.add_argument('--checkpoint_path',
+                        help='The checkpoint to warm-up with (default: %(default)s)')
     parser.add_argument('-h', '--help', action='help')
 
     parser.set_defaults(**config)
@@ -195,8 +196,11 @@ def main():
         dump_log(config=config, metrics=metric_dict, split='test')
         if config.save_k_predictions > 0:
             if not config.predict_out_path:
-                config.predict_out_path = os.path.join(checkpoint_dir, 'predictions.txt')
-            save_top_k_predictions(model.classes, model.test_results.get_y_pred(), config.predict_out_path, config.save_k_predictions)
+                config.predict_out_path = os.path.join(
+                    checkpoint_dir, 'predictions.txt')
+            save_top_k_predictions(model.classes,
+                                   model.test_results.get_y_pred(),
+                                   config.predict_out_path, config.save_k_predictions)
 
 
 if __name__ == '__main__':

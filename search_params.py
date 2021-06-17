@@ -163,10 +163,10 @@ def main():
                         help='Directory to save training results of tune (default: %(default)s)')
     parser.add_argument('--num_samples', type=int, default=50,
                         help='Number of running trials. If the search space is `grid_search`, the same grid will be repeated `num_samples` times. (default: %(default)s)')
-    parser.add_argument('--mode', default='max', choices=[
-                        'min', 'max'], help='Determines whether objective is minimizing or maximizing the metric attribute. (default: %(default)s)')
-    parser.add_argument('--search_alg', default=None, choices=[
-                        'basic_variant', 'bayesopt', 'optuna'], help='Search algorithms (default: %(default)s)')
+    parser.add_argument('--mode', default='max', choices=['min', 'max'],
+                        help='Determines whether objective is minimizing or maximizing the metric attribute. (default: %(default)s)')
+    parser.add_argument('--search_alg', default=None, choices=['basic_variant', 'bayesopt', 'optuna'],
+                        help='Search algorithms (default: %(default)s)')
     args = parser.parse_args()
 
     """Other args in the model config are viewed as resolved values that are ignored from tune.
