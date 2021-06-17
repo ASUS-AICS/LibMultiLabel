@@ -164,9 +164,9 @@ def main():
         config=model_config)
 
     columns = reporter._metric_columns + list(analysis.trials[0].evaluated_params.keys())
-    result_df = analysis.results_df.sort_values(by=f'val_{model_config.val_metric}', ascending=False)
-    result_df.columns = result_df.columns.str.replace('^config.', '')
-    print(f'\n{result_df[columns].to_markdown()}\n')
+    results_df = analysis.results_df.sort_values(by=f'val_{model_config.val_metric}', ascending=False)
+    results_df.columns = results_df.columns.str.replace('^config.', '')
+    print(f'\n{results_df[columns].to_markdown()}\n')
 
 
 # calculate wall time.
