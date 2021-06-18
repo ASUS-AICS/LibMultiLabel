@@ -101,8 +101,9 @@ class Model(MultiLabelModel):
         self.network = getattr(networks, self.config.model_name)(
             self.config, embed_vecs).to(self.config.device)
 
-        init_weight = networks.get_init_weight_func(self.config)
-        self.apply(init_weight)
+        if config.init_weight is not None:
+            init_weight = networks.get_init_weight_func(self.config)
+            self.apply(init_weight)
 
     def shared_step(self, batch):
         target_labels = batch['labels']
