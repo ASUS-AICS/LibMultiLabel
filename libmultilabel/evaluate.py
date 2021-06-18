@@ -70,7 +70,8 @@ class MultiLabelMetrics():
         }
         # add metrics like P@k, R@k to the result dict
         scores = precision_recall_at_ks(y_true, y_pred, top_ks=self.top_ks)
-        result.update({metric: scores[metric] for metric in set(self.monitor_metrics) & scores.keys()})
+    precision_recall_monitored = set(self.monitor_metrics) & scores.keys()
+    result.update({metric: scores[metric] for metric in precision_recall_monitored)
         self.cached_results = result
 
     def get_y_pred(self):
