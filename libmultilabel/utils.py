@@ -3,9 +3,10 @@ import json
 import logging
 import os
 import time
-import torch
 
 import numpy as np
+import torch
+from pytorch_lightning.utilities.seed import seed_everything
 
 
 class Timer(object):
@@ -89,8 +90,7 @@ def set_seed(seed):
     """Set seeds for numpy and pytorch."""
     if seed is not None:
         if seed >= 0:
-            np.random.seed(seed)
-            torch.manual_seed(seed)
+            seed_everything(seed=seed)
             torch.set_deterministic(True)
             torch.backends.cudnn.benchmark = False
         else:
