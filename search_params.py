@@ -163,7 +163,7 @@ def main():
         progress_reporter=reporter,
         config=model_config)
 
-    columns = reporter._metric_columns + list(analysis.trials[0].evaluated_params.keys())
+    columns = reporter._metric_columns + list(analysis.best_trial.evaluated_params.keys())
     results_df = analysis.results_df.sort_values(by=f'val_{model_config.val_metric}', ascending=False)
     results_df.columns = results_df.columns.str.replace('^config.', '')
     print(f'\n{results_df[columns].to_markdown()}\n')
