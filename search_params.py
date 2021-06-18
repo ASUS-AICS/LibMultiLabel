@@ -3,6 +3,7 @@ import glob
 import itertools
 import logging
 import os
+import re
 import time
 import yaml
 from datetime import datetime
@@ -86,16 +87,19 @@ def init_model_config(config_path):
     return model_config
 
 
-def init_search_params_spaces(model_config):
+def init_search_params_space(value, search_alg):
     """Initialize the sample space defined in ray tune.
     See the random distributions API listed here: https://docs.ray.io/en/master/tune/api_docs/search_space.html#random-distributions-api
     """
     search_spaces = ['choice', 'grid_search', 'uniform', 'quniform', 'loguniform',
                      'qloguniform', 'randn', 'qrandn', 'randint', 'qrandint']
-    for key, value in model_config.items():
-        if isinstance(value, list) and len(value) >= 2 and value[0] in search_spaces:
-            model_config[key] = getattr(tune, value[0])(*value[1:])
-    return model_config
+    if isinstance(value, list):
+        if isinstance(value[0], list):
+            assert search_alg == 'basic_variant', "Only `basic_variant` can assign list of search spaces."
+            return [init_search_params_space(v, search_alg) for v in value]
+        elif len(value) >= 2 and value[0] in search_spaces:
+            return getattr(tune, value[0])(*value[1:])
+    return value
 
 
 def init_search_algorithm(search_alg, metric=None, mode=None):
@@ -139,8 +143,9 @@ def main():
     https://github.com/ray-project/ray/blob/34d3d9294c50aea4005b7367404f6a5d9e0c2698/python/ray/tune/suggest/variant_generator.py#L333
     """
     model_config = init_model_config(args.config)
-    model_config = init_search_params_spaces(model_config)
     search_alg = args.search_alg if args.search_alg else model_config.search_alg
+    for k, v in model_config.items():
+        model_config[k] = init_search_params_space(v, search_alg)
     data = load_static_data(model_config)
 
     """Run tune analysis.
@@ -163,9 +168,10 @@ def main():
         progress_reporter=reporter,
         config=model_config)
 
-    columns = reporter._metric_columns + list(analysis.best_trial.evaluated_params.keys())
     results_df = analysis.results_df.sort_values(by=f'val_{model_config.val_metric}', ascending=False)
     results_df.columns = results_df.columns.str.replace('^config.', '')
+    params = analysis.best_trial.evaluated_params.keys()
+    columns = reporter._metric_columns + [re.sub('/\d+', '', p) for p in params]
     print(f'\n{results_df[columns].to_markdown()}\n')
 
 

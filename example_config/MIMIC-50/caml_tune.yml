@@ -16,14 +16,14 @@ shuffle: false
 
 # eval
 eval_batch_size: 1
-monitor_metrics: ['P@1','P@3','P@5']
+monitor_metrics: ['Another-Macro-F1', 'Micro-F1','P@5']
 val_metric: P@5
 
 # model
 model_name: CAML
-num_filter_per_size: ['choice', [50, 150, 250, 350, 450, 550]]
-filter_sizes: [10]
-dropout: ['choice', [0.2, 0.4, 0.6, 0.8]]
+num_filter_per_size: ['grid_search', [50, 150, 250, 350, 450, 550]]
+filter_sizes: [['grid_search', [2, 4, 6, 8, 10]]]
+dropout: ['grid_search', [0.2, 0.4, 0.6, 0.8]]
 init_weight: null
 activation: tanh
 
