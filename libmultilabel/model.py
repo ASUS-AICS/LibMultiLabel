@@ -106,7 +106,7 @@ class Model(MultiLabelModel):
             self.apply(init_weight)
 
     def shared_step(self, batch):
-        target_labels = batch['labels']
+        target_labels = batch['label']
         outputs = self.network(batch['text'])
         pred_logits = outputs['logits']
         loss = F.binary_cross_entropy_with_logits(pred_logits, target_labels)
