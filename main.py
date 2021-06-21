@@ -1,17 +1,19 @@
 import argparse
 import logging
+import os
 from datetime import datetime
 from pathlib import Path
 
-import os
-import yaml
 import pytorch_lightning as pl
+import yaml
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.utilities.parsing import AttributeDict
 
-from libmultilabel.callbacks import EarlyStoppingWithCheckpoint
 from libmultilabel import data_utils
 from libmultilabel.model import Model
-from libmultilabel.utils import Timer, set_seed, init_device, dump_log, save_top_k_predictions
+from libmultilabel.utils import (Timer, dump_log, init_device,
+                                 save_top_k_predictions, set_seed)
 
 
 def get_config():
@@ -150,23 +152,19 @@ def main():
     datasets = data_utils.load_datasets(config)
 
     checkpoint_dir = os.path.join(config.result_dir, config.run_name)
-    best_checkpoint_path = os.path.join(checkpoint_dir, 'best_model.ckpt')
-    last_checkpoint_path = os.path.join(checkpoint_dir, 'lastest_model.ckpt')
-    early_stop_callback = EarlyStoppingWithCheckpoint(
-        best_checkpoint_path=best_checkpoint_path,
-        last_checkpoint_path=last_checkpoint_path,
-        monitor=config.val_metric,
-        patience=config.patience,
-        verbose=not config.silent,
-        mode='max'
-    )
+    checkpoint_callback = ModelCheckpoint(dirpath=checkpoint_dir,
+                                          filename='best_model',
+                                          save_last=True, save_top_k=1,
+                                          monitor=config.val_metric, mode='max')
+    earlystopping_callback = EarlyStopping(patience=config.patience,
+                                           monitor=config.val_metric, mode='max')
 
-    trainer = pl.Trainer(checkpoint_callback=False, logger=False,
+    trainer = pl.Trainer(logger=False,
                          num_sanity_val_steps=0,
                          gpus=0 if config.cpu else 1,
                          progress_bar_refresh_rate=0 if config.silent else 1,
                          max_epochs=config.epochs,
-                         callbacks=[early_stop_callback])
+                         callbacks=[checkpoint_callback, earlystopping_callback])
 
     if config.eval:
         model = Model.load_from_checkpoint(config.checkpoint_path)
@@ -186,7 +184,9 @@ def main():
             model.config, datasets['val'], model.word_dict, model.classes, train=False)
 
         trainer.fit(model, train_loader, val_loader)
-        model = Model.load_from_checkpoint(best_checkpoint_path)
+        # load best model
+        logging.info(f'Loading best model from `{checkpoint_callback.best_model_path}`...')
+        model = Model.load_from_checkpoint(checkpoint_callback.best_model_path)
 
     if 'test' in datasets:
         test_loader = data_utils.get_dataset_loader(
