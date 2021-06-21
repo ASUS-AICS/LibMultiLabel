@@ -79,12 +79,12 @@ class MultiLabelMetrics():
         """
         return np.vstack(self.y_pred)
 
-    def get_metric_dict(self, use_cache=True):
+    def get_metric_dict(self, use_cache=False):
         """Evaluate or get score dictionary from cache.
 
         Args:
             threshold (float, optional): threshold to evaluate precision, recall, and f1 score. Defaults to 0.5.
-            use_cache (bool, optional): return a cached results or not. Defaults to True.
+            use_cache (bool, optional): return cached results or not. Defaults to False.
         """
         if not use_cache:
             self.eval()

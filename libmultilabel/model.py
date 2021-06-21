@@ -68,7 +68,6 @@ class MultiLabelModel(pl.LightningModule):
         for step_output in step_outputs:
             eval_metric.add_values(y_pred=step_output['pred_scores'],
                                    y_true=step_output['target'])
-        eval_metric.eval()
         self.log_dict(eval_metric.get_metric_dict())
         self.print(eval_metric)
         return eval_metric
