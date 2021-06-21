@@ -4,24 +4,27 @@ import itertools
 import logging
 import os
 import time
-import yaml
 from datetime import datetime
 from pathlib import Path
 
+import pytorch_lightning as pl
+import yaml
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
+from pytorch_lightning.utilities.parsing import AttributeDict
 from ray import tune
 
 from libmultilabel import data_utils
-from libmultilabel.evaluate import evaluate
 from libmultilabel.model import Model
-from libmultilabel.utils import ArgDict, dump_log, init_device, set_seed
+from libmultilabel.utils import dump_log, init_device, set_seed
 
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(message)s')
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s %(levelname)s:%(message)s')
 
 
 class Trainable(tune.Trainable):
     def setup(self, config, data):
-        self.config = ArgDict(config)
+        self.config = AttributeDict(config)
         self.datasets = data['datasets']
         self.word_dict = data['word_dict']
         self.classes = data['classes']
@@ -37,30 +40,52 @@ class Trainable(tune.Trainable):
         )
         logging.info(f'Run name: {self.config.run_name}')
 
+        checkpoint_dir = os.path.join(self.config.result_dir, self.config.run_name)
+        checkpoint_callback = ModelCheckpoint(dirpath=checkpoint_dir,
+                                              filename='best_model',
+                                              save_last=True, save_top_k=1,
+                                              monitor=self.config.val_metric, mode='max')
+        earlystopping_callback = EarlyStopping(patience=self.config.patience,
+                                               monitor=self.config.val_metric, mode='max')
+
+        trainer = pl.Trainer(logger=False,
+                             num_sanity_val_steps=0,
+                             gpus=0 if self.config.cpu else 1,
+                             progress_bar_refresh_rate=0 if self.config.silent else 1,
+                             max_epochs=self.config.epochs,
+                             callbacks=[checkpoint_callback, earlystopping_callback])
+
         model = Model(self.config, self.word_dict, self.classes)
-        model.train(self.datasets['train'], self.datasets['val'])
-        model.load_best()
+
+        train_loader = data_utils.get_dataset_loader(
+            model.config, self.datasets['train'], model.word_dict, model.classes,
+            shuffle=model.config.shuffle, train=True)
+        val_loader = data_utils.get_dataset_loader(
+            model.config, self.datasets['val'], model.word_dict, model.classes, train=False)
+
+        trainer.fit(model, train_loader, val_loader)
+
+        logging.info(f'Loading best model from `{checkpoint_callback.best_model_path}`...')
+        best_model = Model.load_from_checkpoint(checkpoint_callback.best_model_path)
 
         test_val_results = dict()
 
         # run and dump test result
         if 'test' in self.datasets:
-            test_loader = data_utils.get_dataset_loader(self.config, self.datasets['test'], model.word_dict, model.classes, train=False)
-            test_metrics = evaluate(model, test_loader, self.config.monitor_metrics, silent=self.config.silent)
-            metric_dict = test_metrics.get_metric_dict(use_cache=False)
-            dump_log(config=self.config, metrics=metric_dict, split='test')
-            for k, v in metric_dict.items():
+            test_loader = data_utils.get_dataset_loader(
+                best_model.config, self.datasets['test'], best_model.word_dict, best_model.classes, train=False)
+            test_metric_dict = trainer.test(best_model, test_dataloaders=test_loader)[0]
+            dump_log(config=self.config, metrics=test_metric_dict, split='test')
+            for k, v in test_metric_dict.items():
                 test_val_results[f'test_{k}'] = v
 
         # return best val result
-        val_loader = data_utils.get_dataset_loader(self.config, self.datasets['val'], model.word_dict, model.classes, train=False)
-        val_metrics = evaluate(model, val_loader, self.config.monitor_metrics, silent=self.config.silent)
-        metric_dict = val_metrics.get_metric_dict(use_cache=False)
-        for k, v in metric_dict.items():
+        val_metric_dict = trainer.test(best_model, test_dataloaders=val_loader)[0]
+        for k, v in val_metric_dict.items():
             test_val_results[f'val_{k}'] = v
 
-        # remove model_best.pt and model_last.pt
-        for model_path in glob.glob(os.path.join(self.config.result_dir, self.config.run_name, '*.pt')):
+        # remove *.ckpt
+        for model_path in glob.glob(os.path.join(self.config.result_dir, self.config.run_name, '*.ckpt')):
             logging.info(f'Removing {model_path} ...')
             os.remove(model_path)
         return test_val_results
@@ -80,7 +105,7 @@ def init_model_config(config_path):
         if isinstance(v, str) and os.path.exists(v):
             args[k] = os.path.abspath(v)
 
-    model_config = ArgDict(args)
+    model_config = AttributeDict(args)
     set_seed(seed=model_config.seed)
     model_config.device = init_device(model_config.cpu)
     return model_config
@@ -126,13 +151,18 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '--config', help='Path to configuration file (default: %(default)s). Please specify a config with all arguments in LibMultiLabel/main.py::get_config.')
-    parser.add_argument('--cpu_count', type=int, default=4, help='Number of CPU per trial (default: %(default)s)')
-    parser.add_argument('--gpu_count', type=int, default=1, help='Number of GPU per trial (default: %(default)s)')
-    parser.add_argument('--local_dir', default=os.getcwd(), help='Directory to save training results of tune (default: %(default)s)')
+    parser.add_argument('--cpu_count', type=int, default=4,
+                        help='Number of CPU per trial (default: %(default)s)')
+    parser.add_argument('--gpu_count', type=int, default=1,
+                        help='Number of GPU per trial (default: %(default)s)')
+    parser.add_argument('--local_dir', default=os.getcwd(),
+                        help='Directory to save training results of tune (default: %(default)s)')
     parser.add_argument('--num_samples', type=int, default=50,
                         help='Number of running trials. If the search space is `grid_search`, the same grid will be repeated `num_samples` times. (default: %(default)s)')
-    parser.add_argument('--mode', default='max', choices=['min', 'max'], help='Determines whether objective is minimizing or maximizing the metric attribute. (default: %(default)s)')
-    parser.add_argument('--search_alg', default=None, choices=['basic_variant', 'bayesopt', 'optuna'], help='Search algorithms (default: %(default)s)')
+    parser.add_argument('--mode', default='max', choices=['min', 'max'],
+                        help='Determines whether objective is minimizing or maximizing the metric attribute. (default: %(default)s)')
+    parser.add_argument('--search_alg', default=None, choices=['basic_variant', 'bayesopt', 'optuna'],
+                        help='Search algorithms (default: %(default)s)')
     args = parser.parse_args()
 
     """Other args in the model config are viewed as resolved values that are ignored from tune.
@@ -152,8 +182,10 @@ def main():
     reporter = tune.CLIReporter(metric_columns=all_monitor_metrics)
     analysis = tune.run(
         tune.with_parameters(Trainable, data=data),
-        stop={"training_iteration": 1}, # run one step "libmultilabel.model.train"
-        search_alg=init_search_algorithm(search_alg, metric=model_config.val_metric, mode=args.mode),
+        # run one step "libmultilabel.model.train"
+        stop={"training_iteration": 1},
+        search_alg=init_search_algorithm(
+            search_alg, metric=model_config.val_metric, mode=args.mode),
         local_dir=args.local_dir,
         metric=f'val_{model_config.val_metric}',
         mode=args.mode,
