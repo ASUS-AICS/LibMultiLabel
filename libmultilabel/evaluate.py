@@ -43,7 +43,7 @@ class MultiLabelMetrics():
             if re.match('[P|R]@\d+', metric):
                 top_k = int(metric[2:])
                 self.top_ks.add(top_k)
-            else:
+            elif metric not in ['Micro-Precision', 'Micro-Recall', 'Micro-F1', 'Macro-F1', 'Another-Macro-F1']:
                 raise ValueError(f'Invalid metric: {metric}')
 
     def add_values(self, y_true, y_pred):
@@ -70,7 +70,8 @@ class MultiLabelMetrics():
         }
         # add metrics like P@k, R@k to the result dict
         scores = precision_recall_at_ks(y_true, y_pred, top_ks=self.top_ks)
-        result.update({metric: scores[metric] for metric in self.monitor_metrics})
+        precision_recall_monitored = set(self.monitor_metrics) & scores.keys()
+        result.update({metric: scores[metric] for metric in precision_recall_monitored})
         self.cached_results = result
 
     def get_y_pred(self):

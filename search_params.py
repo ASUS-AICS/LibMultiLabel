@@ -149,7 +149,8 @@ def main():
     """
     all_monitor_metrics = [f'{split}_{metric}' for split, metric in itertools.product(
         ['val', 'test'], model_config.monitor_metrics)]
-    tune.run(
+    reporter = tune.CLIReporter(metric_columns=all_monitor_metrics)
+    analysis = tune.run(
         tune.with_parameters(Trainable, data=data),
         stop={"training_iteration": 1}, # run one step "libmultilabel.model.train"
         search_alg=init_search_algorithm(search_alg, metric=model_config.val_metric, mode=args.mode),
@@ -159,8 +160,13 @@ def main():
         num_samples=args.num_samples,
         resources_per_trial={
             'cpu': args.cpu_count, 'gpu': args.gpu_count},
-        progress_reporter=tune.CLIReporter(metric_columns=all_monitor_metrics),
+        progress_reporter=reporter,
         config=model_config)
+
+    columns = reporter._metric_columns + list(analysis.best_trial.evaluated_params.keys())
+    results_df = analysis.results_df.sort_values(by=f'val_{model_config.val_metric}', ascending=False)
+    results_df.columns = results_df.columns.str.replace('^config.', '')
+    print(f'\n{results_df[columns].to_markdown()}\n')
 
 
 # calculate wall time.
