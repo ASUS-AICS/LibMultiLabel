@@ -61,7 +61,7 @@ class MultiLabelModel(pl.LightningModule):
         loss, pred_logits = self.shared_step(batch)
         return {'loss': loss.item(),
                 'pred_scores': torch.sigmoid(pred_logits).detach().cpu().numpy(),
-                'target': batch['labels'].detach().cpu().numpy()}
+                'target': batch['label'].detach().cpu().numpy()}
 
     def validation_epoch_end(self, step_outputs):
         eval_metric = MultiLabelMetrics(self.config)
@@ -83,7 +83,7 @@ class MultiLabelModel(pl.LightningModule):
         return eval_metric
 
     def print(self, string):
-        if not self.config.get('silent'):
+        if not self.config.get('silent', False):
             if not self.trainer or self.trainer.is_global_zero:
                 print(string)
 
