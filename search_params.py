@@ -84,8 +84,8 @@ class Trainable(tune.Trainable):
         for k, v in val_metric_dict.items():
             test_val_results[f'val_{k}'] = v
 
-        # remove model_best.pt and model_last.pt
-        for model_path in glob.glob(os.path.join(self.config.result_dir, self.config.run_name, '*.pt')):
+        # remove *.ckpt
+        for model_path in glob.glob(os.path.join(self.config.result_dir, self.config.run_name, '*.ckpt')):
             logging.info(f'Removing {model_path} ...')
             os.remove(model_path)
         return test_val_results
