@@ -184,7 +184,7 @@ def main():
             model.config, datasets['val'], model.word_dict, model.classes, train=False)
 
         trainer.fit(model, train_loader, val_loader)
-        # load best model
+
         logging.info(f'Loading best model from `{checkpoint_callback.best_model_path}`...')
         model = Model.load_from_checkpoint(checkpoint_callback.best_model_path)
 
