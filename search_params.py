@@ -87,19 +87,22 @@ def init_model_config(config_path):
     return model_config
 
 
-def init_search_params_space(value, search_alg):
+def init_search_params_spaces(model_config):
     """Initialize the sample space defined in ray tune.
     See the random distributions API listed here: https://docs.ray.io/en/master/tune/api_docs/search_space.html#random-distributions-api
     """
     search_spaces = ['choice', 'grid_search', 'uniform', 'quniform', 'loguniform',
                      'qloguniform', 'randn', 'qrandn', 'randint', 'qrandint']
-    if isinstance(value, list):
-        if isinstance(value[0], list):
-            assert search_alg == 'basic_variant', "Only `basic_variant` can assign list of search spaces."
-            return [init_search_params_space(v, search_alg) for v in value]
-        elif len(value) >= 2 and value[0] in search_spaces:
-            return getattr(tune, value[0])(*value[1:])
-    return value
+    for key, value in model_config.items():
+        if isinstance(value, list) and len(value) >= 2 and value[0] in search_spaces:
+            search_space, search_args = value[0], value[1:]
+            # If the values in search values are lists (e.g., [2] in [[2], [4], [6]]), the search space must be `grid_search`.
+            if len(search_args) > 0 and any(isinstance(x, list) for x in search_args) and search_space != 'grid_search':
+                raise ValueError(
+                    'Only `grid_search` can assign list of search spaces.')
+            else:
+                model_config[key] = getattr(tune, search_space)(*search_args)
+    return model_config
 
 
 def init_search_algorithm(search_alg, metric=None, mode=None):
@@ -144,8 +147,7 @@ def main():
     """
     model_config = init_model_config(args.config)
     search_alg = args.search_alg if args.search_alg else model_config.search_alg
-    for k, v in model_config.items():
-        model_config[k] = init_search_params_space(v, search_alg)
+    model_config = init_search_params_spaces(model_config)
     data = load_static_data(model_config)
 
     """Run tune analysis.
@@ -170,8 +172,7 @@ def main():
 
     results_df = analysis.results_df.sort_values(by=f'val_{model_config.val_metric}', ascending=False)
     results_df.columns = results_df.columns.str.replace('^config.', '')
-    params = analysis.best_trial.evaluated_params.keys()
-    columns = reporter._metric_columns + [re.sub('/\d+', '', p) for p in params]
+    columns = reporter._metric_columns + list(analysis.best_trial.evaluated_params.keys())
     print(f'\n{results_df[columns].to_markdown()}\n')
 
 
