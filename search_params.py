@@ -98,7 +98,10 @@ def init_search_params_spaces(model_config):
             search_space, search_args = value[0], value[1:]
             if isinstance(search_args[0], list) and any(isinstance(x, list) for x in search_args[0]) and search_space != 'grid_search':
                 raise ValueError(
-                    'If the values in search values are lists (e.g., [2,4,8] in [[2,4,8], [4,6]]), the search space must be `grid_search`.')
+                    """If the search values are lists, the search space must be `grid_search`.
+                    Take `filter_sizes: ['grid_search', [[2,4,8], [4,6]]]` for example, the program will grid search over
+                    [2,4,8] and [4,6]. This is the same as assigning `filter_sizes` to either [2,4,8] or [4,6] in two runs.
+                    """)
             else:
                 model_config[key] = getattr(tune, search_space)(*search_args)
     return model_config
