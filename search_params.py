@@ -96,10 +96,9 @@ def init_search_params_spaces(model_config):
     for key, value in model_config.items():
         if isinstance(value, list) and len(value) >= 2 and value[0] in search_spaces:
             search_space, search_args = value[0], value[1:]
-            # If the values in search values are lists (e.g., [2] in [[2], [4], [6]]), the search space must be `grid_search`.
-            if len(search_args) > 0 and any(isinstance(x, list) for x in search_args) and search_space != 'grid_search':
+            if isinstance(search_args[0], list) and any(isinstance(x, list) for x in search_args[0]) and search_space != 'grid_search':
                 raise ValueError(
-                    'Only `grid_search` can assign list of search spaces.')
+                    'If the values in search values are lists (e.g., [2,4,8] in [[2,4,8], [4,6]]), the search space must be `grid_search`.')
             else:
                 model_config[key] = getattr(tune, search_space)(*search_args)
     return model_config
