@@ -22,7 +22,7 @@ val_metric: P@1
 # model
 model_name: KimCNN
 num_filter_per_size: 128 # filter channels
-filter_sizes: [2, 4, 8]
+filter_sizes: ['grid_search', [[2,4,8], [4,6]]]
 dropout: ['choice', [0.2, 0.4, 0.6, 0.8]]
 init_weight: kaiming_uniform
 activation: relu

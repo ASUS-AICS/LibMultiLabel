@@ -3,34 +3,10 @@ import json
 import logging
 import os
 import time
-import torch
 
 import numpy as np
-
-
-class ArgDict(dict):
-    def __init__(self, *args, **kwargs):
-        super(ArgDict, self).__init__(*args, **kwargs)
-        self.__dict__ = self
-
-
-class AverageMeter(object):
-    """Computes and stores the average and current value."""
-
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        self.val = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-
-    def update(self, val, n=1):
-        self.val = val
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
+import torch
+from pytorch_lightning.utilities.seed import seed_everything
 
 
 class Timer(object):
@@ -78,7 +54,7 @@ def dump_log(config, metrics, split):
             result = json.load(fp)
     else:
         config_to_save = copy.deepcopy(config.__dict__)
-        del config_to_save['device']
+        config_to_save.pop('device', None)  # delete if device exists
         result = {'config': config_to_save}
 
     if split in result:
@@ -114,8 +90,7 @@ def set_seed(seed):
     """Set seeds for numpy and pytorch."""
     if seed is not None:
         if seed >= 0:
-            np.random.seed(seed)
-            torch.manual_seed(seed)
+            seed_everything(seed=seed)
             torch.set_deterministic(True)
             torch.backends.cudnn.benchmark = False
         else:

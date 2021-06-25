@@ -1,218 +1,112 @@
-import logging
-import os
-import shutil
+from abc import abstractmethod
+from argparse import Namespace
 
+import numpy as np
+import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-from tqdm import tqdm
+from pytorch_lightning.utilities.parsing import AttributeDict
 
-from . import data_utils
 from . import networks
-from .evaluate import evaluate
-from .utils import AverageMeter, Timer, dump_log
+from .metrics import MultiLabelMetrics
 
 
-class Model(object):
-    """High level model that handles initializing the underlying network
-    architecture, saving, updating examples, and predicting examples.
-    """
+class MultiLabelModel(pl.LightningModule):
+    """Abstract class handling Pytorch Lightning training flow"""
 
-    def __init__(self, config, word_dict=None, classes=None, ckpt=None):
+    def __init__(self, config, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if isinstance(config, Namespace):
+            config = vars(config)
+        if isinstance(config, dict):
+            config = AttributeDict(config)
         self.config = config
-        self.device = config.device
-        self.start_epoch = 0
 
-        if ckpt:
-            self.config.run_name = ckpt['run_name']
-            self.word_dict = ckpt['word_dict']
-            self.classes = ckpt['classes']
-            self.best_metric = ckpt['best_metric']
-            self.start_epoch = ckpt['epoch']
-        else:
-            self.word_dict = word_dict
-            self.classes = classes
-            self.start_epoch = 0
-            self.best_metric = 0
-
-        self.config.num_classes = len(self.classes)
-
-        embed_vecs = self.word_dict.vectors
-        self.network = getattr(networks, config.model_name)(config, embed_vecs).to(self.device)
-        self.init_optimizer()
-
-        if ckpt:
-            self.network.load_state_dict(ckpt['state_dict'])
-            self.optimizer.load_state_dict(ckpt['optimizer'])
-        elif config.init_weight is not None:
-            init_weight = networks.get_init_weight_func(config)
-            self.network.apply(init_weight)
-
-    def init_optimizer(self, optimizer=None):
+    def configure_optimizers(self):
         """Initialize an optimizer for the free parameters of the network.
-        Args:
-            state_dict: network parameters
         """
-        parameters = [p for p in self.network.parameters() if p.requires_grad]
-        optimizer_name = optimizer or self.config.optimizer
+        parameters = [p for p in self.parameters() if p.requires_grad]
+        optimizer_name = self.config.optimizer
         if optimizer_name == 'sgd':
-            self.optimizer = optim.SGD(parameters, self.config.learning_rate,
-                                       momentum=self.config.momentum,
-                                       weight_decay=self.config.weight_decay)
+            optimizer = optim.SGD(parameters, self.config.learning_rate,
+                                  momentum=self.config.momentum,
+                                  weight_decay=self.config.weight_decay)
         elif optimizer_name == 'adam':
-            self.optimizer = optim.Adam(parameters, weight_decay=self.config.weight_decay, lr=self.config.learning_rate)
-
+            optimizer = optim.Adam(parameters,
+                                   weight_decay=self.config.weight_decay,
+                                   lr=self.config.learning_rate)
+        elif optimizer_name == 'adamw':
+            optimizer = optim.AdamW(parameters,
+                                    weight_decay=self.config.weight_decay,
+                                    lr=self.config.learning_rate)
         else:
-            raise RuntimeError('Unsupported optimizer: %s' % self.config.optimizer)
+            raise RuntimeError(
+                'Unsupported optimizer: {self.config.optimizer}')
 
         torch.nn.utils.clip_grad_value_(parameters, 0.5)
 
-    def train(self, train_data, val_data):
-        train_loader = data_utils.get_dataset_loader(
-            self.config, train_data, self.word_dict, self.classes,
-            shuffle=self.config.shuffle, train=True)
-        val_loader = data_utils.get_dataset_loader(
-            self.config, val_data, self.word_dict, self.classes, train=False)
+        return optimizer
 
-        logging.info('Start training')
-        try:
-            epoch = self.start_epoch + 1
-            patience = self.config.patience
-            while epoch <= self.config.epochs:
-                if patience == 0:
-                    logging.info('Reach training patience. Stopping...')
-                    break
+    @abstractmethod
+    def shared_step(self, batch):
+        """Return loss and predicted logits"""
+        return NotImplemented
 
-                logging.info(f'============= Starting epoch {epoch} =============')
+    def training_step(self, batch, batch_idx):
+        loss, _ = self.shared_step(batch)
+        return loss
 
-                self.train_epoch(train_loader)
+    def validation_step(self, batch, batch_idx):
+        loss, pred_logits = self.shared_step(batch)
+        return {'loss': loss.item(),
+                'pred_scores': torch.sigmoid(pred_logits).detach().cpu().numpy(),
+                'target': batch['label'].detach().cpu().numpy()}
 
-                timer = Timer()
-                logging.info('Start predicting a validation set')
-                val_metrics = evaluate(model=self, dataset_loader=val_loader,
-                                       monitor_metrics=self.config.monitor_metrics, silent=self.config.silent)
-                metric_dict = val_metrics.get_metric_dict(use_cache=False)
-                logging.info(f'Time for evaluating val set = {timer.time():.2f} (s)')
+    def validation_epoch_end(self, step_outputs):
+        eval_metric = MultiLabelMetrics(self.config)
+        for step_output in step_outputs:
+            eval_metric.add_values(y_pred=step_output['pred_scores'],
+                                   y_true=step_output['target'])
+        self.log_dict(eval_metric.get_metric_dict())
+        self.print(eval_metric)
+        return eval_metric
 
-                dump_log(self.config, metric_dict, split='val')
-                if not self.config.silent:
-                    print(val_metrics)
+    def test_step(self, batch, batch_idx):
+        return self.validation_step(batch, batch_idx)
 
-                if metric_dict[self.config.val_metric] > self.best_metric:
-                    self.best_metric = metric_dict[self.config.val_metric]
-                    self.save(epoch, is_best=True)
-                    patience = self.config.patience
-                else:
-                    logging.info(f'Performance does not increase, training will stop in {patience} epochs')
-                    self.save(epoch)
-                    patience -= 1
+    def test_epoch_end(self, step_outputs):
+        self.print('====== Test dataset evaluation result =======')
+        eval_metric = self.validation_epoch_end(step_outputs)
+        self.test_results = eval_metric
+        return eval_metric
 
-                epoch += 1
-        except KeyboardInterrupt:
-            logging.info('Training process terminated')
+    def print(self, string):
+        if not self.config.get('silent', False):
+            if not self.trainer or self.trainer.is_global_zero:
+                print(string)
 
-    def train_epoch(self, data_loader):
-        """Run through one epoch of model training with the provided data loader."""
 
-        train_loss = AverageMeter()
-        epoch_time = Timer()
-        progress_bar = tqdm(data_loader, disable=self.config.silent)
+class Model(MultiLabelModel):
+    def __init__(self, config, word_dict=None, classes=None):
+        super().__init__(config)
+        self.save_hyperparameters()
 
-        for idx, batch in enumerate(progress_bar):
-            loss, batch_label_scores = self.train_step(batch)
-            train_loss.update(loss)
-            progress_bar.set_postfix(loss=train_loss.avg)
+        self.word_dict = word_dict
+        self.classes = classes
+        self.config.num_classes = len(self.classes)
 
-        logging.info(f'Epoch done. Time for epoch = {epoch_time.time():.2f} (s)')
-        logging.info(f'Epoch loss: {train_loss.avg}')
+        embed_vecs = self.word_dict.vectors
+        self.network = getattr(networks, self.config.model_name)(
+            self.config, embed_vecs).to(self.config.device)
 
-    def train_step(self, inputs):
-        """Forward a batch of examples; stop the optimizer to update weights.
-        """
-        # Train mode
-        self.network.train()
+        if config.init_weight is not None:
+            init_weight = networks.get_init_weight_func(self.config)
+            self.apply(init_weight)
 
-        for key in inputs:
-            if isinstance(inputs[key], torch.Tensor):
-                inputs[key] = inputs[key].to(self.device, non_blocking=True)
-
-        # Run forward
-        target_labels = inputs['label']
-        outputs = self.network(inputs['text'])
-        logits = outputs['logits']
-        loss = F.binary_cross_entropy_with_logits(logits, target_labels)
-        batch_label_scores = torch.sigmoid(logits)
-
-        # Update parameters
-        self.optimizer.zero_grad()
-        loss.backward()
-        self.optimizer.step()
-
-        return loss.item(), batch_label_scores
-
-    def predict(self, inputs):
-        """Forward a batch of examples only to get predictions.
-
-        Args:
-            inputs: the batch of inputs
-            top_n: Number of predictions to return per batch element (default: all predictions).
-        Output:
-            {
-                'scores': predicted score tensor,
-                'logits': predicted logit tensor,
-                'outputs': full predict output,
-                'top_results': top results from extract_top_n_predictions.
-            }
-        """
-        # Eval mode
-        self.network.eval()
-
-        # Transfer to GPU
-        for key in inputs:
-            if isinstance(inputs[key], torch.Tensor):
-                inputs[key] = inputs[key].to(self.device, non_blocking=True)
-
-        # Run forward
-        with torch.no_grad():
-            outputs = self.network(inputs['text'])
-            logits = outputs['logits']
-            batch_label_scores = torch.sigmoid(logits)
-
-        return {
-            'scores': batch_label_scores,
-            'logits': logits,
-            'outputs': outputs,
-        }
-
-    def save(self, epoch, is_best=False):
-        self.network.eval()
-        ckpt = {
-            'epoch': epoch,
-            'run_name': self.config.run_name,
-            'state_dict': self.network.state_dict(),
-            'word_dict': self.word_dict,
-            'classes': self.classes,
-            'optimizer': self.optimizer.state_dict(),
-            'best_metric': self.best_metric,
-        }
-        ckpt_path = os.path.join(self.config.result_dir,
-                                 self.config.run_name, 'model_last.pt')
-        os.makedirs(os.path.dirname(ckpt_path), exist_ok=True)
-        logging.info(f"Save current  model: {ckpt_path}")
-        torch.save(ckpt, ckpt_path)
-        if is_best:
-            best_ckpt_path = ckpt_path.replace('last', 'best')
-            logging.info(f"Save best model ({self.config.val_metric}: {self.best_metric}): {best_ckpt_path}")
-            shutil.copyfile(ckpt_path, best_ckpt_path)
-        self.network.train()
-
-    @staticmethod
-    def load(config, ckpt_path):
-        ckpt = torch.load(ckpt_path)
-        return Model(config, ckpt=ckpt)
-
-    def load_best(self):
-        best_ckpt_path = os.path.join(self.config.result_dir,
-                                      self.config.run_name, 'model_best.pt')
-        best_model = self.load(self.config, best_ckpt_path)
-        self.network = best_model.network
+    def shared_step(self, batch):
+        target_labels = batch['label']
+        outputs = self.network(batch['text'])
+        pred_logits = outputs['logits']
+        loss = F.binary_cross_entropy_with_logits(pred_logits, target_labels)
+        return loss, pred_logits
