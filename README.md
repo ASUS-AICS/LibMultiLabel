@@ -4,6 +4,7 @@ LibMultiLabel is a simple tool with the following functionalities.
 
 - end-to-end services from raw texts to final evaluation/analysis
 - support of common network architectures for multi-label text classification
+- easy hyper-parameter selection
 
 This is an on-going development so many improvements are still being made. Comments are very welcome.
 
