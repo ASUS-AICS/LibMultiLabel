@@ -179,6 +179,7 @@ def main():
     """
     model_config = init_model_config(args.config)
     search_alg = args.search_alg if args.search_alg else model_config.search_alg
+    num_samples = model_config['num_samples'] if model_config.get('num_samples', None) else args.num_samples
     model_config = init_search_params_spaces(model_config)
     data = load_static_data(model_config)
 
@@ -198,7 +199,7 @@ def main():
         local_dir=args.local_dir,
         metric=f'val_{model_config.val_metric}',
         mode=args.mode,
-        num_samples=args.num_samples,
+        num_samples=num_samples,
         resources_per_trial={
             'cpu': args.cpu_count, 'gpu': args.gpu_count},
         progress_reporter=reporter,
