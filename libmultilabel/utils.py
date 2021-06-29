@@ -53,7 +53,7 @@ def dump_log(config, metrics, split):
         with open(log_path) as fp:
             result = json.load(fp)
     else:
-        config_to_save = copy.deepcopy(config.__dict__)
+        config_to_save = copy.deepcopy(dict(config))
         config_to_save.pop('device', None)  # delete if device exists
         result = {'config': config_to_save}
 
