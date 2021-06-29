@@ -179,7 +179,7 @@ def main():
     """
     model_config = init_model_config(args.config)
     search_alg = args.search_alg if args.search_alg else model_config.search_alg
-    num_samples = args.num_samples if args.num_samples else model_config.num_samples
+    num_samples = model_config['num_samples'] if model_config.get('num_samples', None) else args.num_samples
     model_config = init_search_params_spaces(model_config)
     data = load_static_data(model_config)
 
