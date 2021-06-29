@@ -10,6 +10,7 @@ from pytorch_lightning.utilities.parsing import AttributeDict
 
 from . import networks
 from .metrics import MultiLabelMetrics
+from .utils import dump_log
 
 
 class MultiLabelModel(pl.LightningModule):
@@ -68,8 +69,10 @@ class MultiLabelModel(pl.LightningModule):
         for step_output in step_outputs:
             eval_metric.add_values(y_pred=step_output['pred_scores'],
                                    y_true=step_output['target'])
-        self.log_dict(eval_metric.get_metric_dict())
+        metric_dict = eval_metric.get_metric_dict()
+        self.log_dict(metric_dict)
         self.print(eval_metric)
+        dump_log(config=self.config, metrics=metric_dict, split='val')
         return eval_metric
 
     def test_step(self, batch, batch_idx):
