@@ -27,6 +27,7 @@ class MultiLabelModel(pl.LightningModule):
         monitor_metrics=None,
         log_path=None,
         silent=False, # TODO discuss if we need silent
+        **kwargs
     ):
         super().__init__()
         # optimizers
