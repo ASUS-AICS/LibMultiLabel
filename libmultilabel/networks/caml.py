@@ -1,4 +1,3 @@
-import os
 from math import floor
 
 import torch
@@ -9,7 +8,7 @@ from ..networks.base import BaseModel
 
 
 class CAML(BaseModel):
-    def __init__(self, config, embed_vecs):
+    def __init__(self, config, embed_vecs, num_classes):
         super(CAML, self).__init__(config, embed_vecs)
 
         if len(config.filter_sizes) != 1:
@@ -23,11 +22,11 @@ class CAML(BaseModel):
         xavier_uniform_(self.conv.weight)
 
         # Context vectors for computing attention as in 2.2
-        self.U = nn.Linear(num_filter_per_size, config.num_classes)
+        self.U = nn.Linear(num_filter_per_size, num_classes)
         xavier_uniform_(self.U.weight)
 
         # Final layer: create a matrix to use for the L binary classifiers as in 2.3
-        self.final = nn.Linear(num_filter_per_size, config.num_classes)
+        self.final = nn.Linear(num_filter_per_size, num_classes)
         xavier_uniform_(self.final.weight)
 
     def forward(self, text):

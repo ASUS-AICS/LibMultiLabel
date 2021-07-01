@@ -1,7 +1,6 @@
 from abc import abstractmethod
 from argparse import Namespace
 
-import numpy as np
 import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
@@ -97,14 +96,19 @@ class Model(MultiLabelModel):
 
         self.word_dict = word_dict
         self.classes = classes
-        self.config.num_classes = len(self.classes)
+        self.num_classes = len(self.classes)
 
         embed_vecs = self.word_dict.vectors
+        # TODO get network config by model_name
         self.network = getattr(networks, self.config.model_name)(
-            self.config, embed_vecs).to(self.config.device)
+            config=self.config,
+            embed_vecs=embed_vecs,
+            num_classes=self.num_classes,
+        ).to(self.config.device)
 
         if config.init_weight is not None:
-            init_weight = networks.get_init_weight_func(self.config)
+            init_weight = networks.get_init_weight_func(
+                init_weight=config.init_weight)
             self.apply(init_weight)
 
     def shared_step(self, batch):
