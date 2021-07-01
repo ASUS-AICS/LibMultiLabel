@@ -1,6 +1,8 @@
 # [Proposal] https://github.com/huggingface/transformers/blob/0d1f67e651220bffef1441fa7589620e426ba958/src/transformers/models/bert/configuration_bert.py#L51
+from pytorch_lightning.utilities.parsing import AttributeDict
 
-class CAMLConfig():
+
+class CAMLConfig(AttributeDict):
     def __init__(
         self,
         activation='tanh',
@@ -16,7 +18,7 @@ class CAMLConfig():
         self.num_filter_per_size = num_filter_per_size
 
 
-class KimCNNConfig():
+class KimCNNConfig(AttributeDict):
     def __init__(
         self,
         activation='relu',
@@ -32,7 +34,7 @@ class KimCNNConfig():
         self.num_filter_per_size = num_filter_per_size
 
 
-class XMLCNNConfig():
+class XMLCNNConfig(AttributeDict):
     def __init__(
         self,
         activation='relu',
@@ -57,6 +59,9 @@ class XMLCNNConfig():
 
 
 def get_model_config(model_name, config=None):
+    # type checking for pytorch_lightning `AttributeDict`
+    config = dict() if not config else dict(config)
+
     if model_name == 'CAML':
         return CAMLConfig(**config)
     elif model_name == 'KimCNN':

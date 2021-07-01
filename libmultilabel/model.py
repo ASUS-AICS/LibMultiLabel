@@ -14,7 +14,8 @@ from .utils import dump_log
 
 
 class MultiLabelModel(pl.LightningModule):
-    """Abstract class handling Pytorch Lightning training flow"""
+    """Abstract class handling Pytorch Lightning training flow
+    """
 
     def __init__(self, config, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -100,11 +101,14 @@ class Model(MultiLabelModel):
         self.num_classes = len(self.classes)
 
         embed_vecs = self.word_dict.vectors
-        # TODO get network config by model_name
+        model_config = get_model_config(
+            model_name=self.config.model_name,
+            config=self.config
+        )
         self.network = getattr(networks, self.config.model_name)(
-            config=get_model_config(self.config.model_name),
             embed_vecs=embed_vecs,
             num_classes=self.num_classes,
+            **dict(model_config)
         ).to(self.config.device)
 
         if config.init_weight is not None:

@@ -8,14 +8,20 @@ from ..networks.base import BaseModel
 
 
 class CAML(BaseModel):
-    def __init__(self, config, embed_vecs, num_classes):
-        super(CAML, self).__init__(config, embed_vecs)
+    def __init__(
+        self,
+        embed_vecs,
+        num_classes,
+        filter_sizes=[10],
+        num_filter_per_size=50,
+        **kwargs
+    ):
+        super(CAML, self).__init__(embed_vecs, **kwargs)
+        if len(filter_sizes) != 1:
+            raise ValueError(f'CAML expect 1 filter size. Got filter_sizes={filter_sizes}')
+        filter_size = filter_sizes[0]
 
-        if len(config.filter_sizes) != 1:
-            raise ValueError(f'CAML expect 1 filter size. Got filter_sizes={config.filter_sizes}')
-        filter_size = config.filter_sizes[0]
-
-        num_filter_per_size = config.num_filter_per_size
+        num_filter_per_size = num_filter_per_size
 
         # initialize conv layer as in 2.1
         self.conv = nn.Conv1d(embed_vecs.shape[1], num_filter_per_size, kernel_size=filter_size, padding=int(floor(filter_size/2)))
