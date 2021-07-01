@@ -6,7 +6,8 @@ class CAMLConfig():
         activation='tanh',
         dropout=0.2,
         filter_sizes=[10],
-        num_filter_per_size=50
+        num_filter_per_size=50,
+        **kwargs
     ):
         self.model_name = 'CAML'
         self.activation = activation
@@ -21,7 +22,8 @@ class KimCNNConfig():
         activation='relu',
         dropout=0.2,
         filter_sizes=[2, 4, 8],
-        num_filter_per_size=128
+        num_filter_per_size=128,
+        **kwargs
     ):
         self.model_name = 'KimCNN'
         self.activation = activation
@@ -41,6 +43,7 @@ class XMLCNNConfig():
         num_filter_per_size=256,
         num_pool=2,
         seed=1337,
+        **kwargs
     ):
         self.model_name = 'XMLCNN'
         self.activation = activation
@@ -54,12 +57,11 @@ class XMLCNNConfig():
 
 
 def get_model_config(model_name, config=None):
-    # TODO replace config with predefined config
     if model_name == 'CAML':
-        return CAMLConfig()
+        return CAMLConfig(**config)
     elif model_name == 'KimCNN':
-        return KimCNNConfig()
+        return KimCNNConfig(**config)
     elif model_name == 'XMLCNN':
-        return XMLCNNConfig()
+        return XMLCNNConfig(**config)
     else:
         raise ValueError(f'Invalid model name: {model_name}')
