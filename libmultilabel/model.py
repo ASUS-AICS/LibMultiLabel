@@ -25,6 +25,7 @@ class MultiLabelModel(pl.LightningModule):
         weight_decay=0,
         metric_threshold=0.5,
         monitor_metrics=None,
+        log_path=None,
         *args,
         **kwargs
     ):
@@ -37,6 +38,8 @@ class MultiLabelModel(pl.LightningModule):
         # metrics
         self.metric_threshold = metric_threshold
         self.monitor_metrics = monitor_metrics
+        # dump log
+        self.log_path = log_path
 
     def configure_optimizers(self):
         """Initialize an optimizer for the free parameters of the network.
@@ -87,8 +90,7 @@ class MultiLabelModel(pl.LightningModule):
         metric_dict = eval_metric.get_metric_dict()
         self.log_dict(metric_dict)
         self.print(eval_metric)
-        # TODO refactor dump_log
-        dump_log(config=self.config, metrics=metric_dict, split='val')
+        dump_log(metrics=metric_dict, split='val', log_path=self.log_path)
         return eval_metric
 
     def test_step(self, batch, batch_idx):
