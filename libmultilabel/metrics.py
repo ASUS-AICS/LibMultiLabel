@@ -30,8 +30,8 @@ def precision_recall_at_ks(y_true, y_pred_vals, top_ks):
 class MultiLabelMetrics():
     def __init__(
         self,
-        monitor_metrics=None,
-        metric_threshold=0.5
+        metric_threshold=0.5,
+        monitor_metrics=None
     ):
         self.monitor_metrics = monitor_metrics if monitor_metrics else [],
         self.metric_threshold = metric_threshold

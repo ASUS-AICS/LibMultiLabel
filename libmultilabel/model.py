@@ -17,34 +17,47 @@ class MultiLabelModel(pl.LightningModule):
     """Abstract class handling Pytorch Lightning training flow
     """
 
-    def __init__(self, config, *args, **kwargs):
+    def __init__(
+        self,
+        learning_rate=0.0001,
+        optimizer='adam',
+        momentum=0.9,
+        weight_decay=0,
+        metric_threshold=0.5,
+        monitor_metrics=None,
+        *args,
+        **kwargs
+    ):
         super().__init__(*args, **kwargs)
-        if isinstance(config, Namespace):
-            config = vars(config)
-        if isinstance(config, dict):
-            config = AttributeDict(config)
-        self.config = config
+        # optimizers
+        self.learning_rate = learning_rate
+        self.optimizer = optimizer
+        self.momentum = momentum
+        self.weight_decay = weight_decay
+        # metrics
+        self.metric_threshold = metric_threshold
+        self.monitor_metrics = monitor_metrics
 
     def configure_optimizers(self):
         """Initialize an optimizer for the free parameters of the network.
         """
         parameters = [p for p in self.parameters() if p.requires_grad]
-        optimizer_name = self.config.optimizer
+        optimizer_name = self.optimizer
         if optimizer_name == 'sgd':
-            optimizer = optim.SGD(parameters, self.config.learning_rate,
-                                  momentum=self.config.momentum,
-                                  weight_decay=self.config.weight_decay)
+            optimizer = optim.SGD(parameters, self.learning_rate,
+                                  momentum=self.momentum,
+                                  weight_decay=self.weight_decay)
         elif optimizer_name == 'adam':
             optimizer = optim.Adam(parameters,
-                                   weight_decay=self.config.weight_decay,
-                                   lr=self.config.learning_rate)
+                                   weight_decay=self.weight_decay,
+                                   lr=self.learning_rate)
         elif optimizer_name == 'adamw':
             optimizer = optim.AdamW(parameters,
-                                    weight_decay=self.config.weight_decay,
-                                    lr=self.config.learning_rate)
+                                    weight_decay=self.weight_decay,
+                                    lr=self.learning_rate)
         else:
             raise RuntimeError(
-                'Unsupported optimizer: {self.config.optimizer}')
+                'Unsupported optimizer: {self.optimizer}')
 
         torch.nn.utils.clip_grad_value_(parameters, 0.5)
 
@@ -66,13 +79,15 @@ class MultiLabelModel(pl.LightningModule):
                 'target': batch['label'].detach().cpu().numpy()}
 
     def validation_epoch_end(self, step_outputs):
-        eval_metric = MultiLabelMetrics(self.config)
+        eval_metric = MultiLabelMetrics(
+            self.metric_threshold, self.monitor_metrics)
         for step_output in step_outputs:
             eval_metric.add_values(y_pred=step_output['pred_scores'],
                                    y_true=step_output['target'])
         metric_dict = eval_metric.get_metric_dict()
         self.log_dict(metric_dict)
         self.print(eval_metric)
+        # TODO refactor dump_log
         dump_log(config=self.config, metrics=metric_dict, split='val')
         return eval_metric
 
@@ -92,7 +107,14 @@ class MultiLabelModel(pl.LightningModule):
 
 
 class Model(MultiLabelModel):
-    def __init__(self, config, word_dict=None, classes=None):
+    def __init__(self,
+        model_name,
+        word_dict=None,
+        classes=None,
+        init_weight=None,
+        # TODO parse all model parameters here.
+        config=None
+    ):
         super().__init__(config)
         self.save_hyperparameters()
 
@@ -102,18 +124,18 @@ class Model(MultiLabelModel):
 
         embed_vecs = self.word_dict.vectors
         model_config = get_model_config(
-            model_name=self.config.model_name,
+            model_name=model_name,
             config=self.config
         )
-        self.network = getattr(networks, self.config.model_name)(
+        self.network = getattr(networks, model_name)(
             embed_vecs=embed_vecs,
             num_classes=self.num_classes,
             **dict(model_config)
         ).to(self.config.device)
 
-        if config.init_weight is not None:
+        if init_weight is not None:
             init_weight = networks.get_init_weight_func(
-                init_weight=config.init_weight)
+                init_weight=init_weight)
             self.apply(init_weight)
 
     def shared_step(self, batch):
