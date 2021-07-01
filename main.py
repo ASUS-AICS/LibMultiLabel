@@ -135,12 +135,14 @@ def get_config():
 
 
 def main():
+    # configuration & set logging, devices
+    # TODO organize main.py
     config = get_config()
     log_level = logging.WARNING if config.silent else logging.INFO
     logging.basicConfig(
         level=log_level, format='%(asctime)s %(levelname)s:%(message)s')
     set_seed(seed=config.seed)
-    config.device = init_device(use_cpu=config.cpu)
+    device = init_device(use_cpu=config.cpu)
 
     config.run_name = '{}_{}_{}'.format(
         config.data_name,
@@ -166,6 +168,8 @@ def main():
                          max_epochs=config.epochs,
                          callbacks=[checkpoint_callback, earlystopping_callback])
 
+    log_path = os.path.join(checkpoint_dir, 'logs.json')
+    dump_log(log_path, config=config)
     if config.eval:
         model = Model.load_from_checkpoint(config.checkpoint_path)
     else:
@@ -175,13 +179,31 @@ def main():
             word_dict = data_utils.load_or_build_text_dict(
                 config, datasets['train'])
             classes = data_utils.load_or_build_label(config, datasets)
-            model = Model(config, word_dict, classes)
+            model = Model(
+                device=device,
+                classes=classes,
+                word_dict=word_dict,
+                log_path=log_path,
+                **dict(config)
+            )
 
         train_loader = data_utils.get_dataset_loader(
-            model.config, datasets['train'], model.word_dict, model.classes,
-            shuffle=model.config.shuffle, train=True)
+            config=config,
+            data=datasets['train'],
+            word_dict=model.word_dict,
+            classes=model.classes,
+            device=device,
+            shuffle=config.shuffle,
+            train=True
+        )
         val_loader = data_utils.get_dataset_loader(
-            model.config, datasets['val'], model.word_dict, model.classes, train=False)
+            config=config,
+            data=datasets['val'],
+            word_dict=model.word_dict,
+            classes=model.classes,
+            device=device,
+            train=False
+        )
 
         trainer.fit(model, train_loader, val_loader)
 
@@ -190,10 +212,15 @@ def main():
 
     if 'test' in datasets:
         test_loader = data_utils.get_dataset_loader(
-            model.config, datasets['test'], model.word_dict, model.classes, train=False)
+            config=config, # TODO discuss if we should run test_loader with same dataset config such as max_seq_length, eval_batch_size?
+            data=datasets['test'],
+            word_dict=model.word_dict,
+            classes=model.classes,
+            device=device,
+            train=False
+        )
         metric_dict = trainer.test(model, test_dataloaders=test_loader)[0]
-
-        dump_log(config=config, metrics=metric_dict, split='test')
+        dump_log(metrics=metric_dict, split='test', log_path=log_path)
         if config.save_k_predictions > 0:
             if not config.predict_out_path:
                 config.predict_out_path = os.path.join(
