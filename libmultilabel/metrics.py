@@ -33,7 +33,7 @@ class MultiLabelMetrics():
         metric_threshold=0.5,
         monitor_metrics=None
     ):
-        self.monitor_metrics = monitor_metrics if monitor_metrics else [],
+        self.monitor_metrics = monitor_metrics if monitor_metrics else []
         self.metric_threshold = metric_threshold
         self.y_true = []
         self.y_pred = []

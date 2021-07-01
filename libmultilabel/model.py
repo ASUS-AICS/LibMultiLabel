@@ -26,10 +26,9 @@ class MultiLabelModel(pl.LightningModule):
         metric_threshold=0.5,
         monitor_metrics=None,
         log_path=None,
-        *args,
-        **kwargs
+        silent=False, # TODO discuss if we need silent
     ):
-        super().__init__(*args, **kwargs)
+        super().__init__()
         # optimizers
         self.learning_rate = learning_rate
         self.optimizer = optimizer
@@ -40,6 +39,7 @@ class MultiLabelModel(pl.LightningModule):
         self.monitor_metrics = monitor_metrics
         # dump log
         self.log_path = log_path
+        self.silent = silent
 
     def configure_optimizers(self):
         """Initialize an optimizer for the free parameters of the network.
@@ -103,21 +103,23 @@ class MultiLabelModel(pl.LightningModule):
         return eval_metric
 
     def print(self, string):
-        if not self.config.get('silent', False):
+        if not self.silent:
             if not self.trainer or self.trainer.is_global_zero:
                 print(string)
 
 
 class Model(MultiLabelModel):
-    def __init__(self,
+    def __init__(
+        self,
+        device,
         model_name,
-        word_dict=None,
         classes=None,
+        word_dict=None,
         init_weight=None,
         # TODO parse all model parameters here.
-        config=None
+        **kwargs
     ):
-        super().__init__(config)
+        super().__init__(**kwargs)
         self.save_hyperparameters()
 
         self.word_dict = word_dict
@@ -127,13 +129,13 @@ class Model(MultiLabelModel):
         embed_vecs = self.word_dict.vectors
         model_config = get_model_config(
             model_name=model_name,
-            config=self.config
+            config=kwargs
         )
         self.network = getattr(networks, model_name)(
             embed_vecs=embed_vecs,
             num_classes=self.num_classes,
             **dict(model_config)
-        ).to(self.config.device)
+        ).to(device)
 
         if init_weight is not None:
             init_weight = networks.get_init_weight_func(

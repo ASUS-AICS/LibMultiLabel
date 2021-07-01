@@ -48,7 +48,7 @@ def generate_batch(data_batch):
     }
 
 
-def get_dataset_loader(config, data, word_dict, classes, shuffle=False, train=True):
+def get_dataset_loader(config, data, word_dict, classes, device, shuffle=False, train=True):
     dataset = TextDataset(data, word_dict, classes, config.max_seq_length)
 
     dataset_loader = torch.utils.data.DataLoader(
@@ -57,7 +57,7 @@ def get_dataset_loader(config, data, word_dict, classes, shuffle=False, train=Tr
         shuffle=shuffle,
         num_workers=config.data_workers,
         collate_fn=generate_batch,
-        pin_memory='cuda' in config.device.type,
+        pin_memory='cuda' in device.type,
     )
     return dataset_loader
 
