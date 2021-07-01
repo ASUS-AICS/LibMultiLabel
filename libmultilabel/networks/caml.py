@@ -1,4 +1,3 @@
-import os
 from math import floor
 
 import torch
@@ -37,7 +36,7 @@ class CAML(BaseModel):
         x = x.transpose(1,2)
 
         # Apply convolution and nonlinearity (tanh / relu)
-        x = self.activation(self.conv(x).transpose(1,2))
+        x = torch.tanh(self.conv(x).transpose(1,2))
 
         # Apply attention
         #    batch * text_length * 1200
