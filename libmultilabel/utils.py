@@ -91,7 +91,7 @@ def set_seed(seed):
     if seed is not None:
         if seed >= 0:
             seed_everything(seed=seed)
-            torch.set_deterministic(True)
+            torch.use_deterministic_algorithms(True)
             torch.backends.cudnn.benchmark = False
         else:
             logging.warning(
