@@ -25,7 +25,7 @@ class CAML(BaseModel):
         self.U = nn.Linear(num_filter_per_size, config.num_classes)
         xavier_uniform_(self.U.weight)
 
-        # Final layer: create a matrix to use for the L binary classifiers
+        # Final layer: create a matrix to use for the #labels binary classifiers
         self.final = nn.Linear(num_filter_per_size, config.num_classes)
         xavier_uniform_(self.final.weight)
 
