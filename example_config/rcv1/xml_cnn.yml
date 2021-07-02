@@ -6,7 +6,7 @@ max_seq_length: 500
 fixed_length: True
 
 # train
-seed: 1337
+#seed: 1337
 epochs: 50
 batch_size: 64
 optimizer: adam
