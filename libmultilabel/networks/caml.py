@@ -48,7 +48,7 @@ class CAML(BaseModel):
         # m: (batch_size, label size, num_filter_per_size)
         m = alpha.matmul(x)
 
-        # Compute a probability for each label l in L
+        # Compute a probability for each label
         # x: (batch_size, label size)
         x = self.final.weight.mul(m).sum(dim=2).add(self.final.bias)
 
