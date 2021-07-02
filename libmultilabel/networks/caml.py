@@ -31,24 +31,25 @@ class CAML(BaseModel):
 
     def forward(self, text):
         # Get embeddings and apply dropout
+        # x: (batch_size, embedding size, document length)
         x = self.embedding(text)
         x = self.embed_drop(x)
         x = x.transpose(1,2)
 
         # Apply convolution and nonlinearity (tanh)
-        # batch_size * document length * num_filter_per_size
+        # x: (batch_size, document length, num_filte_per_size)
         x = torch.tanh(self.conv(x).transpose(1,2))
 
-        # Apply attention
-        # batch_size * class num * document length
+        # Apply per-label attention
+        # alpha: (batch_size, label size, document length)
         alpha = torch.softmax(self.U.weight.matmul(x.transpose(1,2)), dim=2)
 
-        # Document representations are weighted sums using the attention.
-        # batch_size * class num * num_filter_per_size
+        # Document representations are weighted sums using the attention
+        # m: (batch_size, label size, num_filter_per_size)
         m = alpha.matmul(x)
 
-        # Similarity
-        # batch_size * class num
+        # Compute a probability for each label l in L
+        # x: (batch_size, label size)
         x = self.final.weight.mul(m).sum(dim=2).add(self.final.bias)
 
         return {'logits': x, 'attention': alpha}
