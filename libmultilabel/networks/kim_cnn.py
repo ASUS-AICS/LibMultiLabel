@@ -6,12 +6,18 @@ from ..networks.base import BaseModel
 
 
 class KimCNN(BaseModel):
-    def __init__(self, config, embed_vecs, num_classes):
-        super(KimCNN, self).__init__(config, embed_vecs)
+    def __init__(
+        self,
+        embed_vecs,
+        num_classes,
+        filter_sizes=[2, 4, 8],
+        num_filter_per_size=128,
+        **kwargs
+    ):
+        super(KimCNN, self).__init__(embed_vecs, **kwargs)
 
-        self.filter_sizes = config.filter_sizes
+        self.filter_sizes = filter_sizes
         emb_dim = embed_vecs.shape[1]
-        num_filter_per_size = config.num_filter_per_size
 
         self.convs = nn.ModuleList()
 
