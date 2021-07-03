@@ -177,8 +177,14 @@ def main():
             model = Model.load_from_checkpoint(config.checkpoint_path)
         else:
             word_dict = data_utils.load_or_build_text_dict(
-                config, datasets['train'])
-            classes = data_utils.load_or_build_label(config, datasets)
+                dataset=datasets['train'],
+                vocab_file=config.vocab_file,
+                min_vocab_freq=config.min_vocab_freq,
+                embed_file=config.embed_file,
+                embed_cache_dir=config.embed_cache_dir,
+                silent=config.silent
+            )
+            classes = data_utils.load_or_build_label(datasets, config.label_file, config.silent)
             model = Model(
                 device=device,
                 classes=classes,

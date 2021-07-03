@@ -100,10 +100,17 @@ def load_datasets(config):
     return datasets
 
 
-def load_or_build_text_dict(config, dataset):
-    if config.vocab_file:
-        logging.info(f'Load vocab from {config.vocab_file}')
-        with open(config.vocab_file, 'r') as fp:
+def load_or_build_text_dict(
+    dataset,
+    vocab_file=None,
+    min_vocab_freq=1,
+    embed_file=None,
+    embed_cache_dir=None,
+    silent=False
+):
+    if vocab_file:
+        logging.info(f'Load vocab from {vocab_file}')
+        with open(vocab_file, 'r') as fp:
             vocab_list = [PAD] + [vocab.strip() for vocab in fp.readlines()]
         vocabs = Vocab(collections.Counter(vocab_list), specials=[UNK],
                        min_freq=1, specials_first=False) # specials_first=False to keep PAD index 0
@@ -113,32 +120,32 @@ def load_or_build_text_dict(config, dataset):
             unique_tokens = set(data['text'])
             counter.update(unique_tokens)
         vocabs = Vocab(counter, specials=[PAD, UNK],
-                       min_freq=config.min_vocab_freq)
+                       min_freq=min_vocab_freq)
     logging.info(f'Read {len(vocabs)} vocabularies.')
 
-    if os.path.exists(config.embed_file):
-        logging.info(f'Load pretrained embedding from file: {config.embed_file}.')
-        embedding_weights = get_embedding_weights_from_file(vocabs, config.embed_file, config.silent)
+    if os.path.exists(embed_file):
+        logging.info(f'Load pretrained embedding from file: {embed_file}.')
+        embedding_weights = get_embedding_weights_from_file(vocabs, embed_file, silent)
         vocabs.set_vectors(vocabs.stoi, embedding_weights,
                            dim=embedding_weights.shape[1], unk_init=False)
-    elif not config.embed_file.isdigit():
+    elif not embed_file.isdigit():
         logging.info(f'Load pretrained embedding from torchtext.')
-        vocabs.load_vectors(config.embed_file, cache=config.embed_cache_dir)
+        vocabs.load_vectors(embed_file, cache=embed_cache_dir)
     else:
         raise NotImplementedError
 
     return vocabs
 
 
-def load_or_build_label(config, datasets):
-    if config.label_file:
-        logging.info('Load labels from {config.label_file}')
-        with open(config.label_file, 'r') as fp:
+def load_or_build_label(datasets, label_file=None, silent=False):
+    if label_file:
+        logging.info('Load labels from {label_file}')
+        with open(label_file, 'r') as fp:
             classes = sorted([s.strip() for s in fp.readlines()])
     else:
         classes = set()
         for dataset in datasets.values():
-            for d in tqdm(dataset, disable=config.silent):
+            for d in tqdm(dataset, disable=silent):
                 classes.update(d['label'])
         classes = sorted(classes)
     return classes
