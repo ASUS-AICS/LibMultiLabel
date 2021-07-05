@@ -83,24 +83,28 @@ class MultiLabelModel(pl.LightningModule):
                 'target': batch['label'].detach().cpu().numpy()}
 
     def validation_epoch_end(self, step_outputs):
-        eval_metric = MultiLabelMetrics(
-            self.metric_threshold, self.monitor_metrics)
-        for step_output in step_outputs:
-            eval_metric.add_values(y_pred=step_output['pred_scores'],
-                                   y_true=step_output['target'])
-        metric_dict = eval_metric.get_metric_dict()
-        self.log_dict(metric_dict)
-        self.print(eval_metric)
-        dump_log(metrics=metric_dict, split='val', log_path=self.log_path)
+        eval_metric = self.evaluate(step_outputs, 'val')
         return eval_metric
 
     def test_step(self, batch, batch_idx):
         return self.validation_step(batch, batch_idx)
 
     def test_epoch_end(self, step_outputs):
-        self.print('====== Test dataset evaluation result =======')
-        eval_metric = self.validation_epoch_end(step_outputs)
+        eval_metric = self.evaluate(step_outputs, 'test')
         self.test_results = eval_metric
+        return eval_metric
+
+    def evaluate(self, step_outputs, split):
+        eval_metric = MultiLabelMetrics(self.metric_threshold, self.monitor_metrics)
+        for step_output in step_outputs:
+            eval_metric.add_values(y_pred=step_output['pred_scores'],
+                                   y_true=step_output['target'])
+        metric_dict = eval_metric.get_metric_dict()
+        self.log_dict(metric_dict)
+        dump_log(metrics=metric_dict, split=split, log_path=self.log_path)
+
+        self.print(f'\n====== {split.upper()} dataset evaluation result =======')
+        self.print(eval_metric)
         return eval_metric
 
     def print(self, string):

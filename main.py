@@ -135,24 +135,27 @@ def get_config():
 
 
 def main():
-    # configuration & set logging, devices
-    # TODO organize main.py
+    # Get config
     config = get_config()
-    log_level = logging.WARNING if config.silent else logging.INFO
-    logging.basicConfig(
-        level=log_level, format='%(asctime)s %(levelname)s:%(message)s')
-    set_seed(seed=config.seed)
-    device = init_device(use_cpu=config.cpu)
-
     config.run_name = '{}_{}_{}'.format(
         config.data_name,
         Path(config.config).stem if config.config else config.model_name,
         datetime.now().strftime('%Y%m%d%H%M%S'),
     )
+    # Set up logger
+    log_level = logging.WARNING if config.silent else logging.INFO
+    logging.basicConfig(
+        level=log_level, format='%(asctime)s %(levelname)s:%(message)s')
     logging.info(f'Run name: {config.run_name}')
 
+    # Set up seed & device
+    set_seed(seed=config.seed)
+    device = init_device(use_cpu=config.cpu)
+
+    # Load dataset
     datasets = data_utils.load_datasets(config)
 
+    # Set up trainer
     checkpoint_dir = os.path.join(config.result_dir, config.run_name)
     checkpoint_callback = ModelCheckpoint(dirpath=checkpoint_dir,
                                           filename='best_model',
@@ -160,7 +163,6 @@ def main():
                                           monitor=config.val_metric, mode='max')
     earlystopping_callback = EarlyStopping(patience=config.patience,
                                            monitor=config.val_metric, mode='max')
-
     trainer = pl.Trainer(logger=False,
                          num_sanity_val_steps=0,
                          gpus=0 if config.cpu else 1,
@@ -168,8 +170,18 @@ def main():
                          max_epochs=config.epochs,
                          callbacks=[checkpoint_callback, earlystopping_callback])
 
+    # Dump config to log
     log_path = os.path.join(checkpoint_dir, 'logs.json')
     dump_log(log_path, config=config)
+
+    # Setup model
+    """
+    If config.eval or config.checkpoint_path
+        model = Model.load_from_checkpoint(config.checkpoint_path)
+    If config.
+    """
+
+
     if config.eval:
         model = Model.load_from_checkpoint(config.checkpoint_path)
     else:
@@ -212,7 +224,6 @@ def main():
         )
 
         trainer.fit(model, train_loader, val_loader)
-
         logging.info(f'Loading best model from `{checkpoint_callback.best_model_path}`...')
         model = Model.load_from_checkpoint(checkpoint_callback.best_model_path)
 
@@ -225,8 +236,7 @@ def main():
             device=device,
             train=False
         )
-        metric_dict = trainer.test(model, test_dataloaders=test_loader)[0]
-        dump_log(metrics=metric_dict, split='test', log_path=log_path)
+        trainer.test(model, test_dataloaders=test_loader)[0]
         if config.save_k_predictions > 0:
             if not config.predict_out_path:
                 config.predict_out_path = os.path.join(
