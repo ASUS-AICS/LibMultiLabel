@@ -92,7 +92,7 @@ def get_config():
     # eval
     parser.add_argument('--eval_batch_size', type=int, default=256,
                         help='Size of evaluating batches (default: %(default)s)')
-    parser.add_argument('--metrics_thresholds', type=float, nargs='+', default=[0.5],
+    parser.add_argument('--metrics_threshold', type=float, default=0.5,
                         help='Thresholds to monitor for metrics (default: %(default)s)')
     parser.add_argument('--monitor_metrics', nargs='+', default=['P@1', 'P@3', 'P@5'],
                         help='Metrics to monitor while validating (default: %(default)s)')
@@ -191,9 +191,7 @@ def main():
     if 'test' in datasets:
         test_loader = data_utils.get_dataset_loader(
             model.config, datasets['test'], model.word_dict, model.classes, train=False)
-        metric_dict = trainer.test(model, test_dataloaders=test_loader)[0]
-
-        dump_log(config=config, metrics=metric_dict, split='test')
+        trainer.test(model, test_dataloaders=test_loader)
         if config.save_k_predictions > 0:
             if not config.predict_out_path:
                 config.predict_out_path = os.path.join(
