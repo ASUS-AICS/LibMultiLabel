@@ -29,6 +29,7 @@ class Trainable(tune.Trainable):
         self.datasets = data['datasets']
         self.word_dict = data['word_dict']
         self.classes = data['classes']
+        self.device = init_device(config.cpu)
         set_seed(seed=self.config.seed)
 
     def step(self):
@@ -56,16 +57,37 @@ class Trainable(tune.Trainable):
                              max_epochs=self.config.epochs,
                              callbacks=[checkpoint_callback, earlystopping_callback])
 
-        model = Model(self.config, self.word_dict, self.classes)
+        # Dump config to log
+        log_path = os.path.join(checkpoint_dir, 'logs.json')
+        dump_log(log_path, config=self.config)
 
+        # Setup model
+        model = Model(
+            device=self.device,
+            classes=self.classes,
+            word_dict=self.word_dict,
+            log_path=log_path,
+            **dict(self.config)
+        )
         train_loader = data_utils.get_dataset_loader(
-            model.config, self.datasets['train'], model.word_dict, model.classes,
-            shuffle=model.config.shuffle, train=True)
+            config=self.config,
+            data=self.datasets['train'],
+            word_dict=model.word_dict,
+            classes=model.classes,
+            device=self.device,
+            shuffle=self.config.shuffle,
+            train=True
+        )
         val_loader = data_utils.get_dataset_loader(
-            model.config, self.datasets['val'], model.word_dict, model.classes, train=False)
+            config=self.config,
+            data=self.datasets['val'],
+            word_dict=model.word_dict,
+            classes=model.classes,
+            device=self.device,
+            train=False
+        )
 
         trainer.fit(model, train_loader, val_loader)
-
         logging.info(f'Loading best model from `{checkpoint_callback.best_model_path}`...')
         best_model = Model.load_from_checkpoint(checkpoint_callback.best_model_path)
 
@@ -74,9 +96,15 @@ class Trainable(tune.Trainable):
         # run and dump test result
         if 'test' in self.datasets:
             test_loader = data_utils.get_dataset_loader(
-                best_model.config, self.datasets['test'], best_model.word_dict, best_model.classes, train=False)
-            test_metric_dict = trainer.test(best_model, test_dataloaders=test_loader)[0]
-            dump_log(config=self.config, metrics=test_metric_dict, split='test')
+                config=self.config,
+                data=self.datasets['test'],
+                word_dict=model.word_dict,
+                classes=model.classes,
+                device=self.device,
+                train=False
+            )
+            test_metric_dict = trainer.test(
+                best_model, test_dataloaders=test_loader)[0]
             for k, v in test_metric_dict.items():
                 test_val_results[f'test_{k}'] = v
 
@@ -108,7 +136,6 @@ def init_model_config(config_path):
 
     model_config = AttributeDict(args)
     set_seed(seed=model_config.seed)
-    model_config.device = init_device(model_config.cpu)
     return model_config
 
 
@@ -151,8 +178,15 @@ def load_static_data(config):
     datasets = data_utils.load_datasets(config)
     return {
         "datasets": datasets,
-        "word_dict": data_utils.load_or_build_text_dict(config, datasets['train']),
-        "classes": data_utils.load_or_build_label(config, datasets)
+        "word_dict": data_utils.load_or_build_text_dict(
+            dataset=datasets['train'],
+            vocab_file=config.vocab_file,
+            min_vocab_freq=config.min_vocab_freq,
+            embed_file=config.embed_file,
+            embed_cache_dir=config.embed_cache_dir,
+            silent=config.silent
+        ),
+        "classes": data_utils.load_or_build_label(datasets, config.label_file, config.silent)
     }
 
 
