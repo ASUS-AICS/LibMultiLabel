@@ -8,7 +8,6 @@ import torch.optim as optim
 from pytorch_lightning.utilities.parsing import AttributeDict
 
 from . import networks
-from .configs import get_model_config
 from .metrics import MultiLabelMetrics
 from .utils import dump_log
 
@@ -121,7 +120,7 @@ class Model(MultiLabelModel):
         classes=None,
         word_dict=None,
         init_weight=None,
-        # TODO parse all model parameters here.
+        *args,
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -132,14 +131,11 @@ class Model(MultiLabelModel):
         self.num_classes = len(self.classes)
 
         embed_vecs = self.word_dict.vectors
-        model_config = get_model_config(
-            model_name=model_name,
-            config=kwargs
-        )
         self.network = getattr(networks, model_name)(
             embed_vecs=embed_vecs,
             num_classes=self.num_classes,
-            **dict(model_config)
+            *args,
+            **kwargs
         ).to(device)
 
         if init_weight is not None:

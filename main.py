@@ -175,13 +175,6 @@ def main():
     dump_log(log_path, config=config)
 
     # Setup model
-    """
-    If config.eval or config.checkpoint_path
-        model = Model.load_from_checkpoint(config.checkpoint_path)
-    If config.
-    """
-
-
     if config.eval:
         model = Model.load_from_checkpoint(config.checkpoint_path)
     else:
