@@ -65,23 +65,28 @@ class MultiLabelModel(pl.LightningModule):
                 'target': batch['label'].detach().cpu().numpy()}
 
     def validation_epoch_end(self, step_outputs):
-        eval_metric = MultiLabelMetrics(self.config)
-        for step_output in step_outputs:
-            eval_metric.add_values(y_pred=step_output['pred_scores'],
-                                   y_true=step_output['target'])
-        metric_dict = eval_metric.get_metric_dict()
-        self.log_dict(metric_dict)
-        self.print(eval_metric)
-        dump_log(config=self.config, metrics=metric_dict, split='val')
+        eval_metric = self.evaluate(step_outputs, 'val')
         return eval_metric
 
     def test_step(self, batch, batch_idx):
         return self.validation_step(batch, batch_idx)
 
     def test_epoch_end(self, step_outputs):
-        self.print('====== Test dataset evaluation result =======')
-        eval_metric = self.validation_epoch_end(step_outputs)
+        eval_metric = self.evaluate(step_outputs, 'test')
         self.test_results = eval_metric
+        return eval_metric
+
+    def evaluate(self, step_outputs, split):
+        eval_metric = MultiLabelMetrics(self.config)
+        for step_output in step_outputs:
+            eval_metric.add_values(y_pred=step_output['pred_scores'],
+                                   y_true=step_output['target'])
+        metric_dict = eval_metric.get_metric_dict()
+        self.log_dict(metric_dict)
+        dump_log(config=self.config, metrics=metric_dict, split=split)
+
+        self.print(f'\n====== {split.upper()} dataset evaluation result =======')
+        self.print(eval_metric)
         return eval_metric
 
     def print(self, string):
@@ -101,7 +106,7 @@ class Model(MultiLabelModel):
 
         embed_vecs = self.word_dict.vectors
         self.network = getattr(networks, self.config.model_name)(
-            self.config, embed_vecs).to(self.config.device)
+            self.config, embed_vecs)
 
         if config.init_weight is not None:
             init_weight = networks.get_init_weight_func(self.config)
