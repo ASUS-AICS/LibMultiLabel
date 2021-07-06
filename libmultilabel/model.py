@@ -106,7 +106,7 @@ class Model(MultiLabelModel):
 
         embed_vecs = self.word_dict.vectors
         self.network = getattr(networks, self.config.model_name)(
-            self.config, embed_vecs)
+            self.config, embed_vecs).to(self.config.device)
 
         if config.init_weight is not None:
             init_weight = networks.get_init_weight_func(self.config)
