@@ -78,22 +78,29 @@ def _load_raw_data(path, is_test=False):
     return data
 
 
-def load_datasets(config):
+def load_datasets(
+    data_dir,
+    train_path=None,
+    test_path=None,
+    val_path=None,
+    val_size=None,
+    is_eval=False
+):
     datasets = {}
-    test_path = config.test_path or os.path.join(config.data_dir, 'test.txt')
-    if config.eval:
+    test_path = test_path or os.path.join(data_dir, 'test.txt')
+    if is_eval:
         datasets['test'] = _load_raw_data(test_path, is_test=True)
     else:
         if os.path.exists(test_path):
             datasets['test'] = _load_raw_data(test_path, is_test=True)
-        train_path = config.train_path or os.path.join(config.data_dir, 'train.txt')
+        train_path = train_path or os.path.join(data_dir, 'train.txt')
         datasets['train'] = _load_raw_data(train_path)
-        val_path = config.val_path or os.path.join(config.data_dir, 'valid.txt')
+        val_path = val_path or os.path.join(data_dir, 'valid.txt')
         if os.path.exists(val_path):
             datasets['val'] = _load_raw_data(val_path)
         else:
             datasets['train'], datasets['val'] = train_test_split(
-                datasets['train'], test_size=config.val_size, random_state=42)
+                datasets['train'], test_size=val_size, random_state=42)
 
     msg = ' / '.join(f'{k}: {len(v)}' for k, v in datasets.items())
     logging.info(f'Finish loading dataset ({msg})')
