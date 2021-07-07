@@ -6,14 +6,11 @@ They are used for the internal need to compare with CAML."""
 import re
 
 import numpy as np
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report, multilabel_confusion_matrix
 
 
-def another_macro_f1(macro_prec, macro_rec):
-    # The f1 value of macro_precision and macro_recall. This variant of
-    # macro_f1 is less preferred but is used in some works
-    f1 = 2 * (macro_prec * macro_rec) / (macro_prec + macro_rec + 1e-10)
-    return f1
+def f1(precision, recall):
+    return 2 * (precision * recall) / (precision + recall + 1e-10)
 
 
 def precision_recall_at_ks(y_true, y_pred_vals, top_ks):
@@ -31,15 +28,23 @@ class MultiLabelMetrics():
     def __init__(self, config):
         self.monitor_metrics = config.get('monitor_metrics', [])
         self.metric_threshold = config.get('metric_threshold', 0.5)
-        self.y_true = []
-        self.y_pred = []
-        self.cached_results = {}
+
+        self.n_eval = 0
+        self.metric_stats = {
+            'Micro-Precision': 0.,
+            'Micro-Recall': 0.,
+            'Micro-F1': 0.,
+            'confusion_matrix': 0.,
+        }
 
         self.top_ks = set()
+        self.prec_recall_metrics = []
         for metric in self.monitor_metrics:
             if re.match('[P|R]@\d+', metric):
                 top_k = int(metric[2:])
                 self.top_ks.add(top_k)
+                self.metric_stats[metric] = 0.
+                self.prec_recall_metrics.append(metric)
             elif metric not in ['Micro-Precision', 'Micro-Recall', 'Micro-F1', 'Macro-F1', 'Another-Macro-F1']:
                 raise ValueError(f'Invalid metric: {metric}')
 
@@ -48,51 +53,46 @@ class MultiLabelMetrics():
 
         Args:
             y_true (ndarray): an array with ground truth labels (shape: batch_size * number of classes)
-            y_pred (ndarray): an array with predicted labels (shape: batch_size * number of classes)
+            y_pred (ndarray): an array with predicted label values (shape: batch_size * number of classes)
         """
-        self.y_true.append(y_true)
-        self.y_pred.append(y_pred)
+        y_pred_pos = y_pred > self.metric_threshold
+        report_dict = classification_report(y_true, y_pred_pos, output_dict=True, zero_division=0)
 
-    def eval(self):
-        """Evaluate precision, recall, micro-f1, macro-f1, and P@k/R@k listed in the monitor_metrics."""
-        y_true = np.vstack(self.y_true)
-        y_pred = np.vstack(self.y_pred)
-        report_dict = classification_report(y_true, y_pred > self.metric_threshold, output_dict=True, zero_division=0)
-        result = {
-            'Micro-Precision': report_dict['micro avg']['precision'],
-            'Micro-Recall': report_dict['micro avg']['recall'],
-            'Micro-F1': report_dict['micro avg']['f1-score'],
-            'Macro-F1': report_dict['macro avg']['f1-score'],
-            'Another-Macro-F1': another_macro_f1(
-                macro_prec=report_dict['macro avg']['precision'],
-                macro_rec=report_dict['macro avg']['recall'])  # caml's macro-f1
-        }
-        # add metrics like P@k, R@k to the result dict
+        n_eval = len(y_true)
+        self.n_eval += n_eval
+        self.metric_stats['Micro-Precision'] += (report_dict['micro avg']['precision'] * n_eval)
+        self.metric_stats['Micro-Recall'] += (report_dict['micro avg']['recall'] * n_eval)
+        self.metric_stats['Micro-F1'] += (report_dict['micro avg']['f1-score'] * n_eval)
+        self.metric_stats['confusion_matrix'] += multilabel_confusion_matrix(y_true, y_pred_pos)
+
         scores = precision_recall_at_ks(y_true, y_pred, top_ks=self.top_ks)
-        precision_recall_monitored = [
-            metric for metric in self.monitor_metrics if metric in scores]
-        result.update({metric: scores[metric] for metric in precision_recall_monitored})
-        self.cached_results = result
+        for metric in self.prec_recall_metrics:
+            self.metric_stats[metric] += (scores[metric] * n_eval)
 
-    def get_y_pred(self):
-        """Convert 3D array (shape: number of batches * batch_size * number of classes
-        to 2D array (shape: number of samples * number of classes).
-        """
-        return np.vstack(self.y_pred)
+    def get_metric_dict(self):
+        """Get evaluation results."""
 
-    def get_metric_dict(self, use_cache=False):
-        """Evaluate or get score dictionary from cache.
+        result = {}
+        for metric, val in self.metric_stats.items():
+            if metric == 'confusion_matrix':
+                labelwise_precision = val[:,1,1] / (val[:,1,1] + val[:,0,1] + 1e-10)
+                labelwise_recall = val[:,1,1] / (val[:,1,1] + val[:,1,0] + 1e-10)
+                labelwise_f1 = f1(labelwise_precision, labelwise_recall)
+                result['Macro-F1'] = labelwise_f1.mean()
 
-        Args:
-            threshold (float, optional): threshold to evaluate precision, recall, and f1 score. Defaults to 0.5.
-            use_cache (bool, optional): return cached results or not. Defaults to False.
-        """
-        if not use_cache:
-            self.eval()
-        return self.cached_results
+                # The f1 value of macro_precision and macro_recall. This
+                # variant of # macro_f1 is less preferred but is used in
+                # some works.
+                macro_precision = labelwise_precision.mean()
+                macro_recall = labelwise_recall.mean()
+                result['Another-Macro-F1'] = f1(macro_precision, macro_recall)
+            else:
+                result[metric] = val / self.n_eval
+        return result
 
     def __repr__(self):
-        """Return cache results in markdown."""
-        header = '|'.join([f'{k:^18}' for k in self.cached_results.keys()])
-        values = '|'.join([f'{x * 100:^18.4f}' if isinstance(x, (np.floating, float)) else f'{x:^18}' for x in self.cached_results.values()])
-        return f"|{header}|\n|{'-----------------:|' * len(self.cached_results)}\n|{values}|"
+        """Return evaluation results in markdown."""
+        result = self.get_metric_dict()
+        header = '|'.join([f'{k:^18}' for k in result.keys()])
+        values = '|'.join([f'{x * 100:^18.4f}' if isinstance(x, (np.floating, float)) else f'{x:^18}' for x in result.values()])
+        return f"|{header}|\n|{'-----------------:|' * len(result)}\n|{values}|"
