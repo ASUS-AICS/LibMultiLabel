@@ -1,0 +1,31 @@
+# data
+data_dir: data/MIMIC-50
+data_name: MIMIC-50
+min_vocab_freq: 3
+max_seq_length: 2500
+
+# train
+seed: 1337
+epochs: 100
+batch_size: 16
+optimizer: adam
+learning_rate: 0.003
+weight_decay: 0
+patience: 10
+shuffle: false
+
+# eval
+eval_batch_size: 1
+monitor_metrics: ['P@1','P@3','P@5']
+val_metric: P@5
+
+# model
+model_name: BiGRU
+rnn_dim: 512
+num_layers: 1
+init_weight: null
+activation: tanh
+
+# pretrained vocab / embeddings
+vocab_file: data/MIMIC-50/vocab.csv
+embed_file: data/MIMIC-50/processed_full.embed
