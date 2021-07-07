@@ -10,6 +10,7 @@ from ..networks.base import BaseModel
 class CAML(BaseModel):
     def __init__(self, config, embed_vecs):
         """CAML (Convolutional Attention for Multi-Label classification)
+        Follows the work of Mullenbach et al. [https://aclanthology.org/N18-1100.pdf]
 
         Args:
             config (AttrbuteDict): config of the experiment
