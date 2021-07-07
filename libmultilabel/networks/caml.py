@@ -54,7 +54,7 @@ class CAML(BaseModel):
 
         """Apply per-label attention. The shapes are:
            - U.weight: (num_classes, num_filte_per_size)
-           - matrix product of x and U: (batch_size, num_classes, length)
+           - matrix product of U.weight and x: (batch_size, num_classes, length)
            - alpha: (batch_size, num_classes, length)
         """
         alpha = torch.softmax(self.U.weight.matmul(x.transpose(1,2)), dim=2)
