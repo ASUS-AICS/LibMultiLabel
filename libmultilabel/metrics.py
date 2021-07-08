@@ -1,8 +1,3 @@
-"""Metrics modified from CAML-MIMIC are tentatively placed here.
-(https://github.com/jamesmullenbach/caml-mimic/blob/master/evaluation.py)
-They are used for the internal need to compare with CAML."""
-
-
 import re
 
 import numpy as np
