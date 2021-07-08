@@ -1,7 +1,9 @@
 import re
 
 import numpy as np
-from sklearn.metrics import classification_report, multilabel_confusion_matrix
+from sklearn.metrics import multilabel_confusion_matrix
+
+from .utils import argsort_top_k
 
 
 def f1(precision, recall):
@@ -9,11 +11,12 @@ def f1(precision, recall):
 
 
 def precision_recall_at_ks(y_true, y_pred_vals, top_ks):
-    y_pred_ranked_idx = np.argsort(-y_pred_vals)
+    max_k = max(top_ks)
+    top_idx = argsort_top_k(y_pred_vals, max_k, axis=1)
     n_pos = y_true.sum(axis=1)
     scores = {}
     for k in top_ks:
-        n_pos_in_top_k = np.take_along_axis(y_true, y_pred_ranked_idx[:,:k], axis=1).sum(axis=1)
+        n_pos_in_top_k = np.take_along_axis(y_true, top_idx[:,:k], axis=1).sum(axis=1)
         scores[f'P@{k}'] = np.mean(n_pos_in_top_k / k).item()  # precision at k
         scores[f'R@{k}'] = np.mean(n_pos_in_top_k / (n_pos + 1e-10)).item()  # recall at k
     return scores
@@ -53,7 +56,6 @@ class MultiLabelMetrics():
             y_pred (ndarray): an array with predicted label values (shape: batch_size * number of classes)
         """
         y_pred_pos = y_pred > self.metric_threshold
-        report_dict = classification_report(y_true, y_pred_pos, output_dict=True, zero_division=0)
 
         n_eval = len(y_true)
         self.n_eval += n_eval

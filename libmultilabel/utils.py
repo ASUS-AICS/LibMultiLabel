@@ -91,3 +91,11 @@ def init_device(use_cpu=False):
         torch.multiprocessing.set_sharing_strategy('file_system')
     logging.info(f'Using device: {device}')
     return device
+
+
+def argsort_top_k(vals, k, axis=-1):
+    unsorted_top_k_idx = np.argpartition(vals, -k, axis=axis)[:,-k:]
+    unsorted_top_k_scores = np.take_along_axis(vals, unsorted_top_k_idx, axis=axis)
+    sorted_order = np.argsort(-unsorted_top_k_scores, axis=axis)
+    sorted_top_k_idx = np.take_along_axis(unsorted_top_k_idx, sorted_order, axis=axis)
+    return sorted_top_k_idx

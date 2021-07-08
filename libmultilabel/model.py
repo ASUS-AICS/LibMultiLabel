@@ -10,7 +10,7 @@ from pytorch_lightning.utilities.parsing import AttributeDict
 
 from . import networks
 from .metrics import MultiLabelMetrics
-from .utils import dump_log
+from .utils import dump_log, argsort_top_k
 
 
 class MultiLabelModel(pl.LightningModule):
@@ -87,11 +87,8 @@ class MultiLabelModel(pl.LightningModule):
         outputs = self.network(batch['text'])
         pred_scores= torch.sigmoid(outputs['logits']).detach().cpu().numpy()
         k = self.config.save_k_predictions
-        unsorted_top_k_idx = np.argpartition(pred_scores, -k, axis=1)[:,-k:]
-        unsorted_top_k_scores = np.take_along_axis(pred_scores, unsorted_top_k_idx, axis=1)
-        sorted_order = np.argsort(-unsorted_top_k_scores, axis=1)
-        sorted_top_k_idx = np.take_along_axis(unsorted_top_k_idx, sorted_order, axis=1)
-        sorted_top_k_scores = np.take_along_axis(unsorted_top_k_scores, sorted_order, axis=1)
+        top_k_idx = argsort_top_k(pred_scores, k, axis=1)
+        top_k_scores = np.take_along_axis(pred_scores, top_k_idx, axis=1)
 
         return {'top_k_pred': sorted_top_k_idx,
                 'top_k_pred_scores': sorted_top_k_scores}
