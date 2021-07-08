@@ -48,6 +48,11 @@ class MultiLabelMetrics():
             elif metric not in ['Micro-Precision', 'Micro-Recall', 'Micro-F1', 'Macro-F1', 'Another-Macro-F1']:
                 raise ValueError(f'Invalid metric: {metric}')
 
+    def reset(self):
+        self.n_eval = 0
+        for metric in self.metric_stats:
+            self.metric_stats[metric] = 0.
+
     def add_values(self, y_true, y_pred):
         """Add batch of y_true and y_pred.
 
