@@ -25,12 +25,8 @@ class MultiLabelMetrics():
         self.metric_threshold = config.get('metric_threshold', 0.5)
 
         self.n_eval = 0
-        self.metric_stats = {
-            'Micro-Precision': 0.,
-            'Micro-Recall': 0.,
-            'Micro-F1': 0.,
-            'confusion_matrix': 0.,
-        }
+        self.multilabel_confusion_matrix = 0.
+        self.metric_stats = {}
 
         self.top_ks = set()
         self.prec_recall_metrics = []
@@ -45,6 +41,7 @@ class MultiLabelMetrics():
 
     def reset(self):
         self.n_eval = 0
+        self.multilabel_confusion_matrix = 0.
         for metric in self.metric_stats:
             self.metric_stats[metric] = 0.
 
@@ -60,10 +57,7 @@ class MultiLabelMetrics():
 
         n_eval = len(y_true)
         self.n_eval += n_eval
-        self.metric_stats['Micro-Precision'] += (report_dict['micro avg']['precision'] * n_eval)
-        self.metric_stats['Micro-Recall'] += (report_dict['micro avg']['recall'] * n_eval)
-        self.metric_stats['Micro-F1'] += (report_dict['micro avg']['f1-score'] * n_eval)
-        self.metric_stats['confusion_matrix'] += multilabel_confusion_matrix(y_true, y_pred_pos)
+        self.multilabel_confusion_matrix += multilabel_confusion_matrix(y_true, y_pred_pos)
 
         scores = precision_recall_at_ks(y_true, y_pred, top_ks=self.top_ks)
         for metric in self.prec_recall_metrics:
@@ -73,21 +67,27 @@ class MultiLabelMetrics():
         """Get evaluation results."""
 
         result = {}
-        for metric, val in self.metric_stats.items():
-            if metric == 'confusion_matrix':
-                labelwise_precision = val[:,1,1] / (val[:,1,1] + val[:,0,1] + 1e-10)
-                labelwise_recall = val[:,1,1] / (val[:,1,1] + val[:,1,0] + 1e-10)
-                labelwise_f1 = f1(labelwise_precision, labelwise_recall)
-                result['Macro-F1'] = labelwise_f1.mean()
+        cm = self.multilabel_confusion_matrix
+        cum_cm = cm.sum(axis=0)
+        cum_tp, cum_fp, cum_fn = cum_cm[1,1], cum_cm[0,1], cum_cm[1,0]
+        micro_precision = cum_tp / (cum_tp + cum_fp + 1e-10)
+        micro_recall = cum_tp / (cum_tp + cum_fn + 1e-10)
 
-                # The f1 value of macro_precision and macro_recall. This
-                # variant of # macro_f1 is less preferred but is used in
-                # some works.
-                macro_precision = labelwise_precision.mean()
-                macro_recall = labelwise_recall.mean()
-                result['Another-Macro-F1'] = f1(macro_precision, macro_recall)
-            else:
-                result[metric] = val / self.n_eval
+        ml_tp, ml_fp, ml_fn = cm[:,1,1], cm[:,0,1], cm[:,1,0]
+        labelwise_precision = ml_tp / (ml_tp + ml_fp + 1e-10)
+        labelwise_recall = ml_tp / (ml_tp + ml_fn + 1e-10)
+        macro_precision = labelwise_precision.mean()
+        macro_recall = labelwise_recall.mean()
+
+        result = {
+            'Micro-Precision': micro_precision,
+            'Micro-Recall': micro_recall,
+            'Micro-F1': f1(micro_precision, micro_recall),
+            'Macro-F1': f1(labelwise_precision, labelwise_recall).mean(),
+            'Another-Macro-F1': f1(macro_precision, macro_recall),
+        }
+        for metric, val in self.metric_stats.items():
+            result[metric] = val / self.n_eval
         return result
 
     def __repr__(self):

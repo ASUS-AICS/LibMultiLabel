@@ -13,8 +13,7 @@ from pytorch_lightning.utilities.parsing import AttributeDict
 
 from libmultilabel import data_utils
 from libmultilabel.model import Model
-from libmultilabel.utils import (Timer, dump_log, init_device,
-                                 save_top_k_predictions, set_seed)
+from libmultilabel.utils import Timer, dump_log, init_device, set_seed
 
 
 def get_config():
