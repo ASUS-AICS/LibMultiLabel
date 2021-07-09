@@ -152,15 +152,15 @@ def main():
     set_seed(seed=config.seed)
     device = init_device(use_cpu=config.cpu)
 
-    # (1) Load dataset
-    datasets = data_utils.load_datasets(data_dir = config.data_dir,
-                                        train_path = config.train_path,
-                                        test_path = config.test_path,
-                                        val_path = config.val_path,
-                                        val_size = config.val_size,
-                                        is_eval = config.eval)
+    # Load dataset
+    datasets = data_utils.load_datasets(data_dir=config.data_dir,
+                                        train_path=config.train_path,
+                                        test_path=config.test_path,
+                                        val_path=config.val_path,
+                                        val_size=config.val_size,
+                                        is_eval=config.eval)
 
-    # (2) Set up trainer
+    # Set up trainer
     checkpoint_dir = os.path.join(config.result_dir, config.run_name)
     checkpoint_callback = ModelCheckpoint(dirpath=checkpoint_dir,
                                           filename='best_model',
@@ -179,7 +179,7 @@ def main():
     log_path = os.path.join(checkpoint_dir, 'logs.json')
     dump_log(log_path, config=config)
 
-    # (3) Setup model
+    # Setup model
     if config.eval:
         model = Model.load_from_checkpoint(config.checkpoint_path)
     else:
@@ -222,7 +222,7 @@ def main():
             train=False
         )
 
-        # (5) trainer.fit
+        # trainer.fit
         trainer.fit(model, train_loader, val_loader)
         logging.info(f'Loading best model from `{checkpoint_callback.best_model_path}`...')
         model = Model.load_from_checkpoint(checkpoint_callback.best_model_path)
