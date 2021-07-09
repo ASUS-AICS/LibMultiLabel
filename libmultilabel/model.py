@@ -117,8 +117,8 @@ class Model(MultiLabelModel):
         self,
         device,
         model_name,
-        classes=None,
-        word_dict=None,
+        classes,
+        word_dict,
         init_weight=None,
         log_path=None,
         **kwargs
