@@ -174,7 +174,12 @@ def init_search_algorithm(search_alg, metric=None, mode=None):
 
 
 def load_static_data(config):
-    datasets = data_utils.load_datasets(config)
+    datasets = data_utils.load_datasets(data_dir=config.data_dir,
+                                        train_path=config.train_path,
+                                        test_path=config.test_path,
+                                        val_path=config.val_path,
+                                        val_size=config.val_size,
+                                        is_eval=config.eval)
     return {
         "datasets": datasets,
         "word_dict": data_utils.load_or_build_text_dict(
