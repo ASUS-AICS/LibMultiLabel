@@ -60,28 +60,45 @@ class MultiLabelModel(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        loss, pred_logits = self.shared_step(batch)
+        self._shared_eval_step(batch, datch_idx)
 
+    def validation_step_end(self, batch_parts):
+        self._shared_eval_step_end(batch_parts)
+
+    def validation_epoch_end(self, step_outputs):
+        return self._shared_eval_epoch_end(step_outputs, 'val')
+
+    def test_step(self, batch, batch_idx):
+        return self._shared_eval_step(batch, batch_idx)
+
+    def test_step_end(self, batch_parts):
+        self._shared_eval_step_end(batch_parts)
+
+    def test_epoch_end(self, step_outputs):
+        return self._shared_eval_epoch_end(step_outputs, 'test')
+
+    def _shared_eval_step(self, batch, batch_idx):
+        loss, pred_logits = self.shared_step(batch)
         return {'loss': loss.item(),
                 'pred_scores': torch.sigmoid(pred_logits).detach().cpu().numpy(),
                 'target': batch['label'].detach().cpu().numpy()}
 
-    def validation_step_end(self, batch_parts):
+    def _shared_eval_step_end(self, batch_parts):
         pred_scores = np.vstack(batch_parts['pred_scores'])
         target = np.vstack(batch_parts['target'])
-        self.eval_metric.add_values(target, pred_scores)
+        self.eval_metric.update(target, pred_scores)
 
-    def validation_epoch_end(self, step_outputs):
-        return self.evaluate(step_outputs, 'val')
+    def _shared_eval_epoch_end(self, step_outputs, split):
+        metric_dict = self.eval_metric.get_metric_dict()
+        self.log_dict(metric_dict)
+        dump_log(config=self.config, metrics=metric_dict, split=split)
 
-    def test_step(self, batch, batch_idx):
-        return self.validation_step(batch, batch_idx)
-
-    def test_step_end(self, batch_parts):
-        self.validation_step_end(batch_parts)
-
-    def test_epoch_end(self, step_outputs):
-        return self.evaluate(step_outputs, 'test')
+        if not self.config.silent and (not self.trainer or self.trainer.is_global_zero):
+            print(f'====== {split} dataset evaluation result =======')
+            print(self.eval_metric)
+            print()
+        self.eval_metric.reset()
+        return metric_dict
 
     def predict_step(self, batch, batch_idx, dataloader_idx):
         outputs = self.network(batch['text'])
@@ -92,22 +109,6 @@ class MultiLabelModel(pl.LightningModule):
 
         return {'top_k_pred': sorted_top_k_idx,
                 'top_k_pred_scores': sorted_top_k_scores}
-
-    def evaluate(self, step_outputs, split):
-        metric_dict = self.eval_metric.get_metric_dict()
-        self.log_dict(metric_dict)
-        dump_log(config=self.config, metrics=metric_dict, split=split)
-
-        self.print(f'====== {split} dataset evaluation result =======')
-        self.print(self.eval_metric)
-        self.print("")
-        self.eval_metric.reset()
-        return metric_dict
-
-    def print(self, string):
-        if not self.config.get('silent', False):
-            if not self.trainer or self.trainer.is_global_zero:
-                print(string)
 
 
 class Model(MultiLabelModel):

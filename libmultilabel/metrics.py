@@ -48,8 +48,8 @@ class MultiLabelMetrics():
         for metric in self.metric_stats:
             self.metric_stats[metric] = 0.
 
-    def add_values(self, y_true, y_pred):
-        """Add batch of y_true and y_pred.
+    def update(self, y_true, y_pred):
+        """Add evaluation results of a batch of y_true and y_pred.
 
         Args:
             y_true (ndarray): an array with ground truth labels (shape: batch_size * number of classes)
@@ -61,6 +61,8 @@ class MultiLabelMetrics():
         self.n_eval += n_eval
         self.multilabel_confusion_matrix += multilabel_confusion_matrix(y_true, y_pred_pos)
 
+        # Add metrics like P@k, R@k to the result dict. Multiply n_eval for
+        # cumulation.
         scores = precision_recall_at_ks(y_true, y_pred, top_ks=self.top_ks)
         for metric in self.prec_recall_metrics:
             self.metric_stats[metric] += (scores[metric] * n_eval)
@@ -68,16 +70,16 @@ class MultiLabelMetrics():
     def get_metric_dict(self):
         """Get evaluation results."""
 
-        result = {}
         cm = self.multilabel_confusion_matrix
-        cum_cm = cm.sum(axis=0)
-        cum_tp, cum_fp, cum_fn = cum_cm[1,1], cum_cm[0,1], cum_cm[1,0]
-        micro_precision = cum_tp / (cum_tp + cum_fp + 1e-10)
-        micro_recall = cum_tp / (cum_tp + cum_fn + 1e-10)
+        cm_sum = cm.sum(axis=0)
+        tp_sum, fp_sum, fn_sum = cm_sum[1,1], cm_sum[0,1], cm_sum[1,0]
+        micro_precision = tp_sum / (tp_sum + fp_sum + 1e-10)
+        micro_recall = tp_sum / (tp_sum + fn_sum + 1e-10)
 
-        ml_tp, ml_fp, ml_fn = cm[:,1,1], cm[:,0,1], cm[:,1,0]
-        labelwise_precision = ml_tp / (ml_tp + ml_fp + 1e-10)
-        labelwise_recall = ml_tp / (ml_tp + ml_fn + 1e-10)
+        # Use lablewise tp, fp, fn to calculate Macro results
+        tp, fp, fn = cm[:,1,1], cm[:,0,1], cm[:,1,0]
+        labelwise_precision = tp / (tp + fp + 1e-10)
+        labelwise_recall = tp / (tp + fn + 1e-10)
         macro_precision = labelwise_precision.mean()
         macro_recall = labelwise_recall.mean()
 
@@ -86,6 +88,10 @@ class MultiLabelMetrics():
             'Micro-Recall': micro_recall,
             'Micro-F1': f1(micro_precision, micro_recall),
             'Macro-F1': f1(labelwise_precision, labelwise_recall).mean(),
+
+            # The f1 value of macro_precision and macro_recall. This variant of
+            # macro_f1 is less preferred but is used in some works. Please
+            # refer to Opitz et al. 2019 [https://arxiv.org/pdf/1911.03347.pdf]
             'Another-Macro-F1': f1(macro_precision, macro_recall),
         }
         for metric, val in self.metric_stats.items():
