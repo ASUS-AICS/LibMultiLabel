@@ -107,8 +107,8 @@ class MultiLabelModel(pl.LightningModule):
         top_k_idx = argsort_top_k(pred_scores, k, axis=1)
         top_k_scores = np.take_along_axis(pred_scores, top_k_idx, axis=1)
 
-        return {'top_k_pred': sorted_top_k_idx,
-                'top_k_pred_scores': sorted_top_k_scores}
+        return {'top_k_pred': top_k_idx,
+                'top_k_pred_scores': top_k_scores}
 
 
 class Model(MultiLabelModel):

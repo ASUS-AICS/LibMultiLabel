@@ -140,7 +140,7 @@ def save_predictions(trainer, model, dataloader, predict_out_path):
     pred_scores = np.vstack([batch['top_k_pred_scores'] for batch in batch_predictions])
     with open(predict_out_path, 'w') as fp:
         for pred_label, pred_score in zip(pred_labels, pred_scores):
-            out_str = ' '.join([f'{label}:{score:.4}' for label, score in zip(pred_label, pred_score)])
+            out_str = ' '.join([f'{model.classes[label]}:{score:.4}' for label, score in zip(pred_label, pred_score)])
             fp.write(out_str+'\n')
     logging.info(f'Saved predictions to: {predict_out_path}')
 
