@@ -10,7 +10,7 @@ class KimCNN(BaseModel):
         self,
         embed_vecs,
         num_classes,
-        filter_sizes=[2, 4, 8],
+        filter_sizes=None,
         num_filter_per_size=128,
         **kwargs
     ):
