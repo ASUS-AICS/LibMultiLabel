@@ -120,10 +120,10 @@ class Model(MultiLabelModel):
         classes=None,
         word_dict=None,
         init_weight=None,
-        *args,
+        log_path=None,
         **kwargs
     ):
-        super().__init__(**kwargs)
+        super().__init__(log_path=log_path, **kwargs)
         self.save_hyperparameters()
 
         self.word_dict = word_dict
@@ -134,7 +134,6 @@ class Model(MultiLabelModel):
         self.network = getattr(networks, model_name)(
             embed_vecs=embed_vecs,
             num_classes=self.num_classes,
-            *args,
             **kwargs
         ).to(device)
 
