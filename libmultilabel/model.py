@@ -60,10 +60,10 @@ class MultiLabelModel(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        self._shared_eval_step(batch, batch_idx)
+        return self._shared_eval_step(batch, batch_idx)
 
     def validation_step_end(self, batch_parts):
-        self._shared_eval_step_end(batch_parts)
+        return self._shared_eval_step_end(batch_parts)
 
     def validation_epoch_end(self, step_outputs):
         return self._shared_eval_epoch_end(step_outputs, 'val')
@@ -86,7 +86,7 @@ class MultiLabelModel(pl.LightningModule):
     def _shared_eval_step_end(self, batch_parts):
         pred_scores = np.vstack(batch_parts['pred_scores'])
         target = np.vstack(batch_parts['target'])
-        self.eval_metric.update(target, pred_scores)
+        return self.eval_metric.update(target, pred_scores)
 
     def _shared_eval_epoch_end(self, step_outputs, split):
         metric_dict = self.eval_metric.get_metric_dict()
