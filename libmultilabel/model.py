@@ -60,7 +60,7 @@ class MultiLabelModel(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        self._shared_eval_step(batch, datch_idx)
+        self._shared_eval_step(batch, batch_idx)
 
     def validation_step_end(self, batch_parts):
         self._shared_eval_step_end(batch_parts)
