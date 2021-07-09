@@ -1,7 +1,6 @@
 from math import floor
 
 import torch.nn as nn
-from torch.nn.init import xavier_uniform_
 
 from ..networks.base import BaseModel
 
@@ -18,7 +17,6 @@ class BiGRU(BaseModel):
 
         # linear output
         self.final = nn.Linear(rnn_dim, config.num_classes)
-        xavier_uniform_(self.final.weight)
 
     def forward(self, text):
         # let doc length be first as GRU's default is batch_first=False

@@ -23,7 +23,6 @@ val_metric: P@5
 model_name: BiGRU
 rnn_dim: 512
 num_layers: 1
-init_weight: null
 activation: tanh
 
 # pretrained vocab / embeddings
