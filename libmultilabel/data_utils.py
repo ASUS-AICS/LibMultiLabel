@@ -83,7 +83,7 @@ def load_datasets(
     train_path=None,
     test_path=None,
     val_path=None,
-    val_size=None,
+    val_size=0.2,
     is_eval=False
 ):
     datasets = {}
