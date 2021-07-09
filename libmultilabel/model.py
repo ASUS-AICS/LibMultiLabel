@@ -72,7 +72,7 @@ class MultiLabelModel(pl.LightningModule):
         return self._shared_eval_step(batch, batch_idx)
 
     def test_step_end(self, batch_parts):
-        self._shared_eval_step_end(batch_parts)
+        return self._shared_eval_step_end(batch_parts)
 
     def test_epoch_end(self, step_outputs):
         return self._shared_eval_epoch_end(step_outputs, 'test')
