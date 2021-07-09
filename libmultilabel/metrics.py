@@ -10,9 +10,9 @@ def f1(precision, recall):
     return 2 * (precision * recall) / (precision + recall + 1e-10)
 
 
-def precision_recall_at_ks(y_true, y_pred_vals, top_ks):
+def precision_recall_at_ks(y_true, y_pred, top_ks):
     max_k = max(top_ks)
-    top_idx = argsort_top_k(y_pred_vals, max_k, axis=1)
+    top_idx = argsort_top_k(y_pred, max_k, axis=1)
     n_pos = y_true.sum(axis=1)
     scores = {}
     for k in top_ks:
