@@ -1,4 +1,4 @@
 bayesian-optimization # ray[tune]
 optuna # ray[tune]
-ray>=1.4.0
+ray>=1.4.1
 ray[tune]
