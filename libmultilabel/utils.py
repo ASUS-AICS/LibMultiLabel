@@ -67,25 +67,6 @@ def dump_log(config, metrics, split):
     logging.info(f'Finish writing log to {log_path}.')
 
 
-def save_top_k_predictions(class_names, y_pred, predict_out_path, k=100):
-    """Save top k predictions to the predict_out_path. The format of this file is:
-    <label1>:<value1> <label2>:<value2> ...
-
-    Args:
-        class_names (list): list of class names
-        y_pred (ndarray): predictions (shape: number of samples * number of classes)
-        k (int): number of classes considered as the correct labels
-    """
-    assert predict_out_path, "Please specify the output path to the prediction results."
-
-    logging.info(f'Save top {k} predictions to {predict_out_path}.')
-    with open(predict_out_path, 'w') as fp:
-        for pred in y_pred:
-            label_ids = np.argsort(-pred).tolist()[:k]
-            out_str = ' '.join([f'{class_names[i]}:{pred[i]:.4}' for i in label_ids])
-            fp.write(out_str+'\n')
-
-
 def set_seed(seed):
     """Set seeds for numpy and pytorch."""
     if seed is not None:
@@ -110,3 +91,11 @@ def init_device(use_cpu=False):
         torch.multiprocessing.set_sharing_strategy('file_system')
     logging.info(f'Using device: {device}')
     return device
+
+
+def argsort_top_k(vals, k, axis=-1):
+    unsorted_top_k_idx = np.argpartition(vals, -k, axis=axis)[:,-k:]
+    unsorted_top_k_scores = np.take_along_axis(vals, unsorted_top_k_idx, axis=axis)
+    sorted_order = np.argsort(-unsorted_top_k_scores, axis=axis)
+    sorted_top_k_idx = np.take_along_axis(unsorted_top_k_idx, sorted_order, axis=axis)
+    return sorted_top_k_idx
