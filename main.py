@@ -205,21 +205,24 @@ def main():
 
         # (4) Set up dataset loader
         train_loader = data_utils.get_dataset_loader(
-            config=config,
             data=datasets['train'],
             word_dict=model.word_dict,
             classes=model.classes,
             device=device,
+            max_seq_length=config.max_seq_length,
+            batch_size=config.batch_size,
             shuffle=config.shuffle,
-            train=True
+            data_workers=config.data_workers
         )
         val_loader = data_utils.get_dataset_loader(
-            config=config,
             data=datasets['val'],
             word_dict=model.word_dict,
             classes=model.classes,
             device=device,
-            train=False
+            max_seq_length=config.max_seq_length,
+            batch_size=config.eval_batch_size,
+            shuffle=config.shuffle,
+            data_workers=config.data_workers
         )
 
         # trainer.fit
@@ -229,12 +232,14 @@ def main():
 
     if 'test' in datasets:
         test_loader = data_utils.get_dataset_loader(
-            config=config, # TODO discuss if we should run test_loader with same dataset config such as max_seq_length, eval_batch_size?
             data=datasets['test'],
             word_dict=model.word_dict,
             classes=model.classes,
             device=device,
-            train=False
+            max_seq_length=config.max_seq_length,
+            batch_size=config.eval_batch_size,
+            shuffle=config.shuffle,
+            data_workers=config.data_workers
         )
         trainer.test(model, test_dataloaders=test_loader)
         if config.save_k_predictions > 0:

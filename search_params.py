@@ -69,21 +69,24 @@ class Trainable(tune.Trainable):
             **dict(self.config)
         )
         train_loader = data_utils.get_dataset_loader(
-            config=self.config,
             data=self.datasets['train'],
             word_dict=model.word_dict,
             classes=model.classes,
             device=self.device,
+            max_seq_length=self.config.max_seq_length,
+            batch_size=self.config.batch_size,
             shuffle=self.config.shuffle,
-            train=True
+            data_workers=self.config.data_workers
         )
         val_loader = data_utils.get_dataset_loader(
-            config=self.config,
             data=self.datasets['val'],
             word_dict=model.word_dict,
             classes=model.classes,
             device=self.device,
-            train=False
+            max_seq_length=self.config.max_seq_length,
+            batch_size=self.config.eval_batch_size,
+            shuffle=self.config.shuffle,
+            data_workers=self.config.data_workers
         )
 
         trainer.fit(model, train_loader, val_loader)
@@ -95,12 +98,14 @@ class Trainable(tune.Trainable):
         # run and dump test result
         if 'test' in self.datasets:
             test_loader = data_utils.get_dataset_loader(
-                config=self.config,
                 data=self.datasets['test'],
-                word_dict=model.word_dict,
-                classes=model.classes,
+                word_dict=best_model.word_dict,
+                classes=best_model.classes,
                 device=self.device,
-                train=False
+                max_seq_length=self.config.max_seq_length,
+                batch_size=self.config.eval_batch_size,
+                shuffle=self.config.shuffle,
+                data_workers=self.config.data_workers
             )
             test_metric_dict = trainer.test(
                 best_model, test_dataloaders=test_loader)[0]
