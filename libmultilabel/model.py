@@ -1,15 +1,16 @@
 from abc import abstractmethod
 from argparse import Namespace
 
+import numpy as np
 import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-from pytorch_lightning.utilities.parsing import AttributeDict
+# from pytorch_lightning.utilities.parsing import AttributeDict
 
 from . import networks
 from .metrics import MultiLabelMetrics
-from .utils import dump_log
+from .utils import dump_log, argsort_top_k
 
 
 class MultiLabelModel(pl.LightningModule):
@@ -25,7 +26,8 @@ class MultiLabelModel(pl.LightningModule):
         metric_threshold=0.5,
         monitor_metrics=None,
         log_path=None,
-        silent=False, # TODO discuss if we need silent
+        silent=False,
+        save_k_predictions=100,
         **kwargs
     ):
         super().__init__()
@@ -34,12 +36,12 @@ class MultiLabelModel(pl.LightningModule):
         self.optimizer = optimizer
         self.momentum = momentum
         self.weight_decay = weight_decay
-        # metrics
-        self.metric_threshold = metric_threshold
-        self.monitor_metrics = monitor_metrics
+        # evaluator
+        self.eval_metric = MultiLabelMetrics(metric_threshold, monitor_metrics)
         # dump log
         self.log_path = log_path
         self.silent = silent
+        self.save_k_predictions = save_k_predictions
 
     def configure_optimizers(self):
         """Initialize an optimizer for the free parameters of the network.
@@ -76,35 +78,55 @@ class MultiLabelModel(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
+        return self._shared_eval_step(batch, batch_idx)
+
+    def validation_step_end(self, batch_parts):
+        return self._shared_eval_step_end(batch_parts)
+
+    def validation_epoch_end(self, step_outputs):
+        return self._shared_eval_epoch_end(step_outputs, 'val')
+
+    def test_step(self, batch, batch_idx):
+        return self._shared_eval_step(batch, batch_idx)
+
+    def test_step_end(self, batch_parts):
+        return self._shared_eval_step_end(batch_parts)
+
+    def test_epoch_end(self, step_outputs):
+        return self._shared_eval_epoch_end(step_outputs, 'test')
+
+    def _shared_eval_step(self, batch, batch_idx):
         loss, pred_logits = self.shared_step(batch)
         return {'loss': loss.item(),
                 'pred_scores': torch.sigmoid(pred_logits).detach().cpu().numpy(),
                 'target': batch['label'].detach().cpu().numpy()}
 
-    def validation_epoch_end(self, step_outputs):
-        eval_metric = self.evaluate(step_outputs, 'val')
-        return eval_metric
+    def _shared_eval_step_end(self, batch_parts):
+        pred_scores = np.vstack(batch_parts['pred_scores'])
+        target = np.vstack(batch_parts['target'])
+        return self.eval_metric.update(target, pred_scores)
 
-    def test_step(self, batch, batch_idx):
-        return self.validation_step(batch, batch_idx)
-
-    def test_epoch_end(self, step_outputs):
-        eval_metric = self.evaluate(step_outputs, 'test')
-        self.test_results = eval_metric
-        return eval_metric
-
-    def evaluate(self, step_outputs, split):
-        eval_metric = MultiLabelMetrics(self.metric_threshold, self.monitor_metrics)
-        for step_output in step_outputs:
-            eval_metric.add_values(y_pred=step_output['pred_scores'],
-                                   y_true=step_output['target'])
-        metric_dict = eval_metric.get_metric_dict()
+    def _shared_eval_epoch_end(self, step_outputs, split):
+        metric_dict = self.eval_metric.get_metric_dict()
         self.log_dict(metric_dict)
         dump_log(metrics=metric_dict, split=split, log_path=self.log_path)
 
-        self.print(f'\n====== {split.upper()} dataset evaluation result =======')
-        self.print(eval_metric)
-        return eval_metric
+        if not self.silent and (not self.trainer or self.trainer.is_global_zero):
+            print(f'====== {split} dataset evaluation result =======')
+            print(self.eval_metric)
+            print()
+        self.eval_metric.reset()
+        return metric_dict
+
+    def predict_step(self, batch, batch_idx, dataloader_idx):
+        outputs = self.network(batch['text'])
+        pred_scores= torch.sigmoid(outputs['logits']).detach().cpu().numpy()
+        k = self.save_k_predictions
+        top_k_idx = argsort_top_k(pred_scores, k, axis=1)
+        top_k_scores = np.take_along_axis(pred_scores, top_k_idx, axis=1)
+
+        return {'top_k_pred': top_k_idx,
+                'top_k_pred_scores': top_k_scores}
 
     def print(self, string):
         if not self.silent:
