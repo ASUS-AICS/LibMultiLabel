@@ -6,7 +6,6 @@ import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-# from pytorch_lightning.utilities.parsing import AttributeDict
 
 from . import networks
 from .metrics import MultiLabelMetrics
@@ -27,7 +26,7 @@ class MultiLabelModel(pl.LightningModule):
         monitor_metrics=None,
         log_path=None,
         silent=False,
-        save_k_predictions=100,
+        save_k_predictions=0,
         **kwargs
     ):
         super().__init__()
