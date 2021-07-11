@@ -216,7 +216,7 @@ def main():
                 **dict(config)
             )
 
-        # (4) Set up dataset loader
+        # Set up dataset loader
         train_loader = data_utils.get_dataset_loader(
             data=datasets['train'],
             word_dict=model.word_dict,
