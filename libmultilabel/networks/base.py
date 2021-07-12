@@ -3,12 +3,12 @@ import torch.nn.functional as F
 
 
 class BaseModel(nn.Module):
-    '''Base Model for process different inputs
+    """Base Model for process different inputs
 
     Args:
-        config (ArgDict): config of the experiment
+        config (AttrbuteDict): config of the experiment
         embed_vecs (FloatTensor): embedding vectors for initialization
-    '''
+    """
 
     def __init__(self, config, embed_vecs):
         super().__init__()
