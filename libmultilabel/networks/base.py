@@ -15,7 +15,6 @@ class BaseModel(nn.Module):
         embed_vecs,
         dropout=0.2,
         activation='relu',
-        **kwargs
     ):
         super().__init__()
         self.embedding = nn.Embedding(len(embed_vecs), embed_vecs.shape[1], padding_idx=0)

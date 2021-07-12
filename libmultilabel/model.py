@@ -127,21 +127,16 @@ class MultiLabelModel(pl.LightningModule):
         return {'top_k_pred': top_k_idx,
                 'top_k_pred_scores': top_k_scores}
 
-    def print(self, string):
-        if not self.silent:
-            if not self.trainer or self.trainer.is_global_zero:
-                print(string)
-
 
 class Model(MultiLabelModel):
     def __init__(
         self,
-        device,
         model_name,
         classes,
         word_dict,
         init_weight=None,
         log_path=None,
+        network_config=None,
         **kwargs
     ):
         super().__init__(log_path=log_path, **kwargs)
@@ -155,7 +150,7 @@ class Model(MultiLabelModel):
         self.network = getattr(networks, model_name)(
             embed_vecs=embed_vecs,
             num_classes=self.num_classes,
-            **kwargs
+            **network_config
         )
 
         if init_weight is not None:

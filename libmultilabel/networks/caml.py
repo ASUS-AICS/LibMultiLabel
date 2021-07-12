@@ -12,7 +12,6 @@ class CAML(BaseModel):
     Follows the work of Mullenbach et al. [https://aclanthology.org/N18-1100.pdf]
 
     Args:
-        config (AttrbuteDict): config of the experiment
         embed_vecs (FloatTensor): The pre-trained word vectors of shape (vocab_size, embed_dim)
         filter_sizes (list): Size of convolutional filters
         num_filter_per_size (int): Number of filters in convolutional layers in each size
@@ -23,9 +22,10 @@ class CAML(BaseModel):
         num_classes,
         filter_sizes=None,
         num_filter_per_size=50,
-        **kwargs
+        dropout=0.2,
+        activation='tanh'
     ):
-        super(CAML, self).__init__(embed_vecs, **kwargs)
+        super(CAML, self).__init__(embed_vecs, dropout, activation)
         if len(filter_sizes) != 1:
             raise ValueError(f'CAML expect 1 filter size. Got filter_sizes={filter_sizes}')
         filter_size = filter_sizes[0]
