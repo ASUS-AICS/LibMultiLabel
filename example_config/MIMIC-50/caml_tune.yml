@@ -44,7 +44,7 @@ eval: false
 label_file: null
 metrics_thresholds: [0.5]
 result_dir: runs
-silent: false
+silent: true
 test_path: data/MIMIC-50/test.txt
 train_path: data/MIMIC-50/train.txt
 val_path: null

@@ -156,7 +156,7 @@ class Model(MultiLabelModel):
             embed_vecs=embed_vecs,
             num_classes=self.num_classes,
             **kwargs
-        ).to(device)
+        )
 
         if init_weight is not None:
             init_weight = networks.get_init_weight_func(

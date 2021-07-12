@@ -21,7 +21,7 @@ class CAML(BaseModel):
         self,
         embed_vecs,
         num_classes,
-        filter_sizes=[10],
+        filter_sizes=None,
         num_filter_per_size=50,
         **kwargs
     ):
