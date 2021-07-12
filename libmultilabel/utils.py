@@ -39,28 +39,32 @@ class Timer(object):
         return self.total
 
 
-def dump_log(config, metrics, split):
+def dump_log(log_path, metrics=None, split=None, config=None):
     """Write log including config and the evaluation scores.
 
     Args:
-        config (dict): config to save
-        metrics (dict): metric and scores in dictionary format
-        split (str): val or test
+        log_path(str): path to log path
+        metrics (dict): metric and scores in dictionary format, defaults to None
+        split (str): val or test, defaults to None
+        config (dict): config to save, defaults to None
     """
-    log_path = os.path.join(config.result_dir, config.run_name, 'logs.json')
     os.makedirs(os.path.dirname(log_path), exist_ok=True)
     if os.path.isfile(log_path):
         with open(log_path) as fp:
             result = json.load(fp)
     else:
+        result = dict()
+
+    if config:
         config_to_save = copy.deepcopy(dict(config))
         config_to_save.pop('device', None)  # delete if device exists
-        result = {'config': config_to_save}
+        result['config'] = config_to_save
+    if split and metrics:
+        if split in result:
+            result[split].append(metrics)
+        else:
+            result[split] = [metrics]
 
-    if split in result:
-        result[split].append(metrics)
-    else:
-        result[split] = [metrics]
     with open(log_path, 'w') as fp:
         json.dump(result, fp)
 
