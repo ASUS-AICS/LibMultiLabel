@@ -23,9 +23,13 @@ def precision_recall_at_ks(y_true, y_pred, top_ks):
 
 
 class MultiLabelMetrics():
-    def __init__(self, config):
-        self.monitor_metrics = config.get('monitor_metrics', [])
-        self.metric_threshold = config.get('metric_threshold', 0.5)
+    def __init__(
+        self,
+        metric_threshold=0.5,
+        monitor_metrics=None
+    ):
+        self.monitor_metrics = monitor_metrics or []
+        self.metric_threshold = metric_threshold
 
         self.n_eval = 0
         self.multilabel_confusion_matrix = 0.

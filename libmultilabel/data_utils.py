@@ -48,16 +48,24 @@ def generate_batch(data_batch):
     }
 
 
-def get_dataset_loader(config, data, word_dict, classes, shuffle=False, train=True):
-    dataset = TextDataset(data, word_dict, classes, config.max_seq_length)
-
+def get_dataset_loader(
+    data,
+    word_dict,
+    classes,
+    device,
+    max_seq_length=500,
+    batch_size=1,
+    shuffle=False,
+    data_workers=4
+):
+    dataset = TextDataset(data, word_dict, classes, max_seq_length)
     dataset_loader = torch.utils.data.DataLoader(
         dataset,
-        batch_size=config.batch_size if train else config.eval_batch_size,
+        batch_size=batch_size,
         shuffle=shuffle,
-        num_workers=config.data_workers,
+        num_workers=data_workers,
         collate_fn=generate_batch,
-        pin_memory='cuda' in config.device.type,
+        pin_memory='cuda' in device.type,
     )
     return dataset_loader
 
@@ -78,32 +86,46 @@ def _load_raw_data(path, is_test=False):
     return data
 
 
-def load_datasets(config):
+def load_datasets(
+    data_dir,
+    train_path=None,
+    test_path=None,
+    val_path=None,
+    val_size=0.2,
+    is_eval=False
+):
     datasets = {}
-    test_path = config.test_path or os.path.join(config.data_dir, 'test.txt')
-    if config.eval:
+    test_path = test_path or os.path.join(data_dir, 'test.txt')
+    if is_eval:
         datasets['test'] = _load_raw_data(test_path, is_test=True)
     else:
         if os.path.exists(test_path):
             datasets['test'] = _load_raw_data(test_path, is_test=True)
-        train_path = config.train_path or os.path.join(config.data_dir, 'train.txt')
+        train_path = train_path or os.path.join(data_dir, 'train.txt')
         datasets['train'] = _load_raw_data(train_path)
-        val_path = config.val_path or os.path.join(config.data_dir, 'valid.txt')
+        val_path = val_path or os.path.join(data_dir, 'valid.txt')
         if os.path.exists(val_path):
             datasets['val'] = _load_raw_data(val_path)
         else:
             datasets['train'], datasets['val'] = train_test_split(
-                datasets['train'], test_size=config.val_size, random_state=42)
+                datasets['train'], test_size=val_size, random_state=42)
 
     msg = ' / '.join(f'{k}: {len(v)}' for k, v in datasets.items())
     logging.info(f'Finish loading dataset ({msg})')
     return datasets
 
 
-def load_or_build_text_dict(config, dataset):
-    if config.vocab_file:
-        logging.info(f'Load vocab from {config.vocab_file}')
-        with open(config.vocab_file, 'r') as fp:
+def load_or_build_text_dict(
+    dataset,
+    vocab_file=None,
+    min_vocab_freq=1,
+    embed_file=None,
+    embed_cache_dir=None,
+    silent=False
+):
+    if vocab_file:
+        logging.info(f'Load vocab from {vocab_file}')
+        with open(vocab_file, 'r') as fp:
             vocab_list = [PAD] + [vocab.strip() for vocab in fp.readlines()]
         vocabs = Vocab(collections.Counter(vocab_list), specials=[UNK],
                        min_freq=1, specials_first=False) # specials_first=False to keep PAD index 0
@@ -113,32 +135,32 @@ def load_or_build_text_dict(config, dataset):
             unique_tokens = set(data['text'])
             counter.update(unique_tokens)
         vocabs = Vocab(counter, specials=[PAD, UNK],
-                       min_freq=config.min_vocab_freq)
+                       min_freq=min_vocab_freq)
     logging.info(f'Read {len(vocabs)} vocabularies.')
 
-    if os.path.exists(config.embed_file):
-        logging.info(f'Load pretrained embedding from file: {config.embed_file}.')
-        embedding_weights = get_embedding_weights_from_file(vocabs, config.embed_file, config.silent)
+    if os.path.exists(embed_file):
+        logging.info(f'Load pretrained embedding from file: {embed_file}.')
+        embedding_weights = get_embedding_weights_from_file(vocabs, embed_file, silent)
         vocabs.set_vectors(vocabs.stoi, embedding_weights,
                            dim=embedding_weights.shape[1], unk_init=False)
-    elif not config.embed_file.isdigit():
+    elif not embed_file.isdigit():
         logging.info(f'Load pretrained embedding from torchtext.')
-        vocabs.load_vectors(config.embed_file, cache=config.embed_cache_dir)
+        vocabs.load_vectors(embed_file, cache=embed_cache_dir)
     else:
         raise NotImplementedError
 
     return vocabs
 
 
-def load_or_build_label(config, datasets):
-    if config.label_file:
-        logging.info('Load labels from {config.label_file}')
-        with open(config.label_file, 'r') as fp:
+def load_or_build_label(datasets, label_file=None, silent=False):
+    if label_file:
+        logging.info('Load labels from {label_file}')
+        with open(label_file, 'r') as fp:
             classes = sorted([s.strip() for s in fp.readlines()])
     else:
         classes = set()
         for dataset in datasets.values():
-            for d in tqdm(dataset, disable=config.silent):
+            for d in tqdm(dataset, disable=silent):
                 classes.update(d['label'])
         classes = sorted(classes)
     return classes

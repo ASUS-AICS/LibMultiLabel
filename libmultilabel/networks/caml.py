@@ -8,23 +8,27 @@ from ..networks.base import BaseModel
 
 
 class CAML(BaseModel):
-    def __init__(self, config, embed_vecs):
-        """CAML (Convolutional Attention for Multi-Label classification)
-        Follows the work of Mullenbach et al. [https://aclanthology.org/N18-1100.pdf]
+    """CAML (Convolutional Attention for Multi-Label classification)
+    Follows the work of Mullenbach et al. [https://aclanthology.org/N18-1100.pdf]
 
-        Args:
-            config (AttrbuteDict): config of the experiment
-            embed_vecs (FloatTensor): The pre-trained word vectors of shape (vocab_size, embed_dim)
-            filter_sizes (list): Size of convolutional filters
-            num_filter_per_size (int): Number of filters in convolutional layers in each size
-        """
-        super(CAML, self).__init__(config, embed_vecs)
-
-        if len(config.filter_sizes) != 1:
-            raise ValueError(f'CAML expect 1 filter size. Got filter_sizes={config.filter_sizes}')
-        filter_size = config.filter_sizes[0]
-
-        num_filter_per_size = config.num_filter_per_size
+    Args:
+        config (AttrbuteDict): config of the experiment
+        embed_vecs (FloatTensor): The pre-trained word vectors of shape (vocab_size, embed_dim)
+        filter_sizes (list): Size of convolutional filters
+        num_filter_per_size (int): Number of filters in convolutional layers in each size
+    """
+    def __init__(
+        self,
+        embed_vecs,
+        num_classes,
+        filter_sizes=[10],
+        num_filter_per_size=50,
+        **kwargs
+    ):
+        super(CAML, self).__init__(embed_vecs, **kwargs)
+        if len(filter_sizes) != 1:
+            raise ValueError(f'CAML expect 1 filter size. Got filter_sizes={filter_sizes}')
+        filter_size = filter_sizes[0]
 
         # Initialize conv layer
         self.conv = nn.Conv1d(embed_vecs.shape[1], num_filter_per_size, kernel_size=filter_size, padding=int(floor(filter_size/2)))
@@ -33,11 +37,11 @@ class CAML(BaseModel):
         """Context vectors for computing attention with
         (in_features, out_features) = (num_filter_per_size, num_classes)
         """
-        self.U = nn.Linear(num_filter_per_size, config.num_classes)
+        self.U = nn.Linear(num_filter_per_size, num_classes)
         xavier_uniform_(self.U.weight)
 
         # Final layer: create a matrix to use for the #labels binary classifiers
-        self.final = nn.Linear(num_filter_per_size, config.num_classes)
+        self.final = nn.Linear(num_filter_per_size, num_classes)
         xavier_uniform_(self.final.weight)
 
     def forward(self, text):

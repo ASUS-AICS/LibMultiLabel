@@ -6,12 +6,18 @@ from ..networks.base import BaseModel
 
 
 class KimCNN(BaseModel):
-    def __init__(self, config, embed_vecs):
-        super(KimCNN, self).__init__(config, embed_vecs)
+    def __init__(
+        self,
+        embed_vecs,
+        num_classes,
+        filter_sizes=None,
+        num_filter_per_size=128,
+        **kwargs
+    ):
+        super(KimCNN, self).__init__(embed_vecs, **kwargs)
 
-        self.filter_sizes = config.filter_sizes
+        self.filter_sizes = filter_sizes
         emb_dim = embed_vecs.shape[1]
-        num_filter_per_size = config.num_filter_per_size
 
         self.convs = nn.ModuleList()
 
@@ -23,7 +29,7 @@ class KimCNN(BaseModel):
             self.convs.append(conv)
         conv_output_size = num_filter_per_size * len(self.filter_sizes)
 
-        self.linear = nn.Linear(conv_output_size, config.num_classes)
+        self.linear = nn.Linear(conv_output_size, num_classes)
 
     def forward(self, text):
         h = self.embedding(text) # (batch_size, length, embed_dim)
