@@ -1,3 +1,4 @@
+import re
 from abc import abstractmethod
 from argparse import Namespace
 
@@ -6,9 +7,10 @@ import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
+from torchmetrics import MetricCollection, F1, Precision, Recall
 
 from . import networks
-from .metrics import MultiLabelMetrics
+# from .metrics import MultiLabelMetrics
 from .utils import dump_log, argsort_top_k
 
 
@@ -36,11 +38,37 @@ class MultiLabelModel(pl.LightningModule):
         self.momentum = momentum
         self.weight_decay = weight_decay
         # evaluator
-        self.eval_metric = MultiLabelMetrics(metric_threshold, monitor_metrics)
+        # self.eval_metric = MultiLabelMetrics(metric_threshold, monitor_metrics)
         # dump log
         self.log_path = log_path
         self.silent = silent
         self.save_k_predictions = save_k_predictions
+
+        macro_prec = Precision(self.num_classes, metric_threshold, average='macro')
+        macro_recall = Recall(self.num_classes, metric_threshold, average='macro')
+        another_macro_f1 = 2 * (macro_prec * macro_recall) / (macro_prec + macro_recall + 1e-10)
+        metrics = {
+            'Micro-Precision': Precision(self.num_classes, metric_threshold, average='micro'),
+            'Micro-Recall': Recall(self.num_classes, metric_threshold, average='micro'),
+            'Micro-F1': F1(self.num_classes, metric_threshold, average='micro'),
+            'Macro-F1': F1(self.num_classes, metric_threshold, average='macro'),
+            # The f1 value of macro_precision and macro_recall. This variant of
+            # macro_f1 is less preferred but is used in some works. Please
+            # refer to Opitz et al. 2019 [https://arxiv.org/pdf/1911.03347.pdf]
+            'Another-Macro-F1': another_macro_f1,
+        }
+        for metric in monitor_metrics:
+            if re.match('P@\d+', metric):
+                metrics[metric] = Precision(self.num_classes, metric_threshold,
+                                            average='samples', top_k=int(metric[2:]))
+            elif re.match('R@\d+', metric):
+                metrics[metric] = Recall(self.num_classes, metric_threshold,
+                                         average='samples', top_k=int(metric[2:]))
+            elif metric not in ['Micro-Precision', 'Micro-Recall', 'Micro-F1', 'Macro-F1', 'Another-Macro-F1']:
+                raise ValueError(f'Invalid metric: {metric}')
+        self.eval_metric = MetricCollection(metrics)
+        # self.val_metrics = metrics.clone(prefix='val_')
+        # self.test_metrics = metrics.clone(prefix='test_')
 
     def configure_optimizers(self):
         """Initialize an optimizer for the free parameters of the network.
@@ -96,25 +124,29 @@ class MultiLabelModel(pl.LightningModule):
 
     def _shared_eval_step(self, batch, batch_idx):
         loss, pred_logits = self.shared_step(batch)
-        return {'loss': loss.item(),
-                'pred_scores': torch.sigmoid(pred_logits).detach().cpu().numpy(),
-                'target': batch['label'].detach().cpu().numpy()}
+        return {'loss': loss,
+                'pred_scores': torch.sigmoid(pred_logits),
+                'target': batch['label']}
 
     def _shared_eval_step_end(self, batch_parts):
-        pred_scores = np.vstack(batch_parts['pred_scores'])
-        target = np.vstack(batch_parts['target'])
-        return self.eval_metric.update(target, pred_scores)
+        # pred_scores = np.vstack(batch_parts['pred_scores'])
+        # target = np.vstack(batch_parts['target'])
+        return self.eval_metric.update(batch_parts['pred_scores'], batch_parts['target'])
 
     def _shared_eval_epoch_end(self, step_outputs, split):
-        metric_dict = self.eval_metric.get_metric_dict()
+        # metric_dict = self.eval_metric.get_metric_dict()
+        metric_dict = self.eval_metric.compute()
         self.log_dict(metric_dict)
+        for k, v in metric_dict.items():
+            metric_dict[k] = v.item()
         dump_log(metrics=metric_dict, split=split, log_path=self.log_path)
 
         if not self.silent and (not self.trainer or self.trainer.is_global_zero):
             print(f'====== {split} dataset evaluation result =======')
-            print(self.eval_metric)
-            print()
-        self.eval_metric.reset()
+            header = '|'.join([f'{k:^18}' for k in metric_dict.keys()])
+            values = '|'.join([f'{x * 100:^18.4f}' if isinstance(x, (np.floating, float)) else f'{x:^18}' for x in metric_dict.values()])
+            print(f"|{header}|\n|{'-----------------:|' * len(metric_dict)}\n|{values}|\n")
+        # self.eval_metric.reset()
         return metric_dict
 
     def predict_step(self, batch, batch_idx, dataloader_idx):
@@ -144,12 +176,12 @@ class Model(MultiLabelModel):
         log_path=None,
         **kwargs
     ):
-        super().__init__(log_path=log_path, **kwargs)
         self.save_hyperparameters()
 
         self.word_dict = word_dict
         self.classes = classes
         self.num_classes = len(self.classes)
+        super().__init__(log_path=log_path, **kwargs)
 
         embed_vecs = self.word_dict.vectors
         self.network = getattr(networks, model_name)(
@@ -167,5 +199,5 @@ class Model(MultiLabelModel):
         target_labels = batch['label']
         outputs = self.network(batch['text'])
         pred_logits = outputs['logits']
-        loss = F.binary_cross_entropy_with_logits(pred_logits, target_labels)
+        loss = F.binary_cross_entropy_with_logits(pred_logits, target_labels.float())
         return loss, pred_logits

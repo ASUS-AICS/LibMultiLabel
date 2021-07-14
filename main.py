@@ -192,11 +192,13 @@ def main():
 
     # Setup model
     if config.eval:
-        model = Model.load_from_checkpoint(config.checkpoint_path)
+        model = Model.load_from_checkpoint(
+            config.checkpoint_path, device=device, model_name=config.model_name)
         model.config = config
     else:
         if config.checkpoint_path:
-            model = Model.load_from_checkpoint(config.checkpoint_path)
+            model = Model.load_from_checkpoint(
+                config.checkpoint_path, device=device, model_name=config.model_name)
             model.config = config
         else:
             word_dict = data_utils.load_or_build_text_dict(
