@@ -26,7 +26,7 @@ class CAML(BaseModel):
         activation='tanh'
     ):
         super(CAML, self).__init__(embed_vecs, dropout, activation)
-        if len(filter_sizes) != 1:
+        if not filter_sizes and len(filter_sizes) != 1:
             raise ValueError(f'CAML expect 1 filter size. Got filter_sizes={filter_sizes}')
         filter_size = filter_sizes[0]
 

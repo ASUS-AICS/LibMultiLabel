@@ -22,6 +22,9 @@ class XMLCNN(BaseModel):
         assert seed is None, ("nn.AdaptiveMaxPool1d doesn't have a "
                                      "deterministic implementation but seed is"
                                      "specified. Please do not specify seed.")
+        if not filter_sizes:
+            raise ValueError(
+                f'XMLCNN expect filter_sizes. Got filter_sizes={filter_sizes}')
 
         emb_dim = embed_vecs.shape[1]
 

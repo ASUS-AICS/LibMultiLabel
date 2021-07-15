@@ -16,6 +16,9 @@ class KimCNN(BaseModel):
         activation='tanh'
     ):
         super(KimCNN, self).__init__(embed_vecs, dropout, activation)
+        if not filter_sizes:
+            raise ValueError(
+                f'KimCNN expect filter_sizes. Got filter_sizes={filter_sizes}')
 
         self.filter_sizes = filter_sizes
         emb_dim = embed_vecs.shape[1]
