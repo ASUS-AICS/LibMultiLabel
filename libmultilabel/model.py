@@ -10,7 +10,6 @@ import torch.optim as optim
 from torchmetrics import MetricCollection, F1, Precision, Recall
 
 from . import networks
-# from .metrics import MultiLabelMetrics
 from .utils import dump_log, argsort_top_k
 
 
@@ -37,8 +36,7 @@ class MultiLabelModel(pl.LightningModule):
         self.optimizer = optimizer
         self.momentum = momentum
         self.weight_decay = weight_decay
-        # evaluator
-        # self.eval_metric = MultiLabelMetrics(metric_threshold, monitor_metrics)
+
         # dump log
         self.log_path = log_path
         self.silent = silent
@@ -67,8 +65,6 @@ class MultiLabelModel(pl.LightningModule):
             elif metric not in ['Micro-Precision', 'Micro-Recall', 'Micro-F1', 'Macro-F1', 'Another-Macro-F1']:
                 raise ValueError(f'Invalid metric: {metric}')
         self.eval_metric = MetricCollection(metrics)
-        # self.val_metrics = metrics.clone(prefix='val_')
-        # self.test_metrics = metrics.clone(prefix='test_')
 
     def configure_optimizers(self):
         """Initialize an optimizer for the free parameters of the network.
@@ -129,12 +125,9 @@ class MultiLabelModel(pl.LightningModule):
                 'target': batch['label']}
 
     def _shared_eval_step_end(self, batch_parts):
-        # pred_scores = np.vstack(batch_parts['pred_scores'])
-        # target = np.vstack(batch_parts['target'])
         return self.eval_metric.update(batch_parts['pred_scores'], batch_parts['target'])
 
     def _shared_eval_epoch_end(self, step_outputs, split):
-        # metric_dict = self.eval_metric.get_metric_dict()
         metric_dict = self.eval_metric.compute()
         self.log_dict(metric_dict)
         for k, v in metric_dict.items():
