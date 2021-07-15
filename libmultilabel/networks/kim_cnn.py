@@ -12,9 +12,10 @@ class KimCNN(BaseModel):
         num_classes,
         filter_sizes=None,
         num_filter_per_size=128,
-        **kwargs
+        dropout=0.2,
+        activation='tanh'
     ):
-        super(KimCNN, self).__init__(embed_vecs, **kwargs)
+        super(KimCNN, self).__init__(embed_vecs, dropout, activation)
 
         self.filter_sizes = filter_sizes
         emb_dim = embed_vecs.shape[1]

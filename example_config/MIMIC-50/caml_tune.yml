@@ -6,7 +6,7 @@ max_seq_length: 2500
 
 # train
 seed: 1337
-epochs: 1 # 200
+epochs: 200
 batch_size: 16
 optimizer: adam
 learning_rate: ['grid_search', [0.001, 0.003, 0.0001, 0.0003]]
@@ -43,9 +43,9 @@ cpu: false
 data_workers: 4
 eval: false
 label_file: null
-metrics_threshold: [0.5]
+metrics_threshold: 0.5
 result_dir: runs
-silent: false # debug remember to set true
+silent: true
 test_path: data/MIMIC-50/test.txt
 train_path: data/MIMIC-50/train.txt
 val_path: null

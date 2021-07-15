@@ -21,11 +21,12 @@ val_metric: P@1
 
 # model
 model_name: KimCNN
-num_filter_per_size: 128 # filter channels
-filter_sizes: ['grid_search', [[2,4,8], [4,6]]]
-dropout: ['choice', [0.2, 0.4, 0.6, 0.8]]
 init_weight: kaiming_uniform
-activation: relu
+network_config:
+  num_filter_per_size: 128 # filter channels
+  filter_sizes: ['grid_search', [[2,4,8], [4,6]]]
+  dropout: ['choice', [0.2, 0.4, 0.6, 0.8]]
+  activation: relu
 
 # pretrained vocab / embeddings
 embed_file: glove.6B.300d
@@ -40,12 +41,9 @@ num_samples: 10
 config: example_config/rcv1/cnn_tune.yml
 cpu: false
 data_workers: 4
-display_iter: 100
 eval: false
-fixed_length: false
 label_file: null
-load_checkpoint: null
-metrics_thresholds: [0.5]
+metrics_threshold: 0.5
 result_dir: runs
 silent: true
 test_path: data/rcv1/test.txt

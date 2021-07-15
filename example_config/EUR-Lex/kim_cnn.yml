@@ -20,9 +20,10 @@ val_metric: P@1
 
 # model
 model_name: KimCNN
-num_filter_per_size: 128 # filter channels
-filter_sizes: [2, 4, 8]
-dropout: 0.2
+network_config:
+  dropout: 0.2
+  filter_sizes: [2, 4, 8]
+  num_filter_per_size: 128 # filter channels
 
 # pretrained vocab / embeddings
 embed_file: glove.6B.300d
