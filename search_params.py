@@ -143,9 +143,15 @@ def init_model_config(config_path):
     return model_config
 
 
-def init_search_params_spaces(config):
+def init_search_params_spaces(config, parameter_columns, prefix):
     """Initialize the sample space defined in ray tune.
     See the random distributions API listed here: https://docs.ray.io/en/master/tune/api_docs/search_space.html#random-distributions-api
+
+    Args:
+        config (AttributeDict): Config of the experiment.
+        parameter_columns (dict): Names of parameters to include in the CLIReporter.
+                                  The keys are parameter names and the values are displayed names.
+        prefix(str): The prefix of a nested parameter such as network_config/dropout.
     """
     search_spaces = ['choice', 'grid_search', 'uniform', 'quniform', 'loguniform',
                      'qloguniform', 'randn', 'qrandn', 'randint', 'qrandint']
@@ -160,8 +166,10 @@ def init_search_params_spaces(config):
                     """)
             else:
                 config[key] = getattr(tune, search_space)(*search_args)
+                parameter_columns[prefix+key] = key
         elif isinstance(value, dict):
-            config[key] = init_search_params_spaces(value)
+            config[key] = init_search_params_spaces(value, parameter_columns, f'{prefix}{key}/')
+
     return config
 
 
@@ -225,7 +233,9 @@ def main():
     config = init_model_config(args.config)
     search_alg = args.search_alg if args.search_alg else config.search_alg
     num_samples = config['num_samples'] if config.get('num_samples', None) else args.num_samples
-    config = init_search_params_spaces(config)
+
+    parameter_columns = dict()
+    config = init_search_params_spaces(config, parameter_columns, prefix='')
     data = load_static_data(config)
 
     """Run tune analysis.
@@ -234,7 +244,8 @@ def main():
     """
     all_monitor_metrics = [f'{split}_{metric}' for split, metric in itertools.product(
         ['val', 'test'], config.monitor_metrics)]
-    reporter = tune.CLIReporter(metric_columns=all_monitor_metrics)
+    reporter = tune.CLIReporter(metric_columns=all_monitor_metrics,
+                                parameter_columns=parameter_columns)
     analysis = tune.run(
         tune.with_parameters(Trainable, data=data),
         # run one step "libmultilabel.model.train"
@@ -251,9 +262,8 @@ def main():
         config=config)
 
     results_df = analysis.results_df.sort_values(by=f'val_{config.val_metric}', ascending=False)
-    results_df.columns = results_df.columns.str.replace('^config.', '')
-    results_df.columns = results_df.columns.str.replace('.', '/')
-    columns = reporter._metric_columns + list(analysis.best_trial.evaluated_params.keys())
+    results_df = results_df.rename(columns=lambda x: x.split('.')[-1])
+    columns = reporter._metric_columns + [parameter_columns[x] for x in analysis.best_trial.evaluated_params.keys()]
     print(f'\n{results_df[columns].to_markdown()}\n')
 
 
