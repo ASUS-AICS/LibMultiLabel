@@ -12,9 +12,12 @@ class CAML(BaseModel):
     Follows the work of Mullenbach et al. [https://aclanthology.org/N18-1100.pdf]
 
     Args:
-        embed_vecs (FloatTensor): The pre-trained word vectors of shape (vocab_size, embed_dim)
-        filter_sizes (list): Size of convolutional filters
-        num_filter_per_size (int): Number of filters in convolutional layers in each size
+        embed_vecs (FloatTensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
+        num_classes (int): Total number of classes.
+        filter_sizes (list): Size of convolutional filters.
+        num_filter_per_size (int): Number of filters in convolutional layers in each size. Defaults to 50.
+        dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
+        activation (str): Activation function to be used. Defaults to 'tanh'.
     """
     def __init__(
         self,

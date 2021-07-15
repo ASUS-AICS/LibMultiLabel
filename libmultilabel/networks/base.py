@@ -6,8 +6,9 @@ class BaseModel(nn.Module):
     """Base Model for process different inputs
 
     Args:
-        config (AttrbuteDict): config of the experiment
-        embed_vecs (FloatTensor): embedding vectors for initialization
+        embed_vecs (FloatTensor): Embedding vectors for initialization.
+        dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
+        activation (str): Activation function to be used. Defaults to 'relu'.
     """
 
     def __init__(
