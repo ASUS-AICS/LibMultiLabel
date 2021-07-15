@@ -13,7 +13,7 @@ class KimCNN(BaseModel):
         filter_sizes=None,
         num_filter_per_size=128,
         dropout=0.2,
-        activation='tanh'
+        activation='relu'
     ):
         super(KimCNN, self).__init__(embed_vecs, dropout, activation)
         if not filter_sizes:
