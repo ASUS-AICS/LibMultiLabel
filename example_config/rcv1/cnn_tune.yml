@@ -34,6 +34,7 @@ vocab_file: null
 # hyperparamter search
 search_alg: basic_variant
 embed_cache_dir: .vector_cache
+num_samples: 10
 
 # other parameters specified in main.py::get_args
 config: example_config/rcv1/cnn_tune.yml
@@ -45,12 +46,9 @@ fixed_length: false
 label_file: null
 load_checkpoint: null
 metrics_thresholds: [0.5]
-momentum: 0.9
-predict_out_path: null
 result_dir: runs
 silent: true
 test_path: data/rcv1/test.txt
 train_path: data/rcv1/train.txt
 val_path: null
 val_size: 0.2
-vocab_label_map: null
