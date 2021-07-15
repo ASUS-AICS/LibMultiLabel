@@ -146,7 +146,7 @@ class MultiLabelModel(pl.LightningModule):
             header = '|'.join([f'{k:^18}' for k in metric_dict.keys()])
             values = '|'.join([f'{x * 100:^18.4f}' if isinstance(x, (np.floating, float)) else f'{x:^18}' for x in metric_dict.values()])
             print(f"|{header}|\n|{'-----------------:|' * len(metric_dict)}\n|{values}|\n")
-        # self.eval_metric.reset()
+        self.eval_metric.reset()
         return metric_dict
 
     def predict_step(self, batch, batch_idx, dataloader_idx):
