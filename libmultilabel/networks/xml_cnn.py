@@ -1,5 +1,3 @@
-import math
-
 import torch
 import torch.nn as nn
 
@@ -11,15 +9,16 @@ class XMLCNN(BaseModel):
         self,
         embed_vecs,
         num_classes,
+        dropout=0.2,
         dropout2=0.2,
-        filter_sizes=[2, 4, 8],
+        filter_sizes=None,
         hidden_dim=512,
         num_filter_per_size=256,
         num_pool=2,
         seed=None,
-        **kwargs,
+        activation='relu'
     ):
-        super(XMLCNN, self).__init__(embed_vecs, **kwargs)
+        super(XMLCNN, self).__init__(embed_vecs, dropout, activation)
         assert seed is None, ("nn.AdaptiveMaxPool1d doesn't have a "
                                      "deterministic implementation but seed is"
                                      "specified. Please do not specify seed.")

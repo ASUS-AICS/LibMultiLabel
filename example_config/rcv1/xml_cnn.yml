@@ -6,7 +6,7 @@ max_seq_length: 500
 fixed_length: True
 
 # train
-#seed: 1337
+# seed: 1337
 epochs: 50
 batch_size: 64
 optimizer: adam
@@ -21,12 +21,13 @@ val_metric: P@1
 
 # model
 model_name: XMLCNN
-num_filter_per_size: 128 # filter channels
-pool_size: 2
-filter_sizes: [2, 4, 8]
-hidden_dim: 512
-dropout: 0.5
-dropout2: 0.5
+network_config:
+  dropout: 0.5
+  dropout2: 0.5
+  filter_sizes: [2, 4, 8]
+  hidden_dim: 512
+  num_filter_per_size: 128 # filter channels
+  num_pool: 2
 
 # pretrained vocab / embeddings
 embed_file: glove.6B.300d
