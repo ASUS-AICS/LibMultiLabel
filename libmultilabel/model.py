@@ -135,10 +135,10 @@ class MultiLabelModel(pl.LightningModule):
         dump_log(metrics=metric_dict, split=split, log_path=self.log_path)
 
         if not self.silent and (not self.trainer or self.trainer.is_global_zero):
-            print(f'====== {split} dataset evaluation result =======')
+            self.print(f'====== {split} dataset evaluation result =======')
             header = '|'.join([f'{k:^18}' for k in metric_dict.keys()])
             values = '|'.join([f'{x * 100:^18.4f}' if isinstance(x, (np.floating, float)) else f'{x:^18}' for x in metric_dict.values()])
-            print(f"|{header}|\n|{'-----------------:|' * len(metric_dict)}\n|{values}|\n")
+            self.print(f"|{header}|\n|{'-----------------:|' * len(metric_dict)}\n|{values}|\n")
         self.eval_metric.reset()
         return metric_dict
 
@@ -152,11 +152,13 @@ class MultiLabelModel(pl.LightningModule):
         return {'top_k_pred': top_k_idx,
                 'top_k_pred_scores': top_k_scores}
 
-    def print(self, string):
-        if not self.silent:
-            if not self.trainer or self.trainer.is_global_zero:
-                print(string)
+    def print(self, *args, **kwargs):
+        """Prints only from process 0 and not in silent mode. Use this in any
+        distributed mode to log only once."""
 
+        if not self.silent:
+            # print() in LightningModule to print only from process 0
+            super().print(*args, **kwargs)
 
 class Model(MultiLabelModel):
     def __init__(
