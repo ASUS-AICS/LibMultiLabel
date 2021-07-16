@@ -8,8 +8,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 from . import networks
-from .metrics import MultiLabelMetrics
 from .utils import dump_log, argsort_top_k
+from .metrics import get_metrics, tabulate_metrics
 
 
 class MultiLabelModel(pl.LightningModule):
@@ -35,12 +35,15 @@ class MultiLabelModel(pl.LightningModule):
         self.optimizer = optimizer
         self.momentum = momentum
         self.weight_decay = weight_decay
-        # evaluator
-        self.eval_metric = MultiLabelMetrics(metric_threshold, monitor_metrics)
+
         # dump log
         self.log_path = log_path
         self.silent = silent
         self.save_k_predictions = save_k_predictions
+
+        # metrics for evaluation
+        self.eval_metric = get_metrics(metric_threshold, monitor_metrics,
+                                       self.num_classes)
 
     def configure_optimizers(self):
         """Initialize an optimizer for the free parameters of the network.
@@ -96,24 +99,20 @@ class MultiLabelModel(pl.LightningModule):
 
     def _shared_eval_step(self, batch, batch_idx):
         loss, pred_logits = self.shared_step(batch)
-        return {'loss': loss.item(),
-                'pred_scores': torch.sigmoid(pred_logits).detach().cpu().numpy(),
-                'target': batch['label'].detach().cpu().numpy()}
+        return {'loss': loss,
+                'pred_scores': torch.sigmoid(pred_logits),
+                'target': batch['label']}
 
     def _shared_eval_step_end(self, batch_parts):
-        pred_scores = np.vstack(batch_parts['pred_scores'])
-        target = np.vstack(batch_parts['target'])
-        return self.eval_metric.update(target, pred_scores)
+        return self.eval_metric.update(batch_parts['pred_scores'], batch_parts['target'])
 
     def _shared_eval_epoch_end(self, step_outputs, split):
-        metric_dict = self.eval_metric.get_metric_dict()
+        metric_dict = self.eval_metric.compute()
         self.log_dict(metric_dict)
+        for k, v in metric_dict.items():
+            metric_dict[k] = v.item()
         dump_log(metrics=metric_dict, split=split, log_path=self.log_path)
-
-        if not self.silent and (not self.trainer or self.trainer.is_global_zero):
-            print(f'====== {split} dataset evaluation result =======')
-            print(self.eval_metric)
-            print()
+        self.print(tabulate_metrics(metric_dict, split))
         self.eval_metric.reset()
         return metric_dict
 
@@ -127,11 +126,13 @@ class MultiLabelModel(pl.LightningModule):
         return {'top_k_pred': top_k_idx,
                 'top_k_pred_scores': top_k_scores}
 
-    def print(self, string):
-        if not self.silent:
-            if not self.trainer or self.trainer.is_global_zero:
-                print(string)
+    def print(self, *args, **kwargs):
+        """Prints only from process 0 and not in silent mode. Use this in any
+        distributed mode to log only once."""
 
+        if not self.silent:
+            # print() in LightningModule to print only from process 0
+            super().print(*args, **kwargs)
 
 class Model(MultiLabelModel):
     def __init__(
@@ -144,12 +145,12 @@ class Model(MultiLabelModel):
         log_path=None,
         **kwargs
     ):
-        super().__init__(log_path=log_path, **kwargs)
         self.save_hyperparameters()
 
         self.word_dict = word_dict
         self.classes = classes
         self.num_classes = len(self.classes)
+        super().__init__(log_path=log_path, **kwargs)
 
         embed_vecs = self.word_dict.vectors
         self.network = getattr(networks, model_name)(
@@ -167,5 +168,5 @@ class Model(MultiLabelModel):
         target_labels = batch['label']
         outputs = self.network(batch['text'])
         pred_logits = outputs['logits']
-        loss = F.binary_cross_entropy_with_logits(pred_logits, target_labels)
+        loss = F.binary_cross_entropy_with_logits(pred_logits, target_labels.float())
         return loss, pred_logits

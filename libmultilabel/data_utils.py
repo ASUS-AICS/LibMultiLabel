@@ -35,7 +35,7 @@ class TextDataset(Dataset):
         data = self.data[index]
         return {
             'text': torch.LongTensor([self.word_dict[word] for word in data['text']][:self.max_seq_length]),
-            'label': torch.FloatTensor(self.label_binarizer.transform([data['label']])[0]),
+            'label': torch.IntTensor(self.label_binarizer.transform([data['label']])[0]),
         }
 
 
