@@ -30,6 +30,8 @@ class Model(pl.LightningModule):
         monitor_metrics (list, optional): Metrics to monitor while validating. Defaults to None.
         silent (bool, optional): Enable silent mode. Defaults to False.
         save_k_predictions (int, optional): Save top k predictions on test set. Defaults to 0.
+        device (torch.device): `device` to use to initialize the network. This parameter is used in
+                                the `reproduce` branch only for the reproducibility of the model.
     """
     def __init__(
         self,
@@ -47,7 +49,7 @@ class Model(pl.LightningModule):
         monitor_metrics=None,
         silent=False,
         save_k_predictions=0,
-        device=None, # for reproducing model
+        device=None, # for reproducibility
         **kwargs
     ):
         super().__init__()
