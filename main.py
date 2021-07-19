@@ -251,7 +251,7 @@ def main():
             data_workers=config.data_workers
         )
 
-        # trainer.fit
+        # Start training
         trainer.fit(model, train_loader, val_loader)
         logging.info(f'Loading best model from `{checkpoint_callback.best_model_path}`...')
         model = Model.load_from_checkpoint(checkpoint_callback.best_model_path)

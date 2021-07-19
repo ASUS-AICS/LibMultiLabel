@@ -92,10 +92,17 @@ class Model(pl.LightningModule):
 
         return optimizer
 
-    @abstractmethod
     def shared_step(self, batch):
-        """Return loss and predicted logits"""
-        return NotImplemented
+        """Return loss and predicted logits of the network.
+
+        Args:
+            batch (dict): A batch of text and label.
+        """
+        target_labels = batch['label']
+        outputs = self.network(batch['text'])
+        pred_logits = outputs['logits']
+        loss = F.binary_cross_entropy_with_logits(pred_logits, target_labels.float())
+        return loss, pred_logits
 
     def training_step(self, batch, batch_idx):
         loss, _ = self.shared_step(batch)
@@ -138,26 +145,20 @@ class Model(pl.LightningModule):
         self.eval_metric.reset()
         return metric_dict
 
-    def shared_step(self, batch):
-        target_labels = batch['label']
-        outputs = self.network(batch['text'])
-        pred_logits = outputs['logits']
-        loss = F.binary_cross_entropy_with_logits(pred_logits, target_labels.float())
-        return loss, pred_logits
-
     def predict_step(self, batch, batch_idx, dataloader_idx):
         """`predict_step` is triggered when calling `trainer.predict()`.
+        This function is used to get the top-k labels and their prediction scores.
 
         Args:
-            batch ([type]): [description]
-            batch_idx ([type]): [description]
-            dataloader_idx ([type]): [description]
+            batch (dict): A batch of text and label.
+            batch_idx (int): Index of current batch.
+            dataloader_idx (int): Index of current dataloader.
 
         Returns:
-            [type]: [description]
+            dict: Top k label indexes and the prediction scores.
         """
-        outputs = self.network(batch['text'])
-        pred_scores= torch.sigmoid(outputs['logits']).detach().cpu().numpy()
+        _, pred_logits = self.shared_step(batch)
+        pred_scores = pred_logits.detach().cpu().numpy()
         k = self.save_k_predictions
         top_k_idx = argsort_top_k(pred_scores, k, axis=1)
         top_k_scores = np.take_along_axis(pred_scores, top_k_idx, axis=1)
