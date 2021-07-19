@@ -12,25 +12,36 @@ from .utils import dump_log, argsort_top_k
 from .metrics import get_metrics, tabulate_metrics
 
 
-class MultiLabelModel(pl.LightningModule):
+class Model(pl.LightningModule):
     """Abstract class handling Pytorch Lightning training flow
     """
 
     def __init__(
         self,
+        model_name,
+        classes,
+        word_dict,
+        init_weight=None,
+        log_path=None,
+        network_config=None,
         learning_rate=0.0001,
         optimizer='adam',
         momentum=0.9,
         weight_decay=0,
         metric_threshold=0.5,
         monitor_metrics=None,
-        log_path=None,
         silent=False,
         save_k_predictions=0,
         **kwargs
     ):
         super().__init__()
-        # optimizers
+
+        self.save_hyperparameters()
+        self.word_dict = word_dict
+        self.classes = classes
+        self.num_classes = len(self.classes)
+
+        # optimizer
         self.learning_rate = learning_rate
         self.optimizer = optimizer
         self.momentum = momentum
@@ -44,6 +55,17 @@ class MultiLabelModel(pl.LightningModule):
         # metrics for evaluation
         self.eval_metric = get_metrics(metric_threshold, monitor_metrics,
                                        self.num_classes)
+
+        embed_vecs = self.word_dict.vectors
+        self.network = getattr(networks, model_name)(
+            embed_vecs=embed_vecs,
+            num_classes=self.num_classes,
+            **network_config
+        )
+        if init_weight is not None:
+            init_weight = networks.get_init_weight_func(
+                init_weight=init_weight)
+            self.apply(init_weight)
 
     def configure_optimizers(self):
         """Initialize an optimizer for the free parameters of the network.
@@ -116,7 +138,24 @@ class MultiLabelModel(pl.LightningModule):
         self.eval_metric.reset()
         return metric_dict
 
+    def shared_step(self, batch):
+        target_labels = batch['label']
+        outputs = self.network(batch['text'])
+        pred_logits = outputs['logits']
+        loss = F.binary_cross_entropy_with_logits(pred_logits, target_labels.float())
+        return loss, pred_logits
+
     def predict_step(self, batch, batch_idx, dataloader_idx):
+        """`predict_step` is triggered when calling `trainer.predict()`.
+
+        Args:
+            batch ([type]): [description]
+            batch_idx ([type]): [description]
+            dataloader_idx ([type]): [description]
+
+        Returns:
+            [type]: [description]
+        """
         outputs = self.network(batch['text'])
         pred_scores= torch.sigmoid(outputs['logits']).detach().cpu().numpy()
         k = self.save_k_predictions
@@ -133,40 +172,3 @@ class MultiLabelModel(pl.LightningModule):
         if not self.silent:
             # print() in LightningModule to print only from process 0
             super().print(*args, **kwargs)
-
-class Model(MultiLabelModel):
-    def __init__(
-        self,
-        model_name,
-        classes,
-        word_dict,
-        init_weight=None,
-        log_path=None,
-        network_config=None,
-        **kwargs
-    ):
-        self.save_hyperparameters()
-
-        self.word_dict = word_dict
-        self.classes = classes
-        self.num_classes = len(self.classes)
-        super().__init__(log_path=log_path, **kwargs)
-
-        embed_vecs = self.word_dict.vectors
-        self.network = getattr(networks, model_name)(
-            embed_vecs=embed_vecs,
-            num_classes=self.num_classes,
-            **network_config
-        )
-
-        if init_weight is not None:
-            init_weight = networks.get_init_weight_func(
-                init_weight=init_weight)
-            self.apply(init_weight)
-
-    def shared_step(self, batch):
-        target_labels = batch['label']
-        outputs = self.network(batch['text'])
-        pred_logits = outputs['logits']
-        loss = F.binary_cross_entropy_with_logits(pred_logits, target_labels.float())
-        return loss, pred_logits
