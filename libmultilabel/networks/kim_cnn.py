@@ -6,15 +6,29 @@ from ..networks.base import BaseModel
 
 
 class KimCNN(BaseModel):
+    """KimCNN
+
+    Args:
+        embed_vecs (FloatTensor): The pre-trained word vectors of shape(vocab_size, embed_dim).
+        num_classes (int): Total number of classes.
+        filter_sizes (list): Size of convolutional filters.
+        num_filter_per_size (int): Number of filters in convolutional layers in each size. Defaults to 128.
+        dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
+        activation (str): Activation function to be used. Defaults to 'relu'.
+    """
     def __init__(
         self,
         embed_vecs,
         num_classes,
         filter_sizes=None,
         num_filter_per_size=128,
-        **kwargs
+        dropout=0.2,
+        activation='relu'
     ):
-        super(KimCNN, self).__init__(embed_vecs, **kwargs)
+        super(KimCNN, self).__init__(embed_vecs, dropout, activation)
+        if not filter_sizes:
+            raise ValueError(
+                f'KimCNN expect filter_sizes. Got filter_sizes={filter_sizes}')
 
         self.filter_sizes = filter_sizes
         emb_dim = embed_vecs.shape[1]

@@ -1,5 +1,3 @@
-import math
-
 import torch
 import torch.nn as nn
 
@@ -7,22 +5,35 @@ from ..networks.base import BaseModel
 
 
 class XMLCNN(BaseModel):
+    """XML-CNN
+
+        Args:
+            embed_vecs (FloatTensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
+            num_classes (int): Total number of classes.
+            dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
+            dropout2 (float): Optional specification of the second dropout. Defaults to 0.2.
+            filter_sizes (list): Size of convolutional filters.
+            hidden_dim (int): Dimension of the hidden layer. Defaults to 512.
+            num_filter_per_size (int): Number of filters in convolutional layers in each size. Defaults to 256.
+            num_pool (int): Number of pool for dynamic max-pooling. Defaults to 2.
+            activation (str): Activation function to be used. Defaults to 'relu'.
+        """
     def __init__(
         self,
         embed_vecs,
         num_classes,
+        dropout=0.2,
         dropout2=0.2,
-        filter_sizes=[2, 4, 8],
+        filter_sizes=None,
         hidden_dim=512,
         num_filter_per_size=256,
         num_pool=2,
-        seed=None,
-        **kwargs,
+        activation='relu'
     ):
-        super(XMLCNN, self).__init__(embed_vecs, **kwargs)
-        assert seed is None, ("nn.AdaptiveMaxPool1d doesn't have a "
-                                     "deterministic implementation but seed is"
-                                     "specified. Please do not specify seed.")
+        super(XMLCNN, self).__init__(embed_vecs, dropout, activation)
+        if not filter_sizes:
+            raise ValueError(
+                f'XMLCNN expect filter_sizes. Got filter_sizes={filter_sizes}')
 
         emb_dim = embed_vecs.shape[1]
 

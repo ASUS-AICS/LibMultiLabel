@@ -92,7 +92,7 @@ def get_config():
     # eval
     parser.add_argument('--eval_batch_size', type=int, default=256,
                         help='Size of evaluating batches (default: %(default)s)')
-    parser.add_argument('--metrics_threshold', type=float, default=0.5,
+    parser.add_argument('--metric_threshold', type=float, default=0.5,
                         help='Thresholds to monitor for metrics (default: %(default)s)')
     parser.add_argument('--monitor_metrics', nargs='+', default=['P@1', 'P@3', 'P@5'],
                         help='Metrics to monitor while validating (default: %(default)s)')
@@ -134,6 +134,17 @@ def get_config():
     return config
 
 
+def check_config(config):
+    """Check if the configuration has invalid arguments.
+
+    Args:
+        config (AttributeDict): Config of the experiment from `get_args`.
+    """
+    if config.model_name == 'XMLCNN' and config.seed is not None:
+        raise ValueError("nn.AdaptiveMaxPool1d doesn't have a deterministic implementation but seed is"
+                         "specified. Please do not specify seed.")
+
+
 def save_predictions(trainer, model, dataloader, predict_out_path):
     batch_predictions = trainer.predict(model, dataloaders=dataloader)
     pred_labels = np.vstack([batch['top_k_pred'] for batch in batch_predictions])
@@ -148,6 +159,7 @@ def save_predictions(trainer, model, dataloader, predict_out_path):
 def main():
     # Get config
     config = get_config()
+    check_config(config)
     config.run_name = '{}_{}_{}'.format(
         config.data_name,
         Path(config.config).stem if config.config else config.model_name,
@@ -192,12 +204,14 @@ def main():
 
     # Setup model
     if config.eval:
-        model = Model.load_from_checkpoint(config.checkpoint_path)
-        model.config = config
+        model = Model.load_from_checkpoint(
+            config.checkpoint_path, device=device,
+            model_name=config.model_name, silent=config.silent)
     else:
         if config.checkpoint_path:
-            model = Model.load_from_checkpoint(config.checkpoint_path)
-            model.config = config
+            model = Model.load_from_checkpoint(
+                config.checkpoint_path, device=device,
+                model_name=config.model_name, silent=config.silent)
         else:
             word_dict = data_utils.load_or_build_text_dict(
                 dataset=datasets['train'],
@@ -234,11 +248,10 @@ def main():
             device=device,
             max_seq_length=config.max_seq_length,
             batch_size=config.eval_batch_size,
-            shuffle=config.shuffle,
             data_workers=config.data_workers
         )
 
-        # trainer.fit
+        # Start training
         trainer.fit(model, train_loader, val_loader)
         logging.info(f'Loading best model from `{checkpoint_callback.best_model_path}`...')
         model = Model.load_from_checkpoint(checkpoint_callback.best_model_path)
