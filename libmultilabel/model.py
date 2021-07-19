@@ -97,6 +97,10 @@ class Model(pl.LightningModule):
 
         Args:
             batch (dict): A batch of text and label.
+
+        Returns:
+            loss (Tensor): Binary cross-entropy between target and predict logits.
+            pred_logits (Tensor): The predict logits (batch_size, num_classes).
         """
         target_labels = batch['label']
         outputs = self.network(batch['text'])
