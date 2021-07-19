@@ -204,12 +204,14 @@ def main():
 
     # Setup model
     if config.eval:
-        model = Model.load_from_checkpoint(config.checkpoint_path)
-        model.config = config
+        model = Model.load_from_checkpoint(
+            config.checkpoint_path, device=device,
+            model_name=config.model_name, silent=config.silent)
     else:
         if config.checkpoint_path:
-            model = Model.load_from_checkpoint(config.checkpoint_path)
-            model.config = config
+            model = Model.load_from_checkpoint(
+                config.checkpoint_path, device=device,
+                model_name=config.model_name, silent=config.silent)
         else:
             word_dict = data_utils.load_or_build_text_dict(
                 dataset=datasets['train'],
@@ -246,7 +248,6 @@ def main():
             device=device,
             max_seq_length=config.max_seq_length,
             batch_size=config.eval_batch_size,
-            shuffle=config.shuffle,
             data_workers=config.data_workers
         )
 
