@@ -9,7 +9,7 @@ class KimCNN(BaseModel):
     """KimCNN
 
     Args:
-        embed_vecs(FloatTensor): The pre-trained word vectors of shape(vocab_size, embed_dim).
+        embed_vecs (FloatTensor): The pre-trained word vectors of shape(vocab_size, embed_dim).
         num_classes(int): Total number of classes.
         filter_sizes(list): Size of convolutional filters.
         num_filter_per_size(int): Number of filters in convolutional layers in each size. Defaults to 128.
