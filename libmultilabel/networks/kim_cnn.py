@@ -10,11 +10,11 @@ class KimCNN(BaseModel):
 
     Args:
         embed_vecs (FloatTensor): The pre-trained word vectors of shape(vocab_size, embed_dim).
-        num_classes(int): Total number of classes.
-        filter_sizes(list): Size of convolutional filters.
-        num_filter_per_size(int): Number of filters in convolutional layers in each size. Defaults to 128.
-        dropout(float): The dropout rate of the word embedding. Defaults to 0.2.
-        activation(str): Activation function to be used. Defaults to 'relu'.
+        num_classes (int): Total number of classes.
+        filter_sizes (list): Size of convolutional filters.
+        num_filter_per_size (int): Number of filters in convolutional layers in each size. Defaults to 128.
+        dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
+        activation (str): Activation function to be used. Defaults to 'relu'.
     """
     def __init__(
         self,
