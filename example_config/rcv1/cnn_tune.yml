@@ -43,7 +43,7 @@ cpu: false
 data_workers: 4
 eval: false
 label_file: null
-metrics_threshold: 0.5
+metric_threshold: 0.5
 result_dir: runs
 silent: true
 test_path: data/rcv1/test.txt
