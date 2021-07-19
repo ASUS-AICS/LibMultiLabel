@@ -92,7 +92,7 @@ def get_config():
     # eval
     parser.add_argument('--eval_batch_size', type=int, default=256,
                         help='Size of evaluating batches (default: %(default)s)')
-    parser.add_argument('--metrics_threshold', type=float, default=0.5,
+    parser.add_argument('--metric_threshold', type=float, default=0.5,
                         help='Thresholds to monitor for metrics (default: %(default)s)')
     parser.add_argument('--monitor_metrics', nargs='+', default=['P@1', 'P@3', 'P@5'],
                         help='Metrics to monitor while validating (default: %(default)s)')

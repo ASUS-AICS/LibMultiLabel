@@ -14,8 +14,23 @@ from .metrics import get_metrics, tabulate_metrics
 
 class Model(pl.LightningModule):
     """Abstract class handling Pytorch Lightning training flow
-    """
 
+    Args:
+        model_name (str): Network name (i.e., CAML, KimCNN, or XMLCNN).
+        classes (list): List of class names.
+        word_dict (torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
+        init_weight (str, optional): Weight initialization to be used. Defaults to None.
+        log_path (str): Path to a directory holding the log files and models.
+        network_config (dict): The configuration of a network.
+        learning_rate (float, optional): Learning rate for optimizer. Defaults to 0.0001.
+        optimizer (str, optional): Optimizer name (i.e., sgd, adam, or adamw). Defaults to 'adam'.
+        momentum (float, optional): Momentum factor for SGD only. Defaults to 0.9.
+        weight_decay (int, optional): Weight decay factor. Defaults to 0.
+        metric_threshold (float, optional): Thresholds to monitor for metrics. Defaults to 0.5.
+        monitor_metrics (list, optional): Metrics to monitor while validating. Defaults to None.
+        silent (bool, optional): Enable silent mode. Defaults to False.
+        save_k_predictions (int, optional): Save top k predictions on test set. Defaults to 0.
+    """
     def __init__(
         self,
         model_name,
