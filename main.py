@@ -264,7 +264,6 @@ def main():
             device=device,
             max_seq_length=config.max_seq_length,
             batch_size=config.eval_batch_size,
-            shuffle=config.shuffle,
             data_workers=config.data_workers
         )
         trainer.test(model, test_dataloaders=test_loader)

@@ -22,11 +22,9 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes):
         if isinstance(metric, Metric): # customized metric
             metrics[type(metric).__name__] = metric
         elif re.match('P@\d+', metric):
-            metrics[metric] = Precision(num_classes, metric_threshold,
-                                        average='samples', top_k=int(metric[2:]))
+            metrics[metric] = Precision(num_classes, average='samples', top_k=int(metric[2:]))
         elif re.match('R@\d+', metric):
-            metrics[metric] = Recall(num_classes, metric_threshold,
-                                        average='samples', top_k=int(metric[2:]))
+            metrics[metric] = Recall(num_classes, average='samples', top_k=int(metric[2:]))
         elif metric not in ['Micro-Precision', 'Micro-Recall', 'Micro-F1', 'Macro-F1', 'Another-Macro-F1']:
             raise ValueError(f'Invalid metric: {metric}')
 
@@ -34,7 +32,7 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes):
 
 
 def tabulate_metrics(metric_dict, split):
-    msg = f'====== {split} dataset evaluation result ======='
+    msg = f'====== {split} dataset evaluation result =======\n'
     header = '|'.join([f'{k:^18}' for k in metric_dict.keys()])
     values = '|'.join([f'{x * 100:^18.4f}' if isinstance(x, (np.floating, float)) else f'{x:^18}' for x in metric_dict.values()])
     msg += f"|{header}|\n|{'-----------------:|' * len(metric_dict)}\n|{values}|\n"
