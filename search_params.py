@@ -143,13 +143,19 @@ def init_model_config(config_path):
     return model_config
 
 
-def init_search_params_spaces(model_config):
+def init_search_params_spaces(config, parameter_columns, prefix):
     """Initialize the sample space defined in ray tune.
     See the random distributions API listed here: https://docs.ray.io/en/master/tune/api_docs/search_space.html#random-distributions-api
+
+    Args:
+        config (AttributeDict): Config of the experiment.
+        parameter_columns (dict): Names of parameters to include in the CLIReporter.
+                                  The keys are parameter names and the values are displayed names.
+        prefix(str): The prefix of a nested parameter such as network_config/dropout.
     """
     search_spaces = ['choice', 'grid_search', 'uniform', 'quniform', 'loguniform',
                      'qloguniform', 'randn', 'qrandn', 'randint', 'qrandint']
-    for key, value in model_config.items():
+    for key, value in config.items():
         if isinstance(value, list) and len(value) >= 2 and value[0] in search_spaces:
             search_space, search_args = value[0], value[1:]
             if isinstance(search_args[0], list) and any(isinstance(x, list) for x in search_args[0]) and search_space != 'grid_search':
@@ -159,8 +165,12 @@ def init_search_params_spaces(model_config):
                     [2,4,8] and [4,6]. This is the same as assigning `filter_sizes` to either [2,4,8] or [4,6] in two runs.
                     """)
             else:
-                model_config[key] = getattr(tune, search_space)(*search_args)
-    return model_config
+                config[key] = getattr(tune, search_space)(*search_args)
+                parameter_columns[prefix+key] = key
+        elif isinstance(value, dict):
+            config[key] = init_search_params_spaces(value, parameter_columns, f'{prefix}{key}/')
+
+    return config
 
 
 def init_search_algorithm(search_alg, metric=None, mode=None):
@@ -220,37 +230,40 @@ def main():
     """Other args in the model config are viewed as resolved values that are ignored from tune.
     https://github.com/ray-project/ray/blob/34d3d9294c50aea4005b7367404f6a5d9e0c2698/python/ray/tune/suggest/variant_generator.py#L333
     """
-    model_config = init_model_config(args.config)
-    search_alg = args.search_alg if args.search_alg else model_config.search_alg
-    num_samples = model_config['num_samples'] if model_config.get('num_samples', None) else args.num_samples
-    model_config = init_search_params_spaces(model_config)
-    data = load_static_data(model_config)
+    config = init_model_config(args.config)
+    search_alg = args.search_alg if args.search_alg else config.search_alg
+    num_samples = config['num_samples'] if config.get('num_samples', None) else args.num_samples
+
+    parameter_columns = dict()
+    config = init_search_params_spaces(config, parameter_columns, prefix='')
+    data = load_static_data(config)
 
     """Run tune analysis.
     If no search algorithm is specified, the default search algorighm is BasicVariantGenerator.
     https://docs.ray.io/en/master/tune/api_docs/suggestion.html#tune-basicvariant
     """
     all_monitor_metrics = [f'{split}_{metric}' for split, metric in itertools.product(
-        ['val', 'test'], model_config.monitor_metrics)]
-    reporter = tune.CLIReporter(metric_columns=all_monitor_metrics)
+        ['val', 'test'], config.monitor_metrics)]
+    reporter = tune.CLIReporter(metric_columns=all_monitor_metrics,
+                                parameter_columns=parameter_columns)
     analysis = tune.run(
         tune.with_parameters(Trainable, data=data),
         # run one step "libmultilabel.model.train"
         stop={"training_iteration": 1},
         search_alg=init_search_algorithm(
-            search_alg, metric=model_config.val_metric, mode=args.mode),
+            search_alg, metric=config.val_metric, mode=args.mode),
         local_dir=args.local_dir,
-        metric=f'val_{model_config.val_metric}',
+        metric=f'val_{config.val_metric}',
         mode=args.mode,
         num_samples=num_samples,
         resources_per_trial={
             'cpu': args.cpu_count, 'gpu': args.gpu_count},
         progress_reporter=reporter,
-        config=model_config)
+        config=config)
 
-    results_df = analysis.results_df.sort_values(by=f'val_{model_config.val_metric}', ascending=False)
-    results_df.columns = results_df.columns.str.replace('^config.', '')
-    columns = reporter._metric_columns + list(analysis.best_trial.evaluated_params.keys())
+    results_df = analysis.results_df.sort_values(by=f'val_{config.val_metric}', ascending=False)
+    results_df = results_df.rename(columns=lambda x: x.split('.')[-1])
+    columns = reporter._metric_columns + [parameter_columns[x] for x in analysis.best_trial.evaluated_params.keys()]
     print(f'\n{results_df[columns].to_markdown()}\n')
 
 

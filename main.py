@@ -134,6 +134,17 @@ def get_config():
     return config
 
 
+def check_config(config):
+    """Check if the configuration has invalid arguments.
+
+    Args:
+        config (AttributeDict): Config of the experiment from `get_args`.
+    """
+    if config.model_name == 'XMLCNN' and config.seed is not None:
+        raise ValueError("nn.AdaptiveMaxPool1d doesn't have a deterministic implementation but seed is"
+                         "specified. Please do not specify seed.")
+
+
 def save_predictions(trainer, model, dataloader, predict_out_path):
     batch_predictions = trainer.predict(model, dataloaders=dataloader)
     pred_labels = np.vstack([batch['top_k_pred'] for batch in batch_predictions])
@@ -148,6 +159,7 @@ def save_predictions(trainer, model, dataloader, predict_out_path):
 def main():
     # Get config
     config = get_config()
+    check_config(config)
     config.run_name = '{}_{}_{}'.format(
         config.data_name,
         Path(config.config).stem if config.config else config.model_name,

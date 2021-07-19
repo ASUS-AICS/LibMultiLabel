@@ -137,12 +137,12 @@ class MultiLabelModel(pl.LightningModule):
 class Model(MultiLabelModel):
     def __init__(
         self,
-        device,
         model_name,
         classes,
         word_dict,
         init_weight=None,
         log_path=None,
+        network_config=None,
         **kwargs
     ):
         self.save_hyperparameters()
@@ -156,8 +156,8 @@ class Model(MultiLabelModel):
         self.network = getattr(networks, model_name)(
             embed_vecs=embed_vecs,
             num_classes=self.num_classes,
-            **kwargs
-        ).to(device)
+            **network_config
+        )
 
         if init_weight is not None:
             init_weight = networks.get_init_weight_func(
