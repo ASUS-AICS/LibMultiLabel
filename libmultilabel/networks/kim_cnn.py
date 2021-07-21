@@ -6,12 +6,32 @@ from ..networks.base import BaseModel
 
 
 class KimCNN(BaseModel):
-    def __init__(self, config, embed_vecs):
-        super(KimCNN, self).__init__(config, embed_vecs)
+    """KimCNN
 
-        self.filter_sizes = config.filter_sizes
+    Args:
+        embed_vecs (FloatTensor): The pre-trained word vectors of shape(vocab_size, embed_dim).
+        num_classes (int): Total number of classes.
+        filter_sizes (list): Size of convolutional filters.
+        num_filter_per_size (int): Number of filters in convolutional layers in each size. Defaults to 128.
+        dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
+        activation (str): Activation function to be used. Defaults to 'relu'.
+    """
+    def __init__(
+        self,
+        embed_vecs,
+        num_classes,
+        filter_sizes=None,
+        num_filter_per_size=128,
+        dropout=0.2,
+        activation='relu'
+    ):
+        super(KimCNN, self).__init__(embed_vecs, dropout, activation)
+        if not filter_sizes:
+            raise ValueError(
+                f'KimCNN expect filter_sizes. Got filter_sizes={filter_sizes}')
+
+        self.filter_sizes = filter_sizes
         emb_dim = embed_vecs.shape[1]
-        num_filter_per_size = config.num_filter_per_size
 
         self.convs = nn.ModuleList()
 
@@ -23,7 +43,7 @@ class KimCNN(BaseModel):
             self.convs.append(conv)
         conv_output_size = num_filter_per_size * len(self.filter_sizes)
 
-        self.linear = nn.Linear(conv_output_size, config.num_classes)
+        self.linear = nn.Linear(conv_output_size, num_classes)
 
     def forward(self, text):
         h = self.embedding(text) # (batch_size, length, embed_dim)

@@ -39,51 +39,36 @@ class Timer(object):
         return self.total
 
 
-def dump_log(config, metrics, split):
+def dump_log(log_path, metrics=None, split=None, config=None):
     """Write log including config and the evaluation scores.
 
     Args:
-        config (dict): config to save
-        metrics (dict): metric and scores in dictionary format
-        split (str): val or test
+        log_path(str): path to log path
+        metrics (dict): metric and scores in dictionary format, defaults to None
+        split (str): val or test, defaults to None
+        config (dict): config to save, defaults to None
     """
-    log_path = os.path.join(config.result_dir, config.run_name, 'logs.json')
     os.makedirs(os.path.dirname(log_path), exist_ok=True)
     if os.path.isfile(log_path):
         with open(log_path) as fp:
             result = json.load(fp)
     else:
+        result = dict()
+
+    if config:
         config_to_save = copy.deepcopy(dict(config))
         config_to_save.pop('device', None)  # delete if device exists
-        result = {'config': config_to_save}
+        result['config'] = config_to_save
+    if split and metrics:
+        if split in result:
+            result[split].append(metrics)
+        else:
+            result[split] = [metrics]
 
-    if split in result:
-        result[split].append(metrics)
-    else:
-        result[split] = [metrics]
     with open(log_path, 'w') as fp:
         json.dump(result, fp)
 
     logging.info(f'Finish writing log to {log_path}.')
-
-
-def save_top_k_predictions(class_names, y_pred, predict_out_path, k=100):
-    """Save top k predictions to the predict_out_path. The format of this file is:
-    <label1>:<value1> <label2>:<value2> ...
-
-    Args:
-        class_names (list): list of class names
-        y_pred (ndarray): predictions (shape: number of samples * number of classes)
-        k (int): number of classes considered as the correct labels
-    """
-    assert predict_out_path, "Please specify the output path to the prediction results."
-
-    logging.info(f'Save top {k} predictions to {predict_out_path}.')
-    with open(predict_out_path, 'w') as fp:
-        for pred in y_pred:
-            label_ids = np.argsort(-pred).tolist()[:k]
-            out_str = ' '.join([f'{class_names[i]}:{pred[i]:.4}' for i in label_ids])
-            fp.write(out_str+'\n')
 
 
 def set_seed(seed):
@@ -110,3 +95,11 @@ def init_device(use_cpu=False):
         torch.multiprocessing.set_sharing_strategy('file_system')
     logging.info(f'Using device: {device}')
     return device
+
+
+def argsort_top_k(vals, k, axis=-1):
+    unsorted_top_k_idx = np.argpartition(vals, -k, axis=axis)[:,-k:]
+    unsorted_top_k_scores = np.take_along_axis(vals, unsorted_top_k_idx, axis=axis)
+    sorted_order = np.argsort(-unsorted_top_k_scores, axis=axis)
+    sorted_top_k_idx = np.take_along_axis(unsorted_top_k_idx, sorted_order, axis=axis)
+    return sorted_top_k_idx

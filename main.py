@@ -1,19 +1,19 @@
 import argparse
 import logging
 import os
+import yaml
 from datetime import datetime
 from pathlib import Path
 
+import numpy as np
 import pytorch_lightning as pl
-import yaml
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.utilities.parsing import AttributeDict
 
 from libmultilabel import data_utils
 from libmultilabel.model import Model
-from libmultilabel.utils import (Timer, dump_log, init_device,
-                                 save_top_k_predictions, set_seed)
+from libmultilabel.utils import Timer, dump_log, init_device, set_seed
 
 
 def get_config():
@@ -92,7 +92,7 @@ def get_config():
     # eval
     parser.add_argument('--eval_batch_size', type=int, default=256,
                         help='Size of evaluating batches (default: %(default)s)')
-    parser.add_argument('--metrics_threshold', type=float, default=0.5,
+    parser.add_argument('--metric_threshold', type=float, default=0.5,
                         help='Thresholds to monitor for metrics (default: %(default)s)')
     parser.add_argument('--monitor_metrics', nargs='+', default=['P@1', 'P@3', 'P@5'],
                         help='Metrics to monitor while validating (default: %(default)s)')
@@ -134,23 +134,56 @@ def get_config():
     return config
 
 
-def main():
-    config = get_config()
-    log_level = logging.WARNING if config.silent else logging.INFO
-    logging.basicConfig(
-        level=log_level, format='%(asctime)s %(levelname)s:%(message)s')
-    set_seed(seed=config.seed)
-    config.device = init_device(use_cpu=config.cpu)
+def check_config(config):
+    """Check if the configuration has invalid arguments.
 
+    Args:
+        config (AttributeDict): Config of the experiment from `get_args`.
+    """
+    if config.model_name == 'XMLCNN' and config.seed is not None:
+        raise ValueError("nn.AdaptiveMaxPool1d doesn't have a deterministic implementation but seed is"
+                         "specified. Please do not specify seed.")
+
+
+def save_predictions(trainer, model, dataloader, predict_out_path):
+    batch_predictions = trainer.predict(model, dataloaders=dataloader)
+    pred_labels = np.vstack([batch['top_k_pred'] for batch in batch_predictions])
+    pred_scores = np.vstack([batch['top_k_pred_scores'] for batch in batch_predictions])
+    with open(predict_out_path, 'w') as fp:
+        for pred_label, pred_score in zip(pred_labels, pred_scores):
+            out_str = ' '.join([f'{model.classes[label]}:{score:.4}' for label, score in zip(pred_label, pred_score)])
+            fp.write(out_str+'\n')
+    logging.info(f'Saved predictions to: {predict_out_path}')
+
+
+def main():
+    # Get config
+    config = get_config()
+    check_config(config)
     config.run_name = '{}_{}_{}'.format(
         config.data_name,
         Path(config.config).stem if config.config else config.model_name,
         datetime.now().strftime('%Y%m%d%H%M%S'),
     )
+    # Set up logger
+    log_level = logging.WARNING if config.silent else logging.INFO
+    logging.basicConfig(
+        level=log_level, format='%(asctime)s %(levelname)s:%(message)s')
     logging.info(f'Run name: {config.run_name}')
 
-    datasets = data_utils.load_datasets(config)
+    # Set up seed & device
+    set_seed(seed=config.seed)
+    device = init_device(use_cpu=config.cpu)
 
+    # Load dataset
+    datasets = data_utils.load_datasets(data_dir=config.data_dir,
+                                        train_path=config.train_path,
+                                        test_path=config.test_path,
+                                        val_path=config.val_path,
+                                        val_size=config.val_size,
+                                        is_eval=config.eval)
+
+    # Set up trainer
     checkpoint_dir = os.path.join(config.result_dir, config.run_name)
     checkpoint_callback = ModelCheckpoint(dirpath=checkpoint_dir,
                                           filename='best_model',
@@ -158,7 +191,6 @@ def main():
                                           monitor=config.val_metric, mode='max')
     earlystopping_callback = EarlyStopping(patience=config.patience,
                                            monitor=config.val_metric, mode='max')
-
     trainer = pl.Trainer(logger=False,
                          num_sanity_val_steps=0,
                          gpus=0 if config.cpu else 1,
@@ -166,39 +198,79 @@ def main():
                          max_epochs=config.epochs,
                          callbacks=[checkpoint_callback, earlystopping_callback])
 
+    # Dump config to log
+    log_path = os.path.join(checkpoint_dir, 'logs.json')
+    dump_log(log_path, config=config)
+
+    # Setup model
     if config.eval:
-        model = Model.load_from_checkpoint(config.checkpoint_path)
+        model = Model.load_from_checkpoint(
+            config.checkpoint_path, device=device,
+            model_name=config.model_name, silent=config.silent)
     else:
         if config.checkpoint_path:
-            model = Model.load_from_checkpoint(config.checkpoint_path)
+            model = Model.load_from_checkpoint(
+                config.checkpoint_path, device=device,
+                model_name=config.model_name, silent=config.silent)
         else:
             word_dict = data_utils.load_or_build_text_dict(
-                config, datasets['train'])
-            classes = data_utils.load_or_build_label(config, datasets)
-            model = Model(config, word_dict, classes)
+                dataset=datasets['train'],
+                vocab_file=config.vocab_file,
+                min_vocab_freq=config.min_vocab_freq,
+                embed_file=config.embed_file,
+                embed_cache_dir=config.embed_cache_dir,
+                silent=config.silent
+            )
+            classes = data_utils.load_or_build_label(datasets, config.label_file, config.silent)
+            model = Model(
+                device=device,
+                classes=classes,
+                word_dict=word_dict,
+                log_path=log_path,
+                **dict(config)
+            )
 
+        # Set up dataset loader
         train_loader = data_utils.get_dataset_loader(
-            model.config, datasets['train'], model.word_dict, model.classes,
-            shuffle=model.config.shuffle, train=True)
+            data=datasets['train'],
+            word_dict=model.word_dict,
+            classes=model.classes,
+            device=device,
+            max_seq_length=config.max_seq_length,
+            batch_size=config.batch_size,
+            shuffle=config.shuffle,
+            data_workers=config.data_workers
+        )
         val_loader = data_utils.get_dataset_loader(
-            model.config, datasets['val'], model.word_dict, model.classes, train=False)
+            data=datasets['val'],
+            word_dict=model.word_dict,
+            classes=model.classes,
+            device=device,
+            max_seq_length=config.max_seq_length,
+            batch_size=config.eval_batch_size,
+            data_workers=config.data_workers
+        )
 
+        # Start training
         trainer.fit(model, train_loader, val_loader)
-
         logging.info(f'Loading best model from `{checkpoint_callback.best_model_path}`...')
         model = Model.load_from_checkpoint(checkpoint_callback.best_model_path)
 
     if 'test' in datasets:
         test_loader = data_utils.get_dataset_loader(
-            model.config, datasets['test'], model.word_dict, model.classes, train=False)
+            data=datasets['test'],
+            word_dict=model.word_dict,
+            classes=model.classes,
+            device=device,
+            max_seq_length=config.max_seq_length,
+            batch_size=config.eval_batch_size,
+            data_workers=config.data_workers
+        )
         trainer.test(model, test_dataloaders=test_loader)
         if config.save_k_predictions > 0:
             if not config.predict_out_path:
-                config.predict_out_path = os.path.join(
-                    checkpoint_dir, 'predictions.txt')
-            save_top_k_predictions(model.classes,
-                                   model.test_results.get_y_pred(),
-                                   config.predict_out_path, config.save_k_predictions)
+                config.predict_out_path = os.path.join(checkpoint_dir, 'predictions.txt')
+            save_predictions(trainer, model, test_loader, config.predict_out_path)
 
 
 if __name__ == '__main__':
