@@ -146,6 +146,7 @@ def init_model_config(config_path):
 def init_search_params_spaces(config, parameter_columns, prefix):
     """Initialize the sample space defined in ray tune.
     See the random distributions API listed here: https://docs.ray.io/en/master/tune/api_docs/search_space.html#random-distributions-api
+
     Args:
         config (AttributeDict): Config of the experiment.
         parameter_columns (dict): Names of parameters to include in the CLIReporter.
