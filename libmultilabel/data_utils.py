@@ -158,8 +158,7 @@ def load_or_build_text_dict(
 
     if os.path.exists(embed_file):
         logging.info(f'Load pretrained embedding from file: {embed_file}.')
-        embedding_weights = get_embedding_weights_from_file(
-            vocabs, embed_file, silent, normalize)
+        embedding_weights = get_embedding_weights_from_file(vocabs, embed_file, silent, normalize)
         vocabs.set_vectors(vocabs.stoi, embedding_weights,
                            dim=embedding_weights.shape[1], unk_init=False)
     elif not embed_file.isdigit():
@@ -187,7 +186,7 @@ def load_or_build_label(datasets, label_file=None, silent=False):
 
 def get_embedding_weights_from_file(word_dict, embed_file, silent=False, normalize=True):
     """If there is an embedding file, load pretrained word embedding.
-    Otherwise, assign a zero vector.
+    Otherwise, assign a zero vector to that word.
 
     Args:
         word_dict (torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
@@ -224,7 +223,6 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, normali
     logging.info(f'loaded {vec_counts}/{len(word_dict)} word embeddings')
     if normalize:
         for i, vector in enumerate(embedding_weights):
-            embedding_weights[i] = vector / \
-                float(np.linalg.norm(vector) + 1e-6)
+            embedding_weights[i] = vector/float(np.linalg.norm(vector) + 1e-6)
 
     return torch.Tensor(embedding_weights)

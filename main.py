@@ -71,7 +71,7 @@ def get_config():
     parser.add_argument('--patience', type=int, default=5,
                         help='Number of epochs to wait for improvement before early stopping (default: %(default)s)')
     parser.add_argument('--normalize', type=bool, default=True,
-                        help='Whether to divided word embeddings by `float(np.linalg.norm(vector) + 1e-6)` (default: %(default)s)')
+                        help='Whether the word embeddings divide by `float(np.linalg.norm(vector) + 1e-6)` (default: %(default)s)')
 
     # model
     parser.add_argument('--model_name', default='KimCNN',
@@ -149,14 +149,11 @@ def check_config(config):
 
 def save_predictions(trainer, model, dataloader, predict_out_path):
     batch_predictions = trainer.predict(model, dataloaders=dataloader)
-    pred_labels = np.vstack([batch['top_k_pred']
-                            for batch in batch_predictions])
-    pred_scores = np.vstack([batch['top_k_pred_scores']
-                            for batch in batch_predictions])
+    pred_labels = np.vstack([batch['top_k_pred'] for batch in batch_predictions])
+    pred_scores = np.vstack([batch['top_k_pred_scores'] for batch in batch_predictions])
     with open(predict_out_path, 'w') as fp:
         for pred_label, pred_score in zip(pred_labels, pred_scores):
-            out_str = ' '.join([f'{model.classes[label]}:{score:.4}' for label, score in zip(
-                pred_label, pred_score)])
+            out_str = ' '.join([f'{model.classes[label]}:{score:.4}' for label, score in zip(pred_label, pred_score)])
             fp.write(out_str+'\n')
     logging.info(f'Saved predictions to: {predict_out_path}')
 
@@ -227,8 +224,7 @@ def main():
                 silent=config.silent,
                 normalize=config.normalize
             )
-            classes = data_utils.load_or_build_label(
-                datasets, config.label_file, config.silent)
+            classes = data_utils.load_or_build_label(datasets, config.label_file, config.silent)
             model = Model(
                 device=device,
                 classes=classes,
@@ -260,8 +256,7 @@ def main():
 
         # Start training
         trainer.fit(model, train_loader, val_loader)
-        logging.info(
-            f'Loading best model from `{checkpoint_callback.best_model_path}`...')
+        logging.info(f'Loading best model from `{checkpoint_callback.best_model_path}`...')
         model = Model.load_from_checkpoint(checkpoint_callback.best_model_path)
 
     if 'test' in datasets:
@@ -277,10 +272,8 @@ def main():
         trainer.test(model, test_dataloaders=test_loader)
         if config.save_k_predictions > 0:
             if not config.predict_out_path:
-                config.predict_out_path = os.path.join(
-                    checkpoint_dir, 'predictions.txt')
-            save_predictions(trainer, model, test_loader,
-                             config.predict_out_path)
+                config.predict_out_path = os.path.join(checkpoint_dir, 'predictions.txt')
+            save_predictions(trainer, model, test_loader, config.predict_out_path)
 
 
 if __name__ == '__main__':

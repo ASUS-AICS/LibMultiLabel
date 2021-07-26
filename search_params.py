@@ -41,8 +41,7 @@ class Trainable(tune.Trainable):
         )
         logging.info(f'Run name: {self.config.run_name}')
 
-        checkpoint_dir = os.path.join(
-            self.config.result_dir, self.config.run_name)
+        checkpoint_dir = os.path.join(self.config.result_dir, self.config.run_name)
         checkpoint_callback = ModelCheckpoint(dirpath=checkpoint_dir,
                                               filename='best_model',
                                               save_last=True, save_top_k=1,
@@ -91,10 +90,8 @@ class Trainable(tune.Trainable):
         )
 
         trainer.fit(model, train_loader, val_loader)
-        logging.info(
-            f'Loading best model from `{checkpoint_callback.best_model_path}`...')
-        best_model = Model.load_from_checkpoint(
-            checkpoint_callback.best_model_path)
+        logging.info(f'Loading best model from `{checkpoint_callback.best_model_path}`...')
+        best_model = Model.load_from_checkpoint(checkpoint_callback.best_model_path)
 
         test_val_results = dict()
 
@@ -116,8 +113,7 @@ class Trainable(tune.Trainable):
                 test_val_results[f'test_{k}'] = v
 
         # return best val result
-        val_metric_dict = trainer.test(
-            best_model, test_dataloaders=val_loader)[0]
+        val_metric_dict = trainer.test(best_model, test_dataloaders=val_loader)[0]
         for k, v in val_metric_dict.items():
             test_val_results[f'val_{k}'] = v
 
@@ -150,7 +146,6 @@ def init_model_config(config_path):
 def init_search_params_spaces(config, parameter_columns, prefix):
     """Initialize the sample space defined in ray tune.
     See the random distributions API listed here: https://docs.ray.io/en/master/tune/api_docs/search_space.html#random-distributions-api
-
     Args:
         config (AttributeDict): Config of the experiment.
         parameter_columns (dict): Names of parameters to include in the CLIReporter.
@@ -172,8 +167,7 @@ def init_search_params_spaces(config, parameter_columns, prefix):
                 config[key] = getattr(tune, search_space)(*search_args)
                 parameter_columns[prefix+key] = key
         elif isinstance(value, dict):
-            config[key] = init_search_params_spaces(
-                value, parameter_columns, f'{prefix}{key}/')
+            config[key] = init_search_params_spaces(value, parameter_columns, f'{prefix}{key}/')
 
     return config
 
@@ -238,8 +232,7 @@ def main():
     """
     config = init_model_config(args.config)
     search_alg = args.search_alg if args.search_alg else config.search_alg
-    num_samples = config['num_samples'] if config.get(
-        'num_samples', None) else args.num_samples
+    num_samples = config['num_samples'] if config.get('num_samples', None) else args.num_samples
 
     parameter_columns = dict()
     config = init_search_params_spaces(config, parameter_columns, prefix='')
@@ -268,12 +261,9 @@ def main():
         progress_reporter=reporter,
         config=config)
 
-    results_df = analysis.results_df.sort_values(
-        by=f'val_{config.val_metric}', ascending=False)
+    results_df = analysis.results_df.sort_values(by=f'val_{config.val_metric}', ascending=False)
     results_df = results_df.rename(columns=lambda x: x.split('.')[-1])
-    columns = reporter._metric_columns + \
-        [parameter_columns[x]
-            for x in analysis.best_trial.evaluated_params.keys()]
+    columns = reporter._metric_columns + [parameter_columns[x] for x in analysis.best_trial.evaluated_params.keys()]
     print(f'\n{results_df[columns].to_markdown()}\n')
 
 
