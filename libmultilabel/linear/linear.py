@@ -19,7 +19,7 @@ def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
         raise ValueError('-R is not supported')
 
     bias = -1.
-    if options.find('-B') > 0:
+    if options.find('-B') != -1:
         options_split = options.split()
         i = options_split.index('-B')
         bias = float(options_split[i+1])
