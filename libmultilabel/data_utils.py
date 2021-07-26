@@ -135,7 +135,7 @@ def load_or_build_text_dict(
         embed_file (str): Path to a file holding pre-trained embeddings.
         embed_cache_dir (str, optional): Path to a directory for storing cached embeddings. Defaults to None.
         silent (bool, optional): Enable silent mode. Defaults to False.
-        normalize (bool, optional): Whether to divided word embeddings by `float(np.linalg.norm(vector) + 1e-6)`.
+        normalize (bool, optional): Whether the word embeddings divide by `float(np.linalg.norm(vector) + 1e-6)`.
         Defaults to True.
 
     Returns:
@@ -193,8 +193,8 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, normali
         word_dict (torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
         embed_file (str): Path to a file holding pre-trained embeddings.
         silent (bool, optional): Enable silent mode. Defaults to False.
-        normalize (bool, optional): Whether to divided word embeddings by `float(np.linalg.norm(vector) + 1e-6)`.
-        Defaults to True. We follows the normalization method here:
+        normalize (bool, optional): Whether the word embeddings divide by `float(np.linalg.norm(vector) + 1e-6)`.
+        Defaults to True. We follow the normalization method here:
         https://github.com/jamesmullenbach/caml-mimic/blob/44a47455070d3d5c6ee69fb5305e32caec104960/dataproc/extract_wvs.py#L60.
 
     Returns:
