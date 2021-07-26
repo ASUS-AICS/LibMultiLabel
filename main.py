@@ -70,7 +70,7 @@ def get_config():
                         help='Momentum factor for SGD only (default: %(default)s)')
     parser.add_argument('--patience', type=int, default=5,
                         help='Number of epochs to wait for improvement before early stopping (default: %(default)s)')
-    parser.add_argument('--normalize', type=bool, default=True,
+    parser.add_argument('--normalize', type=bool, default=False,
                         help='Whether the word embeddings divide by `float(np.linalg.norm(vector) + 1e-6)` (default: %(default)s)')
 
     # model
