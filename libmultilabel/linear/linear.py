@@ -49,7 +49,7 @@ def evaluate(model, x: sparse.csr_matrix) -> np.ndarray:
     """
     Calculates the decision values associated with x.
 
-    Returns a 0/1 matrix with dimension number of instances * number of classes
+    Returns a matrix with dimension number of instances * number of classes
 
     x is a matrix with dimension number of instances * number of features
     """
