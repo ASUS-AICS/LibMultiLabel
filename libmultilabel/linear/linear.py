@@ -11,9 +11,9 @@ def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
 
     Returns the model.
 
-    y is a 0/1 matrix with dimensions number of instances * number of classes
-    x is a matrix with dimensions number of instances * number of features
-    options is the option string passed to liblinear
+    y is a 0/1 matrix with dimensions number of instances * number of classes.
+    x is a matrix with dimensions number of instances * number of features.
+    options is the option string passed to liblinear.
     """
     if options.find('-R') != -1:
         raise ValueError('-R is not supported')
@@ -45,13 +45,13 @@ def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
 
     return {'weights': np.asmatrix(weights), '-B': bias}
 
-def evaluate(model, x: sparse.csr_matrix) -> np.ndarray:
+def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
     """
     Calculates the decision values associated with x.
 
-    Returns a matrix with dimension number of instances * number of classes
+    Returns a matrix with dimension number of instances * number of classes.
 
-    x is a matrix with dimension number of instances * number of features
+    x is a matrix with dimension number of instances * number of features.
     """
     bias = model['-B']
     bias_col = np.full((x.shape[0], 1 if bias > 0 else 0), bias)
