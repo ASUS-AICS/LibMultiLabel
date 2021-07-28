@@ -237,6 +237,11 @@ class MultiLabelModel(pl.LightningModule):
         self.eval_metric = get_metrics(metric_threshold, monitor_metrics,
                                        self.num_classes)
 
+    @abstractmethod
+    def shared_step(self, batch):
+        """Return loss and predicted logits"""
+        return NotImplemented
+
     def configure_optimizers(self):
         """Initialize an optimizer for the free parameters of the network.
         """
@@ -261,11 +266,6 @@ class MultiLabelModel(pl.LightningModule):
         torch.nn.utils.clip_grad_value_(parameters, 0.5)
 
         return optimizer
-
-    @abstractmethod
-    def shared_step(self, batch):
-        """Return loss and predicted logits"""
-        return NotImplemented
 
     def training_step(self, batch, batch_idx):
         loss, _ = self.shared_step(batch)
