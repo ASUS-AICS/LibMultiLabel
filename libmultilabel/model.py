@@ -117,6 +117,16 @@ class MultiLabelModel(pl.LightningModule):
         return self.eval_metric.update(batch_parts['pred_scores'], batch_parts['target'])
 
     def _shared_eval_epoch_end(self, step_outputs, split):
+        """Get scores such as `Micro-F1`, `Macro-F1`, and monitor metrics defined
+        in the configuration file in the end of an epoch.
+
+        Args:
+            step_outputs (list): List of the return values from the val or test step end.
+            split (str): One of the `val` or `test`.
+
+        Returns:
+            metric_dict (dict): Scores for all metrics in the dictionary format.
+        """
         metric_dict = self.eval_metric.compute()
         self.log_dict(metric_dict)
         for k, v in metric_dict.items():
