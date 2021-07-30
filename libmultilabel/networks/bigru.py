@@ -27,9 +27,6 @@ class BiGRU(BaseModel):
         self.rnn = nn.GRU(emb_dim, floor(rnn_dim/2), num_layers,
                           bidirectional=True, batch_first=True)
 
-        self.W = nn.Linear(rnn_dim, rnn_dim)
-        xavier_uniform_(self.W.weight)
-
         # context vectors for computing attention
         self.U = nn.Linear(rnn_dim, num_classes)
         xavier_uniform_(self.U.weight)
@@ -38,7 +35,8 @@ class BiGRU(BaseModel):
         self.final = nn.Linear(rnn_dim, num_classes)
         xavier_uniform_(self.final.weight)
 
-    def forward(self, text, lengths):
+    def forward(self, input):
+        text, lengths = input['text'], input['lengths']
         x = self.embedding(text) # (batch_size, length, rnn_dim)
         x = self.embed_drop(x) # (batch_size, length, rnn_dim)
 

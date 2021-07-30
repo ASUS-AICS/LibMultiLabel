@@ -49,8 +49,7 @@ class CAML(BaseModel):
 
     def forward(self, input):
         # Get embeddings and apply dropout
-        text = input['text']
-        x = self.embedding(text)  # (batch_size, length, embed_dim)
+        x = self.embedding(input['text'])  # (batch_size, length, embed_dim)
         x = self.embed_drop(x)
         x = x.transpose(1,2) # (batch_size, embed_dim, length)
 
