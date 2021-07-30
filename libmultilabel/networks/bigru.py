@@ -21,9 +21,8 @@ class BiGRU(BaseModel):
     ):
         super(BiGRU, self).__init__(embed_vecs, dropout, activation, **kwargs)
 
-        emb_dim = embed_vecs.shape[1]
-
         # BiGRU
+        emb_dim = embed_vecs.shape[1]
         self.rnn = nn.GRU(emb_dim, floor(rnn_dim/2), num_layers,
                           bidirectional=True, batch_first=True)
 
@@ -36,11 +35,13 @@ class BiGRU(BaseModel):
         xavier_uniform_(self.final.weight)
 
     def forward(self, input):
-        text, lengths = input['text'], input['lengths']
+        text, length = input['text'], input['length']
         x = self.embedding(text) # (batch_size, length, rnn_dim)
         x = self.embed_drop(x) # (batch_size, length, rnn_dim)
 
-        packed_inputs = pack_padded_sequence(x, lengths, batch_first=True, enforce_sorted=False)
+        # TODO discuss - if set `enforce_sorted` to False, `use_deterministic_algorithms` should be False
+        torch.use_deterministic_algorithms(False)
+        packed_inputs = pack_padded_sequence(x, length, batch_first=True, enforce_sorted=False)
         x, _ = self.rnn(packed_inputs)
         x = pad_packed_sequence(x)[0]
         x = x.permute(1,0,2)
@@ -48,7 +49,7 @@ class BiGRU(BaseModel):
         x = torch.tanh(x)
 
         # Apply per-label attention
-        alpha = torch.softmax(self.U.weight.matmul(x.transpose(1, 2)), dim=2)
+        alpha = torch.softmax(self.U.weight.matmul(x.transpose(1,2)), dim=2)
 
         # Document representations are weighted sums using the attention
         m = alpha.matmul(x) # (batch_size, label size, rnn_dim)
