@@ -40,11 +40,15 @@ class TextDataset(Dataset):
 
 
 def generate_batch(data_batch):
+    # sort data batch by length
+    data_batch.sort(key=lambda x: -len(x['text']))
     text_list = [data['text'] for data in data_batch]
     label_list = [data['label'] for data in data_batch]
+    length_list = [len(data['text']) for data in data_batch]
     return {
         'text': pad_sequence(text_list, batch_first=True),
-        'label': torch.stack(label_list)
+        'label': torch.stack(label_list),
+        'length': length_list
     }
 
 
