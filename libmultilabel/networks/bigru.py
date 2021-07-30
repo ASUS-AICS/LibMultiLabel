@@ -42,7 +42,7 @@ class BiGRU(BaseModel):
         x = self.embedding(text) # (batch_size, length, rnn_dim)
         x = self.embed_drop(x) # (batch_size, length, rnn_dim)
 
-        packed_inputs = pack_padded_sequence(x, lengths, batch_first=True)
+        packed_inputs = pack_padded_sequence(x, lengths, batch_first=True, enforce_sorted=False)
         x, _ = self.rnn(packed_inputs)
         x = pad_packed_sequence(x)[0]
         x = x.permute(1,0,2)

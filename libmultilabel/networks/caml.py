@@ -47,8 +47,9 @@ class CAML(BaseModel):
         self.final = nn.Linear(num_filter_per_size, num_classes)
         xavier_uniform_(self.final.weight)
 
-    def forward(self, text):
+    def forward(self, input):
         # Get embeddings and apply dropout
+        text = input['text']
         x = self.embedding(text)  # (batch_size, length, embed_dim)
         x = self.embed_drop(x)
         x = x.transpose(1,2) # (batch_size, embed_dim, length)
