@@ -192,7 +192,7 @@ def load_or_build_label(datasets, label_file=None, silent=False):
     return classes
 
 
-def get_embedding_weights_from_file(word_dict, embed_file, silent=False): # , normalize=False):
+def get_embedding_weights_from_file(word_dict, embed_file, silent=False):
     """If there is an embedding file, load pretrained word embedding.
     Otherwise, assign a zero vector to that word.
 
