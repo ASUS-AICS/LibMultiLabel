@@ -31,6 +31,7 @@ network_config:
 # pretrained vocab / embeddings
 vocab_file: data/MIMIC-50/vocab.csv
 embed_file: data/MIMIC-50/processed_full.embed
+normalize: true
 
 # hyperparamter search
 search_alg: basic_variant
