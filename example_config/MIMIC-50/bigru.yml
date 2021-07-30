@@ -9,21 +9,24 @@ seed: 1337
 epochs: 100
 batch_size: 16
 optimizer: adam
-learning_rate: 0.003
+learning_rate: 0.001
 weight_decay: 0
-patience: 3 # 10
-shuffle: false
+patience: 10
+shuffle: true
 
 # eval
 eval_batch_size: 1
 monitor_metrics: ['P@1','P@3','P@5']
-val_metric: Micro-F1 # P@5
+val_metric: P@5
 
 # model
 model_name: BiGRU
-rnn_dim: 512
-num_layers: 1
-activation: tanh
+init_weight: null
+network_config:
+  activation: tanh
+  dropout: 0.8
+  rnn_dim: 512
+  num_layers: 1
 
 # pretrained vocab / embeddings
 vocab_file: data/MIMIC-50/vocab.csv
