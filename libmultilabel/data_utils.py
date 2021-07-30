@@ -1,4 +1,5 @@
 import collections
+import copy
 import logging
 import os
 
@@ -122,7 +123,7 @@ def load_or_build_text_dict(
     embed_file=None,
     embed_cache_dir=None,
     silent=False,
-    normalize=False
+    normalize_embed=False
 ):
     """Build or load the vocabulary from the training dataset or the predefined `vocab_file`.
     The pretrained embedding can be either from a self-defined `embed_file` or from one of
@@ -135,8 +136,9 @@ def load_or_build_text_dict(
         embed_file (str): Path to a file holding pre-trained embeddings.
         embed_cache_dir (str, optional): Path to a directory for storing cached embeddings. Defaults to None.
         silent (bool, optional): Enable silent mode. Defaults to False.
-        normalize (bool, optional): Whether the word embeddings divide by `float(np.linalg.norm(vector) + 1e-6)`.
-        Defaults to False.
+        normalize_embed (bool, optional): Whether the word embeddings divide by `float(np.linalg.norm(vector) + 1e-6)`.
+            Defaults to False. We follow the normalization method here:
+            https://github.com/jamesmullenbach/caml-mimic/blob/44a47455070d3d5c6ee69fb5305e32caec104960/dataproc/extract_wvs.py#L60.
 
     Returns:
         torchtext.vocab.Vocab: A vocab object which maps tokens to indices.
@@ -158,14 +160,20 @@ def load_or_build_text_dict(
 
     if os.path.exists(embed_file):
         logging.info(f'Load pretrained embedding from file: {embed_file}.')
-        embedding_weights = get_embedding_weights_from_file(vocabs, embed_file, silent, normalize)
-        vocabs.set_vectors(vocabs.stoi, embedding_weights,
-                           dim=embedding_weights.shape[1], unk_init=False)
+        embedding_weights = get_embedding_weights_from_file(vocabs, embed_file, silent)
+        vocabs.set_vectors(vocabs.stoi, embedding_weights, dim=embedding_weights.shape[1])
     elif not embed_file.isdigit():
         logging.info(f'Load pretrained embedding from torchtext.')
         vocabs.load_vectors(embed_file, cache=embed_cache_dir)
     else:
         raise NotImplementedError
+
+    if normalize_embed:
+        embedding_weights = copy.deepcopy(vocabs.vectors.detach().cpu().numpy())
+        for i, vector in enumerate(embedding_weights):
+            embedding_weights[i] = vector/float(np.linalg.norm(vector) + 1e-6)
+        embedding_weights = torch.Tensor(embedding_weights)
+        vocabs.set_vectors(vocabs.stoi, embedding_weights, dim=embedding_weights.shape[1])
 
     return vocabs
 
@@ -184,7 +192,7 @@ def load_or_build_label(datasets, label_file=None, silent=False):
     return classes
 
 
-def get_embedding_weights_from_file(word_dict, embed_file, silent=False, normalize=False):
+def get_embedding_weights_from_file(word_dict, embed_file, silent=False): # , normalize=False):
     """If there is an embedding file, load pretrained word embedding.
     Otherwise, assign a zero vector to that word.
 
@@ -192,9 +200,6 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, normali
         word_dict (torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
         embed_file (str): Path to a file holding pre-trained embeddings.
         silent (bool, optional): Enable silent mode. Defaults to False.
-        normalize (bool, optional): Whether the word embeddings divide by `float(np.linalg.norm(vector) + 1e-6)`.
-        Defaults to False. We follow the normalization method here:
-        https://github.com/jamesmullenbach/caml-mimic/blob/44a47455070d3d5c6ee69fb5305e32caec104960/dataproc/extract_wvs.py#L60.
 
     Returns:
         torch.Tensor: Embedding weights (vocab_size, embed_size)
@@ -221,8 +226,5 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, normali
         vec_counts += 1
 
     logging.info(f'loaded {vec_counts}/{len(word_dict)} word embeddings')
-    if normalize:
-        for i, vector in enumerate(embedding_weights):
-            embedding_weights[i] = vector/float(np.linalg.norm(vector) + 1e-6)
 
     return torch.Tensor(embedding_weights)
