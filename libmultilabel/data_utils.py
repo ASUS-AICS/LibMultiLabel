@@ -136,10 +136,7 @@ def load_or_build_text_dict(
         embed_file (str): Path to a file holding pre-trained embeddings.
         embed_cache_dir (str, optional): Path to a directory for storing cached embeddings. Defaults to None.
         silent (bool, optional): Enable silent mode. Defaults to False.
-        normalize_embed (bool, optional): Whether the embeddings of each word is normalized to a unit vector.
-            Defaults to False. We follow the normalization method here:
-            https://github.com/jamesmullenbach/caml-mimic/blob/44a47455070d3d5c6ee69fb5305e32caec104960/dataproc/extract_wvs.py#L60.
-
+        normalize_embed (bool, optional): Whether the embeddings of each word is normalized to a unit vector. Defaults to False.
     Returns:
         torchtext.vocab.Vocab: A vocab object which maps tokens to indices.
     """
@@ -171,6 +168,8 @@ def load_or_build_text_dict(
     if normalize_embed:
         embedding_weights = copy.deepcopy(vocabs.vectors.detach().cpu().numpy())
         for i, vector in enumerate(embedding_weights):
+            # We use the constant 1e-6 by following https://github.com/jamesmullenbach/caml-mimic/blob/44a47455070d3d5c6ee69fb5305e32caec104960/dataproc/extract_wvs.py#L60
+            # for an internal experiment of reproducing their results.
             embedding_weights[i] = vector/float(np.linalg.norm(vector) + 1e-6)
         embedding_weights = torch.Tensor(embedding_weights)
         vocabs.set_vectors(vocabs.stoi, embedding_weights, dim=embedding_weights.shape[1])
