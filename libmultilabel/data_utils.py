@@ -77,10 +77,17 @@ def tokenize(text):
 
 def _load_raw_data(path, is_test=False):
     logging.info(f'Load data from {path}.')
-    data = pd.read_csv(path, sep='\t', names=['label', 'text'],
-                       converters={'label': lambda s: s.split(),
-                                   'text': tokenize})
-    data = data.reset_index().to_dict('records')
+    data = pd.read_csv(path, sep='\t', header=None, error_bad_lines=False, warn_bad_lines=True)
+    if data.shape[1] == 2:
+        data.columns = ['label', 'text']
+        data = data.reset_index()
+    elif data.shape[1] == 3:
+        data.columns = ['index', 'label', 'text']
+    else:
+        raise ValueError(f'Expected 2 or 3 columns, got {data.shape[1]}.')
+    data['label'] = data['label'].map(lambda s: s.split())
+    data['text'] = data['text'].map(tokenize)
+    data = data.to_dict('records')
     if not is_test:
         data = [d for d in data if len(d['label']) > 0]
     return data

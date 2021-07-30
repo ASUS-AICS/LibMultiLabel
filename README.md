@@ -79,6 +79,7 @@ Put labels and texts in the training, validation, and test set separately in `tr
 - one sample per line
 - seperate ID, labels and texts by `<TAB>` (the ID column is optional)
 - labels are split by spaces
+- should not contain any `<TAB>` in each field
 
 With ID column:
 ```
