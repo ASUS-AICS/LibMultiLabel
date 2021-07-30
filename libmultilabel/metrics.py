@@ -63,7 +63,7 @@ class NDCG(Metric):
         order = torch.argsort(-y_pred)
         y_true = torch.take(y_true, order[:self.top_k])
         gains = 2 ** y_true - 1
-        discounts = torch.log2(torch.arange(len(y_true)) + 2)
+        discounts = torch.log2(torch.arange(len(y_true)) + 2).cuda()
         return torch.sum(gains / discounts)
 
 
