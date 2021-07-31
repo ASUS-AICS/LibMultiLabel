@@ -13,9 +13,10 @@ class VanillaCNN(BaseModel):
         num_classes,
         filter_sizes=None,
         num_filter_per_size=500,
-        **kwargs
+        dropout=0.2,
+        activation='tanh'
     ):
-        super(VanillaCNN, self).__init__(embed_vecs, **kwargs)
+        super(VanillaCNN, self).__init__(embed_vecs, dropout, activation)
         if len(filter_sizes) != 1:
             raise ValueError(f'VanillaCNN expect 1 filter size. Got filter_sizes={filter_sizes}')
         filter_size = filter_sizes[0]
