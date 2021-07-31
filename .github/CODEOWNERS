@@ -1,0 +1,5 @@
+# These owners will be the default owners for everything in
+# the repo.
+# Reviewers list below will be requested for
+# review when someone opens a pull request.
+*       @cjlin1 @sian-chen @Eleven1Liu @henryyang42

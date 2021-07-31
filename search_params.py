@@ -203,7 +203,8 @@ def load_static_data(config):
             min_vocab_freq=config.min_vocab_freq,
             embed_file=config.embed_file,
             embed_cache_dir=config.embed_cache_dir,
-            silent=config.silent
+            silent=config.silent,
+            normalize=config.normalize
         ),
         "classes": data_utils.load_or_build_label(datasets, config.label_file, config.silent)
     }
