@@ -70,8 +70,8 @@ def get_config():
                         help='Momentum factor for SGD only (default: %(default)s)')
     parser.add_argument('--patience', type=int, default=5,
                         help='Number of epochs to wait for improvement before early stopping (default: %(default)s)')
-    parser.add_argument('--normalize', action='store_true',
-                        help='Whether the word embeddings divide by `float(np.linalg.norm(vector) + 1e-6)` (default: %(default)s)')
+    parser.add_argument('--normalize_embed', action='store_true',
+                        help='Whether the embeddings of each word is normalized to a unit vector (default: %(default)s)')
 
     # model
     parser.add_argument('--model_name', default='KimCNN',
@@ -222,7 +222,7 @@ def main():
                 embed_file=config.embed_file,
                 embed_cache_dir=config.embed_cache_dir,
                 silent=config.silent,
-                normalize=config.normalize
+                normalize_embed=config.normalize_embed
             )
             classes = data_utils.load_or_build_label(datasets, config.label_file, config.silent)
             model = Model(
