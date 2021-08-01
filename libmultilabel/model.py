@@ -153,10 +153,10 @@ class Model(pl.LightningModule):
                 'target': batch['label']}
 
     def _shared_eval_step_end(self, batch_parts):
-        batch_size, class_num = batch_parts['target'].shape
+        batch_size, num_classes = batch_parts['target'].shape
         indexes = torch.arange(
             batch_size*batch_parts['batch_idx'], batch_size*(batch_parts['batch_idx']+1))
-        indexes = indexes.unsqueeze(1).repeat(1, class_num)
+        indexes = indexes.unsqueeze(1).repeat(1, num_classes)
         return self.eval_metric.update(
             preds=batch_parts['pred_scores'],
             target=batch_parts['target'],

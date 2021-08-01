@@ -3,6 +3,7 @@ import re
 import torch
 import numpy as np
 from torchmetrics import Metric, MetricCollection, F1, Precision, Recall, RetrievalNormalizedDCG
+from torchmetrics.utilities.data import select_topk
 
 
 class RPrecision(Metric):
@@ -18,20 +19,18 @@ class RPrecision(Metric):
 
     def update(self, preds, target):
         assert preds.shape == target.shape
-        for y_pred, y_true in zip(preds, target):
-            self.score += self.ranking_rprecision_score(y_pred, y_true)
+        binary_topk_preds = select_topk(preds, self.top_k)
+        target = target.to(dtype=torch.int)
+        n_relevant = torch.sum(binary_topk_preds & target, dim=-1)
+        top_ks = torch.tensor([self.top_k]*preds.shape[0]).to(preds.device)
+        self.score += torch.nan_to_num(
+            n_relevant / torch.min(top_ks, target.sum(dim=-1)),
+            posinf=0.
+        ).sum()
         self.num_sample += len(preds)
 
     def compute(self):
         return self.score.float() / self.num_sample
-
-    def ranking_rprecision_score(self, y_pred, y_true):
-        n_pos = torch.sum(y_true == 1)
-        order = torch.argsort(-y_pred)
-        y_true = torch.take(y_true, order[:self.top_k])
-        n_relevant = torch.sum(y_true == 1)
-
-        return 0. if min(self.top_k, n_pos) == 0 else n_relevant / min(self.top_k, n_pos)
 
 
 def get_metrics(metric_threshold, monitor_metrics, num_classes):
