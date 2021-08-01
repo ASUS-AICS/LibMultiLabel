@@ -147,12 +147,21 @@ class Model(pl.LightningModule):
 
     def _shared_eval_step(self, batch, batch_idx):
         loss, pred_logits = self.shared_step(batch)
-        return {'loss': loss,
+        return {'batch_idx': batch_idx,
+                'loss': loss,
                 'pred_scores': torch.sigmoid(pred_logits),
                 'target': batch['label']}
 
     def _shared_eval_step_end(self, batch_parts):
-        return self.eval_metric.update(batch_parts['pred_scores'], batch_parts['target'])
+        batch_size, class_num = batch_parts['target'].shape
+        indexes = torch.arange(
+            batch_size*batch_parts['batch_idx'], batch_size*(batch_parts['batch_idx']+1))
+        indexes = indexes.unsqueeze(1).repeat(1, class_num)
+        return self.eval_metric.update(
+            preds=batch_parts['pred_scores'],
+            target=batch_parts['target'],
+            indexes=indexes
+        )
 
     def _shared_eval_epoch_end(self, step_outputs, split):
         metric_dict = self.eval_metric.compute()
