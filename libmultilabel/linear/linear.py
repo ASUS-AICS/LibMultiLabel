@@ -3,7 +3,7 @@ import scipy.sparse as sparse
 
 from liblinear.liblinearutil import train
 
-__all__ = ['train_1vsrest', 'evaluate']
+__all__ = ['train_1vsrest', 'predict_values']
 
 def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
     """
