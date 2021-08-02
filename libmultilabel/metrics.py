@@ -12,7 +12,7 @@ class RPrecision(Metric):
     https://nlp.stanford.edu/IR-book/html/htmledition/evaluation-of-ranked-retrieval-results-1.html
 
     Args:
-        top_k (int): the top k relevant labels to evaluate
+        top_k (int): the top k relevant labels to evaluate.
     """
     def __init__(
         self,
@@ -67,7 +67,6 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes):
             metrics[metric] = RPrecision(top_k=int(metric[3:]))
         elif re.match('nDCG@\d+', metric):
             metrics[metric] = RetrievalNormalizedDCG(k=int(metric[5:]))
-
         elif metric not in ['Micro-Precision', 'Micro-Recall', 'Micro-F1', 'Macro-F1', 'Another-Macro-F1']:
             raise ValueError(f'Invalid metric: {metric}')
 

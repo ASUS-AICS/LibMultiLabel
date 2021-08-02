@@ -1,6 +1,3 @@
-from abc import abstractmethod
-from argparse import Namespace
-
 import numpy as np
 import pytorch_lightning as pl
 import torch
@@ -154,6 +151,8 @@ class Model(pl.LightningModule):
 
     def _shared_eval_step_end(self, batch_parts):
         batch_size, num_classes = batch_parts['target'].shape
+        # `indexes` is like sample ids that help `RetrievalNormalizedDCG` to calculate
+        # the NDCG score per sample.
         indexes = torch.arange(
             batch_size*batch_parts['batch_idx'], batch_size*(batch_parts['batch_idx']+1))
         indexes = indexes.unsqueeze(1).repeat(1, num_classes)
