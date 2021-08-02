@@ -29,7 +29,7 @@ class BiGRU(BaseModel):
         **kwargs
     ):
         super(BiGRU, self).__init__(embed_vecs, dropout, activation, **kwargs)
-        assert rnn_dim//2 == 0, """`rnn_dim` should be even."""
+        assert rnn_dim%2 == 0, """`rnn_dim` should be even."""
 
         # BiGRU
         emb_dim = embed_vecs.shape[1]
