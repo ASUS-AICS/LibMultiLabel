@@ -9,10 +9,16 @@ from torchmetrics.utilities.data import select_topk
 class RPrecision(Metric):
     def __init__(
         self,
-        top_k,
-        dist_sync_on_step=False
+        top_k
     ):
-        super().__init__(dist_sync_on_step=dist_sync_on_step)
+        """R-precision calculates the precision at k by adjusting the denominator to the
+        minimum value of the number of the relevant labels and `top_k`. Please find more here:
+        https://nlp.stanford.edu/IR-book/html/htmledition/evaluation-of-ranked-retrieval-results-1.html
+
+        Args:
+            top_k (int): the top k relevant labels to evaluate
+        """
+        super().__init__()
         self.top_k = top_k
         self.add_state("score", default=torch.tensor(0.), dist_reduce_fx="sum")
         self.add_state("num_sample", default=torch.tensor(0), dist_reduce_fx="sum")
