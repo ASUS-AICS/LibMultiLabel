@@ -26,7 +26,7 @@ network_config:
   activation: tanh
   dropout: 0.8
   rnn_dim: 512
-  num_layers: 1
+  rnn_layers: 1
 
 # pretrained vocab / embeddings
 vocab_file: data/MIMIC-50/vocab.csv
