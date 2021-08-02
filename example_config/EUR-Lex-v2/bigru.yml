@@ -1,6 +1,6 @@
 # data
-data_dir: data/EUR-Lex-v5
-data_name: EUR-Lex-v5
+data_dir: data/EUR-Lex-v2
+data_name: EUR-Lex-v2
 min_vocab_freq: 1
 max_seq_length: 500
 
