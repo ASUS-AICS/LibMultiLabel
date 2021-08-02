@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.nn.init import xavier_uniform_
@@ -45,13 +46,11 @@ class BiGRU(BaseModel):
         xavier_uniform_(self.final.weight)
 
     def forward(self, input):
-        text, length = input['text'], input['length']
+        text, length, indices = self.sort_data_by_length(input['text'], input['length'])
         x = self.embedding(text) # (batch_size, length, rnn_dim)
         x = self.embed_drop(x) # (batch_size, length, rnn_dim)
 
-        # TODO discuss - if set `enforce_sorted` to False, `use_deterministic_algorithms` should be False
-        torch.use_deterministic_algorithms(False)
-        packed_inputs = pack_padded_sequence(x, length, batch_first=True, enforce_sorted=False)
+        packed_inputs = pack_padded_sequence(x, length, batch_first=True)
         x, _ = self.rnn(packed_inputs)
         x = pad_packed_sequence(x)[0]
         x = x.permute(1, 0, 2)
@@ -67,4 +66,25 @@ class BiGRU(BaseModel):
         # Compute a probability for each label
         x = self.final.weight.mul(m).sum(dim=2).add(self.final.bias) # (batch_size, num_classes)
 
-        return {'logits': x, 'attention': alpha}
+        return {'logits': x[indices], 'attention': alpha[indices]}
+
+    def sort_data_by_length(self, text, length):
+        """Sort data by length. This function is the deterministic implementation of
+        `pack_padded_sequence` with `enforce_sorted = False`.
+
+        Args:
+            text (torch.Tensor): Batch of text input with shape (batch_size, length)
+            length (list): List of text lengths before padding.
+
+        Returns:
+            text (torch.Tensor): Text sorted by lengths in descending order.
+            length (torch.Tensor): Lengths sorted in descending order.
+            indices (torch.Tensor): The indexes of the elements in the original data.
+        """
+        length = torch.as_tensor(length, dtype=torch.int64)
+        length, sorted_indices = torch.sort(length, descending=True)
+        sorted_indices = sorted_indices.to(text.device)
+        text = text.index_select(0, sorted_indices)
+
+        _, indices = torch.sort(sorted_indices) # get the original order
+        return text, length, indices
