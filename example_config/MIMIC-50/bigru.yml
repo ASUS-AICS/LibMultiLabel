@@ -25,7 +25,7 @@ init_weight: null
 network_config:
   activation: tanh
   dropout: 0.8
-  rnn_dim: 512
+  rnn_dim: 1024
   rnn_layers: 1
 
 # pretrained vocab / embeddings
