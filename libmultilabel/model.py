@@ -33,12 +33,12 @@ class Model(pl.LightningModule):
     """
     def __init__(
         self,
-        model_name,
+        network,
         classes,
-        word_dict,
-        init_weight=None,
+        # word_dict,
+        # init_weight=None,
         log_path=None,
-        network_config=None,
+        # network_config=None,
         learning_rate=0.0001,
         optimizer='adam',
         momentum=0.9,
@@ -50,11 +50,11 @@ class Model(pl.LightningModule):
         **kwargs
     ):
         super().__init__()
-
+        self.network = network
         self.save_hyperparameters()
-        self.word_dict = word_dict
-        self.classes = classes
-        self.num_classes = len(self.classes)
+        # self.word_dict = word_dict
+        # self.classes = classes
+        # self.num_classes = len(self.classes)
 
         # optimizer
         self.learning_rate = learning_rate
@@ -69,18 +69,8 @@ class Model(pl.LightningModule):
 
         # metrics for evaluation
         self.eval_metric = get_metrics(metric_threshold, monitor_metrics,
-                                       self.num_classes)
+                                       len(self.classes))
 
-        embed_vecs = self.word_dict.vectors
-        self.network = getattr(networks, model_name)(
-            embed_vecs=embed_vecs,
-            num_classes=self.num_classes,
-            **network_config
-        )
-        if init_weight is not None:
-            init_weight = networks.get_init_weight_func(
-                init_weight=init_weight)
-            self.apply(init_weight)
 
     def configure_optimizers(self):
         """Initialize an optimizer for the free parameters of the network.
@@ -159,7 +149,8 @@ class Model(pl.LightningModule):
         self.log_dict(metric_dict)
         for k, v in metric_dict.items():
             metric_dict[k] = v.item()
-        dump_log(metrics=metric_dict, split=split, log_path=self.log_path)
+        if self.log_path:
+            dump_log(metrics=metric_dict, split=split, log_path=self.log_path)
         self.print(tabulate_metrics(metric_dict, split))
         self.eval_metric.reset()
         return metric_dict
