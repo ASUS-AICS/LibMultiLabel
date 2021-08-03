@@ -17,7 +17,7 @@ shuffle: false
 
 # eval
 eval_batch_size: 1
-monitor_metrics: ['P@1','P@3','P@5','RP@5','nDCG@5']
+monitor_metrics: ['P@1','P@3','P@5']
 val_metric: P@5
 
 # model
