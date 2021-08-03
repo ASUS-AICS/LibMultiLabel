@@ -20,7 +20,7 @@ class RPrecision(Metric):
     ):
         super().__init__()
         self.top_k = top_k
-        self.add_state("score", default=torch.tensor(0.), dist_reduce_fx="sum")
+        self.add_state("score", default=torch.tensor(0., dtype=torch.double), dist_reduce_fx="sum")
         self.add_state("num_sample", default=torch.tensor(0), dist_reduce_fx="sum")
 
     def update(self, preds, target):
@@ -36,7 +36,7 @@ class RPrecision(Metric):
         self.num_sample += len(preds)
 
     def compute(self):
-        return self.score.float() / self.num_sample
+        return self.score / self.num_sample
 
 
 def get_metrics(metric_threshold, monitor_metrics, num_classes):
@@ -67,6 +67,7 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes):
             metrics[metric] = RPrecision(top_k=int(metric[3:]))
         elif re.match('nDCG@\d+', metric):
             metrics[metric] = RetrievalNormalizedDCG(k=int(metric[5:]))
+
         elif metric not in ['Micro-Precision', 'Micro-Recall', 'Micro-F1', 'Macro-F1', 'Another-Macro-F1']:
             raise ValueError(f'Invalid metric: {metric}')
 
