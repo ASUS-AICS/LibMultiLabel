@@ -173,6 +173,8 @@ def load_or_build_text_dict(
         raise NotImplementedError
 
     if normalize_embed:
+        # Torchtext convert vectors to `torch.Tensor()`(float32) which makes floating point error after the
+        # conversion between tensor and numpy. We use the original `embedding_weights` here for consistency.
         embedding_weights = embedding_weights if embedding_weights else vocabs.vectors.numpy()
         for i, vector in enumerate(embedding_weights):
             # We use the constant 1e-6 by following https://github.com/jamesmullenbach/caml-mimic/blob/44a47455070d3d5c6ee69fb5305e32caec104960/dataproc/extract_wvs.py#L60
