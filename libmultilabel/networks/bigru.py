@@ -67,27 +67,27 @@ class BiGRU(BaseModel):
 
         return {'logits': x[indices], 'attention': alpha[indices]}
 
-    def sort_data_by_length(self, input, length):
+    def sort_data_by_length(self, data, length):
         """Sort data by lengths. If data is not sorted before calling `pack_padded_sequence`,
         under `enforce_sorted=False`, the setting of `use_deterministic_algorithms` must be False.
         To keep `use_deterministic_algorithms` True, we sort the input here and return indices for
         restoring the original order.
 
         Args:
-            input (torch.Tensor): Batch of input with shape (batch_size, length)
+            data (torch.Tensor): Batch of sequences with shape (batch_size, length)
             length (list): List of text lengths before padding.
 
         Returns:
-            text (torch.Tensor): Text sorted by lengths in descending order.
+            data (torch.Tensor): Sequences sorted by lengths in descending order.
             length (torch.Tensor): Lengths sorted in descending order.
             indices (torch.Tensor): The indexes of the elements in the original data.
         """
         length = torch.as_tensor(length, dtype=torch.int64)
         length, sorted_indices = torch.sort(length, descending=True)
-        sorted_indices = sorted_indices.to(input.device)
-        input = input.index_select(0, sorted_indices)
+        sorted_indices = sorted_indices.to(data.device)
+        data = data.index_select(0, sorted_indices)
 
         indices = torch.clone(sorted_indices)
         indices.index_put_(tuple(sorted_indices.unsqueeze(0)),
                            torch.arange(sorted_indices.size(-1)))
-        return input, length, indices
+        return data, length, indices
