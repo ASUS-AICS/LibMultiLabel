@@ -89,5 +89,5 @@ class BiGRU(BaseModel):
 
         indices = torch.clone(sorted_indices)
         indices.index_put_(tuple(sorted_indices.unsqueeze(0)),
-                           torch.arange(sorted_indices.size(-1)))
+                           torch.where(sorted_indices >= 0)[0])
         return data, length, indices
