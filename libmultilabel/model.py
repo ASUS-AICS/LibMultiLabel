@@ -15,6 +15,7 @@ class MultiLabelModel(pl.LightningModule):
     """Abstract class handling Pytorch Lightning training flow
 
     Args:
+        num_classes (int): Number of labels.
         learning_rate (float, optional): Learning rate for optimizer. Defaults to 0.0001.
         optimizer (str, optional): Optimizer name (i.e., sgd, adam, or adamw). Defaults to 'adam'.
         momentum (float, optional): Momentum factor for SGD only. Defaults to 0.9.
@@ -28,6 +29,7 @@ class MultiLabelModel(pl.LightningModule):
 
     def __init__(
         self,
+        num_classes,
         learning_rate=0.0001,
         optimizer='adam',
         momentum=0.9,
@@ -40,7 +42,9 @@ class MultiLabelModel(pl.LightningModule):
         **kwargs
     ):
         super().__init__()
-        # optimizers
+        self.save_hyperparameters()
+
+        # optimizer
         self.learning_rate = learning_rate
         self.optimizer = optimizer
         self.momentum = momentum
@@ -52,8 +56,7 @@ class MultiLabelModel(pl.LightningModule):
         self.save_k_predictions = save_k_predictions
 
         # metrics for evaluation
-        self.eval_metric = get_metrics(metric_threshold, monitor_metrics,
-                                       self.num_classes)
+        self.eval_metric = get_metrics(metric_threshold, monitor_metrics, num_classes)
 
     @abstractmethod
     def shared_step(self, batch):
@@ -131,7 +134,8 @@ class MultiLabelModel(pl.LightningModule):
         self.log_dict(metric_dict)
         for k, v in metric_dict.items():
             metric_dict[k] = v.item()
-        dump_log(metrics=metric_dict, split=split, log_path=self.log_path)
+        if self.log_path:
+            dump_log(metrics=metric_dict, split=split, log_path=self.log_path)
         self.print(tabulate_metrics(metric_dict, split))
         self.eval_metric.reset()
         return metric_dict
@@ -179,32 +183,14 @@ class Model(MultiLabelModel):
     """
     def __init__(
         self,
-        model_name,
-        classes,
-        word_dict,
-        init_weight=None,
+        network,
+        num_classes,
         log_path=None,
-        network_config=None,
         **kwargs
     ):
+        self.network = network
         self.save_hyperparameters()
-
-        self.word_dict = word_dict
-        self.classes = classes
-        self.num_classes = len(self.classes)
-        super().__init__(log_path=log_path, **kwargs)
-
-        embed_vecs = self.word_dict.vectors
-        self.network = getattr(networks, model_name)(
-            embed_vecs=embed_vecs,
-            num_classes=self.num_classes,
-            **network_config
-        )
-
-        if init_weight is not None:
-            init_weight = networks.get_init_weight_func(
-                init_weight=init_weight)
-            self.apply(init_weight)
+        super().__init__(num_classes=num_classes, log_path=log_path, **kwargs)
 
     def shared_step(self, batch):
         """Return loss and predicted logits of the network.

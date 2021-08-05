@@ -225,7 +225,21 @@ def main():
                 normalize_embed=config.normalize_embed
             )
             classes = data_utils.load_or_build_label(datasets, config.label_file, config.silent)
+
+            from libmultilabel import networks
+            embed_vecs = word_dict.vectors
+            network = getattr(networks, config.model_name)(
+                embed_vecs=embed_vecs,
+                num_classes=len(classes),
+                **dict(config.network_config)
+            )
+            if config.init_weight is not None:
+                init_weight = networks.get_init_weight_func(
+                    init_weight=config.init_weight)
+                network.apply(init_weight)
+
             model = Model(
+                network=network,
                 device=device,
                 classes=classes,
                 word_dict=word_dict,

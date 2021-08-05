@@ -5,6 +5,8 @@ from torchmetrics import Metric, MetricCollection, F1, Precision, Recall
 
 
 def get_metrics(metric_threshold, monitor_metrics, num_classes):
+    if monitor_metrics is None:
+        monitor_metrics = []
     macro_prec = Precision(num_classes, metric_threshold, average='macro')
     macro_recall = Recall(num_classes, metric_threshold, average='macro')
     another_macro_f1 = 2 * (macro_prec * macro_recall) / (macro_prec + macro_recall + 1e-10)
