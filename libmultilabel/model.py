@@ -15,7 +15,7 @@ class MultiLabelModel(pl.LightningModule):
     """Abstract class handling Pytorch Lightning training flow
 
     Args:
-        num_classes (int): Number of labels.
+        classes(list): List of class names.
         learning_rate (float, optional): Learning rate for optimizer. Defaults to 0.0001.
         optimizer (str, optional): Optimizer name (i.e., sgd, adam, or adamw). Defaults to 'adam'.
         momentum (float, optional): Momentum factor for SGD only. Defaults to 0.9.
@@ -29,7 +29,7 @@ class MultiLabelModel(pl.LightningModule):
 
     def __init__(
         self,
-        num_classes,
+        classes,
         learning_rate=0.0001,
         optimizer='adam',
         momentum=0.9,
@@ -56,7 +56,7 @@ class MultiLabelModel(pl.LightningModule):
         self.save_k_predictions = save_k_predictions
 
         # metrics for evaluation
-        self.eval_metric = get_metrics(metric_threshold, monitor_metrics, num_classes)
+        self.eval_metric = get_metrics(metric_threshold, monitor_metrics, len(classes))
 
     @abstractmethod
     def shared_step(self, batch):
@@ -174,23 +174,24 @@ class Model(MultiLabelModel):
     """A class that implements `MultiLabelModel` for initializing and training a neural network.
 
     Args:
-        model_name(str): Network name(i.e., CAML, KimCNN, or XMLCNN).
         classes(list): List of class names.
         word_dict(torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
-        init_weight(str, optional): Weight initialization to be used. Defaults to None.
+        network(nn.Module): Network (i.e., CAML, KimCNN, or XMLCNN).
         log_path (str): Path to a directory holding the log files and models.
-        network_config (dict): The configuration of a network.
     """
     def __init__(
         self,
+        classes,
+        word_dict,
         network,
-        num_classes,
         log_path=None,
         **kwargs
     ):
-        self.network = network
+        super().__init__(classes=classes, log_path=log_path, **kwargs)
         self.save_hyperparameters()
-        super().__init__(num_classes=num_classes, log_path=log_path, **kwargs)
+        self.word_dict = word_dict
+        self.classes = classes
+        self.network = network
 
     def shared_step(self, batch):
         """Return loss and predicted logits of the network.

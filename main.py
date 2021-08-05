@@ -12,6 +12,7 @@ from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.utilities.parsing import AttributeDict
 
 from libmultilabel import data_utils
+from libmultilabel import networks
 from libmultilabel.model import Model
 from libmultilabel.utils import Timer, dump_log, init_device, set_seed
 
@@ -225,11 +226,8 @@ def main():
                 normalize_embed=config.normalize_embed
             )
             classes = data_utils.load_or_build_label(datasets, config.label_file, config.silent)
-
-            from libmultilabel import networks
-            embed_vecs = word_dict.vectors
             network = getattr(networks, config.model_name)(
-                embed_vecs=embed_vecs,
+                embed_vecs=word_dict.vectors,
                 num_classes=len(classes),
                 **dict(config.network_config)
             )
@@ -239,10 +237,9 @@ def main():
                 network.apply(init_weight)
 
             model = Model(
-                network=network,
-                device=device,
                 classes=classes,
                 word_dict=word_dict,
+                network=network,
                 log_path=log_path,
                 **dict(config)
             )
