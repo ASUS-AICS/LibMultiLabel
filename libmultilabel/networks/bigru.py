@@ -89,6 +89,6 @@ class BiGRU(BaseModel):
 
         data_size = sorted_indices.size(-1)
         indices = torch.empty(data_size, dtype=torch.long)
-        indices[0:data_size] = torch.arange(data_size)
+        indices[sorted_indices] = torch.arange(data_size)
 
         return data, length, indices

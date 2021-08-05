@@ -151,8 +151,8 @@ class Model(pl.LightningModule):
 
     def _shared_eval_step_end(self, batch_parts):
         batch_size, num_classes = batch_parts['target'].shape
-        # `indexes` is like sample ids that help `RetrievalNormalizedDCG` to calculate
-        # the NDCG score per sample.
+        # `indexes` indicates which index a prediction belongs. `RetrievalNormalizedDCG`
+        # will compute the mean of nDCG scores over each prediction.
         indexes = torch.arange(
             batch_size*batch_parts['batch_idx'], batch_size*(batch_parts['batch_idx']+1))
         indexes = indexes.unsqueeze(1).repeat(1, num_classes)
