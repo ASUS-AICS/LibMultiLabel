@@ -174,7 +174,7 @@ def load_or_build_text_dict(
 
     if normalize_embed:
         # `embedding_weights` is converted to torch.FloatTensor in `vocabs.set_vectors`.
-        #  We use the oringinal `embedding_weights` to ensure the same normalization results.
+        #  We use the original `embedding_weights` to ensure the same normalization results.
         embedding_weights = embedding_weights if embedding_weights else vocabs.vectors.numpy()
         for i, vector in enumerate(embedding_weights):
             # We use the constant 1e-6 by following https://github.com/jamesmullenbach/caml-mimic/blob/44a47455070d3d5c6ee69fb5305e32caec104960/dataproc/extract_wvs.py#L60
