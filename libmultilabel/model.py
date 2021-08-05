@@ -1,6 +1,3 @@
-from abc import abstractmethod
-from argparse import Namespace
-
 import numpy as np
 import pytorch_lightning as pl
 import torch
@@ -118,7 +115,7 @@ class Model(pl.LightningModule):
             pred_logits (Tensor): The predict logits (batch_size, num_classes).
         """
         target_labels = batch['label']
-        outputs = self.network(batch['text'])
+        outputs = self.network(batch)
         pred_logits = outputs['logits']
         loss = F.binary_cross_entropy_with_logits(pred_logits, target_labels.float())
         return loss, pred_logits
@@ -147,12 +144,23 @@ class Model(pl.LightningModule):
 
     def _shared_eval_step(self, batch, batch_idx):
         loss, pred_logits = self.shared_step(batch)
-        return {'loss': loss,
+        return {'batch_idx': batch_idx,
+                'loss': loss,
                 'pred_scores': torch.sigmoid(pred_logits),
                 'target': batch['label']}
 
     def _shared_eval_step_end(self, batch_parts):
-        return self.eval_metric.update(batch_parts['pred_scores'], batch_parts['target'])
+        batch_size, num_classes = batch_parts['target'].shape
+        # `indexes` indicates which index a prediction belongs. `RetrievalNormalizedDCG`
+        # will compute the mean of nDCG scores over each prediction.
+        indexes = torch.arange(
+            batch_size*batch_parts['batch_idx'], batch_size*(batch_parts['batch_idx']+1))
+        indexes = indexes.unsqueeze(1).repeat(1, num_classes)
+        return self.eval_metric.update(
+            preds=batch_parts['pred_scores'],
+            target=batch_parts['target'],
+            indexes=indexes
+        )
 
     def _shared_eval_epoch_end(self, step_outputs, split):
         metric_dict = self.eval_metric.compute()
