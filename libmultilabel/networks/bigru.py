@@ -87,8 +87,8 @@ class BiGRU(BaseModel):
         sorted_indices = sorted_indices.to(data.device)
         data = data.index_select(0, sorted_indices)
 
-        indices = torch.clone(sorted_indices)
-        indices.index_put_(indices=tuple(sorted_indices.unsqueeze(0)),
-                           values=torch.arange(sorted_indices.size(-1)).to(sorted_indices))
+        data_size = sorted_indices.size(-1)
+        indices = torch.empty(data_size, dtype=torch.long)
+        indices[0:data_size] = torch.arange(data_size)
 
         return data, length, indices
