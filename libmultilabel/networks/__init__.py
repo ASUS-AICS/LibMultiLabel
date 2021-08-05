@@ -1,5 +1,6 @@
 import torch.nn as nn
 
+from .bigru import BiGRU
 from .caml import CAML
 from .kim_cnn import KimCNN
 from .xml_cnn import XMLCNN

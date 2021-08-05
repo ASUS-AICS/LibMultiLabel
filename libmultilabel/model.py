@@ -6,7 +6,6 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
-from . import networks
 from .utils import dump_log, argsort_top_k
 from .metrics import get_metrics, tabulate_metrics
 
@@ -112,12 +111,23 @@ class MultiLabelModel(pl.LightningModule):
 
     def _shared_eval_step(self, batch, batch_idx):
         loss, pred_logits = self.shared_step(batch)
-        return {'loss': loss,
+        return {'batch_idx': batch_idx,
+                'loss': loss,
                 'pred_scores': torch.sigmoid(pred_logits),
                 'target': batch['label']}
 
     def _shared_eval_step_end(self, batch_parts):
-        return self.eval_metric.update(batch_parts['pred_scores'], batch_parts['target'])
+        batch_size, num_classes = batch_parts['target'].shape
+        # `indexes` indicates which index a prediction belongs. `RetrievalNormalizedDCG`
+        # will compute the mean of nDCG scores over each prediction.
+        indexes = torch.arange(
+            batch_size*batch_parts['batch_idx'], batch_size*(batch_parts['batch_idx']+1))
+        indexes = indexes.unsqueeze(1).repeat(1, num_classes)
+        return self.eval_metric.update(
+            preds=batch_parts['pred_scores'],
+            target=batch_parts['target'],
+            indexes=indexes
+        )
 
     def _shared_eval_epoch_end(self, step_outputs, split):
         """Get scores such as `Micro-F1`, `Macro-F1`, and monitor metrics defined

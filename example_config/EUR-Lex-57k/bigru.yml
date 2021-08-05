@@ -1,0 +1,32 @@
+# data
+data_dir: data/EUR-Lex-57k
+data_name: EUR-Lex-57k
+min_vocab_freq: 1
+max_seq_length: 500
+
+# train
+seed: 1337
+epochs: 50
+batch_size: 16
+optimizer: adam
+learning_rate: 0.001
+weight_decay: 0
+patience: 10
+shuffle: true
+
+# eval
+eval_batch_size: 16
+monitor_metrics: ['P@1','P@5','RP@5','nDCG@5']
+val_metric: P@1
+
+# model
+model_name: BiGRU
+init_weight: null
+network_config:
+  activation: tanh
+  dropout: 0.4
+  rnn_dim: 300
+  rnn_layers: 1
+
+# pretrained vocab / embeddings
+embed_file: glove.6B.200d

@@ -47,11 +47,11 @@ class CAML(BaseModel):
         self.final = nn.Linear(num_filter_per_size, num_classes)
         xavier_uniform_(self.final.weight)
 
-    def forward(self, text):
+    def forward(self, input):
         # Get embeddings and apply dropout
-        x = self.embedding(text)  # (batch_size, length, embed_dim)
+        x = self.embedding(input['text'])  # (batch_size, length, embed_dim)
         x = self.embed_drop(x)
-        x = x.transpose(1,2) # (batch_size, embed_dim, length)
+        x = x.transpose(1, 2) # (batch_size, embed_dim, length)
 
         """ Apply convolution and nonlinearity (tanh). The shapes are:
             - self.conv(x): (batch_size, num_filte_per_size, length)
@@ -65,7 +65,7 @@ class CAML(BaseModel):
            - matrix product of U.weight and x: (batch_size, num_classes, length)
            - alpha: (batch_size, num_classes, length)
         """
-        alpha = torch.softmax(self.U.weight.matmul(x.transpose(1,2)), dim=2)
+        alpha = torch.softmax(self.U.weight.matmul(x.transpose(1, 2)), dim=2)
 
         # Document representations are weighted sums using the attention
         m = alpha.matmul(x) # (batch_size, num_classes, num_filter_per_size)
