@@ -214,7 +214,7 @@ class Model(MultiLabelModel):
             pred_logits (torch.Tensor): The predict logits (batch_size, num_classes).
         """
         target_labels = batch['label']
-        outputs = self.network(batch['text'])
+        outputs = self.network(batch)
         pred_logits = outputs['logits']
         loss = F.binary_cross_entropy_with_logits(pred_logits, target_labels.float())
         return loss, pred_logits
