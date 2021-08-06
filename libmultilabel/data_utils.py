@@ -1,5 +1,4 @@
 import collections
-import copy
 import logging
 import os
 
@@ -167,7 +166,8 @@ def load_or_build_text_dict(
     if os.path.exists(embed_file):
         logging.info(f'Load pretrained embedding from file: {embed_file}.')
         embedding_weights = get_embedding_weights_from_file(vocabs, embed_file, silent)
-        vocabs.set_vectors(vocabs.stoi, embedding_weights, dim=embedding_weights.shape[1])
+        dim = torch.as_tensor(embedding_weights).shape[1]
+        vocabs.set_vectors(vocabs.stoi, torch.Tensor(embedding_weights), dim=dim)
     elif not embed_file.isdigit():
         logging.info(f'Load pretrained embedding from torchtext.')
         vocabs.load_vectors(embed_file, cache=embed_cache_dir)
@@ -175,12 +175,15 @@ def load_or_build_text_dict(
         raise NotImplementedError
 
     if normalize_embed:
-        embedding_weights = copy.deepcopy(vocabs.vectors.detach().cpu().numpy())
+        # vocabs.vectors is a torch.FloatTensor from the result of vocabs.set_vectors earlier.
+        # To have better precision for calculating the normalization, we use the original
+        # embedding_weights, a torch.DobleTensor, if it is available.
+        embedding_weights = embedding_weights if embedding_weights else vocabs.vectors.numpy()
         for i, vector in enumerate(embedding_weights):
             # We use the constant 1e-6 by following https://github.com/jamesmullenbach/caml-mimic/blob/44a47455070d3d5c6ee69fb5305e32caec104960/dataproc/extract_wvs.py#L60
             # for an internal experiment of reproducing their results.
-            embedding_weights[i] = vector/float(np.linalg.norm(vector) + 1e-6)
-        embedding_weights = torch.Tensor(embedding_weights)
+            embedding_weights[i] = vector / float(np.linalg.norm(vector) + 1e-6)
+        embedding_weights = torch.as_tensor(embedding_weights)
         vocabs.set_vectors(vocabs.stoi, embedding_weights, dim=embedding_weights.shape[1])
 
     return vocabs
@@ -235,4 +238,4 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False):
 
     logging.info(f'loaded {vec_counts}/{len(word_dict)} word embeddings')
 
-    return torch.Tensor(embedding_weights)
+    return embedding_weights
