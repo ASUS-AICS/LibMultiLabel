@@ -45,8 +45,8 @@ class KimCNN(BaseModel):
 
         self.linear = nn.Linear(conv_output_size, num_classes)
 
-    def forward(self, text):
-        h = self.embedding(text) # (batch_size, length, embed_dim)
+    def forward(self, input):
+        h = self.embedding(input['text']) # (batch_size, length, embed_dim)
         h = self.embed_drop(h)
         h = h.transpose(1, 2) # (batch_size, embed_dim, length)
 
