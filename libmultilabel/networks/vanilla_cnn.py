@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.init import xavier_uniform_
@@ -30,8 +29,8 @@ class VanillaCNN(BaseModel):
         xavier_uniform_(self.linear.weight)
 
 
-    def forward(self, text):
-        h = self.embedding(text) # (batch_size, length, embed_dim)
+    def forward(self, input):
+        h = self.embedding(input['text']) # (batch_size, length, embed_dim)
         h = self.embed_drop(h)
         h = h.transpose(1, 2) # (batch_size, embed_dim, length)
 
