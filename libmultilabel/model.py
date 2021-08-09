@@ -14,7 +14,7 @@ class MultiLabelModel(pl.LightningModule):
     """Abstract class handling Pytorch Lightning training flow
 
     Args:
-        classes(list): List of class names.
+        num_classes(int): Number of classes.
         learning_rate (float, optional): Learning rate for optimizer. Defaults to 0.0001.
         optimizer (str, optional): Optimizer name (i.e., sgd, adam, or adamw). Defaults to 'adam'.
         momentum (float, optional): Momentum factor for SGD only. Defaults to 0.9.
@@ -28,7 +28,7 @@ class MultiLabelModel(pl.LightningModule):
 
     def __init__(
         self,
-        classes,
+        num_classes,
         learning_rate=0.0001,
         optimizer='adam',
         momentum=0.9,
@@ -55,7 +55,7 @@ class MultiLabelModel(pl.LightningModule):
         self.save_k_predictions = save_k_predictions
 
         # metrics for evaluation
-        self.eval_metric = get_metrics(metric_threshold, monitor_metrics, len(classes))
+        self.eval_metric = get_metrics(metric_threshold, monitor_metrics, num_classes)
 
     @abstractmethod
     def shared_step(self, batch):
@@ -197,7 +197,7 @@ class Model(MultiLabelModel):
         log_path=None,
         **kwargs
     ):
-        super().__init__(classes=classes, log_path=log_path, **kwargs)
+        super().__init__(num_classes=len(classes), log_path=log_path, **kwargs)
         self.save_hyperparameters()
         self.word_dict = word_dict
         self.classes = classes
