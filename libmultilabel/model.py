@@ -79,6 +79,10 @@ class MultiLabelModel(pl.LightningModule):
             optimizer = optim.AdamW(parameters,
                                     weight_decay=self.weight_decay,
                                     lr=self.learning_rate)
+        elif optimizer_name == 'adamax':
+            optimizer = optim.Adamax(parameters,
+                                     weight_decay=self.weight_decay,
+                                     lr=self.learning_rate)
         else:
             raise RuntimeError(
                 'Unsupported optimizer: {self.optimizer}')
