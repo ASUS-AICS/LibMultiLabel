@@ -41,7 +41,6 @@ class MultiLabelModel(pl.LightningModule):
         **kwargs
     ):
         super().__init__()
-        self.save_hyperparameters()
 
         # optimizer
         self.learning_rate = learning_rate
