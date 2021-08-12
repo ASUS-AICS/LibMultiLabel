@@ -154,19 +154,6 @@ def save_predictions(trainer, model, dataloader, predict_out_path):
 
 
 def main():
-    """PDF
-    load_data()
-    if NN:
-        train_nn()
-    else:
-        train_linear()
-    if eval():
-        load_data()
-        if NN:
-            predict_nn()
-        else:
-            predict_linear()
-    """
     # Get config
     config = get_config()
     check_config(config)
