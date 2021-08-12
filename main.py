@@ -111,6 +111,8 @@ def get_config():
                         help='Path to the an output file holding top 100 label results (default: %(default)s)')
 
     # others
+    parser.add_argument('--linear', action='store_true',
+                        help='Train linear model')
     parser.add_argument('--cpu', action='store_true',
                         help='Disable CUDA')
     parser.add_argument('--silent', action='store_true',
@@ -163,23 +165,24 @@ def main():
     logging.basicConfig(
         level=log_level, format='%(asctime)s %(levelname)s:%(message)s')
 
-    nn = True
-    if nn:
-        trainer = TorchTrainer(config)
+    if not config.linear:
+        trainer = TorchTrainer(config) # initialize trainer
 
+    # train
     if not config.eval:
-        if nn:
+        if config.linear:
+            # y, x = linear.read_tfidf()
+            # model = linear.train_1vsrest(y, x)
+            pass
+        else:
             trainer.train()
-        else:
-            y, x = linear.read_tfidf()
-            model = linear.train_1vsrest(y, x)
-
+    # test
     if 'test' in trainer.datasets:
-        if nn:
-            trainer.test()
+        if config.linear:
+            # linear.predict_values(model, x)
+            pass
         else:
-            # there could be another x (how to define x-train and x-test here?)
-            linear.predict_values(model, x)
+            trainer.test()
 
 
 if __name__ == '__main__':
