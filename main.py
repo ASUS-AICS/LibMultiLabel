@@ -230,7 +230,7 @@ def main():
                 embed_vecs=word_dict.vectors,
                 num_classes=len(classes),
                 **dict(config.network_config)
-            )
+            ).to(device)
             if config.init_weight is not None:
                 init_weight = networks.get_init_weight_func(
                     init_weight=config.init_weight)
