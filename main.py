@@ -1,5 +1,4 @@
 import argparse
-from libmultilabel.linear.linear import predict_values
 import logging
 import yaml
 
@@ -7,7 +6,7 @@ import numpy as np
 from pytorch_lightning.utilities.parsing import AttributeDict
 
 # from libmultilabel import linear
-from libmultilabel.torch_trainer import TorchTrainer
+from torch_trainer import TorchTrainer
 from libmultilabel.utils import Timer
 
 
