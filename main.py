@@ -6,7 +6,7 @@ import yaml
 import numpy as np
 from pytorch_lightning.utilities.parsing import AttributeDict
 
-from libmultilabel import linear
+# from libmultilabel import linear
 from libmultilabel.torch_trainer import TorchTrainer
 from libmultilabel.utils import Timer
 
