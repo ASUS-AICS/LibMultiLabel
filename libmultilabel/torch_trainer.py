@@ -8,6 +8,7 @@ from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 
 from libmultilabel import data_utils
+from libmultilabel import networks
 from libmultilabel.model import Model
 from libmultilabel.utils import dump_log, init_device, set_seed
 
@@ -45,7 +46,7 @@ class TorchTrainer:
                                                  val_size=config.val_size,
                                                  is_eval=config.eval)
         self._setup_model(log_path=self.log_path, checkpoint_path=config.checkpoint_path)
-        self._setup_trainer(config)
+        self._setup_trainer()
 
         # Dump config to log
         dump_log(self.log_path, config=config)
@@ -78,10 +79,20 @@ class TorchTrainer:
             classes = data_utils.load_or_build_label(
                 self.datasets, self.config.label_file, self.config.silent)
 
+            network = getattr(networks, self.config.model_name)(
+                embed_vecs=word_dict.vectors,
+                num_classes=len(classes),
+                **dict(self.config.network_config)
+            )
+            if self.config.init_weight is not None:
+                init_weight = networks.get_init_weight_func(
+                    init_weight=self.config.init_weight)
+                network.apply(init_weight)
+
             self.model = Model(
-                device=self.device,
                 classes=classes,
                 word_dict=word_dict,
+                network=network,
                 log_path=log_path,
                 **dict(self.config)
             )
