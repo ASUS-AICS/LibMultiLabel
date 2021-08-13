@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 
+import numpy as np
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
@@ -148,8 +149,36 @@ class TorchTrainer:
         self._setup_model(checkpoint_path=self.checkpoint_callback.best_model_path)
 
     def test(self):
-        """Test model with pytorch lightning trainer.
+        """Test model with pytorch lightning trainer. Top-k predictions are saved
+        if `save_k_predictions` > 0.
         """
         assert 'test' in self.datasets and self.trainer is not None
         test_loader = self._get_dataset_loader(split='test')
         self.trainer.test(self.model, test_dataloaders=test_loader)
+
+        if self.config.save_k_predictions > 0:
+            if not self.config.predict_out_path:
+                predict_out_path = os.path.join(self.checkpoint_dir, 'predictions.txt')
+            else:
+                predict_out_path = self.config.predict_out_path
+            self._save_predictions(test_loader, predict_out_path)
+
+    def _save_predictions(self, dataloader, predict_out_path):
+        """Save top k label results.
+
+        Args:
+            dataloader (torch.utils.data.DataLoader): Dataloader for the test or valid dataset.
+            predict_out_path (str): Path to the an output file holding top k label results.
+                Defaults to None.
+        """
+        batch_predictions = self.trainer.predict(self.model, dataloaders=dataloader)
+        pred_labels = np.vstack([batch['top_k_pred']
+                                for batch in batch_predictions])
+        pred_scores = np.vstack([batch['top_k_pred_scores']
+                                for batch in batch_predictions])
+        with open(predict_out_path, 'w') as fp:
+            for pred_label, pred_score in zip(pred_labels, pred_scores):
+                out_str = ' '.join([f'{self.model.classes[label]}:{score:.4}' for label, score in zip(
+                    pred_label, pred_score)])
+                fp.write(out_str+'\n')
+        logging.info(f'Saved predictions to: {predict_out_path}')

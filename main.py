@@ -107,7 +107,7 @@ def get_config():
     parser.add_argument('--save_k_predictions', type=int, nargs='?', const=100, default=0,
                         help='Save top k predictions on test set. k=%(const)s if not specified. (default: %(default)s)')
     parser.add_argument('--predict_out_path',
-                        help='Path to the an output file holding top 100 label results (default: %(default)s)')
+                        help='Path to the an output file holding top k label results (default: %(default)s)')
 
     # others
     parser.add_argument('--linear', action='store_true',
@@ -141,17 +141,6 @@ def check_config(config):
     if config.model_name == 'XMLCNN' and config.seed is not None:
         raise ValueError("nn.AdaptiveMaxPool1d doesn't have a deterministic implementation but seed is"
                          "specified. Please do not specify seed.")
-
-
-def save_predictions(trainer, model, dataloader, predict_out_path):
-    batch_predictions = trainer.predict(model, dataloaders=dataloader)
-    pred_labels = np.vstack([batch['top_k_pred'] for batch in batch_predictions])
-    pred_scores = np.vstack([batch['top_k_pred_scores'] for batch in batch_predictions])
-    with open(predict_out_path, 'w') as fp:
-        for pred_label, pred_score in zip(pred_labels, pred_scores):
-            out_str = ' '.join([f'{model.classes[label]}:{score:.4}' for label, score in zip(pred_label, pred_score)])
-            fp.write(out_str+'\n')
-    logging.info(f'Saved predictions to: {predict_out_path}')
 
 
 def main():
