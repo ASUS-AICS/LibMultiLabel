@@ -153,13 +153,15 @@ def main():
     logging.basicConfig(
         level=log_level, format='%(asctime)s %(levelname)s:%(message)s')
 
-    if not config.linear:
+    if config.linear:
+        # load raw texts and generate tfidf, or load tfidf
+        pass
+    else:
         trainer = TorchTrainer(config) # initialize trainer
 
     # train
     if not config.eval:
         if config.linear:
-            # y, x = linear.read_tfidf()
             # model = linear.train_1vsrest(y, x)
             pass
         else:
