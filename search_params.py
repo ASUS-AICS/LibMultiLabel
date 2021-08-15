@@ -15,6 +15,7 @@ from pytorch_lightning.utilities.parsing import AttributeDict
 from ray import tune
 
 from libmultilabel import data_utils
+from libmultilabel import networks
 from libmultilabel.model import Model
 from libmultilabel.utils import dump_log, init_device, set_seed
 
@@ -60,11 +61,22 @@ class Trainable(tune.Trainable):
         log_path = os.path.join(checkpoint_dir, 'logs.json')
         dump_log(log_path, config=self.config)
 
+        # Setup network
+        network = getattr(networks, self.config.model_name)(
+            embed_vecs=self.word_dict.vectors,
+            num_classes=len(self.classes),
+            **dict(self.config.network_config)
+        )
+        if self.config.init_weight is not None:
+            init_weight = networks.get_init_weight_func(
+                init_weight=self.config.init_weight)
+            network.apply(init_weight)
+
         # Setup model
         model = Model(
-            device=self.device,
             classes=self.classes,
             word_dict=self.word_dict,
+            network=network,
             log_path=log_path,
             **dict(self.config)
         )
@@ -204,7 +216,7 @@ def load_static_data(config):
             embed_file=config.embed_file,
             embed_cache_dir=config.embed_cache_dir,
             silent=config.silent,
-            normalize=config.normalize
+            normalize_embed=config.normalize_embed
         ),
         "classes": data_utils.load_or_build_label(datasets, config.label_file, config.silent)
     }
