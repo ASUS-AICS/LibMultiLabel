@@ -62,8 +62,9 @@ class TorchTrainer:
                 results will be logged. Defaults to None.
             checkpoint_path (str, optional): The checkpoint to warm-up with. Defaults to None.
         """
-        if 'checkpoint_path' in self.config:
+        if 'checkpoint_path' in self.config and self.config.checkpoint_path is not None:
             checkpoint_path = self.config.checkpoint_path
+
         if checkpoint_path is not None:
             logging.info(f'Loading model from `{checkpoint_path}`...')
             self.model = Model.load_from_checkpoint(checkpoint_path)
