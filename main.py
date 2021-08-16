@@ -1,20 +1,13 @@
 import argparse
 import logging
-import os
 import yaml
-from datetime import datetime
-from pathlib import Path
 
 import numpy as np
-import pytorch_lightning as pl
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.utilities.parsing import AttributeDict
 
-from libmultilabel import data_utils
-from libmultilabel import networks
-from libmultilabel.model import Model
-from libmultilabel.utils import Timer, dump_log, init_device, set_seed
+# from libmultilabel import linear
+from torch_trainer import TorchTrainer
+from libmultilabel.utils import Timer
 
 
 def get_config():
@@ -114,9 +107,11 @@ def get_config():
     parser.add_argument('--save_k_predictions', type=int, nargs='?', const=100, default=0,
                         help='Save top k predictions on test set. k=%(const)s if not specified. (default: %(default)s)')
     parser.add_argument('--predict_out_path',
-                        help='Path to the an output file holding top 100 label results (default: %(default)s)')
+                        help='Path to the an output file holding top k label results (default: %(default)s)')
 
     # others
+    parser.add_argument('--linear', action='store_true',
+                        help='Train linear model')
     parser.add_argument('--cpu', action='store_true',
                         help='Disable CUDA')
     parser.add_argument('--silent', action='store_true',
@@ -148,143 +143,36 @@ def check_config(config):
                          "specified. Please do not specify seed.")
 
 
-def save_predictions(trainer, model, dataloader, predict_out_path):
-    batch_predictions = trainer.predict(model, dataloaders=dataloader)
-    pred_labels = np.vstack([batch['top_k_pred'] for batch in batch_predictions])
-    pred_scores = np.vstack([batch['top_k_pred_scores'] for batch in batch_predictions])
-    with open(predict_out_path, 'w') as fp:
-        for pred_label, pred_score in zip(pred_labels, pred_scores):
-            out_str = ' '.join([f'{model.classes[label]}:{score:.4}' for label, score in zip(pred_label, pred_score)])
-            fp.write(out_str+'\n')
-    logging.info(f'Saved predictions to: {predict_out_path}')
-
-
 def main():
     # Get config
     config = get_config()
     check_config(config)
-    config.run_name = '{}_{}_{}'.format(
-        config.data_name,
-        Path(config.config).stem if config.config else config.model_name,
-        datetime.now().strftime('%Y%m%d%H%M%S'),
-    )
+
     # Set up logger
     log_level = logging.WARNING if config.silent else logging.INFO
     logging.basicConfig(
         level=log_level, format='%(asctime)s %(levelname)s:%(message)s')
-    logging.info(f'Run name: {config.run_name}')
 
-    # Set up seed & device
-    set_seed(seed=config.seed)
-    device = init_device(use_cpu=config.cpu)
-
-    # Load dataset
-    datasets = data_utils.load_datasets(data_dir=config.data_dir,
-                                        train_path=config.train_path,
-                                        test_path=config.test_path,
-                                        val_path=config.val_path,
-                                        val_size=config.val_size,
-                                        is_eval=config.eval)
-
-    # Set up trainer
-    checkpoint_dir = os.path.join(config.result_dir, config.run_name)
-    checkpoint_callback = ModelCheckpoint(dirpath=checkpoint_dir,
-                                          filename='best_model',
-                                          save_last=True, save_top_k=1,
-                                          monitor=config.val_metric, mode='max')
-    earlystopping_callback = EarlyStopping(patience=config.patience,
-                                           monitor=config.val_metric, mode='max')
-    trainer = pl.Trainer(logger=False,
-                         num_sanity_val_steps=0,
-                         gpus=0 if config.cpu else 1,
-                         progress_bar_refresh_rate=0 if config.silent else 1,
-                         max_epochs=config.epochs,
-                         callbacks=[checkpoint_callback, earlystopping_callback])
-
-    # Dump config to log
-    log_path = os.path.join(checkpoint_dir, 'logs.json')
-    dump_log(log_path, config=config)
-
-    # Setup model
-    if config.eval:
-        model = Model.load_from_checkpoint(
-            config.checkpoint_path, device=device,
-            model_name=config.model_name, silent=config.silent)
+    if config.linear:
+        # load raw texts and generate tfidf, or load tfidf
+        pass
     else:
-        if config.checkpoint_path:
-            model = Model.load_from_checkpoint(
-                config.checkpoint_path, device=device,
-                model_name=config.model_name, silent=config.silent)
+        trainer = TorchTrainer(config) # initialize trainer
+
+    # train
+    if not config.eval:
+        if config.linear:
+            # model = linear.train_1vsrest(y, x)
+            pass
         else:
-            word_dict = data_utils.load_or_build_text_dict(
-                dataset=datasets['train'],
-                vocab_file=config.vocab_file,
-                min_vocab_freq=config.min_vocab_freq,
-                embed_file=config.embed_file,
-                embed_cache_dir=config.embed_cache_dir,
-                silent=config.silent,
-                normalize_embed=config.normalize_embed
-            )
-            classes = data_utils.load_or_build_label(datasets, config.label_file, config.silent)
-            network = getattr(networks, config.model_name)(
-                embed_vecs=word_dict.vectors,
-                num_classes=len(classes),
-                **dict(config.network_config)
-            )
-            if config.init_weight is not None:
-                init_weight = networks.get_init_weight_func(
-                    init_weight=config.init_weight)
-                network.apply(init_weight)
-
-            model = Model(
-                classes=classes,
-                word_dict=word_dict,
-                network=network,
-                log_path=log_path,
-                **dict(config)
-            )
-
-        # Set up dataset loader
-        train_loader = data_utils.get_dataset_loader(
-            data=datasets['train'],
-            word_dict=model.word_dict,
-            classes=model.classes,
-            device=device,
-            max_seq_length=config.max_seq_length,
-            batch_size=config.batch_size,
-            shuffle=config.shuffle,
-            data_workers=config.data_workers
-        )
-        val_loader = data_utils.get_dataset_loader(
-            data=datasets['val'],
-            word_dict=model.word_dict,
-            classes=model.classes,
-            device=device,
-            max_seq_length=config.max_seq_length,
-            batch_size=config.eval_batch_size,
-            data_workers=config.data_workers
-        )
-
-        # Start training
-        trainer.fit(model, train_loader, val_loader)
-        logging.info(f'Loading best model from `{checkpoint_callback.best_model_path}`...')
-        model = Model.load_from_checkpoint(checkpoint_callback.best_model_path)
-
-    if 'test' in datasets:
-        test_loader = data_utils.get_dataset_loader(
-            data=datasets['test'],
-            word_dict=model.word_dict,
-            classes=model.classes,
-            device=device,
-            max_seq_length=config.max_seq_length,
-            batch_size=config.eval_batch_size,
-            data_workers=config.data_workers
-        )
-        trainer.test(model, test_dataloaders=test_loader)
-        if config.save_k_predictions > 0:
-            if not config.predict_out_path:
-                config.predict_out_path = os.path.join(checkpoint_dir, 'predictions.txt')
-            save_predictions(trainer, model, test_loader, config.predict_out_path)
+            trainer.train()
+    # test
+    if 'test' in trainer.datasets:
+        if config.linear:
+            # linear.predict_values(model, x)
+            pass
+        else:
+            trainer.test()
 
 
 if __name__ == '__main__':
