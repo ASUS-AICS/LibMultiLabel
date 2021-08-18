@@ -141,7 +141,7 @@ class TorchTrainer:
             shuffle (bool): Whether to shuffle training data before each epoch. Defaults to False.
         """
         assert self.trainer is not None, "Please make sure the trainer is successfully initialized by `self._setup_trainer()`."
-        train_loader = self._get_dataset_loader(split='train', shuffle=shuffle)
+        train_loader = self._get_dataset_loader(split='train', shuffle=self.config.shuffle)
         val_loader = self._get_dataset_loader(split='val')
         self.trainer.fit(self.model, train_loader, val_loader)
 
