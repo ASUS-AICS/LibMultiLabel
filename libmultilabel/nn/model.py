@@ -6,8 +6,8 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
-from .utils import dump_log, argsort_top_k
-from .metrics import get_metrics, tabulate_metrics
+from ..utils import dump_log, argsort_top_k
+from ..metrics import get_metrics, tabulate_metrics
 
 
 class MultiLabelModel(pl.LightningModule):

@@ -14,9 +14,9 @@ from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.utilities.parsing import AttributeDict
 from ray import tune
 
-from libmultilabel import data_utils
 from libmultilabel import networks
-from libmultilabel.model import Model
+from libmultilabel.nn import data_utils
+from libmultilabel.nn.model import Model
 from libmultilabel.utils import dump_log, init_device, set_seed
 
 logging.basicConfig(level=logging.INFO,
