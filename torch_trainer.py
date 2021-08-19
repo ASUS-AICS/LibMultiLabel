@@ -133,12 +133,9 @@ class TorchTrainer:
             data_workers=self.config.data_workers
         )
 
-    def train(self, shuffle=False):
+    def train(self):
         """Train model with pytorch lightning trainer. Set model to the best model after the training
         process is finished.
-
-        Args:
-            shuffle (bool): Whether to shuffle training data before each epoch. Defaults to False.
         """
         assert self.trainer is not None, "Please make sure the trainer is successfully initialized by `self._setup_trainer()`."
         train_loader = self._get_dataset_loader(split='train', shuffle=self.config.shuffle)
