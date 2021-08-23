@@ -2,7 +2,6 @@ import argparse
 import logging
 import yaml
 
-import numpy as np
 from pytorch_lightning.utilities.parsing import AttributeDict
 
 # from libmultilabel import linear
