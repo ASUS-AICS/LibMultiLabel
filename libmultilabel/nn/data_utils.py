@@ -79,7 +79,7 @@ def tokenize(text):
 
 def _load_raw_data(path, is_test=False):
     logging.info(f'Load data from {path}.')
-    data = pd.read_csv(path, sep='\t', header=None, error_bad_lines=False, warn_bad_lines=True)
+    data = pd.read_csv(path, sep='\t', header=None, error_bad_lines=False, warn_bad_lines=True).fillna('')
     if data.shape[1] == 2:
         data.columns = ['label', 'text']
         data = data.reset_index()
