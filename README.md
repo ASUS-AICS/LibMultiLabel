@@ -129,7 +129,10 @@ To use your own word embeddings or vocabulary set, specify the following paramet
     language 0.8667483925819397 5.001194953918457 ...
     ```
 - **vocab_file**: set the file path to a predefined vocabulary set that contains lines of words.
-
+    ```=
+    team
+    language
+    ```
 For the validation process in the training procedure, you can evaluate the model with a set of evaluation metrics. Set `monitor_metrics` to define what you want to print on the screen. The argument `val_metric` is the metric for picking the best model. Example:
 ```yaml
 monitor_metrics: [P@1, P@3, P@5]
