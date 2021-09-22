@@ -125,13 +125,15 @@ To use your own word embeddings or vocabulary set, specify the following paramet
 
 - **embed_file**: choose one of the pretrained embeddings defined in [torchtext](https://pytorch.org/text/0.9.0/vocab.html#torchtext.vocab.Vocab.load_vectors) or specify the path to your word embeddings with each line containing a word followed by its vectors. Example:
     ```=
-    team -0.17901678383350372 1.2405720949172974 ...
-    language 0.8667483925819397 5.001194953918457 ...
+    the 0.04656 0.21318 -0.0074364 ...
+    a -0.29712 0.094049 -0.096662 ...
+    an -0.3206 0.43316 -0.086867 ...
     ```
 - **vocab_file**: set the file path to a predefined vocabulary set that contains lines of words.
     ```=
-    team
-    language
+    the
+    a
+    an
     ```
 For the validation process in the training procedure, you can evaluate the model with a set of evaluation metrics. Set `monitor_metrics` to define what you want to print on the screen. The argument `val_metric` is the metric for picking the best model. Example:
 ```yaml
