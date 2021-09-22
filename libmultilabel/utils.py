@@ -6,6 +6,9 @@ import time
 
 import numpy as np
 import torch
+import pytorch_lightning as pl
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.utilities.seed import seed_everything
 
 
@@ -97,9 +100,50 @@ def init_device(use_cpu=False):
     return device
 
 
+def init_network():
+    pass
+
+
+def init_trainer(checkpoint_dir,
+                 epochs=10000,
+                 patience=5,
+                 mode='max',
+                 val_metric='P@1',
+                 silent=False,
+                 use_cpu=False):
+    """Initialize a torch lightning trainer.
+
+    Args:
+        checkpoint_dir (str): Directory for saving models and log.
+        epochs (int): Number of epochs to train. Defaults to 10000.
+        patience (int): Number of epochs to wait for improvement before early stopping. Defaults to 5.
+        mode (str): One of [min, max]. Decides whether the val_metric is minimizing or maximizing.
+        val_metric (str): The metric to monitor for early stopping. Defaults to 'P@1'.
+        silent (bool): Enable silent mode. Defaults to False.
+        use_cpu (bool): Disable CUDA. Defaults to False.
+
+    Returns:
+        pl.Trainer: Torch
+    """
+
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=checkpoint_dir, filename='best_model', save_last=True,
+        save_top_k=1, monitor=val_metric, mode=mode)
+    earlystopping_callback = EarlyStopping(
+        patience=patience, monitor=val_metric, mode=mode)
+    trainer = pl.Trainer(logger=False, num_sanity_val_steps=0,
+                         gpus=0 if use_cpu else 1,
+                         progress_bar_refresh_rate=0 if silent else 1,
+                         max_epochs=epochs,
+                         callbacks=[checkpoint_callback, earlystopping_callback])
+    return trainer
+
+
 def argsort_top_k(vals, k, axis=-1):
-    unsorted_top_k_idx = np.argpartition(vals, -k, axis=axis)[:,-k:]
-    unsorted_top_k_scores = np.take_along_axis(vals, unsorted_top_k_idx, axis=axis)
+    unsorted_top_k_idx = np.argpartition(vals, -k, axis=axis)[:, -k:]
+    unsorted_top_k_scores = np.take_along_axis(
+        vals, unsorted_top_k_idx, axis=axis)
     sorted_order = np.argsort(-unsorted_top_k_scores, axis=axis)
-    sorted_top_k_idx = np.take_along_axis(unsorted_top_k_idx, sorted_order, axis=axis)
+    sorted_top_k_idx = np.take_along_axis(
+        unsorted_top_k_idx, sorted_order, axis=axis)
     return sorted_top_k_idx
