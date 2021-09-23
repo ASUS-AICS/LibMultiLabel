@@ -71,32 +71,6 @@ def dump_log(log_path, metrics=None, split=None, config=None):
     logging.info(f'Finish writing log to {log_path}.')
 
 
-def set_seed(seed):
-    """Set seeds for numpy and pytorch."""
-    if seed is not None:
-        if seed >= 0:
-            seed_everything(seed=seed)
-            torch.use_deterministic_algorithms(True)
-            torch.backends.cudnn.benchmark = False
-        else:
-            logging.warning(
-                f'the random seed should be a non-negative integer')
-
-
-def init_device(use_cpu=False):
-    if not use_cpu and torch.cuda.is_available():
-        # Set a debug environment variable CUBLAS_WORKSPACE_CONFIG to ":16:8" (may limit overall performance) or ":4096:8" (will increase library footprint in GPU memory by approximately 24MiB).
-        # https://docs.nvidia.com/cuda/cublas/index.html
-        os.environ['CUBLAS_WORKSPACE_CONFIG'] = ":4096:8"
-        device = torch.device('cuda')
-    else:
-        device = torch.device('cpu')
-        # https://github.com/pytorch/pytorch/issues/11201
-        torch.multiprocessing.set_sharing_strategy('file_system')
-    logging.info(f'Using device: {device}')
-    return device
-
-
 def argsort_top_k(vals, k, axis=-1):
     unsorted_top_k_idx = np.argpartition(vals, -k, axis=axis)[:, -k:]
     unsorted_top_k_scores = np.take_along_axis(
