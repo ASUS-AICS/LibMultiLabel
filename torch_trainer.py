@@ -11,6 +11,7 @@ from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from libmultilabel.nn import data_utils
 from libmultilabel.nn import networks
 from libmultilabel.nn.model import Model
+from libmultilabel.nn.nn_utils import init_model, init_trainer
 from libmultilabel.utils import dump_log, init_device, set_seed
 
 
@@ -47,7 +48,10 @@ class TorchTrainer:
                                                  val_size=config.val_size,
                                                  is_eval=config.eval)
         self._setup_model(log_path=self.log_path, checkpoint_path=config.checkpoint_path)
-        self._setup_trainer()
+        self.trainer = init_trainer(checkpoint_dir=config.checkpoint_path,
+                                    epochs=config.epochs,
+                                    patience=config.patience,
+                                    val_metric=config.val_metric)
 
         # Dump config to log
         dump_log(self.log_path, config=config)
@@ -81,36 +85,21 @@ class TorchTrainer:
             classes = data_utils.load_or_build_label(
                 self.datasets, self.config.label_file, self.config.silent)
 
-            network = getattr(networks, self.config.model_name)(
-                embed_vecs=word_dict.vectors,
-                num_classes=len(classes),
-                **dict(self.config.network_config)
-            )
-            if self.config.init_weight is not None:
-                init_weight = networks.get_init_weight_func(
-                    init_weight=self.config.init_weight)
-                network.apply(init_weight)
-
-            self.model = Model(
-                classes=classes,
-                word_dict=word_dict,
-                network=network,
-                log_path=log_path,
-                **dict(self.config)
-            )
-
-    def _setup_trainer(self):
-        """Setup torch trainer and callbacks."""
-        self.checkpoint_callback = ModelCheckpoint(
-            dirpath=self.checkpoint_dir, filename='best_model', save_last=True,
-            save_top_k=1, monitor=self.config.val_metric, mode='max')
-        self.earlystopping_callback = EarlyStopping(
-            patience=self.config.patience, monitor=self.config.val_metric, mode='max')
-        self.trainer = pl.Trainer(logger=False, num_sanity_val_steps=0,
-                                  gpus=0 if self.config.cpu else 1,
-                                  progress_bar_refresh_rate=0 if self.config.silent else 1,
-                                  max_epochs=self.config.epochs,
-                                  callbacks=[self.checkpoint_callback, self.earlystopping_callback])
+            self.model = init_model(model_name=self.config.model_name,
+                                    network_config=dict(self.config.network_config),
+                                    classes=classes,
+                                    word_dict=word_dict,
+                                    init_weight=self.config.init_weight,
+                                    log_path=log_path,
+                                    learning_rate=self.config.learning_rate,
+                                    optimizer=self.config.optimizer,
+                                    momentum=self.config.momentum,
+                                    weight_decay=self.config.weight_decay,
+                                    metric_threshold=self.config.metric_threshold,
+                                    monitor_metrics=self.config.monitor_metrics,
+                                    silent=self.config.silent,
+                                    save_k_predictions=self.config.save_k_predictions
+                                   )
 
     def _get_dataset_loader(self, split, shuffle=False):
         """Get dataset loader.
