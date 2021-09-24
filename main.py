@@ -154,23 +154,19 @@ def main():
 
     if config.linear:
         # load raw texts and generate tfidf, or load tfidf
-        pass
-    else:
-        trainer = TorchTrainer(config) # initialize trainer
-
-    # train
-    if not config.eval:
-        if config.linear:
+        if not config.eval: # train
             # model = linear.train_1vsrest(y, x)
             pass
-        else:
-            trainer.train()
-    # test
-    if 'test' in trainer.datasets:
-        if config.linear:
+        else: # test
             # linear.predict_values(model, x)
             pass
-        else:
+    else:
+        trainer = TorchTrainer(config) # initialize trainer
+        # train
+        if not config.eval:
+            trainer.train()
+        # test
+        if 'test' in trainer.datasets:
             trainer.test()
 
 
