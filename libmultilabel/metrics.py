@@ -14,17 +14,14 @@ class RPrecision(Metric):
     Args:
         top_k (int): the top k relevant labels to evaluate.
     """
-
     def __init__(
         self,
         top_k
     ):
         super().__init__()
         self.top_k = top_k
-        self.add_state("score", default=torch.tensor(
-            0., dtype=torch.double), dist_reduce_fx="sum")
-        self.add_state("num_sample", default=torch.tensor(0),
-                       dist_reduce_fx="sum")
+        self.add_state("score", default=torch.tensor(0., dtype=torch.double), dist_reduce_fx="sum")
+        self.add_state("num_sample", default=torch.tensor(0), dist_reduce_fx="sum")
 
     def update(self, preds, target):
         assert preds.shape == target.shape
@@ -82,7 +79,6 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes):
 def tabulate_metrics(metric_dict, split):
     msg = f'====== {split} dataset evaluation result =======\n'
     header = '|'.join([f'{k:^18}' for k in metric_dict.keys()])
-    values = '|'.join([f'{x * 100:^18.4f}' if isinstance(x, (np.floating,
-                      float)) else f'{x:^18}' for x in metric_dict.values()])
+    values = '|'.join([f'{x * 100:^18.4f}' if isinstance(x, (np.floating, float)) else f'{x:^18}' for x in metric_dict.values()])
     msg += f"|{header}|\n|{'-----------------:|' * len(metric_dict)}\n|{values}|\n"
     return msg
