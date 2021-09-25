@@ -212,10 +212,12 @@ def main():
     else:
         trainer = TorchTrainer(config)  # initialize trainer
 
+        # train
         if not config.eval:
             trainer.train()
 
-        if os.path.exists(config.test_path):
+        # test
+        if 'test' in trainer.datasets:
             trainer.test()
 
 
