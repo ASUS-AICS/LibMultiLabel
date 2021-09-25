@@ -94,7 +94,7 @@ def get_metrics(metric_threshold: float, monitor_metrics: list, num_classes: int
 
     Returns:
         MetricCollection: A metric collection of the list of metrics.
-    """    
+    """
     if monitor_metrics is None:
         monitor_metrics = []
     metrics = {

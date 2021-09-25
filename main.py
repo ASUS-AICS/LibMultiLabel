@@ -209,7 +209,6 @@ def main():
         # TODO: dump logs?
     else:
         trainer = TorchTrainer(config) # initialize trainer
-
         # train
         if not config.eval:
             trainer.train()
