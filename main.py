@@ -1,12 +1,20 @@
 import argparse
 import logging
+import os
 import yaml
+from datetime import datetime
+from pathlib import Path
 
 from pytorch_lightning.utilities.parsing import AttributeDict
 
 # from libmultilabel import linear
 from torch_trainer import TorchTrainer
 from libmultilabel.utils import Timer
+
+from math import ceil
+from libmultilabel.metrics import tabulate_metrics
+import libmultilabel.linear as linear
+import numpy as np
 
 
 def get_config():
@@ -125,9 +133,24 @@ def get_config():
                         help='The checkpoint to warm-up with (default: %(default)s)')
     parser.add_argument('-h', '--help', action='help')
 
+    # linear options
+    parser.add_argument('--data_format', type=str,
+                        help='Data format (default: %(default)s)')
+    parser.add_argument('--liblinear_options', type=str,
+                        help='Options passed to liblinear (default: %(default)s)')
+
     parser.set_defaults(**config)
     args = parser.parse_args()
     config = AttributeDict(vars(args))
+
+    config.run_name = '{}_{}_{}'.format(
+        config.data_name,
+        Path(config.config).stem if config.config else config.model_name,
+        datetime.now().strftime('%Y%m%d%H%M%S'),
+    )
+    config.checkpoint_dir = os.path.join(config.result_dir, config.run_name)
+    config.log_path = os.path.join(config.checkpoint_dir, 'logs.json')
+
     return config
 
 
@@ -142,6 +165,21 @@ def check_config(config):
                          "specified. Please do not specify seed.")
 
 
+def linear_test(config, model, datasets):
+    metrics = linear.get_metrics(
+        config.metric_threshold,
+        config.monitor_metrics,
+        datasets['test']['y'].shape[1]
+    )
+    nr_instance = datasets['test']['x'].shape[0]
+    for i in range(ceil(nr_instance / config.eval_batch_size)):
+        slice = np.s_[i*config.eval_batch_size:(i+1)*config.eval_batch_size]
+        preds = linear.predict_values(model, datasets['test']['x'][slice])
+        target = datasets['test']['y'][slice].toarray()
+        metrics.update(preds, target)
+    print(tabulate_metrics(metrics.compute(), 'test'))
+
+
 def main():
     # Get config
     config = get_config()
@@ -152,21 +190,32 @@ def main():
     logging.basicConfig(
         level=log_level, format='%(asctime)s %(levelname)s:%(message)s')
 
+    logging.info(f'Run name: {config.run_name}')
+
     if config.linear:
-        # load raw texts and generate tfidf, or load tfidf
-        if not config.eval: # train
-            # model = linear.train_1vsrest(y, x)
-            pass
-        else: # test
-            # linear.predict_values(model, x)
-            pass
+        if config.eval:
+            preprocessor, model = linear.load_pipeline(config.checkpoint_path)
+            datasets = preprocessor.load_data()
+        else:
+            preprocessor = linear.Preprocessor(config)
+            datasets = preprocessor.load_data()
+            model = linear.train_1vsrest(
+                datasets['train']['y'],
+                datasets['train']['x'],
+                config.liblinear_options
+            )
+            linear.save_pipeline(config.checkpoint_dir, preprocessor, model)
+
+        if os.path.exists(config.test_path):
+            linear_test(config, model, datasets)
+        # TODO: dump logs?
     else:
-        trainer = TorchTrainer(config) # initialize trainer
-        # train
+        trainer = TorchTrainer(config)  # initialize trainer
+
         if not config.eval:
             trainer.train()
-        # test
-        if 'test' in trainer.datasets:
+
+        if os.path.exists(config.test_path):
             trainer.test()
 
 
