@@ -1,20 +1,18 @@
 import argparse
 import logging
 import os
-import yaml
 from datetime import datetime
+from math import ceil
 from pathlib import Path
 
+import numpy as np
+import yaml
 from pytorch_lightning.utilities.parsing import AttributeDict
 
-# from libmultilabel import linear
-from torch_trainer import TorchTrainer
-from libmultilabel.utils import Timer
-
-from math import ceil
-from libmultilabel.metrics import tabulate_metrics
 import libmultilabel.linear as linear
-import numpy as np
+from libmultilabel.metrics import tabulate_metrics
+from libmultilabel.utils import Timer
+from torch_trainer import TorchTrainer
 
 
 def get_config():
@@ -210,12 +208,11 @@ def main():
             linear_test(config, model, datasets)
         # TODO: dump logs?
     else:
-        trainer = TorchTrainer(config)  # initialize trainer
+        trainer = TorchTrainer(config) # initialize trainer
 
         # train
         if not config.eval:
             trainer.train()
-
         # test
         if 'test' in trainer.datasets:
             trainer.test()
