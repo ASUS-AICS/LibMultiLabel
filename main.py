@@ -163,6 +163,8 @@ def check_config(config):
         raise ValueError("nn.AdaptiveMaxPool1d doesn't have a deterministic implementation but seed is"
                          "specified. Please do not specify seed.")
 
+    if config.eval and not os.path.exists(config.test_path):
+        raise ValueError('No test data set with --eval')
 
 def linear_test(config, model, datasets):
     metrics = linear.get_metrics(
