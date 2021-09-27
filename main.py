@@ -185,7 +185,7 @@ def linear_train(datasets, config):
     model = linear.train_1vsrest(
         datasets['train']['y'],
         datasets['train']['x'],
-        config.linear_options,
+        config.liblinear_options,
     )
     return model
 

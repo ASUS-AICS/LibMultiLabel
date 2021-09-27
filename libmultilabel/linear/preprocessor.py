@@ -4,8 +4,8 @@ import os
 import re
 from array import array
 from collections import defaultdict
-from collections.abc import Iterable
 
+import pandas as pd
 import scipy
 import scipy.sparse as sparse
 from scipy.sparse.csr import csr_matrix
@@ -13,9 +13,6 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import MultiLabelBinarizer
 
 __all__ = ['Preprocessor']
-
-# Note the trailing newline
-LibMultiLabelFormat = r'(?:\w+\t)?([\w\.]*(?: [\w\.]+)*)\t(\s*\S+(?:\s+\S+)*)\n'
 
 
 class Preprocessor:
@@ -33,19 +30,17 @@ class Preprocessor:
     def _load_txt(self) -> 'dict[str, dict]':
         datasets = defaultdict(dict)
         if not self.config.eval:
-            train = split_label_text(
-                (l for l in open(self.config.train_path)), LibMultiLabelFormat)
-            self._generate_tfidf_model(train['texts'])
-            self._generate_label_mapping(train['labels'])
-            datasets['train']['x'] = self.vectorizer.transform(train['texts'])
+            train = split_label_text(self.config.train_path)
+            self._generate_tfidf_model(train['text'])
+            self._generate_label_mapping(train['label'])
+            datasets['train']['x'] = self.vectorizer.transform(train['text'])
             datasets['train']['y'] = self.binarizer.transform(
-                train['labels']).astype('d')
+                train['label']).astype('d')
         if os.path.exists(self.config.test_path):
-            test = split_label_text(
-                (l for l in open(self.config.test_path)), LibMultiLabelFormat)
-            datasets['test']['x'] = self.vectorizer.transform(test['texts'])
+            test = split_label_text(self.config.test_path)
+            datasets['test']['x'] = self.vectorizer.transform(test['text'])
             datasets['test']['y'] = self.binarizer.transform(
-                test['labels']).astype('d')
+                test['label']).astype('d')
         return dict(datasets)
 
     def _load_svm(self) -> 'dict[str, dict]':
@@ -70,20 +65,18 @@ class Preprocessor:
         self.binarizer.fit(labels)
 
 
-def split_label_text(raw_text: 'Iterable[str]', pattern: str) -> 'dict[str,list[str]]':
-    p = re.compile(pattern)
-    labels = []
-    texts = []
-    for line in raw_text:
-        m = p.fullmatch(line)
-        if m is None:
-            raise ValueError(f'"{pattern}" doesn\'t match:\n{line}')
-        labels.append(m[1])
-        texts.append(m[2])
-    return {
-        'labels': labels,
-        'texts': texts,
-    }
+def split_label_text(path: str) -> 'dict[str,list[str]]':
+    data = pd.read_csv(path, sep='\t', header=None,
+                       on_bad_lines='skip').fillna('')
+    if data.shape[1] == 2:
+        data.columns = ['label', 'text']
+        data = data.reset_index()
+    elif data.shape[1] == 3:
+        data.columns = ['index', 'label', 'text']
+    else:
+        raise ValueError(f'Expected 2 or 3 columns, got {data.shape[1]}.')
+    data['label'] = data['label'].map(lambda s: s.split())
+    return data.to_dict('list')
 
 
 def svm_read_problem(file_path: str) -> 'tuple[list[list[int]], sparse.csr_matrix]':
