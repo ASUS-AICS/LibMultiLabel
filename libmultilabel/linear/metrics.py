@@ -15,10 +15,10 @@ class RPrecision:
     def update(self, preds: np.ndarray, target: np.ndarray) -> None:
         assert preds.shape == target.shape
         top_k_ind = np.argpartition(preds, -self.top_k)[:, -self.top_k:]
-        n_relevant = target[top_k_ind].sum(axis=-1)
+        num_relevant = target[top_k_ind].sum(axis=-1)
         top_ks = np.full_like(preds, self.top_k)
         self.score += np.nan_to_num(
-            n_relevant / np.min(top_ks, target.sum(axis=-1)),
+            num_relevant / np.min(top_ks, target.sum(axis=-1)),
             posinf=0.
         ).sum()
         self.num_sample += preds.shape[0]
@@ -36,8 +36,8 @@ class Precision:
     def update(self, preds: np.ndarray, target: np.ndarray) -> None:
         assert preds.shape == target.shape
         top_k_ind = np.argpartition(preds, -self.top_k)[:, -self.top_k:]
-        n_relevant = np.take_along_axis(target, top_k_ind, -1).sum()
-        self.score += n_relevant / self.top_k
+        num_relevant = np.take_along_axis(target, top_k_ind, -1).sum()
+        self.score += num_relevant / self.top_k
         self.num_sample += preds.shape[0]
 
     def compute(self) -> float:

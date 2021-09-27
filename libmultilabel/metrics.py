@@ -27,10 +27,10 @@ class RPrecision(Metric):
         assert preds.shape == target.shape
         binary_topk_preds = select_topk(preds, self.top_k)
         target = target.to(dtype=torch.int)
-        n_relevant = torch.sum(binary_topk_preds & target, dim=-1)
+        num_relevant = torch.sum(binary_topk_preds & target, dim=-1)
         top_ks = torch.tensor([self.top_k]*preds.shape[0]).to(preds.device)
         self.score += torch.nan_to_num(
-            n_relevant / torch.min(top_ks, target.sum(dim=-1)),
+            num_relevant / torch.min(top_ks, target.sum(dim=-1)),
             posinf=0.
         ).sum()
         self.num_sample += len(preds)

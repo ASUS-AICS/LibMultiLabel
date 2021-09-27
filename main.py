@@ -172,8 +172,8 @@ def linear_test(config, model, datasets):
         config.monitor_metrics,
         datasets['test']['y'].shape[1]
     )
-    nr_instance = datasets['test']['x'].shape[0]
-    for i in range(ceil(nr_instance / config.eval_batch_size)):
+    num_instance = datasets['test']['x'].shape[0]
+    for i in range(ceil(num_instance / config.eval_batch_size)):
         slice = np.s_[i*config.eval_batch_size:(i+1)*config.eval_batch_size]
         preds = linear.predict_values(model, datasets['test']['x'][slice])
         target = datasets['test']['y'][slice].toarray()
