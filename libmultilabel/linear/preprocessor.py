@@ -35,7 +35,8 @@ class Preprocessor:
         if not self.config.eval:
             train = split_label_text(
                 (l for l in open(self.config.train_path)), LibMultiLabelFormat)
-            self._fit_txt(train['texts'], train['labels'])
+            self._generate_tfidf_model(train['texts'])
+            self._generate_label_mapping(train['labels'])
             datasets['train']['x'] = self.vectorizer.transform(train['texts'])
             datasets['train']['y'] = self.binarizer.transform(
                 train['labels']).astype('d')
@@ -47,18 +48,11 @@ class Preprocessor:
                 test['labels']).astype('d')
         return dict(datasets)
 
-    def _fit_txt(self, texts, labels):
-        self.vectorizer = TfidfVectorizer()
-        self.vectorizer.fit(texts)
-        # TODO: allow integer labels
-        self.binarizer = MultiLabelBinarizer(sparse_output=True)
-        self.binarizer.fit(labels)
-
     def _load_svm(self) -> 'dict[str, dict]':
         datasets = defaultdict(dict)
         if not self.config.eval:
             y, x = svm_read_problem(self.config.train_path)
-            self._fit_svm(y)
+            self._generate_label_mapping(y)
             datasets['train']['x'] = x
             datasets['train']['y'] = self.binarizer.transform(y).astype('d')
         if os.path.exists(self.config.test_path):
@@ -67,9 +61,13 @@ class Preprocessor:
             datasets['test']['y'] = self.binarizer.transform(ty).astype('d')
         return dict(datasets)
 
-    def _fit_svm(self, y):
+    def _generate_tfidf_model(self, texts):
+        self.vectorizer = TfidfVectorizer()
+        self.vectorizer.fit(texts)
+
+    def _generate_label_mapping(self, labels):
         self.binarizer = MultiLabelBinarizer(sparse_output=True)
-        self.binarizer.fit(y)
+        self.binarizer.fit(labels)
 
 
 def split_label_text(raw_text: 'Iterable[str]', pattern: str) -> 'dict[str,list[str]]':

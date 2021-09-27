@@ -70,6 +70,7 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes):
         elif re.match('nDCG@\d+', metric):
             metrics[metric] = RetrievalNormalizedDCG(k=int(metric[5:]))
 
+        # TODO: add remaining metrics
         elif metric not in ['Micro-Precision', 'Micro-Recall', 'Micro-F1', 'Macro-F1', 'Another-Macro-F1']:
             raise ValueError(f'Invalid metric: {metric}')
 

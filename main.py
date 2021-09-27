@@ -115,8 +115,6 @@ def get_config():
                         help='Path to the an output file holding top k label results (default: %(default)s)')
 
     # others
-    parser.add_argument('--linear', action='store_true',
-                        help='Train linear model')
     parser.add_argument('--cpu', action='store_true',
                         help='Disable CUDA')
     parser.add_argument('--silent', action='store_true',
@@ -129,13 +127,16 @@ def get_config():
                         help='Only run evaluation on the test set (default: %(default)s)')
     parser.add_argument('--checkpoint_path',
                         help='The checkpoint to warm-up with (default: %(default)s)')
-    parser.add_argument('-h', '--help', action='help')
 
     # linear options
-    parser.add_argument('--data_format', type=str,
-                        help='Data format (default: %(default)s)')
+    parser.add_argument('--linear', action='store_true',
+                        help='Train linear model')
+    parser.add_argument('--data_format', type=str, default='txt',
+                        help='\'svm\' for SVM format or \'txt\' for LibMultiLabel format (default: %(default)s)')
     parser.add_argument('--liblinear_options', type=str,
                         help='Options passed to liblinear (default: %(default)s)')
+
+    parser.add_argument('-h', '--help', action='help')
 
     parser.set_defaults(**config)
     args = parser.parse_args()
