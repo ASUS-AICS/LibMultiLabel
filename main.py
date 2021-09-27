@@ -178,6 +178,15 @@ def linear_test(config, model, datasets):
     print(tabulate_metrics(metrics.compute(), 'test'))
 
 
+def linear_train(datasets, config):
+    model = linear.train_1vsrest(
+        datasets['train']['y'],
+        datasets['train']['x'],
+        config.linear_options,
+    )
+    return model
+
+
 def main():
     # Get config
     config = get_config()
@@ -197,11 +206,7 @@ def main():
         else:
             preprocessor = linear.Preprocessor(config)
             datasets = preprocessor.load_data()
-            model = linear.train_1vsrest(
-                datasets['train']['y'],
-                datasets['train']['x'],
-                config.liblinear_options
-            )
+            model = linear_train(datasets, config)
             linear.save_pipeline(config.checkpoint_dir, preprocessor, model)
 
         if os.path.exists(config.test_path):
