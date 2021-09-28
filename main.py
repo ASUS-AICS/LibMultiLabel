@@ -164,7 +164,7 @@ def check_config(config):
                          "specified. Please do not specify seed.")
 
     if config.eval and not os.path.exists(config.test_path):
-        raise ValueError('No test data set with --eval')
+        raise ValueError('--eval is specified but there is no test data set')
 
 def linear_test(config, model, datasets):
     metrics = linear.get_metrics(

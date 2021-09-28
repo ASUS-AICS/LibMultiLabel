@@ -30,14 +30,14 @@ class Preprocessor:
     def _load_txt(self) -> 'dict[str, dict]':
         datasets = defaultdict(dict)
         if not self.config.eval:
-            train = split_label_text(self.config.train_path)
-            self._generate_tfidf_model(train['text'])
+            train = read_libmultilabel_format(self.config.train_path)
+            self._generate_tfidf(train['text'])
             self._generate_label_mapping(train['label'])
             datasets['train']['x'] = self.vectorizer.transform(train['text'])
             datasets['train']['y'] = self.binarizer.transform(
                 train['label']).astype('d')
         if os.path.exists(self.config.test_path):
-            test = split_label_text(self.config.test_path)
+            test = read_libmultilabel_format(self.config.test_path)
             datasets['test']['x'] = self.vectorizer.transform(test['text'])
             datasets['test']['y'] = self.binarizer.transform(
                 test['label']).astype('d')
@@ -46,17 +46,17 @@ class Preprocessor:
     def _load_svm(self) -> 'dict[str, dict]':
         datasets = defaultdict(dict)
         if not self.config.eval:
-            y, x = svm_read_problem(self.config.train_path)
+            y, x = read_libsvm_format(self.config.train_path)
             self._generate_label_mapping(y)
             datasets['train']['x'] = x
             datasets['train']['y'] = self.binarizer.transform(y).astype('d')
         if os.path.exists(self.config.test_path):
-            ty, tx = svm_read_problem(self.config.test_path)
+            ty, tx = read_libsvm_format(self.config.test_path)
             datasets['test']['x'] = tx
             datasets['test']['y'] = self.binarizer.transform(ty).astype('d')
         return dict(datasets)
 
-    def _generate_tfidf_model(self, texts):
+    def _generate_tfidf(self, texts):
         self.vectorizer = TfidfVectorizer()
         self.vectorizer.fit(texts)
 
@@ -65,7 +65,7 @@ class Preprocessor:
         self.binarizer.fit(labels)
 
 
-def split_label_text(path: str) -> 'dict[str,list[str]]':
+def read_libmultilabel_format(path: str) -> 'dict[str,list[str]]':
     data = pd.read_csv(path, sep='\t', header=None,
                        on_bad_lines='skip').fillna('')
     if data.shape[1] == 2:
@@ -79,7 +79,7 @@ def split_label_text(path: str) -> 'dict[str,list[str]]':
     return data.to_dict('list')
 
 
-def svm_read_problem(file_path: str) -> 'tuple[list[list[int]], sparse.csr_matrix]':
+def read_libsvm_format(file_path: str) -> 'tuple[list[list[int]], sparse.csr_matrix]':
     """Read multi-label LIBSVM-format data.
 
     Args:
