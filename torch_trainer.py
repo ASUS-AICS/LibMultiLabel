@@ -31,6 +31,7 @@ class TorchTrainer:
         logging.info(f'Run name: {self.run_name}')
         self.checkpoint_dir = os.path.join(config.result_dir, self.run_name)
         self.log_path = os.path.join(self.checkpoint_dir, 'logs.json')
+        os.makedirs(self.checkpoint_dir, exist_ok=True)
 
         # Set up seed & device
         set_seed(seed=config.seed)
@@ -44,7 +45,8 @@ class TorchTrainer:
                                                  val_path=config.val_path,
                                                  val_size=config.val_size,
                                                  is_eval=config.eval)
-        self._setup_model(log_path=self.log_path, checkpoint_path=self.checkpoint_dir)
+        self._setup_model(log_path=self.log_path,
+                          checkpoint_path=config.checkpoint_path)
         self.trainer = init_trainer(checkpoint_dir=self.checkpoint_dir,
                                     epochs=config.epochs,
                                     patience=config.patience,
