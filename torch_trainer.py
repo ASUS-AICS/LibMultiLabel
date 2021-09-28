@@ -4,12 +4,9 @@ from datetime import datetime
 from pathlib import Path
 
 import numpy as np
-import pytorch_lightning as pl
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 
 from libmultilabel.nn import data_utils
-from libmultilabel.nn import networks
 from libmultilabel.nn.model import Model
 from libmultilabel.nn.nn_utils import init_device, init_model, init_trainer, set_seed
 from libmultilabel.utils import dump_log
@@ -132,8 +129,9 @@ class TorchTrainer:
         self.trainer.fit(self.model, train_loader, val_loader)
 
         # Set model to current best model
-        logging.info(f'Finished training. Load best model from {self.checkpoint_callback.best_model_path}')
-        self._setup_model(checkpoint_path=self.checkpoint_callback.best_model_path)
+        checkpoint_callback = [callback for callback in self.trainer.callbacks if isinstance(callback, ModelCheckpoint)][0]
+        logging.info(f'Finished training. Load best model from {checkpoint_callback.best_model_path}')
+        self._setup_model(checkpoint_path=checkpoint_callback.best_model_path)
 
     def test(self):
         """Test model with pytorch lightning trainer. Top-k predictions are saved
