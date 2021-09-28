@@ -7,17 +7,15 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-import pytorch_lightning as pl
 import yaml
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.utilities.parsing import AttributeDict
 from ray import tune
 
 from libmultilabel.nn import data_utils
-from libmultilabel.nn import networks
 from libmultilabel.nn.model import Model
-from libmultilabel.utils import dump_log, init_device, set_seed
+from libmultilabel.nn.nn_utils import init_device, init_model, init_trainer, set_seed
+from libmultilabel.utils import dump_log
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s:%(message)s')
@@ -43,43 +41,32 @@ class Trainable(tune.Trainable):
         logging.info(f'Run name: {self.config.run_name}')
 
         checkpoint_dir = os.path.join(self.config.result_dir, self.config.run_name)
-        checkpoint_callback = ModelCheckpoint(dirpath=checkpoint_dir,
-                                              filename='best_model',
-                                              save_last=True, save_top_k=1,
-                                              monitor=self.config.val_metric, mode='max')
-        earlystopping_callback = EarlyStopping(patience=self.config.patience,
-                                               monitor=self.config.val_metric, mode='max')
+        os.makedirs(checkpoint_dir, exist_ok=True)
 
-        trainer = pl.Trainer(logger=False,
-                             num_sanity_val_steps=0,
-                             gpus=0 if self.config.cpu else 1,
-                             progress_bar_refresh_rate=0 if self.config.silent else 1,
-                             max_epochs=self.config.epochs,
-                             callbacks=[checkpoint_callback, earlystopping_callback])
+        trainer = init_trainer(checkpoint_dir=checkpoint_dir,
+                               epochs=self.config.epochs,
+                               patience=self.config.patience,
+                               val_metric=self.config.val_metric,
+                               silent=self.config.silent,
+                               use_cpu=self.config.cpu)
 
         # Dump config to log
         log_path = os.path.join(checkpoint_dir, 'logs.json')
         dump_log(log_path, config=self.config)
 
-        # Setup network
-        network = getattr(networks, self.config.model_name)(
-            embed_vecs=self.word_dict.vectors,
-            num_classes=len(self.classes),
-            **dict(self.config.network_config)
-        )
-        if self.config.init_weight is not None:
-            init_weight = networks.get_init_weight_func(
-                init_weight=self.config.init_weight)
-            network.apply(init_weight)
+        model = init_model(model_name=self.config.model_name,
+                           network_config=dict(self.config.network_config),
+                           classes=self.classes,
+                           word_dict=self.word_dict,
+                           init_weight=self.config.init_weight,
+                           log_path=log_path,
+                           learning_rate=self.config.learning_rate,
+                           optimizer=self.config.optimizer,
+                           weight_decay=self.config.weight_decay,
+                           metric_threshold=self.config.metric_threshold,
+                           monitor_metrics=self.config.monitor_metrics,
+                           silent=self.config.silent)
 
-        # Setup model
-        model = Model(
-            classes=self.classes,
-            word_dict=self.word_dict,
-            network=network,
-            log_path=log_path,
-            **dict(self.config)
-        )
         train_loader = data_utils.get_dataset_loader(
             data=self.datasets['train'],
             word_dict=model.word_dict,
@@ -102,6 +89,7 @@ class Trainable(tune.Trainable):
         )
 
         trainer.fit(model, train_loader, val_loader)
+        checkpoint_callback = [callback for callback in trainer.callbacks if isinstance(callback, ModelCheckpoint)][0]
         logging.info(f'Loading best model from `{checkpoint_callback.best_model_path}`...')
         best_model = Model.load_from_checkpoint(checkpoint_callback.best_model_path)
 
