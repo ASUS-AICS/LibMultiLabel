@@ -22,15 +22,9 @@ class TorchTrainer:
         self,
         config: dict
     ):
-        # Run name
-        self.run_name = '{}_{}_{}'.format(
-            config.data_name,
-            Path(config.config).stem if config.config else config.model_name,
-            datetime.now().strftime('%Y%m%d%H%M%S'),
-        )
-        logging.info(f'Run name: {self.run_name}')
-        self.checkpoint_dir = os.path.join(config.result_dir, self.run_name)
-        self.log_path = os.path.join(self.checkpoint_dir, 'logs.json')
+        self.run_name = config.run_name
+        self.checkpoint_dir = config.checkpoint_dir
+        self.log_path = config.log_path
         os.makedirs(self.checkpoint_dir, exist_ok=True)
 
         # Set up seed & device

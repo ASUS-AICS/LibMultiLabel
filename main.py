@@ -1,12 +1,18 @@
 import argparse
 import logging
-import yaml
+import os
+from datetime import datetime
+from math import ceil
+from pathlib import Path
 
+import numpy as np
+import yaml
 from pytorch_lightning.utilities.parsing import AttributeDict
 
-# from libmultilabel import linear
-from torch_trainer import TorchTrainer
+import libmultilabel.linear as linear
+from libmultilabel.metrics import tabulate_metrics
 from libmultilabel.utils import Timer
+from torch_trainer import TorchTrainer
 
 
 def get_config():
@@ -109,8 +115,6 @@ def get_config():
                         help='Path to the an output file holding top k label results (default: %(default)s)')
 
     # others
-    parser.add_argument('--linear', action='store_true',
-                        help='Train linear model')
     parser.add_argument('--cpu', action='store_true',
                         help='Disable CUDA')
     parser.add_argument('--silent', action='store_true',
@@ -123,11 +127,29 @@ def get_config():
                         help='Only run evaluation on the test set (default: %(default)s)')
     parser.add_argument('--checkpoint_path',
                         help='The checkpoint to warm-up with (default: %(default)s)')
+
+    # linear options
+    parser.add_argument('--linear', action='store_true',
+                        help='Train linear model')
+    parser.add_argument('--data_format', type=str, default='txt',
+                        help='\'svm\' for SVM format or \'txt\' for LibMultiLabel format (default: %(default)s)')
+    parser.add_argument('--liblinear_options', type=str,
+                        help='Options passed to liblinear (default: %(default)s)')
+
     parser.add_argument('-h', '--help', action='help')
 
     parser.set_defaults(**config)
     args = parser.parse_args()
     config = AttributeDict(vars(args))
+
+    config.run_name = '{}_{}_{}'.format(
+        config.data_name,
+        Path(config.config).stem if config.config else config.model_name,
+        datetime.now().strftime('%Y%m%d%H%M%S'),
+    )
+    config.checkpoint_dir = os.path.join(config.result_dir, config.run_name)
+    config.log_path = os.path.join(config.checkpoint_dir, 'logs.json')
+
     return config
 
 
@@ -141,6 +163,33 @@ def check_config(config):
         raise ValueError("nn.AdaptiveMaxPool1d doesn't have a deterministic implementation but seed is"
                          "specified. Please do not specify seed.")
 
+    if config.eval and not os.path.exists(config.test_path):
+        raise ValueError('--eval is specified but there is no test data set')
+
+
+def linear_test(config, model, datasets):
+    metrics = linear.get_metrics(
+        config.metric_threshold,
+        config.monitor_metrics,
+        datasets['test']['y'].shape[1]
+    )
+    num_instance = datasets['test']['x'].shape[0]
+    for i in range(ceil(num_instance / config.eval_batch_size)):
+        slice = np.s_[i*config.eval_batch_size:(i+1)*config.eval_batch_size]
+        preds = linear.predict_values(model, datasets['test']['x'][slice])
+        target = datasets['test']['y'][slice].toarray()
+        metrics.update(preds, target)
+    print(tabulate_metrics(metrics.compute(), 'test'))
+
+
+def linear_train(datasets, config):
+    model = linear.train_1vsrest(
+        datasets['train']['y'],
+        datasets['train']['x'],
+        config.liblinear_options,
+    )
+    return model
+
 
 def main():
     # Get config
@@ -152,14 +201,21 @@ def main():
     logging.basicConfig(
         level=log_level, format='%(asctime)s %(levelname)s:%(message)s')
 
+    logging.info(f'Run name: {config.run_name}')
+
     if config.linear:
-        # load raw texts and generate tfidf, or load tfidf
-        if not config.eval: # train
-            # model = linear.train_1vsrest(y, x)
-            pass
-        else: # test
-            # linear.predict_values(model, x)
-            pass
+        if config.eval:
+            preprocessor, model = linear.load_pipeline(config.checkpoint_path)
+            datasets = preprocessor.load_data()
+        else:
+            preprocessor = linear.Preprocessor(config)
+            datasets = preprocessor.load_data()
+            model = linear_train(datasets, config)
+            linear.save_pipeline(config.checkpoint_dir, preprocessor, model)
+
+        if os.path.exists(config.test_path):
+            linear_test(config, model, datasets)
+        # TODO: dump logs?
     else:
         trainer = TorchTrainer(config) # initialize trainer
         # train

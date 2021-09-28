@@ -27,10 +27,10 @@ class RPrecision(Metric):
         assert preds.shape == target.shape
         binary_topk_preds = select_topk(preds, self.top_k)
         target = target.to(dtype=torch.int)
-        n_relevant = torch.sum(binary_topk_preds & target, dim=-1)
+        num_relevant = torch.sum(binary_topk_preds & target, dim=-1)
         top_ks = torch.tensor([self.top_k]*preds.shape[0]).to(preds.device)
         self.score += torch.nan_to_num(
-            n_relevant / torch.min(top_ks, target.sum(dim=-1)),
+            num_relevant / torch.min(top_ks, target.sum(dim=-1)),
             posinf=0.
         ).sum()
         self.num_sample += len(preds)
@@ -70,6 +70,7 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes):
         elif re.match('nDCG@\d+', metric):
             metrics[metric] = RetrievalNormalizedDCG(k=int(metric[5:]))
 
+        # TODO: add remaining metrics
         elif metric not in ['Micro-Precision', 'Micro-Recall', 'Micro-F1', 'Macro-F1', 'Another-Macro-F1']:
             raise ValueError(f'Invalid metric: {metric}')
 

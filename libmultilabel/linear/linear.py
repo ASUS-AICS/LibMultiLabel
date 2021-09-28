@@ -30,13 +30,13 @@ def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
         ], 'csr')
 
     y = y.tocsc()
-    nr_class = y.shape[1]
-    nr_feature = x.shape[1]
-    weights = np.zeros((nr_feature, nr_class), order='F')
-    for i in range(nr_class):
+    num_class = y.shape[1]
+    num_feature = x.shape[1]
+    weights = np.zeros((num_feature, num_class), order='F')
+    for i in range(num_class):
         yi = y[:, i].toarray().reshape(-1)
         modeli = train(yi, x, options)
-        w = np.ctypeslib.as_array(modeli.w, (nr_feature,))
+        w = np.ctypeslib.as_array(modeli.w, (num_feature,))
         # liblinear label mapping depends on data, we ensure
         # it is the same for all labels
         if modeli.get_labels()[0] == 0:
@@ -55,17 +55,17 @@ def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
     """
     bias = model['-B']
     bias_col = np.full((x.shape[0], 1 if bias > 0 else 0), bias)
-    nr_feature = model['weights'].shape[0]
-    nr_feature -= 1 if bias > 0 else 0
-    if x.shape[1] < nr_feature:
+    num_feature = model['weights'].shape[0]
+    num_feature -= 1 if bias > 0 else 0
+    if x.shape[1] < num_feature:
         x = sparse.hstack([
             x,
-            np.zeros((x.shape[0], nr_feature - x.shape[1])),
+            np.zeros((x.shape[0], num_feature - x.shape[1])),
             bias_col,
         ], 'csr')
     else:
         x = sparse.hstack([
-            x[:, :nr_feature],
+            x[:, :num_feature],
             bias_col,
         ], 'csr')
 
