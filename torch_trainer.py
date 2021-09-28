@@ -44,11 +44,13 @@ class TorchTrainer:
                                                  val_path=config.val_path,
                                                  val_size=config.val_size,
                                                  is_eval=config.eval)
-        self._setup_model(log_path=self.log_path, checkpoint_path=config.checkpoint_path)
-        self.trainer = init_trainer(checkpoint_dir=config.checkpoint_path,
+        self._setup_model(log_path=self.log_path, checkpoint_path=self.checkpoint_dir)
+        self.trainer = init_trainer(checkpoint_dir=self.checkpoint_dir,
                                     epochs=config.epochs,
                                     patience=config.patience,
-                                    val_metric=config.val_metric)
+                                    val_metric=config.val_metric,
+                                    silent=config.silent,
+                                    use_cpu=config.cpu)
 
         # Dump config to log
         dump_log(self.log_path, config=config)
