@@ -166,6 +166,7 @@ def check_config(config):
     if config.eval and not os.path.exists(config.test_path):
         raise ValueError('--eval is specified but there is no test data set')
 
+
 def linear_test(config, model, datasets):
     metrics = linear.get_metrics(
         config.metric_threshold,

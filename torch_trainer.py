@@ -4,12 +4,9 @@ from datetime import datetime
 from pathlib import Path
 
 import numpy as np
-import pytorch_lightning as pl
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 
 from libmultilabel.nn import data_utils
-from libmultilabel.nn import networks
 from libmultilabel.nn.model import Model
 from libmultilabel.nn.nn_utils import init_device, init_model, init_trainer, set_seed
 from libmultilabel.utils import dump_log
@@ -25,10 +22,10 @@ class TorchTrainer:
         self,
         config: dict
     ):
-        # Run name
         self.run_name = config.run_name
         self.checkpoint_dir = config.checkpoint_dir
         self.log_path = config.log_path
+        os.makedirs(self.checkpoint_dir, exist_ok=True)
 
         # Set up seed & device
         set_seed(seed=config.seed)
@@ -42,11 +39,14 @@ class TorchTrainer:
                                                  val_path=config.val_path,
                                                  val_size=config.val_size,
                                                  is_eval=config.eval)
-        self._setup_model(log_path=self.log_path, checkpoint_path=config.checkpoint_path)
-        self.trainer = init_trainer(checkpoint_dir=config.checkpoint_path,
+        self._setup_model(log_path=self.log_path,
+                          checkpoint_path=config.checkpoint_path)
+        self.trainer = init_trainer(checkpoint_dir=self.checkpoint_dir,
                                     epochs=config.epochs,
                                     patience=config.patience,
-                                    val_metric=config.val_metric)
+                                    val_metric=config.val_metric,
+                                    silent=config.silent,
+                                    use_cpu=config.cpu)
 
         # Dump config to log
         dump_log(self.log_path, config=config)
@@ -127,8 +127,9 @@ class TorchTrainer:
         self.trainer.fit(self.model, train_loader, val_loader)
 
         # Set model to current best model
-        logging.info(f'Finished training. Load best model from {self.checkpoint_callback.best_model_path}')
-        self._setup_model(checkpoint_path=self.checkpoint_callback.best_model_path)
+        checkpoint_callback = [callback for callback in self.trainer.callbacks if isinstance(callback, ModelCheckpoint)][0]
+        logging.info(f'Finished training. Load best model from {checkpoint_callback.best_model_path}')
+        self._setup_model(checkpoint_path=checkpoint_callback.best_model_path)
 
     def test(self):
         """Test model with pytorch lightning trainer. Top-k predictions are saved

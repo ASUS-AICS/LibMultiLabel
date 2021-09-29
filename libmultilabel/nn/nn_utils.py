@@ -1,7 +1,6 @@
 import logging
 import os
 
-import numpy as np
 import pytorch_lightning as pl
 import torch
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
