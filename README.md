@@ -167,7 +167,7 @@ python3 main.py --eval --config CONFIG_PATH --load_checkpoint CHECKPOINT_PATH --
 
 ## Training and Prediction for Linear Classifiers
 ### Training
-In the training procedure, you can build a model from scratch or start from some pre-obtained information.
+For training, use
 ```
 python3 main.py --config CONFIG_PATH --linear [--liblinear_options LIBLINEAR_OPTIONS]
 ```
