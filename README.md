@@ -3,13 +3,13 @@
 LibMultiLabel is a simple tool with the following functionalities.
 
 - end-to-end services from raw texts to final evaluation/analysis
-- support of common network architectures for multi-label text classification
+- support for common neural network architectures and linear classsifiers
 - easy hyper-parameter selection
 
 This is an on-going development so many improvements are still being made. Comments are very welcome.
 
 ## Environments and Installation
-- Python: 3.6+
+- Python: 3.7+
 - CUDA: 10.2 (if GPU used)
 - Pytorch 1.8+
 
@@ -21,10 +21,23 @@ pip3 install -r requirements.txt
 ```
 
 ## Table of Contents
-- [Quick Start via an Example](#Quick-Start-via-an-Example)
-- [Usage](#Usage)
-- [Data Format](#Data-Format)
-- [Training and Prediction](#Training-and-Prediction)
+- [LibMultiLabel — a Library for Multi-label Text Classification](#libmultilabel--a-library-for-multi-label-text-classification)
+  - [Environments and Installation](#environments-and-installation)
+  - [Table of Contents](#table-of-contents)
+  - [Quick Start via an Example](#quick-start-via-an-example)
+    - [Step 1. Data Preparation](#step-1-data-preparation)
+    - [Step 2. Training and Prediction](#step-2-training-and-prediction)
+  - [Usage](#usage)
+  - [Data Format](#data-format)
+    - [Examples of a training file:](#examples-of-a-training-file)
+    - [Examples of a test file:](#examples-of-a-test-file)
+  - [Training and Prediction for Neural Networks](#training-and-prediction-for-neural-networks)
+    - [Training](#training)
+    - [Prediction](#prediction)
+  - [Training and Prediction for Linear Classifiers](#training-and-prediction-for-linear-classifiers)
+    - [Training](#training-1)
+    - [Prediction](#prediction-1)
+  - [Hyperparameter Search for Neural Networks](#hyperparameter-search-for-neural-networks)
 
 ## Quick Start via an Example
 ### Step 1. Data Preparation
@@ -108,7 +121,7 @@ Without ID column:
 <TAB>uruguay uruguay compan compan compan ...
 ```
 
-## Training and Prediction
+## Training and Prediction for Neural Networks
 ### Training
 In the training procedure, you can build a model from scratch or start from some pre-obtained information.
 ```
@@ -152,7 +165,27 @@ python3 main.py --eval --config CONFIG_PATH --load_checkpoint CHECKPOINT_PATH --
 - Use `--predict_out_path` to specify the file for storing the predicted top-K labels/scores.
 
 
-## Hyperparameter Search
+## Training and Prediction for Linear Classifiers
+### Training
+In the training procedure, you can build a model from scratch or start from some pre-obtained information.
+```
+python3 main.py --config CONFIG_PATH --linear [--liblinear_options LIBLINEAR_OPTIONS]
+```
+- **config**: configure parameters in a yaml file. See the section [Usage](#Usage).
+
+The linear classifiers are based on LIBLINEAR, and its options may be specified.
+
+- **liblinear_options**: An [option string for LIBLINEAR](https://github.com/cjlin1/liblinear).
+
+### Prediction
+To deploy/evaluate a model, you can predict a test set by the following command.
+
+```
+python3 main.py --eval --config CONFIG_PATH --linear --load_checkpoint CHECKPOINT_PATH
+```
+
+
+## Hyperparameter Search for Neural Networks
 Parameter selection is known to be extremely important in machine learning practice; see a powerful reminder in "[this paper](https://www.csie.ntu.edu.tw/~cjlin/papers/parameter_selection/acl2021_parameter_selection.pdf)". Here we leverage [Ray Tune](https://docs.ray.io/en/master/tune/index.html), which is a python library for hyperparameter tuning, to select parameters. Due to the dependency of Ray Tune, first make sure your python version is not greater than 3.8. Then, install the related packages with:
 ```
 pip3 install -Ur requirements_parameter_search.txt
