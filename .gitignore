@@ -152,4 +152,4 @@ tmp*
 *.tfevents.*
 
 # Sphinx build
-_build/*
+docs/_build/*
