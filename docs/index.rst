@@ -47,6 +47,14 @@ Quick Start via an Example
 
    For more details about the usage see the `command line interface <modules/cli.html>`_.
 
+User Guide
+---------
+
+.. toctree::
+   :maxdepth: 2
+
+   guides/linear
+
 API Documentation
 -----------------
 
