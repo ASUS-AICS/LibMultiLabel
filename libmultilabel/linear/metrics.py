@@ -89,7 +89,9 @@ def get_metrics(metric_threshold: float, monitor_metrics: list, num_classes: int
     Args:
         metric_threshold (float): The decision value threshold over which a label
         is predicted as positive.
+
         monitor_metrics (list): A list of strings naming the metrics.
+
         num_classes (int): The number of classes.
 
     Returns:
