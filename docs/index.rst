@@ -40,11 +40,12 @@ Quick Start via an Example
       cd ../..
 
 2. Training and Prediction
-Train a cnn model and predict the test set by an example config. Use ``--cpu`` to run the program on the cpu::
 
-   python3 main.py --config example_config/rcv1/kim_cnn.yml
+   Train a cnn model and predict the test set by an example config. Use ``--cpu`` to run the program on the cpu::
 
-For more details about the usage see the `command line interface <modules/cli.html>`_.
+      python3 main.py --config example_config/rcv1/kim_cnn.yml
+
+   For more details about the usage see the `command line interface <modules/cli.html>`_.
 
 API Documentation
 -----------------
