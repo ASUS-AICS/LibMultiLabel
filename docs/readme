@@ -1,0 +1,7 @@
+To build the documentation
+    pip install -r ../requirements.txt
+    pip install -r requirements.txt
+    make html
+
+To view the documentation
+    python -m http.server -d _build/html
