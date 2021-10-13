@@ -18,8 +18,8 @@ sys.path.insert(0, os.path.abspath('..'))
 # -- Project information -----------------------------------------------------
 
 project = 'LibMultiLabel'
-copyright = '2021, ASUS-AICS'
-author = 'ASUS-AICS'
+copyright = '2021, LibMultiLabel Project'
+author = 'LibMultiLabel Authors'
 
 
 # -- General configuration ---------------------------------------------------
