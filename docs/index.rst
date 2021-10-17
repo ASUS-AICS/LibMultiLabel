@@ -45,10 +45,10 @@ Quick Start via an Example
 
       python3 main.py --config example_config/rcv1/kim_cnn.yml
 
-   For more details about the usage see the `command line interface <modules/cli.html>`_.
+   For more details about the usage see the `command line interface <api/cli.html>`_.
 
 User Guide
----------
+----------
 
 .. toctree::
    :maxdepth: 2
@@ -61,9 +61,9 @@ API Documentation
 .. toctree::
    :maxdepth: 2
 
-   modules/linear
-   modules/nn
-   modules/cli
+   api/linear
+   api/nn
+   api/cli
 
 Indices and tables
 ------------------
