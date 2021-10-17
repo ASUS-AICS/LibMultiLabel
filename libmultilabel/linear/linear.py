@@ -10,9 +10,7 @@ def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
 
     Args:
         y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
-
         x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
-
         options (str): The option string passed to liblinear.
 
     Returns:
@@ -53,7 +51,6 @@ def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
 
     Args:
         model: A model returned from a training function.
-
         x (sparse.csr_matrix): A matrix with dimension number of instances * number of features.
 
     Returns:

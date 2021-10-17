@@ -3,10 +3,12 @@ Linear Methods
 
 Linear methods are methods based on
 `LibLinear <https://www.csie.ntu.edu.tw/~cjlin/liblinear/>`_.
-The typical usage is::
+The simplest usage is::
 
    model = linear.train_1vsrest(train_y, train_x, options)
    predict = linear.predict_values(model, test_x)
+
+See `the user guide <../guides/linear.rst>`_ for more details.
 
 .. currentmodule:: libmultilabel.linear
 
@@ -14,3 +16,9 @@ The typical usage is::
 
 .. autofunction:: predict_values
 
+.. autoclass:: Preprocessor
+   :members:
+
+.. autofunction:: save_pipeline
+
+.. autofunction:: load_pipeline
