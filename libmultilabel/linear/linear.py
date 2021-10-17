@@ -6,14 +6,15 @@ from liblinear.liblinearutil import train
 __all__ = ['train_1vsrest', 'predict_values']
 
 def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
-    """
-    Trains a linear model for multiabel data using a one-vs-all strategy.
+    """Trains a linear model for multiabel data using a one-vs-all strategy.
 
-    Returns the model.
+    Args:
+        y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
+        x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
+        options (str): The option string passed to liblinear.
 
-    y is a 0/1 matrix with dimensions number of instances * number of classes.
-    x is a matrix with dimensions number of instances * number of features.
-    options is the option string passed to liblinear.
+    Returns:
+        A model which can be used in predict_values.
     """
     if options.find('-R') != -1:
         raise ValueError('-R is not supported')
@@ -46,12 +47,14 @@ def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
     return {'weights': np.asmatrix(weights), '-B': bias}
 
 def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
-    """
-    Calculates the decision values associated with x.
+    """Calculates the decision values associated with x.
 
-    Returns a matrix with dimension number of instances * number of classes.
+    Args:
+        model: A model returned from a training function.
+        x (sparse.csr_matrix): A matrix with dimension number of instances * number of features.
 
-    x is a matrix with dimension number of instances * number of features.
+    Returns:
+        np.ndarray: A matrix with dimension number of instances * number of classes.
     """
     bias = model['-B']
     bias_col = np.full((x.shape[0], 1 if bias > 0 else 0), bias)

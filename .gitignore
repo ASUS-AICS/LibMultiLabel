@@ -150,3 +150,8 @@ tmp*
 *.zip
 *.ckpt
 *.tfevents.*
+
+# Sphinx build
+docs/_build/*
+!docs/requirements.txt
+!requirements.txt
