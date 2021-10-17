@@ -153,3 +153,5 @@ tmp*
 
 # Sphinx build
 docs/_build/*
+!docs/requirements.txt
+!requirements.txt
