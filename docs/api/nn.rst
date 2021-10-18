@@ -1,2 +1,2 @@
-Neural Networks
-===============
+Neural Networks Methods
+========================
