@@ -54,6 +54,7 @@ User Guide
    :maxdepth: 2
 
    guides/linear
+   guides/nn
 
 API Documentation
 -----------------
