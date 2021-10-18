@@ -8,7 +8,7 @@ The simplest usage is::
    model = linear.train_1vsrest(train_y, train_x, options)
    predict = linear.predict_values(model, test_x)
 
-See `the user guide <../guides/linear.rst>`_ for more details.
+See `the user guide <../guides/linear.html>`_ for more details.
 
 .. currentmodule:: libmultilabel.linear
 
