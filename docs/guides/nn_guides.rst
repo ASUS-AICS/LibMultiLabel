@@ -84,6 +84,8 @@ When training is finished, test the model with ``trainer.test``.
     :lines: 55-55
 
 
+Get the full source code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/nn_quickstart.py>`_.
+
 -----------
 
 Networks
