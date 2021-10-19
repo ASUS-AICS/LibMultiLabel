@@ -1,5 +1,5 @@
-Using Neural Networks
-======================
+Using Neural Networks Methods
+==============================
 
 
 Quick Start
