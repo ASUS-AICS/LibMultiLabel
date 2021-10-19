@@ -68,7 +68,7 @@ def get_dataset_loader(
         classes (list): List of labels.
         device (torch.device): One of cuda or cpu.
         max_seq_length (int, optional): The maximum number of tokens of a sample. Defaults to 500.
-        bFatch_size (int, optional): Size of training batches. Defaults to 1.
+        batch_size (int, optional): Size of training batches. Defaults to 1.
         shuffle (bool, optional): Whether to shuffle training data before each epoch. Defaults to False.
         data_workers (int, optional): Use multi-cpu core for data pre-processing. Defaults to 4.
 
