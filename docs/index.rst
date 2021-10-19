@@ -47,23 +47,20 @@ Quick Start via an Example
 
    For more details about the usage see the `command line interface <api/cli.html>`_.
 
-User Guide
-----------
+.. toctree::
+    :caption: User Guide
+    :maxdepth: 2
+
+    guides/linear_guides
+    guides/nn_guides
+    guides/cli
 
 .. toctree::
-   :maxdepth: 2
-
-   guides/linear
-
-API Documentation
------------------
-
-.. toctree::
+   :caption: API Documentation
    :maxdepth: 2
 
    api/linear
    api/nn
-   api/cli
 
 Indices and tables
 ------------------
