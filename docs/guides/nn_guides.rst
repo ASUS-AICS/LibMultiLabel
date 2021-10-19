@@ -25,7 +25,7 @@ Let's start by preparing the datasets.
 
     * Put ``train.txt`` and ``test.txt`` in your data directory.
     * Build the train, test, and validation sets with ``data_utils.load_datasets``.
-      The function performs a train-validation split based on the ``val_size``.
+      The function performs a training-validation split based on the ``val_size``.
       You can also provide your own validation set by placing ``valid.txt`` in the data directory.
 
 Create label and word dictionaries with datasets generated above.

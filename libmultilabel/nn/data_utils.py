@@ -60,6 +60,21 @@ def get_dataset_loader(
     shuffle=False,
     data_workers=4
 ):
+    """Create a pytorch DataLoader.
+
+    Args:
+        data (list): List of training instances with index, label, and tokenized text.
+        word_dict (torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
+        classes (list): List of labels.
+        device (torch.device): One of cuda or cpu.
+        max_seq_length (int, optional): The maximum number of tokens of a sample. Defaults to 500.
+        bFatch_size (int, optional): Size of training batches. Defaults to 1.
+        shuffle (bool, optional): Whether to shuffle training data before each epoch. Defaults to False.
+        data_workers (int, optional): Use multi-cpu core for data pre-processing. Defaults to 4.
+
+    Returns:
+        torch.utils.data.DataLoader: A pytorch DataLoader.
+    """
     dataset = TextDataset(data, word_dict, classes, max_seq_length)
     dataset_loader = torch.utils.data.DataLoader(
         dataset,
@@ -103,6 +118,21 @@ def load_datasets(
     val_size=0.2,
     is_eval=False
 ):
+    """Load data either from the specified data paths (i.e., `train_path`, `test_path`, and `val_path`)
+    or from the data files (i.e., `train.txt`, `test.txt`, and `valid.txt`) in the data directory.
+    If `valid.txt` does not exist, the validation set will automatically split from the training dataset.
+
+    Args:
+        data_dir (str): The directory with `train.txt`, `test.txt`, and `valid.txt`.
+        train_path (str, optional): Path to training data.
+        test_path (str, optional): Path to test data.
+        val_path (str, optional): Path to validation data.
+        val_size (float, optional): Training-validation split: a ratio in [0, 1] or an integer for the size of the validation set. Defaults to 0.2.
+        is_eval (bool, optional): Load test data only. Defaults to False.
+
+    Returns:
+        dict: A dictionary of datasets.
+    """
     datasets = {}
     test_path = test_path or os.path.join(data_dir, 'test.txt')
     if is_eval:
@@ -145,6 +175,7 @@ def load_or_build_text_dict(
         embed_cache_dir (str, optional): Path to a directory for storing cached embeddings. Defaults to None.
         silent (bool, optional): Enable silent mode. Defaults to False.
         normalize_embed (bool, optional): Whether the embeddings of each word is normalized to a unit vector. Defaults to False.
+
     Returns:
         torchtext.vocab.Vocab: A vocab object which maps tokens to indices.
     """
@@ -190,6 +221,16 @@ def load_or_build_text_dict(
 
 
 def load_or_build_label(datasets, label_file=None, silent=False):
+    """Generate label set either by the given datasets or a predefined label file.
+
+    Args:
+        datasets (dict): A dictionary of datasets. Each dataset contains list of instances with index, label, and tokenized text.
+        label_file (str, optional): Path to a file holding all labels.
+        silent (bool, optional): Disable print. Defaults to False.
+
+    Returns:
+        set: A set of labels.
+    """
     if label_file:
         logging.info('Load labels from {label_file}')
         with open(label_file, 'r') as fp:

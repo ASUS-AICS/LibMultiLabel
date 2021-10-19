@@ -3,5 +3,28 @@ Neural Networks Methods
 
 See `the user guide <../guides/nn.html>`_ for more details.
 
+API
+---
+
+* `libmultilabel.nn.data_utils <../api/nn.html#libmultilabel-nn-data-utils>`_
+* `libmultilabel.nn.nn_utils <../api/nn.html#module-libmultilabel.nn.nn_utils>`_
+
+
+libmultilabel.nn.data_utils
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. currentmodule:: libmultilabel.nn.data_utils
+
+.. autofunction:: get_dataset_loader
+
+.. autofunction:: load_datasets
+
+.. autofunction:: load_or_build_text_dict
+
+.. autofunction:: load_or_build_label
+
+libmultilabel.nn.nn_utils
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
 .. automodule:: libmultilabel.nn.nn_utils
     :members:
