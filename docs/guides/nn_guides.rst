@@ -34,7 +34,7 @@ Here we show how to create a model.
 
     * Configure the network with `model_name <../guides/nn_guides.html#networks>`_ and ``network_config``.
     * Define the label dictionary and the text dictionary (i.e., ``classes`` and ``word_dict``) of the model.
-    * Find `more here <../api/nn.html#libmultilabel.nn.nn_utils.init_model>`_ if you are interested in other settings. For example, a ``moniter_metrics`` is used to defined the metrics you'd like to keep track with during the training procedure.
+    * Find `more here <../api/nn.html#libmultilabel.nn.nn_utils.init_model>`_ if you are interested in other settings. For example, a ``moniter_metrics`` is used to define the metrics you'd like to keep track with during the training procedure.
 
 .. literalinclude:: ../examples/nn_quickstart.py
     :language: python3
