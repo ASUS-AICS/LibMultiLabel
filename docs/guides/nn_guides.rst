@@ -16,8 +16,8 @@ Let's start by preparing the datasets.
 
     * Put ``train.txt`` and ``test.txt`` in your data directory.
     * Build the train, test, and validation sets with ``data_utils.load_datasets``.
-      The function will split the train and the validation sets for you based on ``val_size``.
-      You can also provide your own one by placing a ``valid.txt`` in the data directory.
+      The function perform a train-validation split based on the ``val_size``.
+      You can also provide your own validation set by placing ``valid.txt`` in the data directory.
 
 Create label and word dictionaries with the datasets generated above.
 You can either choose one of the pretrained embeddings defined in torchtext or specify the path to your word embeddings with each line containing a word followed by its vectors.
