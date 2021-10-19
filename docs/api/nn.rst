@@ -1,5 +1,5 @@
-Neural Networks
-===============
+Neural Networks Methods
+========================
 
 See `the user guide <../guides/nn.html>`_ for more details.
 
