@@ -7,8 +7,10 @@ from libmultilabel.nn.nn_utils import init_device, init_model, init_trainer, set
 run_name = 'rcv1-KimCNN-example_{}'.format(
     datetime.now().strftime('%Y%m%d%H%M%S'))
 checkpoint_dir = f'runs/{run_name}'
-set_seed(1337)
 
+# Step 0. Setup seed and device
+device = init_device()
+set_seed(1337)
 
 # Step 1. Load dataset and build dictionaries.
 datasets = data_utils.load_datasets(data_dir='data/rcv1', val_size=0.2)
@@ -31,24 +33,23 @@ model = init_model(model_name='KimCNN',
 
 # Step 3. Initialize trainier.
 trainer = init_trainer(checkpoint_dir=checkpoint_dir,
-                       val_metric='P@1')
+                       val_metric='P@1',
+                       epochs=50)
 
 # Step 4. Create data loaders.
-device = init_device()
-train_loader = data_utils.get_dataset_loader(
-    data=datasets['train'],
-    word_dict=word_dict,
-    classes=classes,
-    device=device,
-    batch_size=32
-)
-val_loader = data_utils.get_dataset_loader(
-    data=datasets['val'],
-    word_dict=word_dict,
-    classes=classes,
-    device=device,
-    batch_size=32
-)
+batch_size = 16
+loaders = dict()
+for split in ['train', 'val', 'test']:
+    loaders[split] = data_utils.get_dataset_loader(
+        data=datasets[split],
+        word_dict=word_dict,
+        classes=classes,
+        device=device,
+        batch_size=16
+    )
 
-#  Step 5. Train a model from scratch.
-trainer.fit(model, train_loader, val_loader)
+# Step 5-1. Train a model from scratch.
+trainer.fit(model, loaders['train'], loaders['val'])
+
+# Step 5-2. Test the model.
+trainer.test(model, test_dataloaders=loaders['test'])
