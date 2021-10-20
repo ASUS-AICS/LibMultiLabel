@@ -54,7 +54,7 @@ Step 2. Initialize a model
 
 Here we show how to create a model.
 
-    * Configure the network with `model_name <../guides/nn_guides.html#networks>`_ and ``network_config``.
+    * Configure the network with `model_name <../guides/nn_guides.html#network-configuration>`_ and ``network_config``.
     * Define labels and text dictionary (i.e., ``classes`` and ``word_dict``) of this model.
     * Find `more here <../api/nn.html#libmultilabel.nn.nn_utils.init_model>`_ if you are interested in other settings.
       For example, a ``moniter_metrics`` is used to define the metrics you'd like to keep track with during the training procedure.
@@ -103,14 +103,23 @@ Get the full source code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/
 
 -----------
 
-Networks
------------
+Network Configuration
+---------------------
 
 * BiGRU
-* activation: tanh
-* dropout: 0.8
-* rnn_dim: 1024
-* rnn_layers: 1
-* CAML
-* KimCNN
+    * activation
+    * dropout
+    * rnn_dim
+    * rnn_layers
+* CAML / KimCNN
+    * activation
+    * dropout
+    * filter_sizes
+    * num_filter_per_size
 * XMLCNN
+    * dropout
+    * dropout2
+    * filter_sizes
+    * hidden_dim
+    * num_filter_per_size
+    * num_pool
