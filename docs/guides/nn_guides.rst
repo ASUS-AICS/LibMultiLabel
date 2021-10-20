@@ -1,6 +1,7 @@
 Using Neural Networks Methods
 =============================
 
+The
 
 Quick Start
 -----------
@@ -27,7 +28,7 @@ Let's start by setting up the seed and device.
 
 .. literalinclude:: ../examples/nn_quickstart.py
     :language: python3
-    :lines: 13-14
+    :lines: 9-10
 
 Step 1. Load data from text files
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -44,10 +45,9 @@ Then, build labels and word dictionary with datasets generated above.
 You can either choose one of the pretrained embeddings defined in torchtext or specify the path
 to your word embeddings with each line containing a word followed by its vectors.
 
-
 .. literalinclude:: ../examples/nn_quickstart.py
     :language: python3
-    :lines: 17-21
+    :lines: 13-16
 
 Step 2. Initialize a model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -61,7 +61,7 @@ Here we show how to create a model.
 
 .. literalinclude:: ../examples/nn_quickstart.py
     :language: python3
-    :lines: 24-33
+    :lines: 19-28
 
 Step 3. Initialize trainer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -70,7 +70,7 @@ To train the model, we need a trainer to control all the process like training l
 
 .. literalinclude:: ../examples/nn_quickstart.py
     :language: python3
-    :lines: 36-38
+    :lines: 31-34
 
 Step 4. Create data loaders
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -80,7 +80,7 @@ Create pytorch data loaders for datasets we created in
 
 .. literalinclude:: ../examples/nn_quickstart.py
     :language: python3
-    :lines: 41-50
+    :lines: 37-43
 
 Step 5. Train and test the model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -89,14 +89,14 @@ Everything's ready. Let's start training with ``trainer.train``.
 
 .. literalinclude:: ../examples/nn_quickstart.py
     :language: python3
-    :lines: 53-53
+    :lines: 46-46
 
 
 When training is finished, test the model with ``trainer.test``.
 
 .. literalinclude:: ../examples/nn_quickstart.py
     :language: python3
-    :lines: 56-56
+    :lines: 49-49
 
 
 Get the full source code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/nn_quickstart.py>`_.
