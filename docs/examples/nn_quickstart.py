@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from libmultilabel.nn import data_utils
+from libmultilabel.nn.data_utils import load_datasets, load_or_build_label, \
+                                        load_or_build_text_dict, get_dataset_loader
 from libmultilabel.nn.nn_utils import init_device, init_model, init_trainer, set_seed
 
 
@@ -13,9 +14,9 @@ device = init_device(use_cpu=False) # use gpu
 set_seed(1337)
 
 # Step 1. Load dataset and build dictionaries.
-datasets = data_utils.load_datasets(data_dir='data/rcv1', val_size=0.2)
-classes = data_utils.load_or_build_label(datasets)
-word_dict = data_utils.load_or_build_text_dict(
+datasets = load_datasets(data_dir='data/rcv1', val_size=0.2)
+classes = load_or_build_label(datasets)
+word_dict = load_or_build_text_dict(
     dataset=datasets['train'],
     embed_file='glove.6B.300d')
 
@@ -40,7 +41,7 @@ trainer = init_trainer(checkpoint_dir=checkpoint_dir,
 batch_size = 16
 loaders = dict()
 for split in ['train', 'val', 'test']:
-    loaders[split] = data_utils.get_dataset_loader(
+    loaders[split] = get_dataset_loader(
         data=datasets[split],
         word_dict=word_dict,
         classes=classes,
