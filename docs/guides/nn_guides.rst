@@ -33,7 +33,7 @@ Step 1. Load data from text files
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Now we're going to process the RCV1 data.
-First, create the training, test, and validation datasets from text files.
+First, create the training, test, and validation (optional) datasets from text files.
 
     * Put ``train.txt`` and ``test.txt`` in your data directory (i.e., ``data/rcv1``).
     * Load and preprocess raw data with ``data_utils.load_datasets``.
