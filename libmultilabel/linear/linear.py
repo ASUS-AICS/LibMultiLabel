@@ -3,7 +3,10 @@ import scipy.sparse as sparse
 
 from liblinear.liblinearutil import train
 
-__all__ = ['train_1vsrest', 'train_thresholding', 'predict_values']
+__all__ = ['train_1vsrest',
+           'train_thresholding',
+           'train_cost_sensitive',
+           'predict_values']
 
 
 def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
@@ -151,7 +154,7 @@ def scutfbr(y: np.ndarray,
             x: sparse.csr_matrix,
             fbr_list: 'list[float]',
             options: str
-            ) -> 'tuple[np.ndarray, np.ndarray]':
+            ) -> 'tuple[np.matrix, np.ndarray]':
 
     b_list = np.zeros_like(fbr_list)
 
@@ -243,3 +246,75 @@ def fmeasure(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     if tp != 0 or fp != 0 or fn != 0:
         return 2*tp / (2*tp + fp + fn)
     return 0
+
+
+def train_cost_sensitive(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
+    if options.find('-R') != -1:
+        raise ValueError('-R is not supported')
+
+    bias = -1.
+    if options.find('-B') != -1:
+        options_split = options.split()
+        i = options_split.index('-B')
+        bias = float(options_split[i+1])
+        options = ' '.join(options_split[:i] + options_split[i+2:])
+        x = sparse.hstack([
+            x,
+            np.full((x.shape[0], 1), bias),
+        ], 'csr')
+
+    y = y.tocsc()
+    num_class = y.shape[1]
+    num_feature = x.shape[1]
+    weights = np.zeros((num_feature, num_class), order='F')
+    for i in range(num_class):
+        yi = y[:, i].toarray().reshape(-1)
+        w = cost_sensitive_one_label(yi, x, options)
+        weights[:, i] = w.ravel()
+
+    return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': 0}
+
+
+def cost_sensitive_one_label(y: np.ndarray,
+                             x: sparse.csr_matrix,
+                             options: str
+                             ) -> 'np.ndarray':
+
+    l = y.shape[0]
+    perm = np.random.permutation(l)
+
+    param_space = [((2 - t)/t, c)
+                   for t in np.linspace(1/7, 1, 7)
+                   for c in [1, 10, 100]]
+
+    bestScore = -np.Inf
+    for a, c in param_space:
+        cv_options = f'{options} -c {c} -w1 {a}'
+        score = cross_validate(y, x, cv_options, perm)
+        if bestScore < score:
+            bestScore = score
+            bestA = a
+            bestC = c
+
+    final_options = f'{options} -c {bestC} -w1 {bestA}'
+    return do_train(y, x, final_options)
+
+
+def cross_validate(y: np.ndarray,
+                   x: sparse.csr_matrix,
+                   options: str,
+                   perm: np.ndarray
+                   ) -> float:
+    l = y.shape[0]
+    nr_fold = 3
+    pred = np.zeros_like(y)
+    for fold in range(nr_fold):
+        mask = np.zeros_like(perm, dtype='?')
+        mask[np.arange(int(fold*l/nr_fold), int((fold+1)*l/nr_fold))] = 1
+        val_idx = perm[mask]
+        train_idx = perm[mask != True]
+
+        w = do_train(y[train_idx], x[train_idx], options)
+        pred[val_idx] = (x[val_idx] * w).A1 > 0
+
+    return fmeasure(y, pred)
