@@ -9,7 +9,7 @@ run_name = 'rcv1-KimCNN-example_{}'.format(
 checkpoint_dir = f'runs/{run_name}'
 
 # Step 0. Setup seed and device
-device = init_device()
+device = init_device(use_cpu=False) # use gpu
 set_seed(1337)
 
 # Step 1. Load dataset and build dictionaries.

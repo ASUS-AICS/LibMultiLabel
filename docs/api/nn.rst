@@ -1,7 +1,7 @@
 Neural Networks Methods
 ========================
 
-See `the user guide <../guides/nn.html>`_ for more details.
+See `the user guide <../guides/nn_guides.html>`_ for more details.
 
 API
 ---

@@ -229,7 +229,7 @@ def load_or_build_label(datasets, label_file=None, silent=False):
         silent (bool, optional): Disable print. Defaults to False.
 
     Returns:
-        set: A set of labels.
+        list: A list of labels sorted in alphabetical order.
     """
     if label_file:
         logging.info('Load labels from {label_file}')
