@@ -68,7 +68,7 @@ Step 4. Create data loaders
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Create pytorch data loaders for datasets we created in
-`Step 1 <..nn_guides.html#step-1-load-data-from-text-files>`_.
+`Step 1 <../guides/nn_guides.html#step-1-load-data-from-text-files>`_.
 
 .. literalinclude:: ../examples/nn_quickstart.py
     :language: python3
