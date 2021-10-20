@@ -123,6 +123,8 @@ def get_config():
                         help='\'svm\' for SVM format or \'txt\' for LibMultiLabel format (default: %(default)s)')
     parser.add_argument('--liblinear_options', type=str,
                         help='Options passed to liblinear (default: %(default)s)')
+    parser.add_argument('--linear_technique', type=str, default='1vsrest',
+                    help='Technique for linear classification (default: %(default)s)')
 
     parser.add_argument('-h', '--help', action='help',
                         help="""If you are trying to specify network config such as dropout or activation, use a yaml file instead.
@@ -173,13 +175,31 @@ def linear_test(config, model, datasets):
 
 
 def linear_train(datasets, config):
-    model = linear.train_1vsrest(
+    techniques = {'1vsrest': linear.train_1vsrest,
+               'thresholding': linear.train_thresholding,
+               'cost_sensitive': linear.train_cost_sensitive}
+    model = techniques[config.linear_technique](
         datasets['train']['y'],
         datasets['train']['x'],
         config.liblinear_options,
     )
     return model
 
+def linear_run(config):
+    if config.eval:
+        preprocessor, model = linear.load_pipeline(config.checkpoint_path)
+        datasets = preprocessor.load_data(
+            config.train_path, config.test_path, config.eval)
+    else:
+        preprocessor = linear.Preprocessor(data_format=config.data_format)
+        datasets = preprocessor.load_data(
+            config.train_path, config.test_path, config.eval)
+        model = linear_train(datasets, config)
+        linear.save_pipeline(config.checkpoint_dir, preprocessor, model)
+
+    if os.path.exists(config.test_path):
+        linear_test(config, model, datasets)
+    # TODO: dump logs?
 
 def main():
     # Get config
@@ -194,20 +214,7 @@ def main():
     logging.info(f'Run name: {config.run_name}')
 
     if config.linear:
-        if config.eval:
-            preprocessor, model = linear.load_pipeline(config.checkpoint_path)
-            datasets = preprocessor.load_data(
-                config.train_path, config.test_path, config.eval)
-        else:
-            preprocessor = linear.Preprocessor(data_format=config.data_format)
-            datasets = preprocessor.load_data(
-                config.train_path, config.test_path, config.eval)
-            model = linear_train(datasets, config)
-            linear.save_pipeline(config.checkpoint_dir, preprocessor, model)
-
-        if os.path.exists(config.test_path):
-            linear_test(config, model, datasets)
-        # TODO: dump logs?
+        linear_run(config)
     else:
         trainer = TorchTrainer(config)  # initialize trainer
         # train
