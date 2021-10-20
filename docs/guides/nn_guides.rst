@@ -1,12 +1,19 @@
-Using Neural Networks Methods
-=============================
+Using Neural Network Methods
+============================
 
-The
+In this guide, we're going to show how to use the neural network methods defined in ``libmultilabel.nn``.
+This guide is organized into two parts:
+
+* `Quick Start <../guides/nn_guides.html#id1>`_
+* `Network Configuration <../guides/nn_guides.html#id2>`_
+.. * Hyper-parameter selection
+
+-----------
 
 Quick Start
 -----------
 
-In this quick start guide, we will introduce neural networks methods via a simple example.
+In this quick start guide, we will introduce neural network methods via a simple example.
 You will learn how to:
 
     * Preprocess datasets.
