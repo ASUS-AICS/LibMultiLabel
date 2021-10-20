@@ -196,10 +196,12 @@ def main():
     if config.linear:
         if config.eval:
             preprocessor, model = linear.load_pipeline(config.checkpoint_path)
-            datasets = preprocessor.load_data()
+            datasets = preprocessor.load_data(
+                config.train_path, config.test_path, config.eval)
         else:
-            preprocessor = linear.Preprocessor(config)
-            datasets = preprocessor.load_data()
+            preprocessor = linear.Preprocessor(data_format=config.data_format)
+            datasets = preprocessor.load_data(
+                config.train_path, config.test_path, config.eval)
             model = linear_train(datasets, config)
             linear.save_pipeline(config.checkpoint_dir, preprocessor, model)
 
@@ -207,7 +209,7 @@ def main():
             linear_test(config, model, datasets)
         # TODO: dump logs?
     else:
-        trainer = TorchTrainer(config) # initialize trainer
+        trainer = TorchTrainer(config)  # initialize trainer
         # train
         if not config.eval:
             trainer.train()
