@@ -73,7 +73,7 @@ Here we show how to create a model.
 Step 3. Initialize trainer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To train the model, we need a trainer to control all the process like training loop or validation.
+To train the model, we need a trainer to control processes like training loop or validation.
 
 .. literalinclude:: ../examples/nn_quickstart.py
     :language: python3

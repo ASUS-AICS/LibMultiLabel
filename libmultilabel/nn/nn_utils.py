@@ -145,5 +145,4 @@ def set_seed(seed):
             torch.use_deterministic_algorithms(True)
             torch.backends.cudnn.benchmark = False
         else:
-            logging.warning(
-                f'the random seed should be a non-negative integer')
+            logging.warning('the random seed should be a non-negative integer')
