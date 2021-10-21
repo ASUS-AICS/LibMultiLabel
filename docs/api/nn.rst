@@ -6,7 +6,6 @@ The ``libmultilabel.nn`` package contains two types of APIs for data processing 
 * `libmultilabel.nn.data_utils <../api/nn.html#libmultilabel-nn-data-utils>`_
 * `libmultilabel.nn.nn_utils <../api/nn.html#module-libmultilabel.nn.nn_utils>`_
 
-You can also see `the user guide <../guides/nn_guides.html>`_ for more information.
 
 libmultilabel.nn.data_utils
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
