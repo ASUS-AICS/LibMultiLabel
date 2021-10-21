@@ -45,22 +45,40 @@ Quick Start via an Example
 
       python3 main.py --config example_config/rcv1/kim_cnn.yml
 
-   For more details about the usage see the `command line interface <api/cli.html>`_.
+   For more details about the usage see the `command line interface <cli.html>`_.
 
 .. toctree::
-    :caption: User Guide
-    :maxdepth: 2
+    :caption: Environments and Installation
+    :maxdepth: 1
 
-    guides/linear_guides
-    guides/nn_guides
-    guides/cli
+    installation
+
+.. toctree::
+    :caption: Command Line Interface
+    :maxdepth: 1
+
+    cli
+
+..
+   .. toctree::
+      :caption: User Guide
+      :maxdepth: 2
+
+      guides/linear_guides
+      guides/nn_guides
 
 .. toctree::
    :caption: API Documentation
-   :maxdepth: 2
+   :maxdepth: 1
 
    api/linear
    api/nn
+
+.. toctree::
+   :caption: API Tutorial
+   :maxdepth: 1
+
+   api_tutorial/nn_tutorial
 
 Indices and tables
 ------------------
