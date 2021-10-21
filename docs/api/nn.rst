@@ -1,5 +1,5 @@
-Neural Networks Methods
-========================
+Neural Network Methods
+======================
 
 The ``libmultilabel.nn`` package contains two types of APIs for data processing and model training:
 
