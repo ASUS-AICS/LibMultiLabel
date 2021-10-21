@@ -8,7 +8,7 @@ Environments
 * CUDA: 10.2 (if GPU used)
 * Pytorch 1.8+
 
-If you have a different version of CUDA, go to the [website](https://pytorch.org/) for the detail of PyTorch installation.
+If you have a different version of CUDA, go to the `website <https://pytorch.org/>`_ for the detail of PyTorch installation.
 
 
 Installation
