@@ -61,7 +61,7 @@ Step 2. Initialize a model
 
 Here we show how to create a model.
 
-    * Configure the network with `model_name <../guides/nn_guides.html#network-configuration>`_ and ``network_config``.
+    * Configure the network with `model_name <../guides/nn_guides.html#id2>`_ and ``network_config``.
     * Define labels and text dictionary (i.e., ``classes`` and ``word_dict``) of this model.
     * Find `more here <../api/nn.html#libmultilabel.nn.nn_utils.init_model>`_ if you are interested in other settings.
       For example, a ``moniter_metrics`` is used to define the metrics you'd like to keep track with during the training procedure.
