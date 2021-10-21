@@ -59,15 +59,15 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes):
     for metric in monitor_metrics:
         if isinstance(metric, Metric):  # customized metric
             metrics[type(metric).__name__] = metric
-        elif re.match('P@\d+', metric):
+        elif re.match('P@\d+', metric) and int(metric[2:]) <= num_classes:
             metrics[metric] = Precision(
                 num_classes, average='samples', top_k=int(metric[2:]))
-        elif re.match('R@\d+', metric):
+        elif re.match('R@\d+', metric) and int(metric[2:]) <= num_classes:
             metrics[metric] = Recall(
                 num_classes, average='samples', top_k=int(metric[2:]))
-        elif re.match('RP@\d+', metric):
+        elif re.match('RP@\d+', metric) and int(metric[3:]) <= num_classes:
             metrics[metric] = RPrecision(top_k=int(metric[3:]))
-        elif re.match('nDCG@\d+', metric):
+        elif re.match('nDCG@\d+', metric) and int(metric[5:]) <= num_classes:
             metrics[metric] = RetrievalNormalizedDCG(k=int(metric[5:]))
 
         # TODO: add remaining metrics
