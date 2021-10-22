@@ -72,7 +72,8 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes):
         match_metric = re.match(r'\b(Micro|Macro)\b-\b(Precision|Recall|F1)\b', metric)
 
         if match_top_k:
-            metric_abbr, top_k = match_top_k.group(1), int(match_top_k.group(2))
+            metric_abbr = match_top_k.group(1) # P, R, PR, or nDCG
+            top_k = int(match_top_k.group(2))
             if top_k >= num_classes:
                 raise ValueError(
                     f'Invalid metric: {metric}. {top_k} is greater than {num_classes}.')
@@ -92,11 +93,10 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes):
             macro_recall = Recall(num_classes, metric_threshold, average='macro')
             metrics[metric] = 2 * (macro_prec * macro_recall) / \
                 (macro_prec + macro_recall + 1e-10)
-        # micro/macro precision, recall, or F1
         elif match_metric:
-            average_type = match_metric.group(1).lower()
-            metric_name = match_metric.group(2)
-            metrics[metric] = getattr(torchmetrics.classification, metric_name)(
+            average_type = match_metric.group(1).lower() # Micro or Macro
+            metric_type = match_metric.group(2) # Precision, Recall, or F1
+            metrics[metric] = getattr(torchmetrics.classification, metric_type)(
                 num_classes, metric_threshold, average=average_type)
         else:
             raise ValueError(
