@@ -2,7 +2,8 @@ import re
 
 import torch
 import numpy as np
-from torchmetrics import Metric, MetricCollection, F1, Precision, Recall, RetrievalNormalizedDCG
+import torchmetrics.classification
+from torchmetrics import Metric, MetricCollection, Precision, Recall, RetrievalNormalizedDCG
 from torchmetrics.utilities.data import select_topk
 
 
@@ -40,39 +41,66 @@ class RPrecision(Metric):
 
 
 def get_metrics(metric_threshold, monitor_metrics, num_classes):
+    """Map monitor metrics to the corresponding classes defined in `torchmetrics.Metric`
+    (https://torchmetrics.readthedocs.io/en/latest/references/modules.html).
+
+    Args:
+        metric_threshold (float): Thresholds to monitor for metrics.
+        monitor_metrics (list): Metrics to monitor while validating.
+        num_classes (int): Total number of classes.
+
+    Raises:
+        ValueError: The metric is invalid if:
+            (1) It is not one of 'P@k', 'R@k', 'RP@k', 'nDCG@k', 'Micro-Precision',
+                'Micro-Recall', 'Micro-F1', 'Macro-F1', 'Another-Macro-F1', or a
+                `torchmetrics.Metric`.
+            (2) Metric@k: k is greater than `num_classes`.
+
+    Returns:
+        torchmetrics.MetricCollection: A collections of `torchmetrics.Metric` for evaluation.
+    """
     if monitor_metrics is None:
         monitor_metrics = []
-    macro_prec = Precision(num_classes, metric_threshold, average='macro')
-    macro_recall = Recall(num_classes, metric_threshold, average='macro')
-    another_macro_f1 = 2 * (macro_prec * macro_recall) / \
-        (macro_prec + macro_recall + 1e-10)
-    metrics = {
-        'Micro-Precision': Precision(num_classes, metric_threshold, average='micro'),
-        'Micro-Recall': Recall(num_classes, metric_threshold, average='micro'),
-        'Micro-F1': F1(num_classes, metric_threshold, average='micro'),
-        'Macro-F1': F1(num_classes, metric_threshold, average='macro'),
-        # The f1 value of macro_precision and macro_recall. This variant of
-        # macro_f1 is less preferred but is used in some works. Please
-        # refer to Opitz et al. 2019 [https://arxiv.org/pdf/1911.03347.pdf]
-        'Another-Macro-F1': another_macro_f1,
-    }
+
+    metrics = dict()
     for metric in monitor_metrics:
         if isinstance(metric, Metric):  # customized metric
             metrics[type(metric).__name__] = metric
-        elif re.match('P@\d+', metric) and int(metric[2:]) <= num_classes:
-            metrics[metric] = Precision(
-                num_classes, average='samples', top_k=int(metric[2:]))
-        elif re.match('R@\d+', metric) and int(metric[2:]) <= num_classes:
-            metrics[metric] = Recall(
-                num_classes, average='samples', top_k=int(metric[2:]))
-        elif re.match('RP@\d+', metric) and int(metric[3:]) <= num_classes:
-            metrics[metric] = RPrecision(top_k=int(metric[3:]))
-        elif re.match('nDCG@\d+', metric) and int(metric[5:]) <= num_classes:
-            metrics[metric] = RetrievalNormalizedDCG(k=int(metric[5:]))
+            continue
 
-        # TODO: add remaining metrics
-        elif metric not in ['Micro-Precision', 'Micro-Recall', 'Micro-F1', 'Macro-F1', 'Another-Macro-F1']:
-            raise ValueError(f'Invalid metric: {metric}')
+        match_top_k = re.match(r'\b(P|R|PR|nDCG)\b@(\d+)', metric)
+        match_metric = re.match(r'\b(Micro|Macro)\b-\b(Precision|Recall|F1)\b', metric)
+
+        if match_top_k:
+            metric_abbr, top_k = match_top_k.group(1), int(match_top_k.group(2))
+            if top_k >= num_classes:
+                raise ValueError(
+                    f'Invalid metric: {metric}. {top_k} is greater than {num_classes}.')
+            if metric_abbr == 'P':
+                metrics[metric] = Precision(num_classes, average='samples', top_k=top_k)
+            elif metric_abbr == 'R':
+                metrics[metric] = Recall(num_classes, average='samples', top_k=top_k)
+            elif metric_abbr == 'RP':
+                metrics[metric] = RPrecision(top_k=top_k)
+            elif metric_abbr == 'nDCG':
+                metrics[metric] = RetrievalNormalizedDCG(k=top_k)
+        elif metric == 'Another-Macro-F1':
+            # The f1 value of macro_precision and macro_recall. This variant of
+            # macro_f1 is less preferred but is used in some works. Please
+            # refer to Opitz et al. 2019 [https://arxiv.org/pdf/1911.03347.pdf]
+            macro_prec = Precision(num_classes, metric_threshold, average='macro')
+            macro_recall = Recall(num_classes, metric_threshold, average='macro')
+            metrics[metric] = 2 * (macro_prec * macro_recall) / \
+                (macro_prec + macro_recall + 1e-10)
+        # micro/macro precision, recall, or F1
+        elif match_metric:
+            average_type = match_metric.group(1).lower()
+            metric_name = match_metric.group(2)
+            metrics[metric] = getattr(torchmetrics.classification, metric_name)(
+                num_classes, metric_threshold, average=average_type)
+        else:
+            raise ValueError(
+                f'Invalid metric: {metric}. Make sure the metric is in the right format: Macro/Micro-Precision/Recall/F1 (ex. Micro-F1)')
 
     return MetricCollection(metrics)
 
