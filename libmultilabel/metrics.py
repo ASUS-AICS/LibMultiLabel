@@ -68,7 +68,7 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes):
             metrics[type(metric).__name__] = metric
             continue
 
-        match_top_k = re.match(r'\b(P|R|PR|nDCG)\b@(\d+)', metric)
+        match_top_k = re.match(r'\b(P|R|RP|nDCG)\b@(\d+)', metric)
         match_metric = re.match(r'\b(Micro|Macro)\b-\b(Precision|Recall|F1)\b', metric)
 
         if match_top_k:
