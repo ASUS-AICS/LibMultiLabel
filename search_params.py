@@ -54,6 +54,11 @@ class Trainable(tune.Trainable):
         log_path = os.path.join(checkpoint_dir, 'logs.json')
         dump_log(log_path, config=self.config)
 
+        if self.config.val_metric not in self.config.monitor_metrics:
+            logging.warn(
+                f'{self.config.val_metric} is not in `monitor_metrics`. Add {self.config.val_metric} to `monitor_metrics`.')
+            self.config.monitor_metrics += [self.config.val_metric]
+
         model = init_model(model_name=self.config.model_name,
                            network_config=dict(self.config.network_config),
                            classes=self.classes,
