@@ -16,7 +16,7 @@ patience: 5
 
 # eval
 eval_batch_size: 256
-monitor_metrics: ['Micro-Precision', 'Micro-Recall', 'Micro-F1', 'Macro-F1', 'Another-Macro-F1', 'P@1', 'P@3', 'P@5']
+monitor_metrics: ['Micro-F1', 'Macro-F1', 'Another-Macro-F1', 'P@1', 'P@3', 'P@5']
 val_metric: P@1
 
 # model
