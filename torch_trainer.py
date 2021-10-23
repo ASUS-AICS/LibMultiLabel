@@ -80,6 +80,11 @@ class TorchTrainer:
             classes = data_utils.load_or_build_label(
                 self.datasets, self.config.label_file, self.config.silent)
 
+            if self.config.val_metric not in self.config.monitor_metrics:
+                logging.warn(
+                    f'{self.config.val_metric} is not in `monitor_metrics`. Add {self.config.val_metric} to `monitor_metrics`.')
+                self.config.monitor_metrics += [self.config.val_metric]
+
             self.model = init_model(model_name=self.config.model_name,
                                     network_config=dict(self.config.network_config),
                                     classes=classes,
