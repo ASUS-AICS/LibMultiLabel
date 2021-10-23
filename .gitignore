@@ -103,7 +103,7 @@ celerybeat-schedule
 .env
 .venv
 env/
-venv/
+venv*/
 ENV/
 env.bak/
 venv.bak/
@@ -148,6 +148,7 @@ tmp*
 *.lock
 *.pt
 *.zip
+*.tar.gz
 *.ckpt
 *.tfevents.*
 
