@@ -12,7 +12,7 @@ If you have a different version of CUDA, go to the `website <https://pytorch.org
 
 
 Installation
--------------
+------------
 
 Install via pip
 ^^^^^^^^^^^^^^^
