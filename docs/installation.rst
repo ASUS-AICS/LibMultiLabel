@@ -14,15 +14,15 @@ If you have a different version of CUDA, go to the `website <https://pytorch.org
 Installation
 ------------
 
-Install via pip
-^^^^^^^^^^^^^^^
+Install via pip (for API use)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: bash
 
     pip3 install libmultilabel
 
-Install from Source
-^^^^^^^^^^^^^^^^^^^
+Install from Source (for command-line and/or API uses)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 * Clone `LibMultiLabel <https://github.com/ASUS-AICS/LibMultiLabel>`_.
 * Install the latest development version, run:
