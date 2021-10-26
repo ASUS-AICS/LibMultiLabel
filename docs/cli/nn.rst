@@ -23,19 +23,19 @@ To use your own word embeddings or vocabulary set, specify the following paramet
 
 - **embed_file**: choose one of the pretrained embeddings defined in `torchtext <https://pytorch.org/text/0.9.0/vocab.html#torchtext.vocab.Vocab.load_vectors>`_ or specify the path to your word embeddings with each line containing a word followed by its vectors. Example:
 
-    .. code-block::
+.. code-block::
 
-        the 0.04656 0.21318 -0.0074364 ...
-        a -0.29`712 0.094049 -0.096662 ...
-        an -0.3206 0.43316 -0.086867 ...
+    the 0.04656 0.21318 -0.0074364 ...
+    a -0.29`712 0.094049 -0.096662 ...
+    an -0.3206 0.43316 -0.086867 ...
 
 - **vocab_file**: set the file path to a predefined vocabulary set that contains lines of words.
 
-    .. code-block::
+.. code-block::
 
-        the
-        a
-        an
+    the
+    a
+    an
 
 For the validation process in the training procedure, you can evaluate the model with a set of evaluation metrics. Set ``monitor_metrics`` to define what you want to print on the screen. The argument ``val_metric`` is the metric for picking the best model. Example:
 
@@ -76,7 +76,8 @@ We provide a program `search_params.py` to demonstrate how to run LibMultiLabel 
 
 .. code-block:: bash
 
-    python3 search_params.py --config example_config/rcv1/cnn_tune.yml --search_alg basic_variant
+    python3 search_params.py --config example_config/rcv1/cnn_tune.yml \
+                             --search_alg basic_variant
 
 - **config**: configure *all* parameters in a yaml file. You can define a continuous, a discrete, or other types of search space (see a list `here <https://docs.ray.io/en/master/tune/api_docs/search_space.html#tune-sample-docs>`_). An example of configuring the parameters is presented as follows:
 
