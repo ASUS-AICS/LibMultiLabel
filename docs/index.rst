@@ -41,14 +41,6 @@ The library is composed of a neural network module and a linear classifier modul
     cli/linear
     cli/nn
 
-..
-   .. toctree::
-      :caption: User Guide
-      :maxdepth: 2
-
-      guides/linear_guides
-      guides/nn_guides
-
 .. toctree::
    :caption: API Documentation
    :maxdepth: 1
@@ -57,7 +49,7 @@ The library is composed of a neural network module and a linear classifier modul
    api/nn
 
 .. toctree::
-   :caption: API Tutorial
+   :caption: Tutorials
    :maxdepth: 1
 
    tutorial/nn_api_tutorial
