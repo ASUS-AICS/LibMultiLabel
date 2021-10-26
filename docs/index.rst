@@ -52,12 +52,16 @@ Quick Start via an Example
     :maxdepth: 1
 
     installation
+    data_format
 
 .. toctree::
     :caption: Command Line Interface
     :maxdepth: 1
 
-    cli
+    cli/cli
+    cli/options
+    cli/linear
+    cli/nn
 
 ..
    .. toctree::
@@ -78,7 +82,8 @@ Quick Start via an Example
    :caption: API Tutorial
    :maxdepth: 1
 
-   api_tutorial/nn_tutorial
+   tutorial/nn_api_tutorial
+   tutorial/nn_cli_tutorial
 
 Indices and tables
 ------------------

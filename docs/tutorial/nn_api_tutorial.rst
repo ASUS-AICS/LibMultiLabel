@@ -1,7 +1,7 @@
-Neural Network Tutorial
------------------------
+Neural Network API Tutorial
+===========================
 
-In this quick start guide, we will introduce neural network methods via a simple example.
+In this API tutorial, we will introduce neural network methods via a simple example.
 You will learn how to:
 
     * Preprocess datasets.
@@ -15,6 +15,11 @@ Before we started, make sure you import methods below:
     :lines: 3-5
 
 See `API document <../api/nn.html>`_ for more details.
+
+------------
+
+Using API via an Example
+------------------------
 
 Step 0. Setup seed and device
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
