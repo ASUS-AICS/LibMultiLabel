@@ -52,6 +52,11 @@ Quick Start via an Example
     :maxdepth: 1
 
     installation
+
+.. toctree::
+    :caption: Data Format
+    :maxdepth: 1
+
     data_format
 
 .. toctree::
