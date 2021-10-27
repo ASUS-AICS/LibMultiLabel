@@ -18,7 +18,7 @@ It can be used as a `Command Line Tool <cli/cli.html>`_ or as APIs.
    python3 main.py --config main_config.yml
    python3 search_params.py --config search_config.yml
 
-See *API Documentation* for more information.
+See `Command Line Tool <cli/cli.html>`_ for more information.
 
 **Use as APIs**
 
