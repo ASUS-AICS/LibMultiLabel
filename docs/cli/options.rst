@@ -1,15 +1,13 @@
 Specifying Options
 ==================
 
-The LibMultiLabel toolkit uses a yaml file to configure the dataset and the training process. At a high level, the config file is split into four parts:
+The command line interface uses a `yaml file <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/example_config>`_ to configure the dataset and the training process.
+At a high level, the config file is split into four parts:
 
-- **data**: the data config consists of data paths that tell where to place the datasets, pre-trained word embeddings, and vocabularies.
-
-- **model**: the model config defines the parameters that are related to the network definition (i.e., model name).
-
-- **train**: the train config specifies the hyperparameters (i.e., batch size, learning rate, etc.) used when training a model.
-
-- **eval**: the eval config decides metrics monitored or reported during the evaluation process.
+- :ref:`data_options`
+- :ref:`model_options`
+- :ref:`train_options`
+- :ref:`evaluation_options`
 
 The configuration may also be overridden by passing additional arguments, for example:
 
@@ -19,94 +17,122 @@ The configuration may also be overridden by passing additional arguments, for ex
 
 ------------
 
+.. _data_options:
+
 Data Options
 ^^^^^^^^^^^^
+The data options consists of data paths that tell where to place the datasets, pre-trained word embeddings, and vocabularies.
 
-+----------------+----------------------+-----------------------------------------------------------------------------------------------+
-| parameters     | default              | description                                                                                   |
-+================+======================+===============================================================================================+
-| data_dir       | ./data/rcv1          | The directory to load data                                                                    |
-+----------------+----------------------+-----------------------------------------------------------------------------------------------+
-| data_name      | rcv1                 | Dataset name                                                                                  |
-+----------------+----------------------+-----------------------------------------------------------------------------------------------+
-| train_path     | [data_dir]/train.txt | Path to training data                                                                         |
-+----------------+----------------------+-----------------------------------------------------------------------------------------------+
-| val_path       | [data_dir]/valid.txt | Path to validation data                                                                       |
-+----------------+----------------------+-----------------------------------------------------------------------------------------------+
-| test_path      | [data_dir]/test.txt  | Path to test data                                                                             |
-+----------------+----------------------+-----------------------------------------------------------------------------------------------+
-| val_size       | 0.2                  | Training-validation split: a ratio in [0, 1] or an integer for the size of the validation set |
-+----------------+----------------------+-----------------------------------------------------------------------------------------------+
-| min_vocab_freq | 1                    | The minimum frequency needed to include a token in the vocabulary                             |
-+----------------+----------------------+-----------------------------------------------------------------------------------------------+
-| max_seq_length | 500                  | The maximum number of tokens of a sample                                                      |
-+----------------+----------------------+-----------------------------------------------------------------------------------------------+
-| shuffle        | 2500                 | Whether to shuffle training data before each epoch                                            |
-+----------------+----------------------+-----------------------------------------------------------------------------------------------+
-| vocab_file     |                      | Path to a file holding vocabuaries                                                            |
-+----------------+----------------------+-----------------------------------------------------------------------------------------------+
-| embed_file     |                      | Path to a file holding pre-trained embeddings                                                 |
-+----------------+----------------------+-----------------------------------------------------------------------------------------------+
-| label_file     |                      | Path to a file holding all labels                                                             |
-+----------------+----------------------+-----------------------------------------------------------------------------------------------+
++----------------+-----------------------------------------------------------------------------------------------+
+| Option         | Description                                                                                   |
++================+===============================================================================================+
+| data_dir       | The directory to load data                                                                    |
++----------------+-----------------------------------------------------------------------------------------------+
+| data_name      | Dataset name                                                                                  |
++----------------+-----------------------------------------------------------------------------------------------+
+| train_path     | Path to training data                                                                         |
++----------------+-----------------------------------------------------------------------------------------------+
+| val_path       | Path to validation data                                                                       |
++----------------+-----------------------------------------------------------------------------------------------+
+| test_path      | Path to test data                                                                             |
++----------------+-----------------------------------------------------------------------------------------------+
+| val_size       | Training-validation split: a ratio in [0, 1] or an integer for the size of the validation set |
++----------------+-----------------------------------------------------------------------------------------------+
+| min_vocab_freq | The minimum frequency needed to include a token in the vocabulary                             |
++----------------+-----------------------------------------------------------------------------------------------+
+| max_seq_length | The maximum number of tokens of a sample                                                      |
++----------------+-----------------------------------------------------------------------------------------------+
+| shuffle        | Whether to shuffle training data before each epoch                                            |
++----------------+-----------------------------------------------------------------------------------------------+
+| vocab_file     | Path to a file holding vocabuaries                                                            |
++----------------+-----------------------------------------------------------------------------------------------+
+| embed_file     | Path to a file holding pre-trained embeddings                                                 |
++----------------+-----------------------------------------------------------------------------------------------+
+| label_file     | Path to a file holding all labels                                                             |
++----------------+-----------------------------------------------------------------------------------------------+
 
-..
-    .. argparse::
-        :filename: ../main.py
-        :func: get_parser
-        :nodefault:
+.. _model_options:
 
 Model Options
 ^^^^^^^^^^^^^
+The model config defines the parameters that are related to the network definition (i.e., model name).
 
-.. add network config after the bug is fixed
++--------------------+--------------------------------------------------+
+| Option             | Description                                      |
++====================+==================================================+
+| model_name         | Model to be used: BiGRU, CAML, KimCNN, or XMLCNN |
++--------------------+--------------------------------------------------+
+| init_weight        | Weight initialization to be used                 |
++--------------------+--------------------------------------------------+
+| **network_config** | Configuration for defining the network.          |
++--------------------+--------------------------------------------------+
 
-+------------------+-----------------+---------------------+
-| parameters       | default         | description         |
-+==================+=================+=====================+
-| model_name       | KimCNN          |                     |
-+------------------+-----------------+---------------------+
-| init_weight      | kaiming_uniform |                     |
-+------------------+-----------------+---------------------+
+network_config
+--------------
+Parameters for initializing a network are defined under a nested configuration ``network_config``.
 
++---------------------+--------------------------------------------------------------------------------------------------+
+| Option              | Description                                                                                      |
++=====================+==================================================================================================+
+| activation          | Activation function to be used                                                                   |
++---------------------+--------------------------------------------------------------------------------------------------+
+| num_filter_per_size | Number of filters in convolutional layers in each size                                           |
++---------------------+--------------------------------------------------------------------------------------------------+
+| filter_sizes        | Size of convolutional filters                                                                    |
++---------------------+--------------------------------------------------------------------------------------------------+
+| dropout             | Optional specification of dropout                                                                |
++---------------------+--------------------------------------------------------------------------------------------------+
+| dropout2            | Optional specification of the second dropout                                                     |
++---------------------+--------------------------------------------------------------------------------------------------+
+| num_pool            | Number of pool for dynamic max-pooling                                                           |
++---------------------+--------------------------------------------------------------------------------------------------+
+| hidden_dim          | Dimension of the hidden layer                                                                    |
++---------------------+--------------------------------------------------------------------------------------------------+
+| rnn_dim             | The size of bidirectional hidden layers. The hidden size of the GRU network is set to rnn_dim//2 |
++---------------------+--------------------------------------------------------------------------------------------------+
+| rnn_layers          | Number of recurrent layers                                                                       |
++---------------------+--------------------------------------------------------------------------------------------------+
+
+.. _train_options:
 
 Train Options
 ^^^^^^^^^^^^^
+The train config specifies the hyperparameters (i.e., batch size, learning rate, etc.) used when training a model.
 
-+---------------+---------+----------------------------------------------------------------+
-| parameters    | default | description                                                    |
-+===============+=========+================================================================+
-| seed          |         | Random seed                                                    |
-+---------------+---------+----------------------------------------------------------------+
-| epochs        | 10000   | Number of epochs to train                                      |
-+---------------+---------+----------------------------------------------------------------+
-| batch_size    | 16      | Size of training batches                                       |
-+---------------+---------+----------------------------------------------------------------+
-| optimizer     | adam    | Optimizer: SGD or Adam                                         |
-+---------------+---------+----------------------------------------------------------------+
-| learning_rate | 0.0001  | Learning rate for optimizer                                    |
-+---------------+---------+----------------------------------------------------------------+
-| weight_decay  | 0       | Weight decay factor                                            |
-+---------------+---------+----------------------------------------------------------------+
-| momentum      | 0.9     | Momentum factor for SGD only                                   |
-+---------------+---------+----------------------------------------------------------------+
-| patience      | 5       | Number of epochs to wait for improvement before early stopping |
-+---------------+---------+----------------------------------------------------------------+
-| shuffle       | 2500    |                                                                |
-+---------------+---------+----------------------------------------------------------------+
++---------------+----------------------------------------------------------------+
+| Option        | Description                                                    |
++===============+================================================================+
+| seed          | Random seed                                                    |
++---------------+----------------------------------------------------------------+
+| epochs        | Number of epochs to train                                      |
++---------------+----------------------------------------------------------------+
+| batch_size    | Size of training batches                                       |
++---------------+----------------------------------------------------------------+
+| optimizer     | Optimizer: SGD or Adam                                         |
++---------------+----------------------------------------------------------------+
+| learning_rate | Learning rate for optimizer                                    |
++---------------+----------------------------------------------------------------+
+| weight_decay  | Weight decay factor                                            |
++---------------+----------------------------------------------------------------+
+| momentum      | Momentum factor for SGD only                                   |
++---------------+----------------------------------------------------------------+
+| patience      | Number of epochs to wait for improvement before early stopping |
++---------------+----------------------------------------------------------------+
+
+.. _evaluation_options:
 
 Evaluation Options
 ^^^^^^^^^^^^^^^^^^
+The eval config decides metrics monitored or reported during the evaluation process.
 
-+------------------+-----------------------+------------------------------------------+
-| parameters       | default               | description                              |
-+==================+=======================+==========================================+
-| eval_batch_size  | 256                   | Size of evaluating batches               |
-+------------------+-----------------------+------------------------------------------+
-| metric_threshold | 0.5                   | Thresholds to monitor for metrics        |
-+------------------+-----------------------+------------------------------------------+
-| monitor_metrics  | ['P@1', 'P@3', 'P@5'] | Metrics to monitor while validating      |
-+------------------+-----------------------+------------------------------------------+
-| val_metric       | P@1                   | The metric to monitor for early stopping |
-+------------------+-----------------------+------------------------------------------+
-
++------------------+------------------------------------------+
+| Option           | Description                              |
++==================+==========================================+
+| eval_batch_size  | Size of evaluating batches               |
++------------------+------------------------------------------+
+| metric_threshold | Thresholds to monitor for metrics        |
++------------------+------------------------------------------+
+| monitor_metrics  | Metrics to monitor while validating      |
++------------------+------------------------------------------+
+| val_metric       | The metric to monitor for early stopping |
++------------------+------------------------------------------+
