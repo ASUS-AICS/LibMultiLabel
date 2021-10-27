@@ -18,7 +18,7 @@ See `API document <../api/nn.html>`_ for more details.
 
 ------------
 
-Using API via an Example
+Using APIs via an Example
 ------------------------
 
 Step 0. Setup seed and device

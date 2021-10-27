@@ -10,9 +10,6 @@ The command line tool provides an easy way to
 To see how to train, evaluate and do hyper-parameter search (for neural network) ,
 go to the following sections for more information.
 
-.. toctree::
-    :maxdepth: 1
-
-    linear
-    nn
-    options
+    * `Training and Prediction for Linear Classifiers <linear.html>`_
+    * `Training and Prediction for Neural Networks <nn.html>`_
+    * `Specifying Options <options.html>`_

@@ -29,7 +29,6 @@ The library is composed of a neural network module and a linear classifier modul
 
 See *API Documentation* for more information.
 
-
 ------
 
 .. toctree::
@@ -42,25 +41,23 @@ See *API Documentation* for more information.
 .. toctree::
     :caption: Command Line Interface
     :maxdepth: 1
+    :glob:
 
-    cli/cli
-    cli/options
-    cli/linear
-    cli/nn
+    cli/*
 
 .. toctree::
    :caption: API Documentation
    :maxdepth: 1
+   :glob:
 
-   api/linear
-   api/nn
+   api/*
 
 .. toctree::
    :caption: Tutorials
    :maxdepth: 1
+   :glob:
 
-   tutorial/nn_api_tutorial
-   tutorial/nn_cli_tutorial
+   tutorial/*
 
 Indices and tables
 ------------------
