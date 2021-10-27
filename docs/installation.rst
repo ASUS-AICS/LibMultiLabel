@@ -21,6 +21,12 @@ Install via pip (for API use)
 
     pip3 install libmultilabel
 
+For parameter search,
+
+.. code-block:: bash
+
+    pip3 install libmultilabel[parameter-search]
+
 Install from Source (for command-line and/or API uses)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
