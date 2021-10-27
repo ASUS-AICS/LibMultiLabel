@@ -8,6 +8,7 @@ At a high level, the config file is split into four parts:
 - :ref:`model_options`
 - :ref:`train_options`
 - :ref:`evaluation_options`
+- :ref:`hyperparameter_search_options`
 
 ------------
 
@@ -49,7 +50,7 @@ The data options consists of data paths that tell where to place the datasets, p
 
 Model Options
 ^^^^^^^^^^^^^
-The model config defines the parameters that are related to the network definition (i.e., model name).
+The model options defines the parameters that are related to the network definition (i.e., model name).
 
 +--------------------+--------------------------------------------------+
 | Option             | Description                                      |
@@ -91,7 +92,7 @@ Parameters for initializing a network are defined under a nested configuration `
 
 Train Options
 ^^^^^^^^^^^^^
-The train config specifies the hyperparameters (i.e., batch size, learning rate, etc.) used when training a model.
+The train options specifies the hyperparameters (i.e., batch size, learning rate, etc.) used when training a model.
 
 +---------------+----------------------------------------------------------------+
 | Option        | Description                                                    |
@@ -117,7 +118,7 @@ The train config specifies the hyperparameters (i.e., batch size, learning rate,
 
 Evaluation Options
 ^^^^^^^^^^^^^^^^^^
-The eval config decides metrics monitored or reported during the evaluation process.
+The evalation options decides metrics monitored or reported during the evaluation process.
 
 +------------------+------------------------------------------+
 | Option           | Description                              |
@@ -130,3 +131,23 @@ The eval config decides metrics monitored or reported during the evaluation proc
 +------------------+------------------------------------------+
 | val_metric       | The metric to monitor for early stopping |
 +------------------+------------------------------------------+
+
+
+.. _hyperparameter_search_options:
+
+Hyperparameter Search Options
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The hyperparamter search options decide how to perform hyperparameter selection.
+It is worth noting that for ``grid_search``, the ``num_samples`` indicates the repeat time of a combination.
+Namely, set ``num_samples`` to one means run one time grid search.
+For other search algorithms, ``num_samples`` means the number of running trials.
+
++-----------------+---------------------------------------------------------------------------------------------------------------------+
+| Option          | Description                                                                                                         |
++=================+=====================================================================================================================+
+| search_alg      | Search algorithms: basic_variant, bayesopt, optuna                                                                  |
++-----------------+---------------------------------------------------------------------------------------------------------------------+
+| embed_cache_dir | Path to a directory for storing embeddings for multiple runs.                                                       |
++-----------------+---------------------------------------------------------------------------------------------------------------------+
+| num_samples     | Number of running trials. If the search space is `grid_search`, the same grid will be repeated `num_samples` times. |
++-----------------+---------------------------------------------------------------------------------------------------------------------+
