@@ -8,28 +8,35 @@ and a simple command line tool with the following functionalities
 - support for common neural network architectures and linear classsifiers
 - easy hyper-parameter selection
 
-The tool is used as::
+
+It can be used as a `Command Line Tool <cli/cli.html>`_ or as APIs.
+
+**Use as a Command Line Tool**
+
+.. code-block:: bash
 
    python3 main.py --config main_config.yml
    python3 search_params.py --config search_config.yml
+
+See *API Documentation* for more information.
+
+**Use as APIs**
 
 The library is composed of a neural network module and a linear classifier module::
 
    import libmultilabel.nn
    import libmultilabel.linear
 
+See *API Documentation* for more information.
+
+
 ------
 
 .. toctree::
-    :caption: Environments and Installation
+    :caption: Overview
     :maxdepth: 1
 
     installation
-
-.. toctree::
-    :caption: Data Format
-    :maxdepth: 1
-
     data_format
 
 .. toctree::

@@ -9,12 +9,6 @@ At a high level, the config file is split into four parts:
 - :ref:`train_options`
 - :ref:`evaluation_options`
 
-The configuration may also be overridden by passing additional arguments, for example:
-
-.. code-block:: bash
-
-    python3 main.py --config config.yml --cpu --eval
-
 ------------
 
 .. _data_options:
