@@ -9,25 +9,25 @@ and a simple command line tool with the following functionalities
 - easy hyper-parameter selection
 
 
-It can be used as a `Command Line Tool <cli/cli.html>`_ or as APIs.
+It can be used with `Command Line Interface <cli/cli.html>`_ or as APIs.
 
-**Use as a Command Line Tool**
+**Using CLI**
 
 .. code-block:: bash
 
    python3 main.py --config main_config.yml
    python3 search_params.py --config search_config.yml
 
-See `Command Line Tool <cli/cli.html>`_ for more information.
+See `Command Line Tool <cli/cli.html>`_ for more information or get `a quick start <../tutorial/nn_cli_tutorial.html>`_ with an example.
 
-**Use as APIs**
+**Using APIs**
 
 The library is composed of a neural network module and a linear classifier module::
 
    import libmultilabel.nn
    import libmultilabel.linear
 
-See *API Documentation* for more information.
+See *API Documentation* for more information or get start with `the API tutorial <../tutorial/nn_api_tutorial.html>`_.
 
 ------
 
