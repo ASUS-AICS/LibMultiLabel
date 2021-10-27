@@ -26,7 +26,7 @@ To use your own word embeddings or vocabulary set, specify the following paramet
 .. code-block::
 
     the 0.04656 0.21318 -0.0074364 ...
-    a -0.29`712 0.094049 -0.096662 ...
+    a -0.29712 0.094049 -0.096662 ...
     an -0.3206 0.43316 -0.086867 ...
 
 - **vocab_file**: set the file path to a predefined vocabulary set that contains lines of words.
@@ -67,14 +67,11 @@ To deploy/evaluate a model (i.e., a pre-obtained checkpoint), you can predict a 
 Hyperparameter Search
 ^^^^^^^^^^^^^^^^^^^^^
 
-Parameter selection is known to be extremely important in machine learning practice; see a powerful reminder in "`this paper <https://www.csie.ntu.edu.tw/~cjlin/papers/parameter_selection/acl2021_parameter_selection.pdf>`_". Here we leverage `Ray Tune <https://docs.ray.io/en/master/tune/index.html>`_, which is a python library for hyperparameter tuning, to select parameters. Due to the dependency of Ray Tune, first make sure your python version is not greater than 3.8. Then, install the related packages with:
+Parameter selection is known to be extremely important in machine learning practice; see a powerful reminder in "`this paper <https://www.csie.ntu.edu.tw/~cjlin/papers/parameter_selection/acl2021_parameter_selection.pdf>`_". Here we leverage `Ray Tune <https://docs.ray.io/en/master/tune/index.html>`_, which is a python library for hyperparameter tuning, to select parameters. Due to the dependency of Ray Tune, first make sure your python version is not greater than 3.8. Then, install the related packages with::
 
-.. code-block:: bash
     pip3 install -Ur requirements_parameter_search.txt
 
-We provide a program `search_params.py` to demonstrate how to run LibMultiLabel with Ray Tune. An example is as follows.
-
-.. code-block:: bash
+We provide a program ``search_params.py`` to demonstrate how to run LibMultiLabel with Ray Tune. An example is as follows::
 
     python3 search_params.py --config example_config/rcv1/cnn_tune.yml \
                              --search_alg basic_variant
