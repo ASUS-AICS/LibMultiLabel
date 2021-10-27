@@ -11,5 +11,5 @@ To see how to train, evaluate and do hyper-parameter search (for neural network)
 go to the following sections for more information.
 
     * `Training and Prediction for Linear Classifiers <linear.html>`_
-    * `Training and Prediction for Neural Networks <nn.html>`_
+    * `Training, Prediction, and Hyperparameter Search for Neural Networks <nn.html>`_
     * `Specifying Options <options.html>`_

@@ -1,5 +1,5 @@
-Training and Prediction for Neural Networks
-===========================================
+Training, Prediction, and Hyperparameter Search for Neural Networks
+===================================================================
 
 Training
 ^^^^^^^^
