@@ -13,12 +13,14 @@ It can be used with `Command Line Interface <cli/cli.html>`_ or as APIs.
 
 **Using CLI**
 
+The command line tool is used as:
+
 .. code-block:: bash
 
    python3 main.py --config main_config.yml
    python3 search_params.py --config search_config.yml
 
-See `Command Line Tool <cli/cli.html>`_ for more information or get `a quick start <../tutorial/nn_cli_tutorial.html>`_ with an example.
+See `Command Line Tool <cli/cli.html>`_ for more information. You can also take a look at our `quick start guide <../tutorial/nn_cli_tutorial.html>`_ to learn how to build a nerual network with LibMultiLabel.
 
 **Using APIs**
 
