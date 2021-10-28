@@ -19,7 +19,7 @@ If you have a different version of CUDA, go to the [website](https://pytorch.org
 
 ```
 pip3 install libmultilabel
-pip3 install libmultilabel[parameter-search]
+pip3 install libmultilabel[linear]
 ```
 
 ## Documentation
