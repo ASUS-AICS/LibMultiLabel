@@ -1,14 +1,21 @@
 Using CLI
 =========
-The command line tool is used as:
 
-.. code-block:: bash
+To work with the command line interface, see the following sections if you're just getting started:
 
-   python3 main.py --config main_config.yml
-   python3 search_params.py --config search_config.yml
+    - :ref:`installation`
+    - :ref:`cli-quickstart`
 
-Installation
-^^^^^^^^^^^^
+If you want to know more about training, prediction, and hyperparameter search, see:
+
+    - `Training and Prediction for Linear Classifiers <linear.html>`_
+    - `Training, Prediction, and Hyperparameter Search for Neural Networks <nn.html>`_
+
+
+.. _installation:
+
+Install LibMultiLabel from Source
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 * Clone `LibMultiLabel <https://github.com/ASUS-AICS/LibMultiLabel>`_.
 * Install the latest development version, run:
@@ -17,8 +24,10 @@ Installation
 
     pip3 install -r requirements.txt
 
-Quick Start
-^^^^^^^^^^^
+.. _cli-quickstart:
+
+Using CLI via an example
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 Step 1. Data Preparation
 ------------------------
@@ -44,6 +53,7 @@ Uncompress data files and change the directory back to LibMultiLabel.
     bzip2 -d *.bz2
     cd ../..
 
+See `Dataset Formats <data_format.html>`_ here if you want to use your own dataset.
 
 Step 2. Training and Prediction
 -------------------------------

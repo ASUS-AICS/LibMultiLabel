@@ -11,7 +11,7 @@ For training, use
     python3 main.py --config CONFIG_PATH \
                     --linear [--liblinear_options LIBLINEAR_OPTIONS]
 
-- **config**: configure parameters in a yaml file. See  `Specifying Options <./options.html>`_.
+- **config**: configure parameters in a yaml file.
 
 The linear classifiers are based on LIBLINEAR, and its options may be specified.
 

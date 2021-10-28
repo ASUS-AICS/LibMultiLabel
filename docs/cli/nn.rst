@@ -13,7 +13,7 @@ In the training procedure, you can build a model from scratch or start from some
                     [--embed_file EMBED_NAME_OR_EMBED_PATH] \
                     [--vocab_file VOCAB_CSV_PATH]
 
-- **config**: configure parameters in a yaml file. See `Specifying Options <options.html>`_.
+- **config**: configure parameters in a yaml file. See ``python3 main.py --help``.
 
 If a model was trained before by this package, the training procedure can start with it.
 

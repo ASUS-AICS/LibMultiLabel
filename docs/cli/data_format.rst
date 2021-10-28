@@ -1,7 +1,7 @@
 Dataset Formats
 ===============
 
-The input data for building train, test, and validation dataset must have specific formats.
+The input data for building train, test, and validation datasets must have specific formats.
 For neural networks, the only accepted format is the
 :ref:`libmultilabel-format`. For linear methods,
 both :ref:`libmultilabel-format` and
