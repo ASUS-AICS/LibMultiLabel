@@ -8,5 +8,19 @@ LibMultiLabel is a simple tool with the following functionalities.
 
 This is an on-going development so many improvements are still being made. Comments are very welcome.
 
+## Environments
+- Python: 3.7+
+- CUDA: 10.2 (if GPU used)
+- Pytorch 1.8+
+
+If you have a different version of CUDA, go to the website for the detail of PyTorch installation.
+
+## Installation
+
+```
+pip3 install libmultilabel
+pip3 install libmultilabel[parameter-search]
+```
+
 ## Documentation
 See the documentation here: https://www.csie.ntu.edu.tw/~cjlin/libmultilabel
