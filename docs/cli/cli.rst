@@ -17,8 +17,6 @@ Installation
 
     pip3 install -r requirements.txt
 
---------
-
 Quick Start
 ^^^^^^^^^^^
 
@@ -32,7 +30,7 @@ Create a data sub-directory within LibMultiLabel and go to this sub-directory.
     mkdir -p data/rcv1
     cd data/rcv1
 
-Download the rcv1 dataset from `LIBSVM data sets <https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets)>`_ by the following commands.
+Download the RCV1 dataset from `LIBSVM data sets <https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets)>`_ by the following commands.
 
 .. code-block:: bash
 
@@ -50,7 +48,7 @@ Uncompress data files and change the directory back to LibMultiLabel.
 Step 2. Training and Prediction
 -------------------------------
 
-Train a cnn model and predict the test set by an example config. Use ``--cpu`` to run the program on the cpu.
+Train a CNN model and predict the test set by an example config. Use ``--cpu`` to run the program on the cpu.
 
 .. code-block:: bash
 

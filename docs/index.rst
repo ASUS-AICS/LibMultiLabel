@@ -29,13 +29,14 @@ You can use the `Command Line Interface <cli/cli.html>`_  or the `APIs <api/api.
 
    api/*
 
-.. toctree::
-   :caption: Tutorials
-   :maxdepth: 1
-   :glob:
-   :hidden:
+..
+   .. toctree::
+      :caption: Tutorials
+      :maxdepth: 1
+      :glob:
+      :hidden:
 
-   tutorial/*
+      tutorial/*
 
 ..
    Indices and tables
