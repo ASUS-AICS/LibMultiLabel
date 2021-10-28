@@ -6,6 +6,8 @@ The API library is composed of a neural network module and a linear classifier m
    import libmultilabel.nn
    import libmultilabel.linear
 
+----------
+
 Installation
 ^^^^^^^^^^^^
 

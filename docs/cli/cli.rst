@@ -11,6 +11,7 @@ If you want to know more about training, prediction, and hyperparameter search, 
     - `Training and Prediction for Linear Classifiers <linear.html>`_
     - `Training, Prediction, and Hyperparameter Search for Neural Networks <nn.html>`_
 
+----------
 
 .. _installation:
 
