@@ -1,7 +1,7 @@
 Training, Prediction, and Hyperparameter Search for Neural Networks
 ===================================================================
 
-Training
+Training and (Optional) Prediction
 ^^^^^^^^
 
 In the training procedure, you can build a model from scratch or start from some pre-obtained information.

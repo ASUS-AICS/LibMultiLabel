@@ -27,7 +27,7 @@ Install LibMultiLabel from Source
 
 .. _cli-quickstart:
 
-Using CLI via an example
+Using CLI via an Example
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 Step 1. Data Preparation
