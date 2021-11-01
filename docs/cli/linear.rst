@@ -2,7 +2,7 @@ Training and Prediction for Linear Classifiers
 ==============================================
 
 Training and (Optional) Prediction
-^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 For training, use
 

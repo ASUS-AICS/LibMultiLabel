@@ -2,7 +2,7 @@ Training, Prediction, and Hyperparameter Search for Neural Networks
 ===================================================================
 
 Training and (Optional) Prediction
-^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In the training procedure, you can build a model from scratch or start from some pre-obtained information.
 
@@ -37,7 +37,12 @@ To use your own word embeddings or vocabulary set, specify the following paramet
     a
     an
 
-For the validation process in the training procedure, you can evaluate the model with a set of evaluation metrics. Set ``monitor_metrics`` to define what you want to print on the screen. The argument ``val_metric`` is the metric for picking the best model. Example:
+For validation, you can evaluate the model with a set of evaluation metrics.
+Set ``monitor_metrics`` to define what you want to print on the screen.
+The argument ``val_metric`` is the metric for selecting the best model.
+Namely, the model occurred at the epoch with the best validation metric is returned after training.
+If you do not specify a validation set in the configuration file via ``val_path`` or training-validation split ratio via ``val_size``,
+we will split the training data into training and validation set with an 80-20 split.
 
 .. code-block:: yaml
 
