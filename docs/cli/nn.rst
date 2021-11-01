@@ -42,7 +42,7 @@ Set ``monitor_metrics`` to define what you want to print on the screen.
 The argument ``val_metric`` is the metric for selecting the best model.
 Namely, the model occurred at the epoch with the best validation metric is returned after training.
 If you do not specify a validation set in the configuration file via ``val_path`` or training-validation split ratio via ``val_size``,
-we will split the training data into training and validation set with an 80-20 split.
+we will split the training data into training and validation set with an 80-20 split. Example lines in a configuration file:
 
 .. code-block:: yaml
 
@@ -50,7 +50,7 @@ we will split the training data into training and validation set with an 80-20 s
     val_metric: P@1
 
 
-If ``test_path`` is specified or ``DATA_DIR/test.txt`` exists, the model with the highest ``val_metric`` will be evaluated after training.
+If ``test_path`` is specified or ``DATA_DIR/test.txt`` exists, the model with the highest ``val_metric`` will be used to predict the test set.
 
 Prediction
 ^^^^^^^^^^
