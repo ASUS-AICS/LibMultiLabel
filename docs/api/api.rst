@@ -11,11 +11,13 @@ The API library is composed of a neural network module and a linear classifier m
 Installation
 ^^^^^^^^^^^^
 
-You can either install both neural network and linear module with::
+We provide two installation types to install LibMultiLabel:
+
+* Install both neural network module and linear classifier module with::
 
     pip3 install libmultilabel
 
-or install linear module only::
+* Install only linear classifier module without any torch-related requirements::
 
     pip3 install libmultilabel[linear]
 

@@ -12,9 +12,8 @@ both :ref:`libmultilabel-format` and
 LibMultiLabel Format
 --------------------
 
-The LibMultiLabel format is a format for IDs (optional),
-labels, raw texts and optional IDs. They are combined in a
-single file, using tabs and line endings as control characters.
+The LibMultiLabel format is a format for IDs (optional), labels, and raw texts.
+They are combined in a single file, using tabs and line endings as control characters.
 It must satisfy the following requirements
 
 - one sample per line
