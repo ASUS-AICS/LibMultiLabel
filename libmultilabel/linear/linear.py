@@ -1,3 +1,4 @@
+import logging
 import os
 import numpy as np
 import scipy.sparse as sparse
@@ -142,11 +143,11 @@ def thresholding_one_label(y: np.ndarray,
     best_fbr = fbr_list[::-1][np.argmax(f_list[::-1])]  # last largest
     if np.max(f_list) == 0:
         best_fbr = np.min(fbr_list)
-        print(f'INFO: train_one_label: F all 0')
+        logging.info(f'thresholding_one_label: F all 0')
 
     # final model
     w, b_list = scutfbr(y, x, np.array([best_fbr]), options)
-    print(f'INFO: train_one_label: best_fbr {best_fbr:.1f}')
+    logging.info(f'thresholding_one_label: best_fbr {best_fbr:.1f}')
 
     return w, b_list[0]
 
