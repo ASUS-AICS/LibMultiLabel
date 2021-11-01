@@ -13,11 +13,11 @@ Installation
 
 We provide two installation types to install LibMultiLabel:
 
-* Install both neural network module and linear classifier module with::
+* Install both neural network module and linear classifier module. ::
 
     pip3 install libmultilabel
 
-* Install only linear classifier module without any torch-related requirements::
+* Install only linear classifier module without any torch-related requirements. ::
 
     pip3 install libmultilabel[linear]
 

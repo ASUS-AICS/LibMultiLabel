@@ -41,8 +41,9 @@ For validation, you can evaluate the model with a set of evaluation metrics.
 Set ``monitor_metrics`` to define what you want to print on the screen.
 The argument ``val_metric`` is the metric for selecting the best model.
 Namely, the model occurred at the epoch with the best validation metric is returned after training.
-If you do not specify a validation set in the configuration file via ``val_path`` or training-validation split ratio via ``val_size``,
-we will split the training data into training and validation set with an 80-20 split. Example lines in a configuration file:
+If you do not specify a validation set in the configuration file via ``val_path`` or a training-validation split ratio via ``val_size``,
+we will split the training data into training and validation set with an 80-20 split.
+Example lines in a configuration file:
 
 .. code-block:: yaml
 
