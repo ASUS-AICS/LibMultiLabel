@@ -1,7 +1,31 @@
-Neural Network Tutorial
------------------------
+Using APIs
+==========
 
-In this quick start guide, we will introduce neural network methods via a simple example.
+The API library is composed of a neural network module and a linear classifier module::
+
+   import libmultilabel.nn
+   import libmultilabel.linear
+
+----------
+
+Installation
+^^^^^^^^^^^^
+
+We provide two installation types to install LibMultiLabel:
+
+* Install both neural network module and linear classifier module. ::
+
+    pip3 install libmultilabel
+
+* Install only linear classifier module without any torch-related requirements. ::
+
+    pip3 install libmultilabel[linear]
+
+
+Using APIs via an Example
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In this section, we will introduce the neural network methods via a simple example.
 You will learn how to:
 
     * Preprocess datasets.
@@ -14,10 +38,8 @@ Before we started, make sure you import methods below:
     :language: python3
     :lines: 3-5
 
-See `API document <../api/nn.html>`_ for more details.
-
 Step 0. Setup seed and device
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------------
 
 Let's start by setting up the seed and device.
 
@@ -26,7 +48,7 @@ Let's start by setting up the seed and device.
     :lines: 9-10
 
 Step 1. Load data from text files
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------------
 
 Now we're going to process the RCV1 data.
 First, create the training, test, and validation (optional) datasets from text files.
@@ -45,7 +67,7 @@ to your word embeddings with each line containing a word followed by its vectors
     :lines: 13-16
 
 Step 2. Initialize a model
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+--------------------------
 
 Here we show how to create a model.
 
@@ -59,7 +81,7 @@ Here we show how to create a model.
     :lines: 19-28
 
 Step 3. Initialize trainer
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+--------------------------
 
 To train the model, we need a trainer to control processes like training loop or validation.
 
@@ -68,7 +90,7 @@ To train the model, we need a trainer to control processes like training loop or
     :lines: 31-34
 
 Step 4. Create data loaders
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------
 
 Create pytorch data loaders for datasets we created in
 `Step 1 <../guides/nn_guides.html#step-1-load-data-from-text-files>`_.
@@ -78,7 +100,7 @@ Create pytorch data loaders for datasets we created in
     :lines: 37-43
 
 Step 5. Train and test the model
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+--------------------------------
 
 Everything's ready. Let's start training with ``trainer.train``.
 

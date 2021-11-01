@@ -21,12 +21,19 @@ Install via pip (for API use)
 
     pip3 install libmultilabel
 
-Install from Source (for command-line and/or API uses)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-* Clone `LibMultiLabel <https://github.com/ASUS-AICS/LibMultiLabel>`_.
-* Install the latest development version, run:
+For parameter search,
 
 .. code-block:: bash
 
-    pip3 install -r requirements.txt
+    pip3 install libmultilabel[parameter-search]
+
+..
+    Install from Source (for command-line and/or API uses)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    * Clone `LibMultiLabel <https://github.com/ASUS-AICS/LibMultiLabel>`_.
+    * Install the latest development version, run:
+
+    .. code-block:: bash
+
+        pip3 install -r requirements.txt
