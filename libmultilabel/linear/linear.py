@@ -135,7 +135,7 @@ def thresholding_one_label(y: np.ndarray,
         wTx = (x[val_idx] * scutfbr_w).A1
 
         for i in range(fbr_list.size):
-            F = fmeasure(y[val_idx], 2*(wTx > -scutfbr_b_list[i]) - 1)
+            F = fmeasure(2*y[val_idx] - 1, 2*(wTx > -scutfbr_b_list[i]) - 1)
             f_list[i] += F
 
     best_fbr = fbr_list[::-1][np.argmax(f_list[::-1])]  # last largest
@@ -174,7 +174,7 @@ def scutfbr(y: np.ndarray,
 
         wTx = (x[val_idx] * w).A1
         scut_b = 0.
-        start_F = fmeasure(y[val_idx], 2*(wTx > -scut_b) - 1)
+        start_F = fmeasure(2*y[val_idx] - 1, 2*(wTx > -scut_b) - 1)
 
         # stableness to match previous implementations
         sorted_wTx_index = np.argsort(wTx, kind='stable')
@@ -211,7 +211,7 @@ def scutfbr(y: np.ndarray,
             else:
                 scut_b = -(sorted_wTx[cut] + sorted_wTx[cut + 1]) / 2
 
-        F = fmeasure(y_val, 2*(wTx > -scut_b) - 1)
+        F = fmeasure(2*y_val - 1, 2*(wTx > -scut_b) - 1)
 
         for i in range(fbr_list.size):
             if F > fbr_list[i]:
@@ -249,8 +249,8 @@ def fmeasure(y_true: np.ndarray, y_pred: np.ndarray) -> float:
 
 
 def train_cost_sensitive(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
-    if options.find('-R') != -1:
-        raise ValueError('-R is not supported')
+    if any(o in options for o in ['-R', '-c', '-C']):
+        raise ValueError('-R, -c and -C are not supported')
 
     bias = -1.
     if options.find('-B') != -1:
@@ -283,8 +283,8 @@ def cost_sensitive_one_label(y: np.ndarray,
     l = y.shape[0]
     perm = np.random.permutation(l)
 
-    param_space = [((2 - t)/t, c)
-                   for t in np.linspace(1/7, 1, 7)
+    param_space = [(a, c)
+                   for a in [1, 1.33, 1.8, 2.5, 3.67, 6, 13]
                    for c in [1, 10, 100]]
 
     bestScore = -np.Inf
@@ -317,4 +317,4 @@ def cross_validate(y: np.ndarray,
         w = do_train(y[train_idx], x[train_idx], options)
         pred[val_idx] = (x[val_idx] * w).A1 > 0
 
-    return fmeasure(y, pred)
+    return fmeasure(2*y - 1, 2*pred - 1)
