@@ -77,18 +77,6 @@ def get_config():
                         help='Model to be used (default: %(default)s)')
     parser.add_argument('--init_weight', default='kaiming_uniform',
                         help='Weight initialization to be used (default: %(default)s)')
-    parser.add_argument('--activation', default='relu',
-                        help='Activation function to be used (default: %(default)s)')
-    parser.add_argument('--num_filter_per_size', type=int, default=128,
-                        help='Number of filters in convolutional layers in each size (default: %(default)s)')
-    parser.add_argument('--filter_sizes', type=int, nargs='+',
-                        default=[4], help='Size of convolutional filters (default: %(default)s)')
-    parser.add_argument('--dropout', type=float, default=0.2,
-                        help='Optional specification of dropout (default: %(default)s)')
-    parser.add_argument('--dropout2', type=float, default=0.2,
-                        help='Optional specification of the second dropout (default: %(default)s)')
-    parser.add_argument('--num_pool', type=int, default=1,
-                        help='Number of pool for dynamic max-pooling (default: %(default)s)')
 
     # eval
     parser.add_argument('--eval_batch_size', type=int, default=256,
@@ -136,7 +124,9 @@ def get_config():
     parser.add_argument('--liblinear_options', type=str,
                         help='Options passed to liblinear (default: %(default)s)')
 
-    parser.add_argument('-h', '--help', action='help')
+    parser.add_argument('-h', '--help', action='help',
+                        help="""If you are trying to specify network config such as dropout or activation, use a yaml file instead.
+                                See example config for more information (https://github.com/ASUS-AICS/LibMultiLabel/tree/master/example_config)')""")
 
     parser.set_defaults(**config)
     args = parser.parse_args()
