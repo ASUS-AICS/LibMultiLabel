@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import scipy.sparse as sparse
 
@@ -224,9 +225,11 @@ def scutfbr(y: np.ndarray,
 
 
 def do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> np.matrix:
-    # python doesn't flush by default, incompatible with I/O from C
-    print('', end='', flush=True)
-    model = train(y, x, options)
+    if not '-q' in options:
+        options += ' -q'
+    with silent_stderr():
+        model = train(y, x, options)
+
     w = np.ctypeslib.as_array(model.w, (x.shape[1], 1))
     w = np.asmatrix(w)
     # The order of labels is data dependent, we flip them to be consistent.
@@ -237,6 +240,18 @@ def do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> np.matrix:
         w = w.copy()
     return w
 
+class silent_stderr:
+    def __init__(self):
+        self.stderr = os.dup(2)
+        self.devnull = os.open('/dev/null', os.O_WRONLY)
+
+    def __enter__(self):
+        os.dup2(self.devnull, 2)
+
+    def __exit__(self, type, value, traceback):
+        os.dup2(self.stderr, 2)
+        os.close(self.devnull)
+        os.close(self.stderr)
 
 def fmeasure(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     tp = np.sum(np.logical_and(y_true == 1, y_pred == 1))
