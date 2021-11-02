@@ -5,8 +5,6 @@ import os
 import time
 
 import numpy as np
-import torch
-from pytorch_lightning.utilities.seed import seed_everything
 
 
 class Timer(object):
