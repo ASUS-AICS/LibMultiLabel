@@ -9,7 +9,7 @@ In the training procedure, you can build a model from scratch or start from some
 .. code-block:: bash
 
     python3 main.py --config CONFIG_PATH \
-                    [--load_checkpoint CHECKPOINT_PATH] \
+                    [--checkpoint_path CHECKPOINT_PATH] \
                     [--embed_file EMBED_NAME_OR_EMBED_PATH] \
                     [--vocab_file VOCAB_CSV_PATH]
 
@@ -17,7 +17,7 @@ In the training procedure, you can build a model from scratch or start from some
 
 If a model was trained before by this package, the training procedure can start with it.
 
-- **load_checkpoint**: specify the path to a pre-trained model.
+- **checkpoint_path**: specify the path to a pre-trained model.
 
 To use your own word embeddings or vocabulary set, specify the following parameters:
 
@@ -62,7 +62,7 @@ To deploy/evaluate a model (i.e., a pre-obtained checkpoint), you can predict a 
 
     python3 main.py --eval \
                     --config CONFIG_PATH \
-                    --load_checkpoint CHECKPOINT_PATH \
+                    --checkpoint_path CHECKPOINT_PATH \
                     --test_path TEST_DATA_PATH \
                     --save_k_predictions K \
                     --predict_out_path PREDICT_OUT_PATH
