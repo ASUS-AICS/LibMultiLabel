@@ -126,8 +126,13 @@ class TorchTrainer:
         """
         assert self.trainer is not None, "Please make sure the trainer is successfully initialized by `self._setup_trainer()`."
         train_loader = self._get_dataset_loader(split='train', shuffle=self.config.shuffle)
-        val_loader = self._get_dataset_loader(split='val')
-        self.trainer.fit(self.model, train_loader, val_loader)
+
+        if 'val' not in self.datasets:
+            logging.info('No validation dataset is provided. Train without vaildation.')
+            self.trainer.fit(self.model, train_loader)
+        else:
+            val_loader = self._get_dataset_loader(split='val')
+            self.trainer.fit(self.model, train_loader, val_loader)
 
         # Set model to current best model
         checkpoint_callback = [callback for callback in self.trainer.callbacks if isinstance(callback, ModelCheckpoint)][0]
