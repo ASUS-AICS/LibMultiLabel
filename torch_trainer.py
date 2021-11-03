@@ -134,10 +134,12 @@ class TorchTrainer:
             val_loader = self._get_dataset_loader(split='val')
             self.trainer.fit(self.model, train_loader, val_loader)
 
-        # Set model to current best model
+        # Set model to the best model. If the val loop is skipped during training (i.e., val_size=0),
+        # the model is set to the last model.
         checkpoint_callback = [callback for callback in self.trainer.callbacks if isinstance(callback, ModelCheckpoint)][0]
-        logging.info(f'Finished training. Load best model from {checkpoint_callback.best_model_path}')
-        self._setup_model(checkpoint_path=checkpoint_callback.best_model_path)
+        model_path = checkpoint_callback.best_model_path if checkpoint_callback.best_model_path else checkpoint_callback.last_model_path
+        logging.info(f'Finished training. Load best model from {model_path}.')
+        self._setup_model(checkpoint_path=model_path)
 
     def test(self):
         """Test model with pytorch lightning trainer. Top-k predictions are saved
