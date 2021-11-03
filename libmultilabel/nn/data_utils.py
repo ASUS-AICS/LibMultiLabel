@@ -122,7 +122,7 @@ def load_datasets(
 ):
     """Load data either from the specified data paths (i.e., `train_path`, `test_path`, and `val_path`)
     or from the data files (i.e., `train.txt`, `test.txt`, and `valid.txt`) in the data directory.
-    If `valid.txt` does not exist, the validation set will automatically split from the training dataset.
+    If `valid.txt` does not exist, the validation set will automatically split from the training dataset if val_size is not 0.
 
     Args:
         data_dir (str): The directory with `train.txt`, `test.txt`, and `valid.txt`.
@@ -135,16 +135,17 @@ def load_datasets(
     Returns:
         dict: A dictionary of datasets.
     """
-    datasets = {}
+    train_path = train_path or os.path.join(data_dir, 'train.txt')
+    val_path = val_path or os.path.join(data_dir, 'valid.txt')
     test_path = test_path or os.path.join(data_dir, 'test.txt')
+
+    datasets = {}
     if is_eval:
         datasets['test'] = _load_raw_data(test_path, is_test=True)
     else:
         if os.path.exists(test_path):
             datasets['test'] = _load_raw_data(test_path, is_test=True)
-        train_path = train_path or os.path.join(data_dir, 'train.txt')
         datasets['train'] = _load_raw_data(train_path)
-        val_path = val_path or os.path.join(data_dir, 'valid.txt')
         if os.path.exists(val_path):
             datasets['val'] = _load_raw_data(val_path)
         elif val_size > 0:
