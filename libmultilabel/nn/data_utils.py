@@ -122,7 +122,7 @@ def load_datasets(
 ):
     """Load data either from the specified data paths (i.e., `train_path`, `test_path`, and `val_path`)
     or from the data files (i.e., `train.txt`, `test.txt`, and `valid.txt`) in the data directory.
-    If `valid.txt` does not exist, the validation set will automatically split from the training dataset if val_size is not 0.
+    If `valid.txt` does not exist but `val_size` > 0, the validation set will be split from the training dataset.
 
     Args:
         data_dir (str): The directory with `train.txt`, `test.txt`, and `valid.txt`.
