@@ -1,7 +1,7 @@
 Using APIs
 ==========
 
-The API library is composed of a neural network module and a linear classifier module::
+The API library is composed of a `linear classifier module <linear.html>`_ and a `neural network classifier module <nn.html>`_::
 
    import libmultilabel.nn
    import libmultilabel.linear
