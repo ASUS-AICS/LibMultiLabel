@@ -10,7 +10,7 @@ This is an on-going development so many improvements are still being made. Comme
 
 ## Environments
 - Python: 3.7+
-- CUDA: 10.2 (if training neural network by GPU)
+- CUDA: 10.2 (if training neural networks by GPU)
 - Pytorch 1.8+
 
 If you have a different version of CUDA, go to the [website](https://pytorch.org/) for the detail of PyTorch installation.
