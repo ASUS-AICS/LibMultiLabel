@@ -10,6 +10,7 @@ epochs: 50
 batch_size: 64
 optimizer: adam
 learning_rate: ['uniform', 0.0003, 0.001]
+momentum: 0.9
 weight_decay: 0
 patience: 5
 shuffle: true
@@ -39,12 +40,14 @@ num_samples: 10
 
 # other parameters specified in main.py::get_args
 config: example_config/rcv1/cnn_tune.yml
+checkpoint_path: null
 cpu: false
 data_workers: 4
 eval: false
 label_file: null
 metric_threshold: 0.5
 result_dir: runs
+save_k_predictions: 0
 silent: true
 test_path: data/rcv1/test.txt
 train_path: data/rcv1/train.txt

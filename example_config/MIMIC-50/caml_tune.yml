@@ -49,7 +49,7 @@ label_file: null
 metric_threshold: 0.5
 result_dir: runs
 save_k_predictions: 0
-silent: false
+silent: true
 test_path: data/MIMIC-50/test.txt
 train_path: data/MIMIC-50/train.txt
 val_path: null
