@@ -15,10 +15,12 @@ class TorchTrainer:
 
     Args:
         config (AttributeDict): Config of the experiment.
+        datasets (dict, optional): Datasets for training, validation, and test. Defaults to None.
     """
     def __init__(
         self,
-        config: dict
+        config: dict,
+        datasets: dict = None
     ):
         self.run_name = config.run_name
         self.checkpoint_dir = config.checkpoint_dir
@@ -31,12 +33,18 @@ class TorchTrainer:
         self.config = config
 
         # Load dataset
-        self.datasets = data_utils.load_datasets(data_dir=config.data_dir,
-                                                 train_path=config.train_path,
-                                                 test_path=config.test_path,
-                                                 val_path=config.val_path,
-                                                 val_size=config.val_size,
-                                                 is_eval=config.eval)
+        if datasets is None:
+            self.datasets = data_utils.load_datasets(
+                data_dir=config.data_dir,
+                train_path=config.train_path,
+                test_path=config.test_path,
+                val_path=config.val_path,
+                val_size=config.val_size,
+                is_eval=config.eval
+            )
+        else:
+            self.datasets = datasets
+
         self._setup_model(log_path=self.log_path,
                           checkpoint_path=config.checkpoint_path)
         self.trainer = init_trainer(checkpoint_dir=self.checkpoint_dir,
@@ -141,13 +149,19 @@ class TorchTrainer:
         logging.info(f'Finished training. Load best model from {model_path}.')
         self._setup_model(checkpoint_path=model_path)
 
-    def test(self):
+    def test(self, split='test'):
         """Test model with pytorch lightning trainer. Top-k predictions are saved
         if `save_k_predictions` > 0.
+
+        Args:
+            split (str, optional): One of 'train', 'test', or 'val'. Defaults to 'test'.
+
+        Returns:
+            [type]: [description]
         """
         assert 'test' in self.datasets and self.trainer is not None
-        test_loader = self._get_dataset_loader(split='test')
-        self.trainer.test(self.model, test_dataloaders=test_loader)
+        test_loader = self._get_dataset_loader(split=split)
+        metric_dict = self.trainer.test(self.model, test_dataloaders=test_loader)[0]
 
         if self.config.save_k_predictions > 0:
             if not self.config.predict_out_path:
@@ -155,6 +169,8 @@ class TorchTrainer:
             else:
                 predict_out_path = self.config.predict_out_path
             self._save_predictions(test_loader, predict_out_path)
+
+        return metric_dict
 
     def _save_predictions(self, dataloader, predict_out_path):
         """Save top k label results.

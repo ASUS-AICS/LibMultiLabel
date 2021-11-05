@@ -8,14 +8,13 @@ from datetime import datetime
 from pathlib import Path
 
 import yaml
-from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.utilities.parsing import AttributeDict
 from ray import tune
 
 from libmultilabel.nn import data_utils
-from libmultilabel.nn.model import Model
-from libmultilabel.nn.nn_utils import init_device, init_model, init_trainer, set_seed
-from libmultilabel.utils import dump_log
+from libmultilabel.nn.nn_utils import init_device, set_seed
+from torch_trainer import TorchTrainer
+
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s:%(message)s')
@@ -40,85 +39,22 @@ class Trainable(tune.Trainable):
         )
         logging.info(f'Run name: {self.config.run_name}')
 
-        checkpoint_dir = os.path.join(self.config.result_dir, self.config.run_name)
-        os.makedirs(checkpoint_dir, exist_ok=True)
+        self.config.checkpoint_dir = os.path.join(self.config.result_dir, self.config.run_name)
+        self.config.log_path = os.path.join(self.config.checkpoint_dir, 'logs.json')
 
-        trainer = init_trainer(checkpoint_dir=checkpoint_dir,
-                               epochs=self.config.epochs,
-                               patience=self.config.patience,
-                               val_metric=self.config.val_metric,
-                               silent=self.config.silent,
-                               use_cpu=self.config.cpu)
+        trainer = TorchTrainer(config=self.config, datasets=self.datasets)
+        trainer.train()
 
-        # Dump config to log
-        log_path = os.path.join(checkpoint_dir, 'logs.json')
-        dump_log(log_path, config=self.config)
-
-        if self.config.val_metric not in self.config.monitor_metrics:
-            logging.warn(
-                f'{self.config.val_metric} is not in `monitor_metrics`. Add {self.config.val_metric} to `monitor_metrics`.')
-            self.config.monitor_metrics += [self.config.val_metric]
-
-        model = init_model(model_name=self.config.model_name,
-                           network_config=dict(self.config.network_config),
-                           classes=self.classes,
-                           word_dict=self.word_dict,
-                           init_weight=self.config.init_weight,
-                           log_path=log_path,
-                           learning_rate=self.config.learning_rate,
-                           optimizer=self.config.optimizer,
-                           weight_decay=self.config.weight_decay,
-                           metric_threshold=self.config.metric_threshold,
-                           monitor_metrics=self.config.monitor_metrics,
-                           silent=self.config.silent)
-
-        train_loader = data_utils.get_dataset_loader(
-            data=self.datasets['train'],
-            word_dict=model.word_dict,
-            classes=model.classes,
-            device=self.device,
-            max_seq_length=self.config.max_seq_length,
-            batch_size=self.config.batch_size,
-            shuffle=self.config.shuffle,
-            data_workers=self.config.data_workers
-        )
-        val_loader = data_utils.get_dataset_loader(
-            data=self.datasets['val'],
-            word_dict=model.word_dict,
-            classes=model.classes,
-            device=self.device,
-            max_seq_length=self.config.max_seq_length,
-            batch_size=self.config.eval_batch_size,
-            shuffle=self.config.shuffle,
-            data_workers=self.config.data_workers
-        )
-
-        trainer.fit(model, train_loader, val_loader)
-        checkpoint_callback = [callback for callback in trainer.callbacks if isinstance(callback, ModelCheckpoint)][0]
-        logging.info(f'Loading best model from `{checkpoint_callback.best_model_path}`...')
-        best_model = Model.load_from_checkpoint(checkpoint_callback.best_model_path)
-
+        # run and dump test results
         test_val_results = dict()
-
-        # run and dump test result
         if 'test' in self.datasets:
-            test_loader = data_utils.get_dataset_loader(
-                data=self.datasets['test'],
-                word_dict=best_model.word_dict,
-                classes=best_model.classes,
-                device=self.device,
-                max_seq_length=self.config.max_seq_length,
-                batch_size=self.config.eval_batch_size,
-                shuffle=self.config.shuffle,
-                data_workers=self.config.data_workers
-            )
-            test_metric_dict = trainer.test(
-                best_model, test_dataloaders=test_loader)[0]
+            test_metric_dict = trainer.test()
             for k, v in test_metric_dict.items():
                 test_val_results[f'test_{k}'] = v
 
         # return best val result
-        val_metric_dict = trainer.test(best_model, test_dataloaders=val_loader)[0]
+        val_split = 'val' if 'val' in self.datasets else 'train'
+        val_metric_dict = trainer.test(split=val_split)
         for k, v in val_metric_dict.items():
             test_val_results[f'val_{k}'] = v
 
