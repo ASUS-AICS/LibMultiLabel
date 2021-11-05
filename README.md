@@ -10,17 +10,10 @@ This is an on-going development so many improvements are still being made. Comme
 
 ## Environments
 - Python: 3.7+
-- CUDA: 10.2 (if GPU used)
+- CUDA: 10.2 (if training neural networks by GPU)
 - Pytorch 1.8+
 
 If you have a different version of CUDA, go to the [website](https://pytorch.org/) for the detail of PyTorch installation.
-
-## Installation
-
-```
-pip3 install libmultilabel
-pip3 install libmultilabel[linear]
-```
 
 ## Documentation
 See the documentation here: https://www.csie.ntu.edu.tw/~cjlin/libmultilabel
