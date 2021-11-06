@@ -12,7 +12,7 @@ __all__ = ['train_1vsrest',
 
 
 def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
-    """Trains a linear model for multiabel data using a one-vs-all strategy.
+    """Trains a linear model for multiabel data using a one-vs-rest strategy.
 
     Args:
         y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
@@ -53,36 +53,21 @@ def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
     return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': 0}
 
 
-def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
-    """Calculates the decision values associated with x.
+def train_thresholding(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
+    """Trains a linear model for multilabel data using a one-vs-rest strategy
+    and cross-validation to pick an optimal decision threshold for Macro-F1.
+    Outperforms train_1vsrest in many aspects at the cost of higher
+    time complexity.
+    See user guide for more details.
 
     Args:
-        model: A model returned from a training function.
-        x (sparse.csr_matrix): A matrix with dimension number of instances * number of features.
+        y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
+        x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
+        options (str): The option string passed to liblinear.
 
     Returns:
-        np.ndarray: A matrix with dimension number of instances * number of classes.
+        A model which can be used in predict_values.
     """
-    bias = model['-B']
-    bias_col = np.full((x.shape[0], 1 if bias > 0 else 0), bias)
-    num_feature = model['weights'].shape[0]
-    num_feature -= 1 if bias > 0 else 0
-    if x.shape[1] < num_feature:
-        x = sparse.hstack([
-            x,
-            np.zeros((x.shape[0], num_feature - x.shape[1])),
-            bias_col,
-        ], 'csr')
-    else:
-        x = sparse.hstack([
-            x[:, :num_feature],
-            bias_col,
-        ], 'csr')
-
-    return (x * model['weights']).A + model['threshold']
-
-
-def train_thresholding(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
     if options.find('-R') != -1:
         raise ValueError('-R is not supported')
 
@@ -104,9 +89,9 @@ def train_thresholding(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str)
     thresholds = np.zeros(num_class)
     for i in range(num_class):
         yi = y[:, i].toarray().reshape(-1)
-        w, b = thresholding_one_label(yi, x, options)
+        w, t = thresholding_one_label(yi, x, options)
         weights[:, i] = w.ravel()
-        thresholds[i] = b
+        thresholds[i] = t
 
     return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': thresholds}
 
@@ -115,6 +100,11 @@ def thresholding_one_label(y: np.ndarray,
                            x: sparse.csr_matrix,
                            options: str
                            ) -> 'tuple[np.ndarray, float]':
+    """Outer cross-validation for thresholding on a single label.
+
+    Returns:
+        tuple[np.ndarray, float]: tuple of the weights and threshold.
+    """
 
     fbr_list = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8])
 
@@ -157,6 +147,11 @@ def scutfbr(y: np.ndarray,
             fbr_list: 'list[float]',
             options: str
             ) -> 'tuple[np.matrix, np.ndarray]':
+    """Inner cross-validation for SCutfbr heuristic.
+
+    Returns:
+        tuple[np.matrix, np.ndarray]: tuple of weights and threshold candidates.
+    """
 
     b_list = np.zeros_like(fbr_list)
 
@@ -226,6 +221,12 @@ def scutfbr(y: np.ndarray,
 
 
 def do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> np.matrix:
+    """Wrapper around liblinear.liblinearutil.train.
+    Forcibly suppresses all IO regardless of options.
+
+    Returns:
+        np.matrix: the weights.
+    """
     if not '-q' in options:
         options += ' -q'
     with silent_stderr():
@@ -241,7 +242,10 @@ def do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> np.matrix:
         w = w.copy()
     return w
 
+
 class silent_stderr:
+    """Context manager that suppresses stderr.
+    """
     def __init__(self):
         self.stderr = os.dup(2)
         self.devnull = os.open('/dev/null', os.O_WRONLY)
@@ -254,6 +258,7 @@ class silent_stderr:
         os.close(self.devnull)
         os.close(self.stderr)
 
+
 def fmeasure(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     tp = np.sum(np.logical_and(y_true == 1, y_pred == 1))
     fn = np.sum(np.logical_and(y_true == 1, y_pred == -1))
@@ -265,6 +270,21 @@ def fmeasure(y_true: np.ndarray, y_pred: np.ndarray) -> float:
 
 
 def train_cost_sensitive(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
+    """Trains a linear model for multilabel data using a one-vs-rest strategy
+    and cross-validation to pick an optimal asymmetric misclassification cost
+    for Macro-F1.
+    Outperforms train_1vsrest in most aspects at the cost of higher
+    time complexity.
+    See user guide for more details.
+
+    Args:
+        y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
+        x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
+        options (str): The option string passed to liblinear.
+
+    Returns:
+        A model which can be used in predict_values.
+    """
     if any(o in options for o in ['-R', '-c', '-C']):
         raise ValueError('-R, -c and -C are not supported')
 
@@ -294,7 +314,12 @@ def train_cost_sensitive(y: sparse.csr_matrix, x: sparse.csr_matrix, options: st
 def cost_sensitive_one_label(y: np.ndarray,
                              x: sparse.csr_matrix,
                              options: str
-                             ) -> 'np.ndarray':
+                             ) -> np.ndarray:
+    """Loop over parameter space for cost-sensitive on a single label.
+
+    Returns:
+        np.ndarray: the weights.
+    """
 
     l = y.shape[0]
     perm = np.random.permutation(l)
@@ -321,6 +346,11 @@ def cross_validate(y: np.ndarray,
                    options: str,
                    perm: np.ndarray
                    ) -> float:
+    """Cross-validation for cost-sensitive.
+
+    Returns:
+        float: cross-validation Macro-F1.
+    """
     l = y.shape[0]
     nr_fold = 3
     pred = np.zeros_like(y)
@@ -334,3 +364,32 @@ def cross_validate(y: np.ndarray,
         pred[val_idx] = (x[val_idx] * w).A1 > 0
 
     return fmeasure(2*y - 1, 2*pred - 1)
+
+
+def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
+    """Calculates the decision values associated with x.
+
+    Args:
+        model: A model returned from a training function.
+        x (sparse.csr_matrix): A matrix with dimension number of instances * number of features.
+
+    Returns:
+        np.ndarray: A matrix with dimension number of instances * number of classes.
+    """
+    bias = model['-B']
+    bias_col = np.full((x.shape[0], 1 if bias > 0 else 0), bias)
+    num_feature = model['weights'].shape[0]
+    num_feature -= 1 if bias > 0 else 0
+    if x.shape[1] < num_feature:
+        x = sparse.hstack([
+            x,
+            np.zeros((x.shape[0], num_feature - x.shape[1])),
+            bias_col,
+        ], 'csr')
+    else:
+        x = sparse.hstack([
+            x[:, :num_feature],
+            bias_col,
+        ], 'csr')
+
+    return (x * model['weights']).A + model['threshold']
