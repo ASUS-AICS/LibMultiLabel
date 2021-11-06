@@ -22,6 +22,7 @@ def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
     Returns:
         A model which can be used in predict_values.
     """
+    # Follows the MATLAB implementation at https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/multilabel/
     if options.find('-R') != -1:
         raise ValueError('-R is not supported')
 
@@ -42,7 +43,7 @@ def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
     weights = np.zeros((num_feature, num_class), order='F')
     for i in range(num_class):
         yi = y[:, i].toarray().reshape(-1)
-        modeli = train(yi, x, options)
+        modeli = train(2*yi - 1, x, options)
         w = np.ctypeslib.as_array(modeli.w, (num_feature,))
         # liblinear label mapping depends on data, we ensure
         # it is the same for all labels
@@ -68,6 +69,7 @@ def train_thresholding(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str)
     Returns:
         A model which can be used in predict_values.
     """
+    # Follows the MATLAB implementation at https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/multilabel/
     if options.find('-R') != -1:
         raise ValueError('-R is not supported')
 
@@ -89,7 +91,7 @@ def train_thresholding(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str)
     thresholds = np.zeros(num_class)
     for i in range(num_class):
         yi = y[:, i].toarray().reshape(-1)
-        w, t = thresholding_one_label(yi, x, options)
+        w, t = thresholding_one_label(2*yi - 1, x, options)
         weights[:, i] = w.ravel()
         thresholds[i] = t
 
@@ -127,7 +129,7 @@ def thresholding_one_label(y: np.ndarray,
         wTx = (x[val_idx] * scutfbr_w).A1
 
         for i in range(fbr_list.size):
-            F = fmeasure(2*y[val_idx] - 1, 2*(wTx > -scutfbr_b_list[i]) - 1)
+            F = fmeasure(y[val_idx], 2*(wTx > -scutfbr_b_list[i]) - 1)
             f_list[i] += F
 
     best_fbr = fbr_list[::-1][np.argmax(f_list[::-1])]  # last largest
@@ -171,9 +173,9 @@ def scutfbr(y: np.ndarray,
 
         wTx = (x[val_idx] * w).A1
         scut_b = 0.
-        start_F = fmeasure(2*y[val_idx] - 1, 2*(wTx > -scut_b) - 1)
+        start_F = fmeasure(y[val_idx], 2*(wTx > -scut_b) - 1)
 
-        # stableness to match previous implementations
+        # stableness to match the MATLAB implementation
         sorted_wTx_index = np.argsort(wTx, kind='stable')
         sorted_wTx = wTx[sorted_wTx_index]
 
@@ -184,7 +186,8 @@ def scutfbr(y: np.ndarray,
         best_F = 2*tp / (2*tp + fp + fn)
         y_val = y[val_idx]
 
-        prev_settings = np.seterr('ignore')  # supress NaNs
+        # following MATLAB implementation to suppress NaNs
+        prev_settings = np.seterr('ignore')
         for i in range(val_idx.size):
             if y_val[sorted_wTx_index[i]] == 0:
                 fp -= 1
@@ -208,7 +211,7 @@ def scutfbr(y: np.ndarray,
             else:
                 scut_b = -(sorted_wTx[cut] + sorted_wTx[cut + 1]) / 2
 
-        F = fmeasure(2*y_val - 1, 2*(wTx > -scut_b) - 1)
+        F = fmeasure(y_val, 2*(wTx > -scut_b) - 1)
 
         for i in range(fbr_list.size):
             if F > fbr_list[i]:
@@ -246,6 +249,7 @@ def do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> np.matrix:
 class silent_stderr:
     """Context manager that suppresses stderr.
     """
+
     def __init__(self):
         self.stderr = os.dup(2)
         self.devnull = os.open('/dev/null', os.O_WRONLY)
@@ -260,6 +264,15 @@ class silent_stderr:
 
 
 def fmeasure(y_true: np.ndarray, y_pred: np.ndarray) -> float:
+    """Calculate Macro-F1.
+
+    Args:
+        y_true (np.ndarray): array of +1/-1.
+        y_pred (np.ndarray): array of +1/-1.
+
+    Returns:
+        float: Macro-F1.
+    """
     tp = np.sum(np.logical_and(y_true == 1, y_pred == 1))
     fn = np.sum(np.logical_and(y_true == 1, y_pred == -1))
     fp = np.sum(np.logical_and(y_true == -1, y_pred == 1))
@@ -285,6 +298,7 @@ def train_cost_sensitive(y: sparse.csr_matrix, x: sparse.csr_matrix, options: st
     Returns:
         A model which can be used in predict_values.
     """
+    # Follows the MATLAB implementation at https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/multilabel/
     if any(o in options for o in ['-R', '-c', '-C']):
         raise ValueError('-R, -c and -C are not supported')
 
@@ -305,7 +319,7 @@ def train_cost_sensitive(y: sparse.csr_matrix, x: sparse.csr_matrix, options: st
     weights = np.zeros((num_feature, num_class), order='F')
     for i in range(num_class):
         yi = y[:, i].toarray().reshape(-1)
-        w = cost_sensitive_one_label(yi, x, options)
+        w = cost_sensitive_one_label(2*yi - 1, x, options)
         weights[:, i] = w.ravel()
 
     return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': 0}
@@ -363,7 +377,7 @@ def cross_validate(y: np.ndarray,
         w = do_train(y[train_idx], x[train_idx], options)
         pred[val_idx] = (x[val_idx] * w).A1 > 0
 
-    return fmeasure(2*y - 1, 2*pred - 1)
+    return fmeasure(y, 2*pred - 1)
 
 
 def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
