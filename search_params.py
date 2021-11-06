@@ -190,7 +190,8 @@ def main():
     all_monitor_metrics = [f'{split}_{metric}' for split, metric in itertools.product(
         ['val', 'test'], config.monitor_metrics)]
     reporter = tune.CLIReporter(metric_columns=all_monitor_metrics,
-                                parameter_columns=parameter_columns)
+                                parameter_columns=parameter_columns,
+                                sort_by_metric=True)
     analysis = tune.run(
         tune.with_parameters(Trainable, data=data),
         # run one step "libmultilabel.model.train"
@@ -206,8 +207,7 @@ def main():
         progress_reporter=reporter,
         config=config)
 
-    results_df = analysis.results_df.sort_values(by=f'val_{config.val_metric}', ascending=False)
-    results_df = results_df.rename(columns=lambda x: x.split('.')[-1])
+    results_df = analysis.results_df.rename(columns=lambda x: x.split('.')[-1])
     columns = reporter._metric_columns + [parameter_columns[x] for x in analysis.best_trial.evaluated_params.keys()]
     print(f'\n{results_df[columns].to_markdown()}\n')
 
