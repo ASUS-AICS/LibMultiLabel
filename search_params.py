@@ -191,25 +191,21 @@ def main():
         ['val', 'test'], config.monitor_metrics)]
     reporter = tune.CLIReporter(metric_columns=all_monitor_metrics,
                                 parameter_columns=parameter_columns,
+                                metric=f'val_{config.val_metric}',
+                                mode=args.mode,
                                 sort_by_metric=True)
-    analysis = tune.run(
+    tune.run(
         tune.with_parameters(Trainable, data=data),
         # run one step "libmultilabel.model.train"
         stop={"training_iteration": 1},
         search_alg=init_search_algorithm(
             search_alg, metric=config.val_metric, mode=args.mode),
         local_dir=args.local_dir,
-        metric=f'val_{config.val_metric}',
-        mode=args.mode,
         num_samples=num_samples,
         resources_per_trial={
             'cpu': args.cpu_count, 'gpu': args.gpu_count},
         progress_reporter=reporter,
         config=config)
-
-    results_df = analysis.results_df.rename(columns=lambda x: x.split('.')[-1])
-    columns = reporter._metric_columns + [parameter_columns[x] for x in analysis.best_trial.evaluated_params.keys()]
-    print(f'\n{results_df[columns].to_markdown()}\n')
 
 
 # calculate wall time.
