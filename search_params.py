@@ -42,7 +42,10 @@ class Trainable(tune.Trainable):
         self.config.checkpoint_dir = os.path.join(self.config.result_dir, self.config.run_name)
         self.config.log_path = os.path.join(self.config.checkpoint_dir, 'logs.json')
 
-        trainer = TorchTrainer(config=self.config, datasets=self.datasets)
+        trainer = TorchTrainer(config=self.config,
+                               datasets=self.datasets,
+                               classes=self.classes,
+                               word_dict=self.word_dict)
         trainer.train()
 
         # run and dump test results
