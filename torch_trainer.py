@@ -176,6 +176,8 @@ class TorchTrainer:
             dict: Scores for all metrics in the dictionary format.
         """
         assert 'test' in self.datasets and self.trainer is not None
+
+        logging.info(f'Testing on {split} set.')
         test_loader = self._get_dataset_loader(split=split)
         metric_dict = self.trainer.test(self.model, test_dataloaders=test_loader)[0]
 
