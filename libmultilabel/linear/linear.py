@@ -23,8 +23,8 @@ def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
         A model which can be used in predict_values.
     """
     # Follows the MATLAB implementation at https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/multilabel/
-    if options.find('-R') != -1:
-        raise ValueError('-R is not supported')
+    if any(o in options for o in ['-R', '-C', '-v']):
+        raise ValueError('-R, -C and -v are not supported')
 
     bias = -1.
     if options.find('-B') != -1:
@@ -70,8 +70,8 @@ def train_thresholding(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str)
         A model which can be used in predict_values.
     """
     # Follows the MATLAB implementation at https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/multilabel/
-    if options.find('-R') != -1:
-        raise ValueError('-R is not supported')
+    if any(o in options for o in ['-R', '-C', '-v']):
+        raise ValueError('-R, -C and -v are not supported')
 
     bias = -1.
     if options.find('-B') != -1:
@@ -104,6 +104,11 @@ def thresholding_one_label(y: np.ndarray,
                            ) -> 'tuple[np.ndarray, float]':
     """Outer cross-validation for thresholding on a single label.
 
+    Args:
+        y (np.ndarray): A +1/-1 array with dimensions number of instances * 1.
+        x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
+        options (str): The option string passed to liblinear.
+
     Returns:
         tuple[np.ndarray, float]: tuple of the weights and threshold.
     """
@@ -135,11 +140,9 @@ def thresholding_one_label(y: np.ndarray,
     best_fbr = fbr_list[::-1][np.argmax(f_list[::-1])]  # last largest
     if np.max(f_list) == 0:
         best_fbr = np.min(fbr_list)
-        logging.info(f'thresholding_one_label: F all 0')
 
     # final model
     w, b_list = scutfbr(y, x, np.array([best_fbr]), options)
-    logging.info(f'thresholding_one_label: best_fbr {best_fbr:.1f}')
 
     return w, b_list[0]
 
@@ -150,6 +153,12 @@ def scutfbr(y: np.ndarray,
             options: str
             ) -> 'tuple[np.matrix, np.ndarray]':
     """Inner cross-validation for SCutfbr heuristic.
+
+    Args:
+        y (np.ndarray): A +1/-1 array with dimensions number of instances * 1.
+        x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
+        fbr_list (list[float]): list of fbr values.
+        options (str): The option string passed to liblinear.
 
     Returns:
         tuple[np.matrix, np.ndarray]: tuple of weights and threshold candidates.
@@ -227,6 +236,11 @@ def do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> np.matrix:
     """Wrapper around liblinear.liblinearutil.train.
     Forcibly suppresses all IO regardless of options.
 
+    Args:
+        y (np.ndarray): A +1/-1 array with dimensions number of instances * 1.
+        x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
+        options (str): The option string passed to liblinear.
+
     Returns:
         np.matrix: the weights.
     """
@@ -248,6 +262,9 @@ def do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> np.matrix:
 
 class silent_stderr:
     """Context manager that suppresses stderr.
+    Liblinear emits warnings on missing classes with
+    specified weight, which may happen during cross-validation.
+    Since this information is useless to the user, we suppress it.
     """
 
     def __init__(self):
@@ -277,9 +294,10 @@ def fmeasure(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     fn = np.sum(np.logical_and(y_true == 1, y_pred == -1))
     fp = np.sum(np.logical_and(y_true == -1, y_pred == 1))
 
+    F = 0
     if tp != 0 or fp != 0 or fn != 0:
-        return 2*tp / (2*tp + fp + fn)
-    return 0
+        F = 2*tp / (2*tp + fp + fn)
+    return F
 
 
 def train_cost_sensitive(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
@@ -299,8 +317,8 @@ def train_cost_sensitive(y: sparse.csr_matrix, x: sparse.csr_matrix, options: st
         A model which can be used in predict_values.
     """
     # Follows the MATLAB implementation at https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/multilabel/
-    if any(o in options for o in ['-R', '-c', '-C']):
-        raise ValueError('-R, -c and -C are not supported')
+    if any(o in options for o in ['-R', '-c', '-C', '-v']):
+        raise ValueError('-R, -c, -C and -v are not supported')
 
     bias = -1.
     if options.find('-B') != -1:
@@ -330,6 +348,11 @@ def cost_sensitive_one_label(y: np.ndarray,
                              options: str
                              ) -> np.ndarray:
     """Loop over parameter space for cost-sensitive on a single label.
+
+    Args:
+        y (np.ndarray): A +1/-1 array with dimensions number of instances * 1.
+        x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
+        options (str): The option string passed to liblinear.
 
     Returns:
         np.ndarray: the weights.
@@ -361,6 +384,11 @@ def cross_validate(y: np.ndarray,
                    perm: np.ndarray
                    ) -> float:
     """Cross-validation for cost-sensitive.
+
+    Args:
+        y (np.ndarray): A +1/-1 array with dimensions number of instances * 1.
+        x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
+        options (str): The option string passed to liblinear.
 
     Returns:
         float: cross-validation Macro-F1.
