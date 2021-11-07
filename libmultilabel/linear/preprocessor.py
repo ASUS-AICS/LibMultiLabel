@@ -36,7 +36,7 @@ class Preprocessor:
         Args:
             train_path (str): Training data path. Ignored if eval is True. Defaults to ''.
             test_path (str): Test data path. Ignored if test_path doesn't exist. Defaults to ''.
-            eval (bool): If True, ignores training data and uses previously loaded state to preprocess testing data.
+            eval (bool): If True, ignores training data and uses previously loaded state to preprocess test data.
 
         Returns:
             dict[str, dict]: The training and testing data, with keys 'train' and 'test' respectively. The data
