@@ -1,4 +1,3 @@
-import logging
 import os
 import numpy as np
 import scipy.sparse as sparse
@@ -45,10 +44,6 @@ def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
         yi = y[:, i].toarray().reshape(-1)
         modeli = train(2*yi - 1, x, options)
         w = np.ctypeslib.as_array(modeli.w, (num_feature,))
-        # liblinear label mapping depends on data, we ensure
-        # it is the same for all labels
-        if modeli.get_labels()[0] == 0:
-            w = -w
         weights[:, i] = w
 
     return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': 0}
@@ -112,7 +107,6 @@ def thresholding_one_label(y: np.ndarray,
     Returns:
         tuple[np.ndarray, float]: tuple of the weights and threshold.
     """
-
     fbr_list = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8])
 
     nr_fold = 3
@@ -198,7 +192,7 @@ def scutfbr(y: np.ndarray,
         # following MATLAB implementation to suppress NaNs
         prev_settings = np.seterr('ignore')
         for i in range(val_idx.size):
-            if y_val[sorted_wTx_index[i]] == 0:
+            if y_val[sorted_wTx_index[i]] == -1:
                 fp -= 1
             else:
                 tp -= 1
@@ -251,13 +245,8 @@ def do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> np.matrix:
 
     w = np.ctypeslib.as_array(model.w, (x.shape[1], 1))
     w = np.asmatrix(w)
-    # The order of labels is data dependent, we flip them to be consistent.
     # The memory is freed on model deletion so we make a copy.
-    if model.get_labels()[0] == 0:
-        w = -w
-    else:
-        w = w.copy()
-    return w
+    return w.copy()
 
 
 class silent_stderr:
