@@ -39,7 +39,7 @@ class Preprocessor:
             eval (bool): If True, ignores training data and uses previously loaded state to preprocess test data.
 
         Returns:
-            dict[str, dict]: The training and testing data, with keys 'train' and 'test' respectively. The data
+            dict[str, dict]: The training and test data, with keys 'train' and 'test' respectively. The data
             has keys 'x' for input features and 'y' for labels.
         """
         if self.data_format == 'txt':
