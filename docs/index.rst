@@ -27,7 +27,9 @@ You can use the `Command Line Interface <cli/cli.html>`_  or the `APIs <api/api.
    :glob:
    :hidden:
 
-   api/*
+   api/api
+   api/linear
+   api/nn
 
 ..
    .. toctree::
