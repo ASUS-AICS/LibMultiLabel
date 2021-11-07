@@ -52,7 +52,7 @@ def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
 def train_thresholding(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
     """Trains a linear model for multilabel data using a one-vs-rest strategy
     and cross-validation to pick an optimal decision threshold for Macro-F1.
-    Outperforms train_1vsrest in many aspects at the cost of higher
+    Outperforms train_1vsrest in most aspects at the cost of higher
     time complexity.
     See user guide for more details.
 
@@ -270,14 +270,14 @@ class silent_stderr:
 
 
 def fmeasure(y_true: np.ndarray, y_pred: np.ndarray) -> float:
-    """Calculate Macro-F1.
+    """Calculate F1 score.
 
     Args:
         y_true (np.ndarray): array of +1/-1.
         y_pred (np.ndarray): array of +1/-1.
 
     Returns:
-        float: Macro-F1.
+        float: the F1 score.
     """
     tp = np.sum(np.logical_and(y_true == 1, y_pred == 1))
     fn = np.sum(np.logical_and(y_true == 1, y_pred == -1))
@@ -380,7 +380,7 @@ def cross_validate(y: np.ndarray,
         options (str): The option string passed to liblinear.
 
     Returns:
-        float: cross-validation Macro-F1.
+        float: cross-validation F1 score.
     """
     l = y.shape[0]
     nr_fold = 3
