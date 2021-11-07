@@ -14,8 +14,8 @@ __all__ = ['Preprocessor']
 
 
 class Preprocessor:
-    """Preprocessor is used to load and preprocess input data in LibSVM and LibMultiLabel format.
-    The same Preprocessor has to be used for both training and testing data,
+    """Preprocessor is used to load and preprocess input data in LibSVM and LibMultiLabel formats.
+    The same Preprocessor has to be used for both training and testing data;
     see save_pipeline and load_pipeline.
     """
 
@@ -35,11 +35,11 @@ class Preprocessor:
 
         Args:
             train_path (str): Training data path. Ignored if eval is True. Defaults to ''.
-            test_path (str): Testing data path. Ignored if test_path doesn't exist. Defaults to ''.
-            eval (bool): If True, ignores training data and uses previously loaded state to preprocess testing data.
+            test_path (str): Test data path. Ignored if test_path doesn't exist. Defaults to ''.
+            eval (bool): If True, ignores training data and uses previously loaded state to preprocess test data.
 
         Returns:
-            dict[str, dict]: The training and testing data, with keys 'train' and 'test' respectively. The data
+            dict[str, dict]: The training and test data, with keys 'train' and 'test' respectively. The data
             has keys 'x' for input features and 'y' for labels.
         """
         if self.data_format == 'txt':
