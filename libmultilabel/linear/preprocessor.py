@@ -15,7 +15,7 @@ __all__ = ['Preprocessor']
 
 class Preprocessor:
     """Preprocessor is used to load and preprocess input data in LibSVM and LibMultiLabel formats.
-    The same Preprocessor has to be used for both training and testing data,
+    The same Preprocessor has to be used for both training and testing data;
     see save_pipeline and load_pipeline.
     """
 
