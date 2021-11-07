@@ -24,4 +24,4 @@ To deploy/evaluate a model, you can predict a test set by the following command.
 
 .. code-block:: bash
 
-    python3 main.py --eval --config CONFIG_PATH --linear --load_checkpoint CHECKPOINT_PATH
+    python3 main.py --eval --config CONFIG_PATH --linear --checkpoint_path CHECKPOINT_PATH
