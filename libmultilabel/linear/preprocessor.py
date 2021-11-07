@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import os
-import re
 from array import array
 from collections import defaultdict
 
 import pandas as pd
 import scipy
 import scipy.sparse as sparse
-from scipy.sparse.csr import csr_matrix
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import MultiLabelBinarizer
 
@@ -16,42 +14,64 @@ __all__ = ['Preprocessor']
 
 
 class Preprocessor:
-    def __init__(self, config) -> None:
-        self.config = config
-        if not config.data_format in {'txt', 'svm'}:
-            raise ValueError(f'unsupported data format {config.data_format}')
+    """Preprocessor is used to load and preprocess input data in LibSVM and LibMultiLabel formats.
+    The same Preprocessor has to be used for both training and testing data;
+    see save_pipeline and load_pipeline.
+    """
 
-    def load_data(self) -> 'dict[str, dict]':
-        if self.config.data_format == 'txt':
-            return self._load_txt()
-        elif self.config.data_format == 'svm':
-            return self._load_svm()
+    def __init__(self, data_format: str) -> None:
+        """Initializes the preprocessor.
 
-    def _load_txt(self) -> 'dict[str, dict]':
+        Args:
+            data_format (str): The data format used. 'svm' for LibSVM format and 'txt' for LibMultiLabel format.
+        """
+        if not data_format in {'txt', 'svm'}:
+            raise ValueError(f'unsupported data format {data_format}')
+
+        self.data_format = data_format
+
+    def load_data(self, train_path: str = '', test_path: str = '', eval: bool = False) -> 'dict[str, dict]':
+        """Loads and preprocesses data.
+
+        Args:
+            train_path (str): Training data path. Ignored if eval is True. Defaults to ''.
+            test_path (str): Test data path. Ignored if test_path doesn't exist. Defaults to ''.
+            eval (bool): If True, ignores training data and uses previously loaded state to preprocess test data.
+
+        Returns:
+            dict[str, dict]: The training and test data, with keys 'train' and 'test' respectively. The data
+            has keys 'x' for input features and 'y' for labels.
+        """
+        if self.data_format == 'txt':
+            return self._load_txt(train_path, test_path, eval)
+        elif self.data_format == 'svm':
+            return self._load_svm(train_path, test_path, eval)
+
+    def _load_txt(self, train_path, test_path, eval) -> 'dict[str, dict]':
         datasets = defaultdict(dict)
-        if not self.config.eval:
-            train = read_libmultilabel_format(self.config.train_path)
+        if not eval:
+            train = read_libmultilabel_format(train_path)
             self._generate_tfidf(train['text'])
             self._generate_label_mapping(train['label'])
             datasets['train']['x'] = self.vectorizer.transform(train['text'])
             datasets['train']['y'] = self.binarizer.transform(
                 train['label']).astype('d')
-        if os.path.exists(self.config.test_path):
-            test = read_libmultilabel_format(self.config.test_path)
+        if os.path.exists(test_path):
+            test = read_libmultilabel_format(test_path)
             datasets['test']['x'] = self.vectorizer.transform(test['text'])
             datasets['test']['y'] = self.binarizer.transform(
                 test['label']).astype('d')
         return dict(datasets)
 
-    def _load_svm(self) -> 'dict[str, dict]':
+    def _load_svm(self, train_path, test_path, eval) -> 'dict[str, dict]':
         datasets = defaultdict(dict)
-        if not self.config.eval:
-            y, x = read_libsvm_format(self.config.train_path)
+        if not eval:
+            y, x = read_libsvm_format(train_path)
             self._generate_label_mapping(y)
             datasets['train']['x'] = x
             datasets['train']['y'] = self.binarizer.transform(y).astype('d')
-        if os.path.exists(self.config.test_path):
-            ty, tx = read_libsvm_format(self.config.test_path)
+        if os.path.exists(test_path):
+            ty, tx = read_libsvm_format(test_path)
             datasets['test']['x'] = tx
             datasets['test']['y'] = self.binarizer.transform(ty).astype('d')
         return dict(datasets)
