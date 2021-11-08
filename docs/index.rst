@@ -24,21 +24,12 @@ You can use the `Command Line Interface <cli/cli.html>`_  or the `APIs <api/api.
 .. toctree::
    :caption: APIs
    :maxdepth: 1
-   :glob:
    :hidden:
 
    api/api
    api/linear
    api/nn
 
-..
-   .. toctree::
-      :caption: Tutorials
-      :maxdepth: 1
-      :glob:
-      :hidden:
-
-      tutorial/*
 
 ..
    Indices and tables
