@@ -197,7 +197,7 @@ def main():
     """
     config = init_model_config(args.config)
     val_path = config.val_path or os.path.join(config.data_dir, 'valid.txt')
-    assert config.val_size > 0 or os.path.exists(val_path), "You should either specify a positive `val_size` or a `val_path` defaults to `data_dir/valid.txt` for parameter search."
+    assert config.val_size > 0 or os.path.exists(val_path), "You should specify either a positive `val_size` or a `val_path` defaults to `data_dir/valid.txt` for parameter search."
 
     search_alg = args.search_alg if args.search_alg else config.search_alg
     num_samples = config['num_samples'] if config.get('num_samples', None) else args.num_samples
