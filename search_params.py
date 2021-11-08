@@ -126,6 +126,7 @@ def init_search_params_spaces(config, parameter_columns, prefix):
 
 def init_search_algorithm(search_alg, metric=None, mode=None):
     """Specify a search algorithm and you must pip install it first.
+    If no search algorithm is specified, the default search algorithm is BasicVariantGenerator.
     See more details here: https://docs.ray.io/en/master/tune/api_docs/suggestion.html
 
     Args:
@@ -206,10 +207,7 @@ def main():
     config = init_search_params_spaces(config, parameter_columns, prefix='')
     data = load_static_data(config)
 
-    """Run tune analysis.
-    If no search algorithm is specified, the default search algorighm is BasicVariantGenerator.
-    https://docs.ray.io/en/master/tune/api_docs/suggestion.html#tune-basicvariant
-    """
+    # Run tune analysis
     all_monitor_metrics = [f'{split}_{metric}' for split, metric in itertools.product(
         ['val', 'test'], config.monitor_metrics)]
     reporter = tune.CLIReporter(metric_columns=all_monitor_metrics,
