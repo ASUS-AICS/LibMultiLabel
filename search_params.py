@@ -143,9 +143,8 @@ def init_model_config(config_path):
         if isinstance(v, str) and os.path.exists(v):
             args[k] = os.path.abspath(v)
 
-    model_config = AttributeDict(args)
-    set_seed(seed=model_config.seed)
-    return model_config
+    set_seed(seed=args['seed'])
+    return args
 
 
 def init_search_params_spaces(config, parameter_columns, prefix):
@@ -231,14 +230,14 @@ def main():
                         help='Determines whether objective is minimizing or maximizing the metric attribute. (default: %(default)s)')
     parser.add_argument('--search_alg', default=None, choices=['basic_variant', 'bayesopt', 'optuna'],
                         help='Search algorithms (default: %(default)s)')
-    args = parser.parse_args()
+    args, _ = parser.parse_known_args()
 
     """Other args in the model config are viewed as resolved values that are ignored from tune.
     https://github.com/ray-project/ray/blob/34d3d9294c50aea4005b7367404f6a5d9e0c2698/python/ray/tune/suggest/variant_generator.py#L333
     """
     config = init_model_config(args.config)
-    search_alg = args.search_alg if args.search_alg else config.search_alg
-    num_samples = config['num_samples'] if config.get('num_samples', None) else args.num_samples
+    parser.set_defaults(**config)
+    config = AttributeDict(vars(parser.parse_args()))
 
     parameter_columns = dict()
     config = init_search_params_spaces(config, parameter_columns, prefix='')
@@ -257,11 +256,11 @@ def main():
         # run one step "libmultilabel.model.train"
         stop={"training_iteration": 1},
         search_alg=init_search_algorithm(
-            search_alg, metric=config.val_metric, mode=args.mode),
+            config.search_alg, metric=config.val_metric, mode=args.mode),
         local_dir=args.local_dir,
         metric=f'val_{config.val_metric}',
         mode=args.mode,
-        num_samples=num_samples,
+        num_samples=config.num_samples,
         resources_per_trial={
             'cpu': args.cpu_count, 'gpu': args.gpu_count},
         progress_reporter=reporter,

@@ -38,7 +38,6 @@ embed_cache_dir: .vector_cache
 num_samples: 10
 
 # other parameters specified in main.py::get_args
-config: example_config/rcv1/cnn_tune.yml
 cpu: false
 data_workers: 4
 eval: false

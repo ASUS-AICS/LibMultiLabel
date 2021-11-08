@@ -39,7 +39,6 @@ embed_cache_dir: null
 num_samples: 1
 
 # other parameters specified in main.py::get_args
-config: example_config/MIMIC-50/caml_tune.yml
 cpu: false
 data_workers: 4
 eval: false
