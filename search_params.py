@@ -68,6 +68,14 @@ class Trainable(tune.Trainable):
 
 
 def init_model_config(config_path):
+    """Initialize the model config.
+
+    Args:
+        config_path (str): Path to the config file.
+
+    Returns:
+        AttributeDict: Config of the experiment.
+    """
     with open(config_path) as fp:
         args = yaml.load(fp, Loader=yaml.SafeLoader)
 
@@ -119,6 +127,11 @@ def init_search_params_spaces(config, parameter_columns, prefix):
 def init_search_algorithm(search_alg, metric=None, mode=None):
     """Specify a search algorithm and you must pip install it first.
     See more details here: https://docs.ray.io/en/master/tune/api_docs/suggestion.html
+
+    Args:
+        search_alg (str): One of 'basic_variant', 'bayesopt', or 'optuna'.
+        metric (str): The metric to monitor for early stopping.
+        mode (str): One of 'min' or 'max' to determine whether to minimize or maximize the metric.
     """
     if search_alg == 'optuna':
         assert metric and mode, "Metric and mode cannot be None for optuna."
@@ -132,6 +145,14 @@ def init_search_algorithm(search_alg, metric=None, mode=None):
 
 
 def load_static_data(config):
+    """Preload static data once for multiple trials.
+
+    Args:
+        config (AttributeDict): Config of the experiment.
+
+    Returns:
+        dict: A dict of static data containing datasets, classes, and word_dict.
+    """
     datasets = data_utils.load_datasets(data_dir=config.data_dir,
                                         train_path=config.train_path,
                                         test_path=config.test_path,
