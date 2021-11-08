@@ -56,8 +56,7 @@ class Trainable(tune.Trainable):
                 test_val_results[f'test_{k}'] = v
 
         # return best val result
-        val_split = 'val' if 'val' in self.datasets else 'train'
-        val_metric_dict = trainer.test(split=val_split)
+        val_metric_dict = trainer.test(split='val')
         for k, v in val_metric_dict.items():
             test_val_results[f'val_{k}'] = v
 
@@ -176,6 +175,8 @@ def main():
     https://github.com/ray-project/ray/blob/34d3d9294c50aea4005b7367404f6a5d9e0c2698/python/ray/tune/suggest/variant_generator.py#L333
     """
     config = init_model_config(args.config)
+    assert config.val_size > 0, "Validation size must be greater than 0 for parameter search."
+
     search_alg = args.search_alg if args.search_alg else config.search_alg
     num_samples = config['num_samples'] if config.get('num_samples', None) else args.num_samples
 
