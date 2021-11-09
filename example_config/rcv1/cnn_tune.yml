@@ -36,7 +36,7 @@ normalize_embed: false
 # hyperparamter search
 search_alg: basic_variant
 embed_cache_dir: .vector_cache
-num_samples: 5
+num_samples: 10
 
 # other parameters specified in main.py::get_args
 cpu: false
