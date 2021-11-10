@@ -1,7 +1,7 @@
 Using APIs
 ==========
 
-The API library is composed of a neural network module and a linear classifier module::
+The API library is composed of a `linear classifier module <linear.html>`_ and a `neural network classifier module <nn.html>`_::
 
    import libmultilabel.nn
    import libmultilabel.linear
@@ -71,7 +71,7 @@ Step 2. Initialize a model
 
 Here we show how to create a model.
 
-    * Configure the network with `model_name <../guides/nn_guides.html#id2>`_ and ``network_config``.
+    * Configure the network with `model_name <nn_networks.html>`_ and ``network_config``.
     * Define labels and text dictionary (i.e., ``classes`` and ``word_dict``) of this model.
     * Find `more here <../api/nn.html#libmultilabel.nn.nn_utils.init_model>`_ if you are interested in other settings.
       For example, a ``moniter_metrics`` is used to define the metrics you'd like to keep track with during the training procedure.
