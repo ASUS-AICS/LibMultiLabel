@@ -44,7 +44,8 @@ class TorchTrainer:
                                     patience=config.patience,
                                     val_metric=config.val_metric,
                                     silent=config.silent,
-                                    use_cpu=config.cpu)
+                                    use_cpu=config.cpu,
+                                    fast_dev_run=config.fast_dev_run)
 
         # Dump config to log
         dump_log(self.log_path, config=config)
@@ -138,8 +139,12 @@ class TorchTrainer:
         # training (i.e., val_size=0), the model is set to the last model.
         checkpoint_callback = [callback for callback in self.trainer.callbacks if isinstance(callback, ModelCheckpoint)][0]
         model_path = checkpoint_callback.best_model_path or checkpoint_callback.last_model_path
-        logging.info(f'Finished training. Load best model from {model_path}.')
-        self._setup_model(checkpoint_path=model_path)
+        if not model_path:
+            logging.warn(
+                'No model is found in the checkpoint directory. Please make sure `config.fast_dev_run` is set to False if you are not in the debugging mode.')
+        else:
+            logging.info(f'Finished training. Load best model from {model_path}.')
+            self._setup_model(checkpoint_path=model_path)
 
     def test(self):
         """Test model with pytorch lightning trainer. Top-k predictions are saved

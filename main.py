@@ -107,6 +107,8 @@ def get_config():
                         help='Disable CUDA')
     parser.add_argument('--silent', action='store_true',
                         help='Enable silent mode')
+    parser.add_argument('--fast_dev_run', type=int, default=False,
+                        help='Enable pl trainer terminate after running `fast_dev_run` batches.')
     parser.add_argument('--data_workers', type=int, default=4,
                         help='Use multi-cpu core for data pre-processing (default: %(default)s)')
     parser.add_argument('--embed_cache_dir', type=str,
@@ -133,6 +135,7 @@ def get_config():
     parser.set_defaults(**config)
     args = parser.parse_args()
     config = AttributeDict(vars(args))
+    print(type(config.fast_dev_run))
 
     config.run_name = '{}_{}_{}'.format(
         config.data_name,
@@ -221,7 +224,7 @@ def main():
         if not config.eval:
             trainer.train()
         # test
-        if 'test' in trainer.datasets:
+        if 'test' in trainer.datasets and not config.fast_dev_run:
             trainer.test()
 
 
