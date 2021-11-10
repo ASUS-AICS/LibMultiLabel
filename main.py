@@ -102,13 +102,19 @@ def get_config():
     parser.add_argument('--predict_out_path',
                         help='Path to the an output file holding top k label results (default: %(default)s)')
 
+    # auto-test
+    parser.add_argument('--fast_dev_run', type=int, default=False,
+                        help='Enable pl trainer terminate after running `fast_dev_run` batches.')
+    parser.add_argument('--limit_train_batches', type=float, default=1.0,
+                        help='How much of training dataset to check for pl trainer.')
+    parser.add_argument('--limit_test_batches', type=float, default=1.0,
+                        help='How much of test dataset to check for pl trainer.')
+
     # others
     parser.add_argument('--cpu', action='store_true',
                         help='Disable CUDA')
     parser.add_argument('--silent', action='store_true',
                         help='Enable silent mode')
-    parser.add_argument('--fast_dev_run', type=int, default=False,
-                        help='Enable pl trainer terminate after running `fast_dev_run` batches.')
     parser.add_argument('--data_workers', type=int, default=4,
                         help='Use multi-cpu core for data pre-processing (default: %(default)s)')
     parser.add_argument('--embed_cache_dir', type=str,
@@ -135,7 +141,6 @@ def get_config():
     parser.set_defaults(**config)
     args = parser.parse_args()
     config = AttributeDict(vars(args))
-    print(type(config.fast_dev_run))
 
     config.run_name = '{}_{}_{}'.format(
         config.data_name,
@@ -188,6 +193,7 @@ def linear_train(datasets, config):
     )
     return model
 
+
 def linear_run(config):
     if config.eval:
         preprocessor, model = linear.load_pipeline(config.checkpoint_path)
@@ -203,6 +209,7 @@ def linear_run(config):
     if os.path.exists(config.test_path):
         linear_test(config, model, datasets)
     # TODO: dump logs?
+
 
 def main():
     # Get config

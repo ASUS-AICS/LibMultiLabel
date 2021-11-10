@@ -45,7 +45,9 @@ class TorchTrainer:
                                     val_metric=config.val_metric,
                                     silent=config.silent,
                                     use_cpu=config.cpu,
-                                    fast_dev_run=config.fast_dev_run)
+                                    fast_dev_run=config.fast_dev_run,
+                                    limit_train_batches=config.limit_train_batches,
+                                    limit_test_batches=config.limit_test_batches)
 
         # Dump config to log
         dump_log(self.log_path, config=config)
