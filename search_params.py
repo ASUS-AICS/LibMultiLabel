@@ -129,23 +129,22 @@ class Trainable(tune.Trainable):
         return test_val_results
 
 
-def init_model_config(config_path):
+def load_config_from_file(config_path):
     with open(config_path) as fp:
-        args = yaml.load(fp, Loader=yaml.SafeLoader)
+        config = yaml.load(fp, Loader=yaml.SafeLoader)
 
     # create directories that hold the shared data
-    os.makedirs(args['result_dir'], exist_ok=True)
-    if args['embed_cache_dir']:
-        os.makedirs(args['embed_cache_dir'], exist_ok=True)
+    os.makedirs(config['result_dir'], exist_ok=True)
+    if config['embed_cache_dir']:
+        os.makedirs(config['embed_cache_dir'], exist_ok=True)
 
     # set relative path to absolute path (_path, _file, _dir)
-    for k, v in args.items():
+    for k, v in config.items():
         if isinstance(v, str) and os.path.exists(v):
-            args[k] = os.path.abspath(v)
+            config[k] = os.path.abspath(v)
 
-    model_config = AttributeDict(args)
-    set_seed(seed=model_config.seed)
-    return model_config
+    set_seed(seed=config['seed'])
+    return config
 
 
 def init_search_params_spaces(config, parameter_columns, prefix):
@@ -153,10 +152,13 @@ def init_search_params_spaces(config, parameter_columns, prefix):
     See the random distributions API listed here: https://docs.ray.io/en/master/tune/api_docs/search_space.html#random-distributions-api
 
     Args:
-        config (AttributeDict): Config of the experiment.
+        config (dict): Config of the experiment.
         parameter_columns (dict): Names of parameters to include in the CLIReporter.
                                   The keys are parameter names and the values are displayed names.
         prefix(str): The prefix of a nested parameter such as network_config/dropout.
+
+    Returns:
+        dict: Config with parsed sample spaces.
     """
     search_spaces = ['choice', 'grid_search', 'uniform', 'quniform', 'loguniform',
                      'qloguniform', 'randn', 'qrandn', 'randint', 'qrandint']
@@ -231,22 +233,23 @@ def main():
                         help='Determines whether objective is minimizing or maximizing the metric attribute. (default: %(default)s)')
     parser.add_argument('--search_alg', default=None, choices=['basic_variant', 'bayesopt', 'optuna'],
                         help='Search algorithms (default: %(default)s)')
-    args = parser.parse_args()
+    args, _ = parser.parse_known_args()
 
-    """Other args in the model config are viewed as resolved values that are ignored from tune.
-    https://github.com/ray-project/ray/blob/34d3d9294c50aea4005b7367404f6a5d9e0c2698/python/ray/tune/suggest/variant_generator.py#L333
-    """
-    config = init_model_config(args.config)
-    search_alg = args.search_alg if args.search_alg else config.search_alg
-    num_samples = config['num_samples'] if config.get('num_samples', None) else args.num_samples
-
-    parameter_columns = dict()
+    # Load config from the config file and overwrite values specified in CLI.
+    parameter_columns = dict() # parameters to include in progress table of CLIReporter
+    config = load_config_from_file(args.config)
     config = init_search_params_spaces(config, parameter_columns, prefix='')
+
+    parser.set_defaults(**config)
+    config = AttributeDict(vars(parser.parse_args()))
     data = load_static_data(config)
 
     """Run tune analysis.
-    If no search algorithm is specified, the default search algorighm is BasicVariantGenerator.
-    https://docs.ray.io/en/master/tune/api_docs/suggestion.html#tune-basicvariant
+    - If no search algorithm is specified, the default search algorighm is BasicVariantGenerator.
+      https://docs.ray.io/en/master/tune/api_docs/suggestion.html#tune-basicvariant
+    - Arguments without search spaces will be ignored by `tune.run`
+      (https://github.com/ray-project/ray/blob/34d3d9294c50aea4005b7367404f6a5d9e0c2698/python/ray/tune/suggest/variant_generator.py#L333),
+      so we parse the whole config to `tune.run` here for simplicity.
     """
     all_monitor_metrics = [f'{split}_{metric}' for split, metric in itertools.product(
         ['val', 'test'], config.monitor_metrics)]
@@ -257,11 +260,11 @@ def main():
         # run one step "libmultilabel.model.train"
         stop={"training_iteration": 1},
         search_alg=init_search_algorithm(
-            search_alg, metric=config.val_metric, mode=args.mode),
+            config.search_alg, metric=config.val_metric, mode=args.mode),
         local_dir=args.local_dir,
         metric=f'val_{config.val_metric}',
         mode=args.mode,
-        num_samples=num_samples,
+        num_samples=config.num_samples,
         resources_per_trial={
             'cpu': args.cpu_count, 'gpu': args.gpu_count},
         progress_reporter=reporter,
