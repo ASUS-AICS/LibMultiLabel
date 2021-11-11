@@ -6,6 +6,8 @@ For neural networks, the only accepted format is the
 :ref:`libmultilabel-format`. For linear methods,
 both :ref:`libmultilabel-format` and
 :ref:`libsvm-format` are accepted.
+The formatted datasets, RCV1 and EUR-LEX-57K, can be downloaded from the
+`LIBSVM datasets <https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel.html>`_ website.
 
 .. _libmultilabel-format:
 
