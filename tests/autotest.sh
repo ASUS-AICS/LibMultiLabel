@@ -34,7 +34,7 @@ get_test_results() {
 run_test() {
   data_name=$1
   network_name=$2
-  command=$(echo "$3" | sed "s/%s/$data_name/" | sed "s/%s/$network_name/") # sscanf...
+  command=$(echo "$3" | sed "s/%s/$data_name/" | sed "s/%s/$network_name/")
 
   declare -A results actual_results
   prefix="${RESULT_DIR}/${data_name}_${network_name}_"
@@ -61,8 +61,8 @@ main() {
   mkdir -p $RESULT_DIR
   rm $REPORT_PATH
 
-  # Run the tests.
   TEST_COMMAND_TEMPLATES=(
+    # Run 20% of the training data, 20% of the validation data, and 1% of the test data for 2 epochs.
     "python3 main.py --config example_config/%s/%s.yml --result_dir $RESULT_DIR --limit_train_batches 0.2 --limit_val_batches 0.2 --limit_test_batches 0.01 --epochs 2"
   )
   for template in "${TEST_COMMAND_TEMPLATES[@]}"; do
@@ -70,6 +70,7 @@ main() {
     run_test "rcv1" "kim_cnn" "$template"
   done
 
+  # Print the test results and remove the intermediate files.
   all_tests=$(less $REPORT_PATH | wc -l)
   passed_tests=$(grep "PASSED" $REPORT_PATH | wc -l)
   echo "All tests finished ($passed_tests/$all_tests) on $BRANCH_TO_TEST. See $REPORT_PATH for details."
