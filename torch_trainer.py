@@ -15,10 +15,16 @@ class TorchTrainer:
 
     Args:
         config (AttributeDict): Config of the experiment.
+        datasets (dict, optional): Datasets for training, validation, and test. Defaults to None.
+        classes(list, optional): List of class names.
+        word_dict(torchtext.vocab.Vocab, optional): A vocab object which maps tokens to indices.
     """
     def __init__(
         self,
-        config: dict
+        config: dict,
+        datasets: dict = None,
+        classes: list = None,
+        word_dict: dict = None
     ):
         self.run_name = config.run_name
         self.checkpoint_dir = config.checkpoint_dir
@@ -31,13 +37,21 @@ class TorchTrainer:
         self.config = config
 
         # Load dataset
-        self.datasets = data_utils.load_datasets(data_dir=config.data_dir,
-                                                 train_path=config.train_path,
-                                                 test_path=config.test_path,
-                                                 val_path=config.val_path,
-                                                 val_size=config.val_size,
-                                                 is_eval=config.eval)
-        self._setup_model(log_path=self.log_path,
+        if datasets is None:
+            self.datasets = data_utils.load_datasets(
+                data_dir=config.data_dir,
+                train_path=config.train_path,
+                test_path=config.test_path,
+                val_path=config.val_path,
+                val_size=config.val_size,
+                is_eval=config.eval
+            )
+        else:
+            self.datasets = datasets
+
+        self._setup_model(classes=classes,
+                          word_dict=word_dict,
+                          log_path=self.log_path,
                           checkpoint_path=config.checkpoint_path)
         self.trainer = init_trainer(checkpoint_dir=self.checkpoint_dir,
                                     epochs=config.epochs,
@@ -52,15 +66,23 @@ class TorchTrainer:
         # Dump config to log
         dump_log(self.log_path, config=config)
 
-    def _setup_model(self, log_path=None, checkpoint_path=None):
+    def _setup_model(
+        self,
+        classes: list = None,
+        word_dict: dict = None,
+        log_path: str = None,
+        checkpoint_path: str = None
+    ):
         """Setup model from checkpoint if a checkpoint path is passed in or specified in the config.
         Otherwise, initialize model from scratch.
 
         Args:
-            log_path (str, optional): Path to the log file. The log file contains the validation
+            classes(list): List of class names.
+            word_dict(torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
+            log_path (str): Path to the log file. The log file contains the validation
                 results for each epoch and the test results. If the `log_path` is None, no performance
-                results will be logged. Defaults to None.
-            checkpoint_path (str, optional): The checkpoint to warm-up with. Defaults to None.
+                results will be logged.
+            checkpoint_path (str): The checkpoint to warm-up with.
         """
         if 'checkpoint_path' in self.config and self.config.checkpoint_path is not None:
             checkpoint_path = self.config.checkpoint_path
@@ -70,16 +92,18 @@ class TorchTrainer:
             self.model = Model.load_from_checkpoint(checkpoint_path)
         else:
             logging.info('Initialize model from scratch.')
-            word_dict = data_utils.load_or_build_text_dict(
-                dataset=self.datasets['train'],
-                vocab_file=self.config.vocab_file,
-                min_vocab_freq=self.config.min_vocab_freq,
-                embed_file=self.config.embed_file,
-                silent=self.config.silent,
-                normalize_embed=self.config.normalize_embed
-            )
-            classes = data_utils.load_or_build_label(
-                self.datasets, self.config.label_file, self.config.silent)
+            if not word_dict:
+                word_dict = data_utils.load_or_build_text_dict(
+                    dataset=self.datasets['train'],
+                    vocab_file=self.config.vocab_file,
+                    min_vocab_freq=self.config.min_vocab_freq,
+                    embed_file=self.config.embed_file,
+                    silent=self.config.silent,
+                    normalize_embed=self.config.normalize_embed
+                )
+            if not classes:
+                classes = data_utils.load_or_build_label(
+                    self.datasets, self.config.label_file, self.config.silent)
 
             if self.config.val_metric not in self.config.monitor_metrics:
                 logging.warn(
@@ -144,13 +168,21 @@ class TorchTrainer:
         logging.info(f'Finished training. Load best model from {model_path}.')
         self._setup_model(checkpoint_path=model_path)
 
-    def test(self):
+    def test(self, split='test'):
         """Test model with pytorch lightning trainer. Top-k predictions are saved
         if `save_k_predictions` > 0.
+
+        Args:
+            split (str, optional): One of 'train', 'test', or 'val'. Defaults to 'test'.
+
+        Returns:
+            dict: Scores for all metrics in the dictionary format.
         """
         assert 'test' in self.datasets and self.trainer is not None
-        test_loader = self._get_dataset_loader(split='test')
-        self.trainer.test(self.model, test_dataloaders=test_loader)
+
+        logging.info(f'Testing on {split} set.')
+        test_loader = self._get_dataset_loader(split=split)
+        metric_dict = self.trainer.test(self.model, test_dataloaders=test_loader)[0]
 
         if self.config.save_k_predictions > 0:
             if not self.config.predict_out_path:
@@ -159,13 +191,14 @@ class TorchTrainer:
                 predict_out_path = self.config.predict_out_path
             self._save_predictions(test_loader, predict_out_path)
 
+        return metric_dict
+
     def _save_predictions(self, dataloader, predict_out_path):
         """Save top k label results.
 
         Args:
             dataloader (torch.utils.data.DataLoader): Dataloader for the test or valid dataset.
             predict_out_path (str): Path to the an output file holding top k label results.
-                Defaults to None.
         """
         batch_predictions = self.trainer.predict(self.model, dataloaders=dataloader)
         pred_labels = np.vstack([batch['top_k_pred']
