@@ -10,6 +10,7 @@ epochs: 200
 batch_size: 16
 optimizer: adam
 learning_rate: ['grid_search', [0.001, 0.003, 0.0001, 0.0003]]
+momentum: 0.9
 weight_decay: 0
 patience: 10
 shuffle: false
@@ -39,14 +40,16 @@ embed_cache_dir: null
 num_samples: 1
 
 # other parameters specified in main.py::get_args
+checkpoint_path: null
 cpu: false
 data_workers: 4
 eval: false
 label_file: null
 metric_threshold: 0.5
 result_dir: runs
+save_k_predictions: 0
 silent: true
 test_path: data/MIMIC-50/test.txt
 train_path: data/MIMIC-50/train.txt
-val_path: null
+val_path: data/MIMIC-50/valid.txt
 val_size: 0.2
