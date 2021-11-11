@@ -40,7 +40,7 @@ Create a data sub-directory within LibMultiLabel and go to this sub-directory.
     mkdir -p data/rcv1
     cd data/rcv1
 
-Download the RCV1 dataset from `LIBSVM datasets <https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel.html>`_ by the following commands.
+Download the RCV1 dataset from `LIBSVM Data <https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel.html>`_ by the following commands.
 
 .. code-block:: bash
 
