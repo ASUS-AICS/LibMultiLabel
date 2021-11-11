@@ -44,7 +44,7 @@ run_test() {
   for i in "${!results[@]}"; do actual_results[$i]=${results[$i]}; done
 
   # Get expected results in master branch
-  git checkout auto-test
+  git checkout master
   get_test_results $prefix "$command"
 
   # Compare the results between current branch and master.
