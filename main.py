@@ -103,12 +103,12 @@ def get_config():
                         help='Path to the an output file holding top k label results (default: %(default)s)')
 
     # auto-test
-    parser.add_argument('--fast_dev_run', type=int, default=False,
-                        help='Enable pl trainer terminate after running `fast_dev_run` batches.')
     parser.add_argument('--limit_train_batches', type=float, default=1.0,
-                        help='How much of training dataset to check for pl trainer.')
+                        help='Percentage of train dataset to use for auto-testing (default: %(default)s)')
+    parser.add_argument('--limit_val_batches', type=float, default=1.0,
+                        help='Percentage of validation dataset to use for auto-testing (default: %(default)s)')
     parser.add_argument('--limit_test_batches', type=float, default=1.0,
-                        help='How much of test dataset to check for pl trainer.')
+                        help='Percentage of testing dataset to use for auto-testing (default: %(default)s)')
 
     # others
     parser.add_argument('--cpu', action='store_true',
@@ -231,7 +231,7 @@ def main():
         if not config.eval:
             trainer.train()
         # test
-        if 'test' in trainer.datasets and not config.fast_dev_run:
+        if 'test' in trainer.datasets:
             trainer.test()
 
 
