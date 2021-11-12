@@ -48,19 +48,14 @@ class Trainable(tune.Trainable):
                                word_dict=self.word_dict)
         trainer.train()
 
-        # run and dump test results
+        # Test the model on test/validation set.
         test_val_results = dict()
-        if 'test' in self.datasets:
-            test_metric_dict = trainer.test()
-            for k, v in test_metric_dict.items():
-                test_val_results[f'test_{k}'] = v
+        for split in ['test', 'val'] and self.datasets:
+            metric_dict = trainer.test(split=split)
+            for k, v in metric_dict.items():
+                test_val_results[f'{split}_{k}'] = v
 
-        # return best val result
-        val_metric_dict = trainer.test(split='val')
-        for k, v in val_metric_dict.items():
-            test_val_results[f'val_{k}'] = v
-
-        # remove *.ckpt
+        # Remove *.ckpt
         for model_path in glob.glob(os.path.join(self.config.result_dir, self.config.run_name, '*.ckpt')):
             logging.info(f'Removing {model_path} ...')
             os.remove(model_path)
