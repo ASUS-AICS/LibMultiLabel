@@ -161,7 +161,7 @@ def load_datasets(
         for i in range(len(datasets['train'])):
             datasets['train'][i]['index'] = i
         del datasets['val']
-        gc.collet()
+        gc.collect()
 
     msg = ' / '.join(f'{k}: {len(v)}' for k, v in datasets.items())
     logging.info(f'Finish loading dataset ({msg})')
