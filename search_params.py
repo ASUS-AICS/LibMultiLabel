@@ -1,6 +1,7 @@
 import argparse
 import glob
 import itertools
+import json
 import logging
 import os
 import time
@@ -239,11 +240,14 @@ def main():
 
     # Save best model after parameter search.
     if args.save_best_model:
-        config.run_name = f'{analysis.best_config["run_name"]}_retrain'
-        if config.merge_train_val:
+        log_path = os.path.join(analysis.get_best_logdir(f'val_{config.val_metric}', args.mode), 'result.json')
+        best_config = AttributeDict(json.load(log_path)["config"])
+        logging.info(f'Retraining with best config: \n{best_config}')
+        config["run_name"] = f'{best_config.run_name}_retrain'
+        if args.merge_train_val:
             logging.info('Use the full training data to retrain the best model.')
-            data = load_static_data(config, merge_train_val=args.merge_train_val)
-        trainer = TorchTrainer(config=analysis.best_config, **data)
+            data = load_static_data(best_config, merge_train_val=args.merge_train_val)
+        trainer = TorchTrainer(config=best_config, **data)
         trainer.train()
 
         test_metric_dict = trainer.test()
