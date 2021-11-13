@@ -77,4 +77,14 @@ main() {
   rm -r $RESULT_DIR
 }
 
-main
+#######################################
+# Please run this script in the LibMultilabel directory.
+# Usage:
+#   bash tests/autotest.sh
+#######################################
+if $(echo $(pwd) | grep -q "tests"); then
+  echo "Please run this script in the LibMultilabel directory."
+  echo "Go to the LibMultilabel directory and run: bash tests/autotest.sh"
+else
+  main
+fi
