@@ -108,7 +108,7 @@ def get_config():
     parser.add_argument('--limit_val_batches', type=float, default=1.0,
                         help='Percentage of validation dataset to use for auto-testing (default: %(default)s)')
     parser.add_argument('--limit_test_batches', type=float, default=1.0,
-                        help='Percentage of testing dataset to use for auto-testing (default: %(default)s)')
+                        help='Percentage of test dataset to use for auto-testing (default: %(default)s)')
 
     # others
     parser.add_argument('--cpu', action='store_true',
