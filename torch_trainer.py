@@ -44,7 +44,8 @@ class TorchTrainer:
                 test_path=config.test_path,
                 val_path=config.val_path,
                 val_size=config.val_size,
-                is_eval=config.eval
+                is_eval=config.eval,
+                merge_train_val=config.merge_train_val
             )
         else:
             self.datasets = datasets

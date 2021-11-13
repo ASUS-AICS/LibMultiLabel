@@ -148,7 +148,7 @@ def load_static_data(config, merge_train_val=False):
 
     Args:
         config (AttributeDict): Config of the experiment.
-        merge_train_val (bool, optional): Decide whether to merge the training and validation data.
+        merge_train_val (bool, optional): Whether to merge the training and validation data.
             Defaults to False.
 
     Returns:

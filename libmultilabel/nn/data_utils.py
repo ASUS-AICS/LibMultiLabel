@@ -133,7 +133,7 @@ def load_datasets(
         val_path (str, optional): Path to validation data.
         val_size (float, optional): Training-validation split: a ratio in [0, 1] or an integer for the size of the validation set. Defaults to 0.2.
         is_eval (bool, optional): Load test data only. Defaults to False.
-        merge_train_val (bool, optional): Decide whether to merge the training and validation data.
+        merge_train_val (bool, optional): Whether to merge the training and validation data.
             Defaults to False.
 
     Returns:
