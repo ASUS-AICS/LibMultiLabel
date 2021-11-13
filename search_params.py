@@ -55,7 +55,7 @@ class Trainable(tune.Trainable):
             for k, v in metric_dict.items():
                 test_val_results[f'{split}_{k}'] = v*100
 
-        # Remove *.ckpt files if the model is not the best.
+        # Remove *.ckpt.
         for model_path in glob.glob(os.path.join(self.config.result_dir, self.config.run_name, '*.ckpt')):
             logging.info(f'Removing {model_path} ...')
             os.remove(model_path)

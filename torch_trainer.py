@@ -209,11 +209,3 @@ class TorchTrainer:
                     pred_label, pred_score)])
                 fp.write(out_str+'\n')
         logging.info(f'Saved predictions to: {predict_out_path}')
-
-    def get_best_model_score(self):
-        """Get the best `val_metric` score.
-
-        Returns:
-            float: Best model score.
-        """
-        return self.checkpoint_callback.best_model_score
