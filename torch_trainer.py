@@ -211,7 +211,7 @@ class TorchTrainer:
         logging.info(f'Saved predictions to: {predict_out_path}')
 
     def get_best_model_score(self):
-        """Get the best model score.
+        """Get the best `val_metric` score.
 
         Returns:
             float: Best model score.

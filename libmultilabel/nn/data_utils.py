@@ -1,4 +1,5 @@
 import collections
+import gc
 import logging
 import os
 import warnings
@@ -118,7 +119,8 @@ def load_datasets(
     test_path=None,
     val_path=None,
     val_size=0.2,
-    is_eval=False
+    is_eval=False,
+    merge_train_val=False
 ):
     """Load data either from the specified data paths (i.e., `train_path`, `test_path`, and `val_path`)
     or from the data files (i.e., `train.txt`, `test.txt`, and `valid.txt`) in the data directory.
@@ -131,6 +133,8 @@ def load_datasets(
         val_path (str, optional): Path to validation data.
         val_size (float, optional): Training-validation split: a ratio in [0, 1] or an integer for the size of the validation set. Defaults to 0.2.
         is_eval (bool, optional): Load test data only. Defaults to False.
+        merge_train_val (bool, optional): Decide whether to merge the training and validation data.
+            Defaults to False.
 
     Returns:
         dict: A dictionary of datasets.
@@ -151,6 +155,13 @@ def load_datasets(
         elif val_size > 0:
             datasets['train'], datasets['val'] = train_test_split(
                 datasets['train'], test_size=val_size, random_state=42)
+
+    if merge_train_val:
+        datasets['train'] = datasets['train'] + datasets['val']
+        for i in range(len(datasets['train'])):
+            datasets['train'][i]['index'] = i
+        del datasets['val']
+        gc.collet()
 
     msg = ' / '.join(f'{k}: {len(v)}' for k, v in datasets.items())
     logging.info(f'Finish loading dataset ({msg})')

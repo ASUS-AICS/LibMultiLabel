@@ -27,7 +27,6 @@ class Trainable(tune.Trainable):
         self.word_dict = data['word_dict']
         self.classes = data['classes']
         self.device = init_device(config.cpu)
-        self.best_val_score = float('-inf')
         set_seed(seed=self.config.seed)
 
     def step(self):
@@ -51,19 +50,15 @@ class Trainable(tune.Trainable):
 
         # Test the model on test/validation set.
         test_val_results = dict()
-        for split in ['test', 'val'] and self.datasets:
+        for split in ['test', 'val'] & self.datasets.keys():
             metric_dict = trainer.test(split=split)
             for k, v in metric_dict.items():
                 test_val_results[f'{split}_{k}'] = v*100
 
         # Remove *.ckpt files if the model is not the best.
-        val_score = trainer.get_best_model_score()
-        if val_score > self.best_val_score:
-            self.best_val_score = val_score
-        else:
-            for model_path in glob.glob(os.path.join(self.config.result_dir, self.config.run_name, '*.ckpt')):
-                logging.info(f'Removing {model_path} ...')
-                os.remove(model_path)
+        for model_path in glob.glob(os.path.join(self.config.result_dir, self.config.run_name, '*.ckpt')):
+            logging.info(f'Removing {model_path} ...')
+            os.remove(model_path)
         return test_val_results
 
 
@@ -147,11 +142,13 @@ def init_search_algorithm(search_alg, metric=None, mode=None):
     logging.info(f'{search_alg} search is found, run BasicVariantGenerator().')
 
 
-def load_static_data(config):
+def load_static_data(config, merge_train_val=False):
     """Preload static data once for multiple trials.
 
     Args:
         config (AttributeDict): Config of the experiment.
+        merge_train_val (bool, optional): Decide whether to merge the training and validation data.
+            Defaults to False.
 
     Returns:
         dict: A dict of static data containing datasets, classes, and word_dict.
@@ -161,7 +158,8 @@ def load_static_data(config):
                                         test_path=config.test_path,
                                         val_path=config.val_path,
                                         val_size=config.val_size,
-                                        is_eval=config.eval)
+                                        is_eval=config.eval,
+                                        merge_train_val=merge_train_val)
     return {
         "datasets": datasets,
         "word_dict": data_utils.load_or_build_text_dict(
@@ -193,7 +191,10 @@ def main():
                         help='Determines whether objective is minimizing or maximizing the metric attribute. (default: %(default)s)')
     parser.add_argument('--search_alg', default=None, choices=['basic_variant', 'bayesopt', 'optuna'],
                         help='Search algorithms (default: %(default)s)')
-    parser.add_argument('--save_best')
+    parser.add_argument('--save_best_model', action='store_true',
+                        help='Generate the best model after parameter search.')
+    parser.add_argument('--merge_train_val', action='store_true',
+                        help='Merge the training and validation data after parameter search.')
     args, _ = parser.parse_known_args()
 
     # Load config from the config file and overwrite values specified in CLI.
@@ -223,23 +224,34 @@ def main():
                                 metric=f'val_{config.val_metric}',
                                 mode=args.mode,
                                 sort_by_metric=True)
-    tune.run(
+    analysis = tune.run(
         tune.with_parameters(Trainable, data=data),
         # run one step "libmultilabel.model.train"
         stop={"training_iteration": 1},
         search_alg=init_search_algorithm(
             config.search_alg, metric=config.val_metric, mode=args.mode),
         local_dir=args.local_dir,
-        keep_checkpoints_num=1,
         num_samples=config.num_samples,
         resources_per_trial={
             'cpu': args.cpu_count, 'gpu': args.gpu_count},
-        checkpoint_score_attr=f'{args.mode}-val_{config.val_metric}',
         progress_reporter=reporter,
         config=config)
+
+    # Save best model after parameter search.
+    if args.save_best_model:
+        config.run_name = f'{analysis.best_config["run_name"]}_retrain'
+        if config.merge_train_val:
+            logging.info('Use the full training data to retrain the best model.')
+            data = load_static_data(config, merge_train_val=args.merge_train_val)
+        trainer = TorchTrainer(config=analysis.best_config, **data)
+        trainer.train()
+
+        test_metric_dict = trainer.test()
+        logging.info(f'Best model saved in {trainer.checkpoint_callback.best_model_path}.')
+        logging.info(f'Test results: {test_metric_dict}')
 
 
 # calculate wall time.
 wall_time_start = time.time()
 main()
-logging.info(f"\nWall time: {time.time()-wall_time_start}")
+logging.info(f'\nWall time: {time.time()-wall_time_start}')
