@@ -27,6 +27,7 @@ class Trainable(tune.Trainable):
         self.word_dict = data['word_dict']
         self.classes = data['classes']
         self.device = init_device(config.cpu)
+        self.best_val_score = float('-inf')
         set_seed(seed=self.config.seed)
 
     def step(self):
@@ -53,12 +54,16 @@ class Trainable(tune.Trainable):
         for split in ['test', 'val'] and self.datasets:
             metric_dict = trainer.test(split=split)
             for k, v in metric_dict.items():
-                test_val_results[f'{split}_{k}'] = v
+                test_val_results[f'{split}_{k}'] = v*100
 
-        # Remove *.ckpt
-        for model_path in glob.glob(os.path.join(self.config.result_dir, self.config.run_name, '*.ckpt')):
-            logging.info(f'Removing {model_path} ...')
-            os.remove(model_path)
+        # Remove *.ckpt files if the model is not the best.
+        val_score = trainer.get_best_model_score()
+        if val_score > self.best_val_score:
+            self.best_val_score = val_score
+        else:
+            for model_path in glob.glob(os.path.join(self.config.result_dir, self.config.run_name, '*.ckpt')):
+                logging.info(f'Removing {model_path} ...')
+                os.remove(model_path)
         return test_val_results
 
 
@@ -188,6 +193,7 @@ def main():
                         help='Determines whether objective is minimizing or maximizing the metric attribute. (default: %(default)s)')
     parser.add_argument('--search_alg', default=None, choices=['basic_variant', 'bayesopt', 'optuna'],
                         help='Search algorithms (default: %(default)s)')
+    parser.add_argument('--save_best')
     args, _ = parser.parse_known_args()
 
     # Load config from the config file and overwrite values specified in CLI.
@@ -224,9 +230,11 @@ def main():
         search_alg=init_search_algorithm(
             config.search_alg, metric=config.val_metric, mode=args.mode),
         local_dir=args.local_dir,
+        keep_checkpoints_num=1,
         num_samples=config.num_samples,
         resources_per_trial={
             'cpu': args.cpu_count, 'gpu': args.gpu_count},
+        checkpoint_score_attr=f'{args.mode}-val_{config.val_metric}',
         progress_reporter=reporter,
         config=config)
 

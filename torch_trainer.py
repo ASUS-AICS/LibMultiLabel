@@ -59,6 +59,8 @@ class TorchTrainer:
                                     val_metric=config.val_metric,
                                     silent=config.silent,
                                     use_cpu=config.cpu)
+        self.checkpoint_callback = [
+            callback for callback in self.trainer.callbacks if isinstance(callback, ModelCheckpoint)][0]
 
         # Dump config to log
         dump_log(self.log_path, config=config)
@@ -160,8 +162,7 @@ class TorchTrainer:
 
         # Set model to the best model. If the validation process is skipped during
         # training (i.e., val_size=0), the model is set to the last model.
-        checkpoint_callback = [callback for callback in self.trainer.callbacks if isinstance(callback, ModelCheckpoint)][0]
-        model_path = checkpoint_callback.best_model_path or checkpoint_callback.last_model_path
+        model_path = self.checkpoint_callback.best_model_path or self.checkpoint_callback.last_model_path
         logging.info(f'Finished training. Load best model from {model_path}.')
         self._setup_model(checkpoint_path=model_path)
 
@@ -208,3 +209,11 @@ class TorchTrainer:
                     pred_label, pred_score)])
                 fp.write(out_str+'\n')
         logging.info(f'Saved predictions to: {predict_out_path}')
+
+    def get_best_model_score(self):
+        """Get the best model score.
+
+        Returns:
+            float: Best model score.
+        """
+        return self.checkpoint_callback.best_model_score
