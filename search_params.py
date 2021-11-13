@@ -241,18 +241,19 @@ def main():
     # Save best model after parameter search.
     if args.save_best_model:
         log_path = os.path.join(analysis.get_best_logdir(f'val_{config.val_metric}', args.mode), 'result.json')
-        best_config = AttributeDict(json.load(log_path)["config"])
-        logging.info(f'Retraining with best config: \n{best_config}')
-        config["run_name"] = f'{best_config.run_name}_retrain'
+        best_config = AttributeDict(json.load(open(log_path, 'r'))['config'])
+        best_config.run_name = f'{best_config.run_name}_retrain'
+        best_config.checkpoint_dir = os.path.join(best_config.result_dir, best_config.run_name)
+        best_config.log_path = os.path.join(best_config.checkpoint_dir, 'logs.json')
+
         if args.merge_train_val:
             logging.info('Use the full training data to retrain the best model.')
             data = load_static_data(best_config, merge_train_val=args.merge_train_val)
+
+        logging.info(f'Retraining with best config: \n{best_config}')
         trainer = TorchTrainer(config=best_config, **data)
         trainer.train()
-
-        test_metric_dict = trainer.test()
-        logging.info(f'Best model saved in {trainer.checkpoint_callback.best_model_path}.')
-        logging.info(f'Test results: {test_metric_dict}')
+        trainer.test()
 
 
 # calculate wall time.
