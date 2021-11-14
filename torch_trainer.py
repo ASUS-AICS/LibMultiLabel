@@ -58,7 +58,10 @@ class TorchTrainer:
                                     patience=config.patience,
                                     val_metric=config.val_metric,
                                     silent=config.silent,
-                                    use_cpu=config.cpu)
+                                    use_cpu=config.cpu,
+                                    limit_train_batches=config.limit_train_batches,
+                                    limit_val_batches=config.limit_val_batches,
+                                    limit_test_batches=config.limit_test_batches)
 
         # Dump config to log
         dump_log(self.log_path, config=config)
