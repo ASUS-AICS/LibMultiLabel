@@ -1,6 +1,75 @@
 Training, Prediction, and Hyperparameter Search for Neural Networks
 ===================================================================
 
+For users who are just getting started, see:
+
+    - :ref:`nn_installation`
+    - :ref:`nn_cli-quickstart`
+
+If you have been familiar with the basic operations, see:
+
+    - :ref:`nn_train`
+    - :ref:`nn_predict`
+    - :ref:`nn_hs`
+
+-------------------------------------------------------------------
+
+.. _nn_installation:
+
+Install LibMultiLabel from Source
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* Clone `LibMultiLabel <https://github.com/ASUS-AICS/LibMultiLabel>`_.
+* Install the latest development version, run:
+
+.. code-block:: bash
+
+    pip3 install -r requirements.txt
+
+.. _nn_cli-quickstart:
+
+Using CLI via an Example
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Step 1. Data Preparation
+------------------------
+
+Create a data sub-directory within LibMultiLabel and go to this sub-directory.
+
+.. code-block:: bash
+
+    mkdir -p data/rcv1
+    cd data/rcv1
+
+Download the RCV1 :ref:`libmultilabel-format` dataset from `LIBSVM Data <https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel.html>`_ by the following commands.
+
+.. code-block:: bash
+
+    wget -O train.txt.bz2 https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/rcv1_topics_train.txt.bz2
+    wget -O test.txt.bz2 https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/rcv1_topics_test.txt.bz2
+
+Uncompress data files and change the directory back to LibMultiLabel.
+
+.. code-block:: bash
+
+    bzip2 -d *.bz2
+    cd ../..
+
+See `Dataset Formats <ov_data_format.html#dataset-formats>`_ here if you want to use your own dataset.
+
+Step 2. Training and Prediction via an Example
+----------------------------------------------
+
+Train a CNN model and predict the test set by an example config. Use ``--cpu`` to run the program on the cpu.
+
+.. code-block:: bash
+
+    python3 main.py --config example_config/rcv1/kim_cnn.yml
+
+----------------------------------------------
+
+.. _nn_train:
+
 Training and (Optional) Prediction
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -53,6 +122,8 @@ Example lines in a configuration file:
 
 If ``test_path`` is specified or ``DATA_DIR/test.txt`` exists, the model with the highest ``val_metric`` will be used to predict the test set.
 
+.. _nn_predict:
+
 Prediction
 ^^^^^^^^^^
 
@@ -69,6 +140,8 @@ To deploy/evaluate a model (i.e., a pre-obtained checkpoint), you can predict a 
 
 - Use ``--save_k_predictions`` to save the top K predictions for each instance in the test set. K=100 if not specified.
 - Use ``--predict_out_path`` to specify the file for storing the predicted top-K labels/scores.
+
+.. _nn_hs:
 
 Hyperparameter Search
 ^^^^^^^^^^^^^^^^^^^^^

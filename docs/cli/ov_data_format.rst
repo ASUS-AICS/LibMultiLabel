@@ -1,5 +1,25 @@
+Overview and Dataset Formats
+============================
+
+Overview
+^^^^^^^^
+
+To work with the command line interface, see the following sections according to your needs.
+
+    - `Training and Prediction for Linear Classifiers <linear.html>`_
+    - `Training, Prediction, and Hyperparameter Search for Neural Networks <nn.html>`_
+
+The following :ref:`data_format` are introduced for users who want to use their own dataset.
+
+    - :ref:`libmultilabel-format`
+    - :ref:`libsvm-format`
+
+----------------------------
+
+.. _data_format:
+
 Dataset Formats
-===============
+^^^^^^^^^^^^^^^
 
 The input data for building train, test, and validation datasets must have specific formats.
 For neural networks, the only accepted format is the
