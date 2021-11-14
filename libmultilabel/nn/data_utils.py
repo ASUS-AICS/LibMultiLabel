@@ -135,10 +135,6 @@ def load_datasets(
     Returns:
         dict: A dictionary of datasets.
     """
-    train_path = train_path or os.path.join(data_dir, 'train.txt')
-    val_path = val_path or os.path.join(data_dir, 'valid.txt')
-    test_path = test_path or os.path.join(data_dir, 'test.txt')
-
     datasets = {}
     if is_eval:
         datasets['test'] = _load_raw_data(test_path, is_test=True)
