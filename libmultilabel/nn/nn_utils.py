@@ -103,7 +103,10 @@ def init_trainer(checkpoint_dir,
                  mode='max',
                  val_metric='P@1',
                  silent=False,
-                 use_cpu=False):
+                 use_cpu=False,
+                 limit_train_batches=1.0,
+                 limit_val_batches=1.0,
+                 limit_test_batches=1.0):
     """Initialize a torch lightning trainer.
 
     Args:
@@ -114,7 +117,9 @@ def init_trainer(checkpoint_dir,
         val_metric (str): The metric to monitor for early stopping. Defaults to 'P@1'.
         silent (bool): Enable silent mode. Defaults to False.
         use_cpu (bool): Disable CUDA. Defaults to False.
-
+        limit_train_batches(Union[int, float]): Percentage of training dataset to use. Defaults to 1.0.
+        limit_val_batches(Union[int, float]): Percentage of validation dataset to use. Defaults to 1.0.
+        limit_test_batches(Union[int, float]): Percentage of test dataset to use. Defaults to 1.0.
     Returns:
         pl.Trainer: A torch lightning trainer.
     """
@@ -128,7 +133,10 @@ def init_trainer(checkpoint_dir,
                          gpus=0 if use_cpu else 1,
                          progress_bar_refresh_rate=0 if silent else 1,
                          max_epochs=epochs,
-                         callbacks=[checkpoint_callback, earlystopping_callback])
+                         callbacks=[checkpoint_callback, earlystopping_callback],
+                         limit_train_batches=limit_train_batches,
+                         limit_val_batches=limit_val_batches,
+                         limit_test_batches=limit_test_batches)
     return trainer
 
 

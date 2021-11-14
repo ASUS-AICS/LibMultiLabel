@@ -104,6 +104,14 @@ def get_config():
     parser.add_argument('--predict_out_path',
                         help='Path to the an output file holding top k label results (default: %(default)s)')
 
+    # auto-test
+    parser.add_argument('--limit_train_batches', type=float, default=1.0,
+                        help='Percentage of train dataset to use for auto-testing (default: %(default)s)')
+    parser.add_argument('--limit_val_batches', type=float, default=1.0,
+                        help='Percentage of validation dataset to use for auto-testing (default: %(default)s)')
+    parser.add_argument('--limit_test_batches', type=float, default=1.0,
+                        help='Percentage of test dataset to use for auto-testing (default: %(default)s)')
+
     # others
     parser.add_argument('--cpu', action='store_true',
                         help='Disable CUDA')
@@ -187,6 +195,7 @@ def linear_train(datasets, config):
     )
     return model
 
+
 def linear_run(config):
     if config.eval:
         preprocessor, model = linear.load_pipeline(config.checkpoint_path)
@@ -202,6 +211,7 @@ def linear_run(config):
     if os.path.exists(config.test_path):
         linear_test(config, model, datasets)
     # TODO: dump logs?
+
 
 def main():
     # Get config
