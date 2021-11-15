@@ -23,6 +23,8 @@ The simplest usage is::
 .. autoclass:: Preprocessor
    :members:
 
+   .. automethod:: __init__
+
 .. autofunction:: save_pipeline
 
 .. autofunction:: load_pipeline
