@@ -14,6 +14,10 @@ The simplest usage is::
 
 .. autofunction:: train_1vsrest
 
+.. autofunction:: train_thresholding
+
+.. autofunction:: train_cost_sensitive
+
 .. autofunction:: predict_values
 
 .. autoclass:: Preprocessor
