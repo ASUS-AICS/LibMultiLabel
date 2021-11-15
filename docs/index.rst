@@ -26,6 +26,7 @@ You can use the `Command Line Interface <cli/ov_data_format.html>`_  or the `API
    :hidden:
 
    api/api
+   api/linear_tutorial
    api/linear
    api/nn
 
