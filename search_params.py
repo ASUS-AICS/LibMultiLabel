@@ -188,9 +188,7 @@ def retrain_best_model(log_path, merge_train_val=False):
     best_config.checkpoint_dir = os.path.join(best_config.result_dir, best_config.run_name)
     best_config.log_path = os.path.join(best_config.checkpoint_dir, 'logs.json')
 
-    if merge_train_val:
-        logging.info('Use the full training data to retrain the best model.')
-        data = load_static_data(best_config, merge_train_val=merge_train_val)
+    data = load_static_data(best_config, merge_train_val=merge_train_val)
 
     logging.info(f'Retraining with best config: \n{best_config}')
     trainer = TorchTrainer(config=best_config, **data)
