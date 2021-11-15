@@ -49,18 +49,16 @@ class Trainable(tune.Trainable):
                                word_dict=self.word_dict)
         trainer.train()
 
-        # Test the model on test/validation set.
-        test_val_results = dict()
-        for split in ['test', 'val'] & self.datasets.keys():
-            metric_dict = trainer.test(split=split)
-            for k, v in metric_dict.items():
-                test_val_results[f'{split}_{k}'] = v*100
+        # Test the model on the validation set.
+        metric_dict = trainer.test(split='val')
+        val_results = {f'val_{k}': v*100 for k, v in metric_dict.items()}
 
         # Remove *.ckpt.
         for model_path in glob.glob(os.path.join(self.config.result_dir, self.config.run_name, '*.ckpt')):
             logging.info(f'Removing {model_path} ...')
             os.remove(model_path)
-        return test_val_results
+
+        return val_results
 
 
 def load_config_from_file(config_path):
@@ -197,7 +195,9 @@ def retrain_best_model(log_path, merge_train_val=False):
     logging.info(f'Retraining with best config: \n{best_config}')
     trainer = TorchTrainer(config=best_config, **data)
     trainer.train()
-    trainer.test()
+
+    if 'test' in data:
+        trainer.test()
     logging.info(f'Best model saved to {trainer.checkpoint_callback.best_model_path or trainer.checkpoint_callback.last_model_path}.')
 
 
@@ -219,6 +219,7 @@ def main():
                         help='Search algorithms (default: %(default)s)')
     parser.add_argument('--merge_train_val', action='store_true',
                         help='Merge the training and validation data after parameter search.')
+    parser.add_argument('--retrain_best', action='store_true', help='Retrain the best model.')
     args, _ = parser.parse_known_args()
 
     # Load config from the config file and overwrite values specified in CLI.
@@ -241,9 +242,7 @@ def main():
       so we parse the whole config to `tune.run` here for simplicity.
     """
     data = load_static_data(config)
-    all_monitor_metrics = [f'{split}_{metric}' for split, metric in itertools.product(
-        ['val', 'test'], config.monitor_metrics)]
-    reporter = tune.CLIReporter(metric_columns=all_monitor_metrics,
+    reporter = tune.CLIReporter(metric_columns=[f'val_{metric}' for metric in config.monitor_metrics],
                                 parameter_columns=parameter_columns,
                                 metric=f'val_{config.val_metric}',
                                 mode=args.mode,
@@ -262,8 +261,9 @@ def main():
         config=config)
 
     # Save best model after parameter search.
-    log_path = os.path.join(analysis.get_best_logdir(f'val_{config.val_metric}', args.mode), 'result.json')
-    retrain_best_model(log_path, args.merge_train_val)
+    if args.retrain_best:
+        log_path = os.path.join(analysis.get_best_logdir(f'val_{config.val_metric}', args.mode), 'result.json')
+        retrain_best_model(log_path, args.merge_train_val)
 
 
 # calculate wall time.
