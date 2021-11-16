@@ -1,5 +1,5 @@
-Linear Classifier Module
-========================
+Linear Classifier API
+=====================
 
 Linear methods are methods based on
 `LibLinear <https://www.csie.ntu.edu.tw/~cjlin/liblinear/>`_.
