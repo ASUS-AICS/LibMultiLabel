@@ -89,6 +89,11 @@ def load_config_from_file(config_path):
         if isinstance(v, str) and os.path.exists(v):
             config[k] = os.path.abspath(v)
 
+    # find `train.txt`, `val.txt`, and `test.txt` from the data directory if not specified.
+    config['train_path'] = config['train_path'] or os.path.join(config['data_dir'], 'train.txt')
+    config['val_path'] = config['val_path'] or os.path.join(config['data_dir'], 'valid.txt')
+    config['test_path'] = config['test_path'] or os.path.join(config['data_dir'], 'test.txt')
+
     set_seed(seed=config['seed'])
     return config
 
@@ -156,12 +161,10 @@ def load_static_data(config):
     Returns:
         dict: A dict of static data containing datasets, classes, and word_dict.
     """
-    datasets = data_utils.load_datasets(data_dir=config.data_dir,
-                                        train_path=config.train_path,
+    datasets = data_utils.load_datasets(train_path=config.train_path,
                                         test_path=config.test_path,
                                         val_path=config.val_path,
-                                        val_size=config.val_size,
-                                        is_eval=config.eval)
+                                        val_size=config.val_size)
     return {
         "datasets": datasets,
         "word_dict": data_utils.load_or_build_text_dict(

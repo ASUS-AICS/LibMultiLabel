@@ -113,40 +113,37 @@ def _load_raw_data(path, is_test=False):
 
 
 def load_datasets(
-    data_dir,
     train_path=None,
     test_path=None,
     val_path=None,
-    val_size=0.2,
-    is_eval=False
+    val_size=0.2
 ):
-    """Load data either from the specified data paths (i.e., `train_path`, `test_path`, and `val_path`)
-    or from the data files (i.e., `train.txt`, `test.txt`, and `valid.txt`) in the data directory.
+    """Load data from the specified data paths (i.e., `train_path`, `test_path`, and `val_path`).
     If `valid.txt` does not exist but `val_size` > 0, the validation set will be split from the training dataset.
 
     Args:
-        data_dir (str): The directory with `train.txt`, `test.txt`, and `valid.txt`.
         train_path (str, optional): Path to training data.
         test_path (str, optional): Path to test data.
         val_path (str, optional): Path to validation data.
         val_size (float, optional): Training-validation split: a ratio in [0, 1] or an integer for the size of the validation set. Defaults to 0.2.
-        is_eval (bool, optional): Load test data only. Defaults to False.
 
     Returns:
         dict: A dictionary of datasets.
     """
+    assert train_path or test_path, "At least one of `train_path` and `test_path` must be specified."
+
     datasets = {}
-    if is_eval:
-        datasets['test'] = _load_raw_data(test_path, is_test=True)
-    else:
-        if os.path.exists(test_path):
-            datasets['test'] = _load_raw_data(test_path, is_test=True)
+    if train_path is not None and os.path.exists(train_path):
         datasets['train'] = _load_raw_data(train_path)
-        if os.path.exists(val_path):
-            datasets['val'] = _load_raw_data(val_path)
-        elif val_size > 0:
-            datasets['train'], datasets['val'] = train_test_split(
-                datasets['train'], test_size=val_size, random_state=42)
+
+    if val_path is not None and os.path.exists(val_path):
+        datasets['val'] = _load_raw_data(val_path)
+    elif val_size > 0:
+        datasets['train'], datasets['val'] = train_test_split(
+            datasets['train'], test_size=val_size, random_state=42)
+
+    if test_path is not None and os.path.exists(test_path):
+        datasets['test'] = _load_raw_data(test_path, is_test=True)
 
     msg = ' / '.join(f'{k}: {len(v)}' for k, v in datasets.items())
     logging.info(f'Finish loading dataset ({msg})')
