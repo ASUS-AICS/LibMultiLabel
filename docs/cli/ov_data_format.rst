@@ -1,20 +1,41 @@
-Overview and Dataset Formats
-============================
+Dataset Formats, Installation, and Modules
+==========================================
 
-Overview
-^^^^^^^^
-
-To work with the command line interface, see the following sections according to your needs.
-
-    - `Training and Prediction for Linear Classifiers <linear.html>`_
-    - `Training, Prediction, and Hyperparameter Search for Neural Networks <nn.html>`_
-
-The following :ref:`data_format` are introduced for users who want to use their own dataset.
+The :ref:`data_format` contains:
 
     - :ref:`libmultilabel-format`
     - :ref:`libsvm-format`
 
-----------------------------
+To work with the command line interface, firstly
+
+    - :ref:`installation`
+
+Then the following modules are available.
+
+    - `Training and Prediction for Linear Classifiers <linear.html>`_
+    - `Training, Prediction, and Hyperparameter Search for Neural Networks <nn.html>`_
+
+-------------------------------------------
+
+.. _installation:
+
+Install LibMultiLabel from Source
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* Clone `LibMultiLabel <https://github.com/ASUS-AICS/LibMultiLabel>`_.
+
+.. code-block:: bash
+
+    git clone https://github.com/ASUS-AICS/LibMultiLabel.git
+    cd LibMultiLabel
+
+* Install the latest development version, run:
+
+.. code-block:: bash
+
+    pip3 install -r requirements.txt
+
+---------------------------------
 
 .. _data_format:
 

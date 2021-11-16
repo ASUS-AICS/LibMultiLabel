@@ -3,7 +3,6 @@ Training, Prediction, and Hyperparameter Search for Neural Networks
 
 For users who are just getting started, see:
 
-    - :ref:`nn_installation`
     - :ref:`nn_cli-quickstart`
 
 If you have been familiar with the basic operations, see:
@@ -13,18 +12,6 @@ If you have been familiar with the basic operations, see:
     - :ref:`nn_hs`
 
 -------------------------------------------------------------------
-
-.. _nn_installation:
-
-Install LibMultiLabel from Source
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-* Clone `LibMultiLabel <https://github.com/ASUS-AICS/LibMultiLabel>`_.
-* Install the latest development version, run:
-
-.. code-block:: bash
-
-    pip3 install -r requirements.txt
 
 .. _nn_cli-quickstart:
 
