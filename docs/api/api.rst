@@ -1,12 +1,17 @@
-Using APIs
-==========
+Getting Started
+===============
 
-The API library is composed of a `linear classifier module <linear.html>`_ and a `neural network classifier module <nn.html>`_::
+The library API is used in your own scripts if you want
+more fine grained control over the training/prediction process.
+For an application usable out-of-the-box, see the
+`command line interface <../cli/linear.rst>`_ instead.
 
-   import libmultilabel.nn
-   import libmultilabel.linear
+The library API is composed of a `linear classifier module <linear.html>`_ and a `neural network classifier module <nn.html>`_::
 
-----------
+    import libmultilabel.nn
+    import libmultilabel.linear
+
+Both of which can be used independently.
 
 Installation
 ^^^^^^^^^^^^
@@ -21,99 +26,14 @@ We provide two installation types to install LibMultiLabel:
 
     pip3 install libmultilabel[linear]
 
+Quickstart Tutorials
+^^^^^^^^^^^^^^^^^^^^
 
-Using APIs via an Example
-^^^^^^^^^^^^^^^^^^^^^^^^^
+These tutorials shows how the library API may be used in
+end-to-end examples. After these tutorials, more in-depth
+explanations can be found in the `user guides <placeholder>`_.
 
-In this section, we will introduce the neural network methods via a simple example.
-You will learn how to:
-
-    * Preprocess datasets.
-    * Initialize a model.
-    * Train and test a ``KimCNN`` model on the RCV1 dataset.
-
-Before we started, make sure you import methods below:
-
-.. literalinclude:: ../examples/nn_quickstart.py
-    :language: python3
-    :lines: 3-5
-
-Step 0. Setup seed and device
------------------------------
-
-Let's start by setting up the seed and device.
-
-.. literalinclude:: ../examples/nn_quickstart.py
-    :language: python3
-    :lines: 9-10
-
-Step 1. Load data from text files
----------------------------------
-
-Now we're going to process the RCV1 data.
-First, create the training, test, and validation (optional) datasets from text files.
-
-    * Put ``train.txt`` and ``test.txt`` in your data directory (i.e., ``data/rcv1``).
-    * Load and preprocess raw data with ``data_utils.load_datasets``.
-      The function performs a training-validation split based on the ``val_size``.
-      You can also provide your own validation set by adding ``valid.txt`` in the data directory.
-
-Then, build labels and word dictionary with datasets generated above.
-You can either choose one of the pretrained embeddings defined in torchtext or specify the path
-to your word embeddings with each line containing a word followed by its vectors.
-
-.. literalinclude:: ../examples/nn_quickstart.py
-    :language: python3
-    :lines: 13-16
-
-Step 2. Initialize a model
---------------------------
-
-Here we show how to create a model.
-
-    * Configure the network with `model_name <nn_networks.html>`_ and ``network_config``.
-    * Define labels and text dictionary (i.e., ``classes`` and ``word_dict``) of this model.
-    * Find `more here <../api/nn.html#libmultilabel.nn.nn_utils.init_model>`_ if you are interested in other settings.
-      For example, a ``moniter_metrics`` is used to define the metrics you'd like to keep track with during the training procedure.
-
-.. literalinclude:: ../examples/nn_quickstart.py
-    :language: python3
-    :lines: 19-28
-
-Step 3. Initialize trainer
---------------------------
-
-To train the model, we need a trainer to control processes like training loop or validation.
-
-.. literalinclude:: ../examples/nn_quickstart.py
-    :language: python3
-    :lines: 31-34
-
-Step 4. Create data loaders
----------------------------
-
-Create pytorch data loaders for datasets we created in
-`Step 1 <../guides/nn_guides.html#step-1-load-data-from-text-files>`_.
-
-.. literalinclude:: ../examples/nn_quickstart.py
-    :language: python3
-    :lines: 37-43
-
-Step 5. Train and test the model
---------------------------------
-
-Everything's ready. Let's start training with ``trainer.train``.
-
-.. literalinclude:: ../examples/nn_quickstart.py
-    :language: python3
-    :lines: 46-46
+* `Neural Network <nn_tutorial.html>`_
+* `Linear Classification <linear_tutorial.html>`_
 
 
-When training is finished, test the model with ``trainer.test``.
-
-.. literalinclude:: ../examples/nn_quickstart.py
-    :language: python3
-    :lines: 49-49
-
-
-Get the full source code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/nn_quickstart.py>`_.
