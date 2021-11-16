@@ -51,6 +51,8 @@ def get_config():
                         help='The maximum number of tokens of a sample (default: %(default)s)')
     parser.add_argument('--shuffle', type=bool, default=True,
                         help='Whether to shuffle training data before each epoch (default: %(default)s)')
+    parser.add_argument('--merge_train_val', action='store_true',
+                        help='Whether to merge the training and validation data. (default: %(default)s)')
 
     # train
     parser.add_argument('--seed', type=int,
