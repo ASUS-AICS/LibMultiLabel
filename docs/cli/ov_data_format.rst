@@ -1,7 +1,7 @@
 Dataset Formats, Installation, and Modules
 ==========================================
 
-The :ref:`data_format` contains:
+The supported :ref:`data_format` include:
 
     - :ref:`libmultilabel-format`
     - :ref:`libsvm-format`
