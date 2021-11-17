@@ -43,6 +43,7 @@ class TorchTrainer:
                 test_path=config.test_path,
                 val_path=config.val_path,
                 val_size=config.val_size,
+                merge_train_val=config.merge_train_val
             )
         else:
             self.datasets = datasets
@@ -60,6 +61,8 @@ class TorchTrainer:
                                     limit_train_batches=config.limit_train_batches,
                                     limit_val_batches=config.limit_val_batches,
                                     limit_test_batches=config.limit_test_batches)
+        self.checkpoint_callback = [
+            callback for callback in self.trainer.callbacks if isinstance(callback, ModelCheckpoint)][0]
 
         # Dump config to log
         dump_log(self.log_path, config=config)
@@ -161,8 +164,7 @@ class TorchTrainer:
 
         # Set model to the best model. If the validation process is skipped during
         # training (i.e., val_size=0), the model is set to the last model.
-        checkpoint_callback = [callback for callback in self.trainer.callbacks if isinstance(callback, ModelCheckpoint)][0]
-        model_path = checkpoint_callback.best_model_path or checkpoint_callback.last_model_path
+        model_path = self.checkpoint_callback.best_model_path or self.checkpoint_callback.last_model_path
         logging.info(f'Finished training. Load best model from {model_path}.')
         self._setup_model(checkpoint_path=model_path)
 

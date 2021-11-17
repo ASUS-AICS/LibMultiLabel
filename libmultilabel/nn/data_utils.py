@@ -1,4 +1,5 @@
 import collections
+import gc
 import logging
 import os
 import warnings
@@ -116,7 +117,8 @@ def load_datasets(
     train_path=None,
     test_path=None,
     val_path=None,
-    val_size=0.2
+    val_size=0.2,
+    merge_train_val=False
 ):
     """Load data from the specified data paths (i.e., `train_path`, `test_path`, and `val_path`).
     If `valid.txt` does not exist but `val_size` > 0, the validation set will be split from the training dataset.
@@ -126,6 +128,8 @@ def load_datasets(
         test_path (str, optional): Path to test data.
         val_path (str, optional): Path to validation data.
         val_size (float, optional): Training-validation split: a ratio in [0, 1] or an integer for the size of the validation set. Defaults to 0.2.
+        merge_train_val (bool, optional): Whether to merge the training and validation data.
+            Defaults to False.
 
     Returns:
         dict: A dictionary of datasets.
@@ -144,6 +148,13 @@ def load_datasets(
 
     if test_path is not None and os.path.exists(test_path):
         datasets['test'] = _load_raw_data(test_path, is_test=True)
+
+    if merge_train_val:
+        datasets['train'] = datasets['train'] + datasets['val']
+        for i in range(len(datasets['train'])):
+            datasets['train'][i]['index'] = i
+        del datasets['val']
+        gc.collect()
 
     msg = ' / '.join(f'{k}: {len(v)}' for k, v in datasets.items())
     logging.info(f'Finish loading dataset ({msg})')
