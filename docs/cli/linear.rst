@@ -76,18 +76,13 @@ For training, use
 
 - **config**: configure parameters in a yaml file.  A validation set is not needed because the program may split the training set for internal validation. If specified, it will be ignored.
 
-The linear classifiers are based on LIBLINEAR, and its options may be specified.
+The linear classifiers are based on `LIBLINEAR <https://www.csie.ntu.edu.tw/~cjlin/liblinear/>`_, and its options may be specified.
 
 - **linear**: When this option exists, it is set to True to tell program that the linear classifier is used. Defaults to False.
 
 - **liblinear_options**: An `option string for LIBLINEAR <https://github.com/cjlin1/liblinear>`_.
 
 - **linear_technique**: An option for multi-label techniques. We now support ``1vsrest`` (implementing one-vs-rest technique), ``thresholding`` (implementing thresholding technique), and ``cost_sensitive`` (implementing cost-sensitive technique).
-
-.. code-block:: bash
-
-    python3 main.py --config example_config/rcv1/l2svm.yml --linear --linear_technique 1vsrest
-    python3 main.py --config example_config/rcv1/l2svm.yml --linear --linear_technique thresholding
 
 .. _linear_predict:
 
