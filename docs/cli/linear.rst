@@ -74,7 +74,7 @@ For training, use
                     --liblinear_options LIBLINEAR_OPTIONS \
                     --linear_technique MULTILABEL_TECHNIQUE
 
-- **config**: configure parameters in a yaml file. Notice that the validation set is not needed to be specified additionally as the program will ignore it.
+- **config**: configure parameters in a yaml file.  A validation set is not needed because the program may split the training set for internal validation. If specified, it will be ignored.
 
 The linear classifiers are based on LIBLINEAR, and its options may be specified.
 
