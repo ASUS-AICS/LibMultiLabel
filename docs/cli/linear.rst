@@ -78,7 +78,7 @@ For training, use
 
 The linear classifiers are based on `LIBLINEAR <https://www.csie.ntu.edu.tw/~cjlin/liblinear/>`_, and its options may be specified.
 
-- **linear**: When this option exists, it is set to True such that the linear classifiers will be run. Otherwise it is set to False by default such that the program will execute the neural netowrk module.
+- **linear**: When this option exists, it is set to True such that the linear classifiers will be run. Otherwise it is set to False by default such that the program will terminate as the neural netowrk module will be executed.
 
 - **liblinear_options**: An `option string for LIBLINEAR <https://github.com/cjlin1/liblinear>`_.
 
