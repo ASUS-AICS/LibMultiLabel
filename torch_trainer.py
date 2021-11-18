@@ -39,12 +39,10 @@ class TorchTrainer:
         # Load dataset
         if datasets is None:
             self.datasets = data_utils.load_datasets(
-                data_dir=config.data_dir,
                 train_path=config.train_path,
                 test_path=config.test_path,
                 val_path=config.val_path,
                 val_size=config.val_size,
-                is_eval=config.eval,
                 merge_train_val=config.merge_train_val
             )
         else:
