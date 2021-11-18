@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from libmultilabel.nn.data_utils import load_datasets, load_or_build_label, \
                                         load_or_build_text_dict, get_dataset_loader
 from libmultilabel.nn.nn_utils import init_device, init_model, init_trainer, set_seed
@@ -28,7 +26,7 @@ model = init_model(model_name='KimCNN',
                    monitor_metrics=['P@1'])
 
 # Step 3. Initialize trainier.
-checkpoint_dir = f'runs/rcv1-KimCNN-example_{datetime.now().strftime("%Y%m%d%H%M%S")}'
+checkpoint_dir = f'runs/rcv1-KimCNN-example'
 trainer = init_trainer(checkpoint_dir=checkpoint_dir,
                        val_metric='P@1',
                        epochs=50)
