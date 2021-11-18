@@ -8,7 +8,7 @@ and a simple command line tool with the following functionalities
 - support for common neural network architectures and linear classsifiers
 - easy hyper-parameter selection
 
-You can use the `Command Line Interface <cli/cli.html>`_  or the `APIs <api/api.html>`_ to work with LibMultiLabel.
+You can use the `Command Line Interface <cli/ov_data_format.html>`_  or the `APIs <api/api.html>`_ to work with LibMultiLabel.
 
 
 .. toctree::
@@ -16,8 +16,7 @@ You can use the `Command Line Interface <cli/cli.html>`_  or the `APIs <api/api.
     :maxdepth: 1
     :hidden:
 
-    cli/cli
-    cli/data_format
+    cli/ov_data_format
     cli/linear
     cli/nn
 
