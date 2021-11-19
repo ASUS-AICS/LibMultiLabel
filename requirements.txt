@@ -3,9 +3,10 @@ pandas
 PyYAML
 scikit-learn
 torch==1.8.0
-torchmetrics==0.3.2
+torchmetrics==0.6.0
 torchtext==0.9.0
 pytorch-lightning==1.3.5
 tqdm
-liblinear-official
+liblinear-multicore
+numba
 scipy

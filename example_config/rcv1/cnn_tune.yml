@@ -10,6 +10,7 @@ epochs: 50
 batch_size: 64
 optimizer: adam
 learning_rate: ['uniform', 0.0003, 0.001]
+momentum: 0.9
 weight_decay: 0
 patience: 5
 shuffle: true
@@ -31,20 +32,25 @@ network_config:
 # pretrained vocab / embeddings
 embed_file: glove.6B.300d
 vocab_file: null
+normalize_embed: false
 
 # hyperparamter search
 search_alg: basic_variant
 embed_cache_dir: .vector_cache
-num_samples: 10
+num_samples: 10 # run `2 (number of grid_search) * num_samples` trials
 
 # other parameters specified in main.py::get_args
-config: example_config/rcv1/cnn_tune.yml
+checkpoint_path: null
 cpu: false
 data_workers: 4
 eval: false
 label_file: null
+limit_train_batches: 1.0
+limit_val_batches: 1.0
+limit_test_batches: 1.0
 metric_threshold: 0.5
 result_dir: runs
+save_k_predictions: 0
 silent: true
 test_path: data/rcv1/test.txt
 train_path: data/rcv1/train.txt

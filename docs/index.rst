@@ -8,81 +8,32 @@ and a simple command line tool with the following functionalities
 - support for common neural network architectures and linear classsifiers
 - easy hyper-parameter selection
 
-The tool is used as::
+You can use the `Command Line Interface <cli/ov_data_format.html>`_  or the `APIs <api/api.html>`_ to work with LibMultiLabel.
 
-   python3 main.py --config main_config.yml
-   python3 search_params.py --config search_config.yml
-
-The library is composed of a neural network module and a linear classifier module::
-
-   import libmultilabel.nn
-   import libmultilabel.linear
-
-
-Quick Start via an Example
---------------------------
-
-1. Data Preparation
-
-   * Create a data sub-directory within ``LibMultiLabel`` and go to this sub-directory::
-
-      mkdir -p data/rcv1
-      cd data/rcv1
-
-   * Download the ``rcv1`` dataset from `LIBSVM data sets <https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets>`_ by the following commands::
-
-      wget -O train.txt.bz2 https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/rcv1_topics_train.txt.bz2
-      wget -O test.txt.bz2 https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/rcv1_topics_test.txt.bz2
-
-   * Uncompress data files and change the directory back to ``LibMultiLabel``::
-
-      bzip2 -d *.bz2
-      cd ../..
-
-2. Training and Prediction
-
-   Train a cnn model and predict the test set by an example config. Use ``--cpu`` to run the program on the cpu::
-
-      python3 main.py --config example_config/rcv1/kim_cnn.yml
-
-   For more details about the usage see the `command line interface <cli.html>`_.
-
-.. toctree::
-    :caption: Environments and Installation
-    :maxdepth: 1
-
-    installation
 
 .. toctree::
     :caption: Command Line Interface
     :maxdepth: 1
+    :hidden:
 
-    cli
-
-..
-   .. toctree::
-      :caption: User Guide
-      :maxdepth: 2
-
-      guides/linear_guides
-      guides/nn_guides
+    cli/ov_data_format
+    cli/linear
+    cli/nn
 
 .. toctree::
-   :caption: API Documentation
+   :caption: APIs
    :maxdepth: 1
+   :hidden:
 
+   api/api
    api/linear
    api/nn
 
-.. toctree::
-   :caption: API Tutorial
-   :maxdepth: 1
 
-   api_tutorial/nn_tutorial
+..
+   Indices and tables
+   ------------------
 
-Indices and tables
-------------------
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   * :ref:`genindex`
+   * :ref:`modindex`
+   * :ref:`search`

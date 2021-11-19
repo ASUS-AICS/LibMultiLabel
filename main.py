@@ -51,6 +51,8 @@ def get_config():
                         help='The maximum number of tokens of a sample (default: %(default)s)')
     parser.add_argument('--shuffle', type=bool, default=True,
                         help='Whether to shuffle training data before each epoch (default: %(default)s)')
+    parser.add_argument('--merge_train_val', action='store_true',
+                        help='Whether to merge the training and validation data. (default: %(default)s)')
 
     # train
     parser.add_argument('--seed', type=int,
@@ -77,18 +79,6 @@ def get_config():
                         help='Model to be used (default: %(default)s)')
     parser.add_argument('--init_weight', default='kaiming_uniform',
                         help='Weight initialization to be used (default: %(default)s)')
-    parser.add_argument('--activation', default='relu',
-                        help='Activation function to be used (default: %(default)s)')
-    parser.add_argument('--num_filter_per_size', type=int, default=128,
-                        help='Number of filters in convolutional layers in each size (default: %(default)s)')
-    parser.add_argument('--filter_sizes', type=int, nargs='+',
-                        default=[4], help='Size of convolutional filters (default: %(default)s)')
-    parser.add_argument('--dropout', type=float, default=0.2,
-                        help='Optional specification of dropout (default: %(default)s)')
-    parser.add_argument('--dropout2', type=float, default=0.2,
-                        help='Optional specification of the second dropout (default: %(default)s)')
-    parser.add_argument('--num_pool', type=int, default=1,
-                        help='Number of pool for dynamic max-pooling (default: %(default)s)')
 
     # eval
     parser.add_argument('--eval_batch_size', type=int, default=256,
@@ -114,6 +104,14 @@ def get_config():
     parser.add_argument('--predict_out_path',
                         help='Path to the an output file holding top k label results (default: %(default)s)')
 
+    # auto-test
+    parser.add_argument('--limit_train_batches', type=float, default=1.0,
+                        help='Percentage of train dataset to use for auto-testing (default: %(default)s)')
+    parser.add_argument('--limit_val_batches', type=float, default=1.0,
+                        help='Percentage of validation dataset to use for auto-testing (default: %(default)s)')
+    parser.add_argument('--limit_test_batches', type=float, default=1.0,
+                        help='Percentage of test dataset to use for auto-testing (default: %(default)s)')
+
     # others
     parser.add_argument('--cpu', action='store_true',
                         help='Disable CUDA')
@@ -135,8 +133,12 @@ def get_config():
                         help='\'svm\' for SVM format or \'txt\' for LibMultiLabel format (default: %(default)s)')
     parser.add_argument('--liblinear_options', type=str,
                         help='Options passed to liblinear (default: %(default)s)')
+    parser.add_argument('--linear_technique', type=str, default='1vsrest',
+                    help='Technique for linear classification (default: %(default)s)')
 
-    parser.add_argument('-h', '--help', action='help')
+    parser.add_argument('-h', '--help', action='help',
+                        help="""If you are trying to specify network config such as dropout or activation, use a yaml file instead.
+                                See example config for more information (https://github.com/ASUS-AICS/LibMultiLabel/tree/master/example_config)')""")
 
     parser.set_defaults(**config)
     args = parser.parse_args()
@@ -149,6 +151,10 @@ def get_config():
     )
     config.checkpoint_dir = os.path.join(config.result_dir, config.run_name)
     config.log_path = os.path.join(config.checkpoint_dir, 'logs.json')
+
+    config.train_path = config.train_path or os.path.join(config.data_dir, 'train.txt')
+    config.val_path = config.val_path or os.path.join(config.data_dir, 'valid.txt')
+    config.test_path = config.test_path or os.path.join(config.data_dir, 'test.txt')
 
     return config
 
@@ -183,12 +189,32 @@ def linear_test(config, model, datasets):
 
 
 def linear_train(datasets, config):
-    model = linear.train_1vsrest(
+    techniques = {'1vsrest': linear.train_1vsrest,
+               'thresholding': linear.train_thresholding,
+               'cost_sensitive': linear.train_cost_sensitive}
+    model = techniques[config.linear_technique](
         datasets['train']['y'],
         datasets['train']['x'],
         config.liblinear_options,
     )
     return model
+
+
+def linear_run(config):
+    if config.eval:
+        preprocessor, model = linear.load_pipeline(config.checkpoint_path)
+        datasets = preprocessor.load_data(
+            config.train_path, config.test_path, config.eval)
+    else:
+        preprocessor = linear.Preprocessor(data_format=config.data_format)
+        datasets = preprocessor.load_data(
+            config.train_path, config.test_path, config.eval)
+        model = linear_train(datasets, config)
+        linear.save_pipeline(config.checkpoint_dir, preprocessor, model)
+
+    if os.path.exists(config.test_path):
+        linear_test(config, model, datasets)
+    # TODO: dump logs?
 
 
 def main():
@@ -204,20 +230,9 @@ def main():
     logging.info(f'Run name: {config.run_name}')
 
     if config.linear:
-        if config.eval:
-            preprocessor, model = linear.load_pipeline(config.checkpoint_path)
-            datasets = preprocessor.load_data()
-        else:
-            preprocessor = linear.Preprocessor(config)
-            datasets = preprocessor.load_data()
-            model = linear_train(datasets, config)
-            linear.save_pipeline(config.checkpoint_dir, preprocessor, model)
-
-        if os.path.exists(config.test_path):
-            linear_test(config, model, datasets)
-        # TODO: dump logs?
+        linear_run(config)
     else:
-        trainer = TorchTrainer(config) # initialize trainer
+        trainer = TorchTrainer(config)  # initialize trainer
         # train
         if not config.eval:
             trainer.train()

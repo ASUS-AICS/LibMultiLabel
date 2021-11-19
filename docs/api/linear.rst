@@ -1,5 +1,5 @@
-Linear Methods
-===============
+Linear Classifier Module
+========================
 
 Linear methods are methods based on
 `LibLinear <https://www.csie.ntu.edu.tw/~cjlin/liblinear/>`_.
@@ -13,6 +13,10 @@ The simplest usage is::
 .. currentmodule:: libmultilabel.linear
 
 .. autofunction:: train_1vsrest
+
+.. autofunction:: train_thresholding
+
+.. autofunction:: train_cost_sensitive
 
 .. autofunction:: predict_values
 
