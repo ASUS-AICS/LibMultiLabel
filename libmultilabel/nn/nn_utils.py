@@ -6,6 +6,7 @@ import torch
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.utilities.seed import seed_everything
+from ray.tune.integration.pytorch_lightning import TuneReportCallback
 
 from ..nn import networks
 from ..nn.model import Model
@@ -127,13 +128,14 @@ def init_trainer(checkpoint_dir,
     checkpoint_callback = ModelCheckpoint(
         dirpath=checkpoint_dir, filename='best_model', save_last=True,
         save_top_k=1, monitor=val_metric, mode=mode)
+    tune_callback = TuneReportCallback({f'val_{val_metric}': val_metric}, on="validation_end")
     earlystopping_callback = EarlyStopping(
         patience=patience, monitor=val_metric, mode=mode)
     trainer = pl.Trainer(logger=False, num_sanity_val_steps=0,
                          gpus=0 if use_cpu else 1,
                          progress_bar_refresh_rate=0 if silent else 1,
                          max_epochs=epochs,
-                         callbacks=[checkpoint_callback, earlystopping_callback],
+                         callbacks=[checkpoint_callback, earlystopping_callback, tune_callback],
                          limit_train_batches=limit_train_batches,
                          limit_val_batches=limit_val_batches,
                          limit_test_batches=limit_test_batches)

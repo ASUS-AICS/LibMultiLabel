@@ -60,6 +60,25 @@ class Trainable(tune.Trainable):
         return val_results
 
 
+def train_libmultilable_tune(config, datasets, classes, word_dict):
+    config.run_name = '{}_{}_{}'.format(
+        config.data_name,
+        Path(config.config).stem if config.config else config.model_name,
+        datetime.now().strftime('%Y%m%d%H%M%S')
+    )
+    # trial_id) TODO do with trial id later
+    logging.info(f'Run name: {config.run_name}')
+
+    config.checkpoint_dir = os.path.join(config.result_dir, config.run_name)
+    config.log_path = os.path.join(config.checkpoint_dir, 'logs.json')
+
+    trainer = TorchTrainer(config=config,
+                           datasets=datasets,
+                           classes=classes,
+                           word_dict=word_dict)
+    trainer.train()
+
+
 def load_config_from_file(config_path):
     """Initialize the model config.
 
@@ -248,8 +267,16 @@ def main():
                                 metric=f'val_{config.val_metric}',
                                 mode=args.mode,
                                 sort_by_metric=True)
+    # scheduler = ASHAScheduler(
+    #     max_t=100,
+    #     grace_period=1,
+    #     reduction_factor=2)
+    print(config)
     analysis = tune.run(
-        tune.with_parameters(Trainable, data=data),
+        tune.with_parameters(
+            train_libmultilable_tune,
+            **data),
+        # tune.with_parameters(Trainable, data=data),
         # run one step "libmultilabel.model.train"
         stop={"training_iteration": 1},
         search_alg=init_search_algorithm(
@@ -259,6 +286,7 @@ def main():
         resources_per_trial={
             'cpu': args.cpu_count, 'gpu': args.gpu_count},
         progress_reporter=reporter,
+        # scheduler=scheduler,
         config=config)
 
     # Save best model after parameter search.
