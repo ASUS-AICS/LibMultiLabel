@@ -20,53 +20,8 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s:%(message)s')
 
 
-class Trainable(tune.Trainable):
-    def setup(self, config, data):
-        self.config = AttributeDict(config)
-        self.datasets = data['datasets']
-        self.word_dict = data['word_dict']
-        self.classes = data['classes']
-        self.device = init_device(config.cpu)
-        set_seed(seed=self.config.seed)
-
-    def step(self):
-        self.config.run_name = '{}_{}_{}_{}'.format(
-            self.config.data_name,
-            Path(
-                self.config.config).stem if self.config.config else self.config.model_name,
-            datetime.now().strftime('%Y%m%d%H%M%S'),
-            self.trial_id
-        )
-        logging.info(f'Run name: {self.config.run_name}')
-
-        self.config.checkpoint_dir = os.path.join(self.config.result_dir, self.config.run_name)
-        self.config.log_path = os.path.join(self.config.checkpoint_dir, 'logs.json')
-
-        trainer = TorchTrainer(config=self.config,
-                               datasets=self.datasets,
-                               classes=self.classes,
-                               word_dict=self.word_dict)
-        trainer.train()
-
-        # Test the model on the validation set.
-        metric_dict = trainer.test(split='val')
-        val_results = {f'val_{k}': v*100 for k, v in metric_dict.items()}
-
-        # Remove *.ckpt.
-        for model_path in glob.glob(os.path.join(self.config.result_dir, self.config.run_name, '*.ckpt')):
-            logging.info(f'Removing {model_path} ...')
-            os.remove(model_path)
-
-        return val_results
-
-
 def train_libmultilable_tune(config, datasets, classes, word_dict):
-    config.run_name = '{}_{}_{}'.format(
-        config.data_name,
-        Path(config.config).stem if config.config else config.model_name,
-        datetime.now().strftime('%Y%m%d%H%M%S')
-    )
-    # trial_id) TODO do with trial id later
+    config.run_name = tune.get_trial_dir()
     logging.info(f'Run name: {config.run_name}')
 
     config.checkpoint_dir = os.path.join(config.result_dir, config.run_name)
@@ -77,6 +32,11 @@ def train_libmultilable_tune(config, datasets, classes, word_dict):
                            classes=classes,
                            word_dict=word_dict)
     trainer.train()
+
+    # Remove *.ckpt.
+    for model_path in glob.glob(os.path.join(config.checkpoint_dir, '*.ckpt')):
+        logging.info(f'Removing {model_path} ...')
+        os.remove(model_path)
 
 
 def load_config_from_file(config_path):
@@ -229,8 +189,6 @@ def main():
                         help='Number of CPU per trial (default: %(default)s)')
     parser.add_argument('--gpu_count', type=int, default=1,
                         help='Number of GPU per trial (default: %(default)s)')
-    parser.add_argument('--local_dir', default=os.getcwd(),
-                        help='Directory to save training results of tune (default: %(default)s)')
     parser.add_argument('--num_samples', type=int, default=50,
                         help='Number of running trials. If the search space is `grid_search`, the same grid will be repeated `num_samples` times. (default: %(default)s)')
     parser.add_argument('--mode', default='max', choices=['min', 'max'],
@@ -276,12 +234,9 @@ def main():
         tune.with_parameters(
             train_libmultilable_tune,
             **data),
-        # tune.with_parameters(Trainable, data=data),
-        # run one step "libmultilabel.model.train"
-        stop={"training_iteration": 1},
         search_alg=init_search_algorithm(
             config.search_alg, metric=config.val_metric, mode=args.mode),
-        local_dir=args.local_dir,
+        local_dir=config.result_dir,
         num_samples=config.num_samples,
         resources_per_trial={
             'cpu': args.cpu_count, 'gpu': args.gpu_count},
