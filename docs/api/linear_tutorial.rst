@@ -43,7 +43,18 @@ To start, we need to read and preprocess the input data:
 
 The preprocessor handles many issues such as: mapping
 the labels into indices and transforming textual data to
-numerical data.
+numerical data. The loaded dataset has the structure::
+
+    {
+        'train': {
+            'x': # training features
+            'y': # training labels
+        },
+        'test': {
+            'x': # test features
+            'y': # test labels
+        },
+    }
 
 Next we train the model:
 
@@ -51,7 +62,7 @@ Next we train the model:
     :language: python3
     :lines: 8-10
 
-Where the third argument is the options string for
+The third argument is the options string for
 `LibLinear <https://www.csie.ntu.edu.tw/~cjlin/liblinear/>`_.
 We may leave it as the default for now.
 
@@ -61,10 +72,11 @@ Once we have the model, we may predict with it:
     :language: python3
     :lines: 12
 
-Where :py:`preds` holds the decision values, i.e. the raw values
+:py:`preds` holds the decision values, i.e. the raw values
 outputted by the model. To transform it into predictions,
-the simplest way is to take the positive values as positive
-predictions, i.e. :py:`preds > 0`.
+the simplest way is to take the positive values as
+the labels predicted to be associated with the sample,
+i.e. :py:`preds > 0`.
 
 To see how well we performed, we may want to check various
 metrics with the test set.
