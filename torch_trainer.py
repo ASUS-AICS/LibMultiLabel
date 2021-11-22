@@ -20,6 +20,7 @@ class TorchTrainer:
         word_dict(torchtext.vocab.Vocab, optional): A vocab object which maps tokens to indices.
         search_params (bool): Enable pytorch-lightning trainer to report the results to ray tune
             on validation end during hyperparameter search. Defaults to False.
+        save_checkpoints (bool): Whether to save the last and the best checkpoint or not. Defaults to True.
     """
     def __init__(
         self,
@@ -27,7 +28,8 @@ class TorchTrainer:
         datasets: dict = None,
         classes: list = None,
         word_dict: dict = None,
-        search_params: bool = False
+        search_params: bool = False,
+        save_checkpoints: bool = True
     ):
         self.run_name = config.run_name
         self.checkpoint_dir = config.checkpoint_dir
@@ -64,7 +66,8 @@ class TorchTrainer:
                                     limit_train_batches=config.limit_train_batches,
                                     limit_val_batches=config.limit_val_batches,
                                     limit_test_batches=config.limit_test_batches,
-                                    search_params=search_params)
+                                    search_params=search_params,
+                                    save_checkpoints=save_checkpoints)
         self.checkpoint_callback = [
             callback for callback in self.trainer.callbacks if isinstance(callback, ModelCheckpoint)][0]
 
@@ -169,8 +172,12 @@ class TorchTrainer:
         # Set model to the best model. If the validation process is skipped during
         # training (i.e., val_size=0), the model is set to the last model.
         model_path = self.checkpoint_callback.best_model_path or self.checkpoint_callback.last_model_path
-        logging.info(f'Finished training. Load best model from {model_path}.')
-        self._setup_model(checkpoint_path=model_path)
+        if model_path:
+            logging.info(f'Finished training. Load best model from {model_path}.')
+            self._setup_model(checkpoint_path=model_path)
+        else:
+            logging.info('No model is saved during training. \
+                If you want to save the best and the last model, please set `save_checkpoints` to True.')
 
     def test(self, split='test'):
         """Test model with pytorch lightning trainer. Top-k predictions are saved

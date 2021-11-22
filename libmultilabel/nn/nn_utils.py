@@ -108,7 +108,8 @@ def init_trainer(checkpoint_dir,
                  limit_train_batches=1.0,
                  limit_val_batches=1.0,
                  limit_test_batches=1.0,
-                 search_params=False):
+                 search_params=False,
+                 save_checkpoints=True):
     """Initialize a torch lightning trainer.
 
     Args:
@@ -124,13 +125,19 @@ def init_trainer(checkpoint_dir,
         limit_test_batches(Union[int, float]): Percentage of test dataset to use. Defaults to 1.0.
         search_params (bool): Enable pytorch-lightning trainer to report the results to ray tune
             on validation end during hyperparameter search. Defaults to False.
+        save_checkpoints (bool): Whether to save the last and the best checkpoint or not. Defaults to True.
     Returns:
         pl.Trainer: A torch lightning trainer.
     """
 
-    checkpoint_callback = ModelCheckpoint(
-        dirpath=checkpoint_dir, filename='best_model', save_last=True,
-        save_top_k=1, monitor=val_metric, mode=mode)
+    if save_checkpoints:
+        checkpoint_callback = ModelCheckpoint(
+            dirpath=checkpoint_dir, filename='best_model', save_last=True,
+            save_top_k=1, monitor=val_metric, mode=mode)
+    else:
+        checkpoint_callback = ModelCheckpoint(
+            dirpath=checkpoint_dir, save_top_k=0, monitor=val_metric, mode=mode)
+
     earlystopping_callback = EarlyStopping(
         patience=patience, monitor=val_metric, mode=mode)
     callbacks = [checkpoint_callback, earlystopping_callback]

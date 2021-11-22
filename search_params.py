@@ -1,5 +1,4 @@
 import argparse
-import glob
 import json
 import logging
 import os
@@ -37,13 +36,9 @@ def train_libmultilable_tune(config, datasets, classes, word_dict):
                            datasets=datasets,
                            classes=classes,
                            word_dict=word_dict,
-                           search_params=True)
+                           search_params=True,
+                           save_checkpoints=False)
     trainer.train()
-
-    # Remove *.ckpt.
-    for model_path in glob.glob(os.path.join(config.checkpoint_dir, '*/*.ckpt')):
-        logging.info(f'Removing {model_path} ...')
-        os.remove(model_path)
 
 
 def load_config_from_file(config_path):
