@@ -10,6 +10,7 @@ from pytorch_lightning.utilities.parsing import AttributeDict
 from ray import tune
 
 from libmultilabel.nn import data_utils
+from libmultilabel.nn.nn_utils import set_seed
 from torch_trainer import TorchTrainer
 
 
@@ -72,6 +73,7 @@ def load_config_from_file(config_path):
     config['val_path'] = config['val_path'] or os.path.join(config['data_dir'], 'valid.txt')
     config['test_path'] = config['test_path'] or os.path.join(config['data_dir'], 'test.txt')
 
+    set_seed(seed=config['seed'])
     return config
 
 
