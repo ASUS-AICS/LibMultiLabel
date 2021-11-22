@@ -38,6 +38,12 @@ normalize_embed: true
 search_alg: basic_variant
 embed_cache_dir: null
 num_samples: 1
+scheduler: null
+# Uncomment the following lines to enable the ASHAScheduler.
+# scheduler:
+#   max_t: 200
+#   grace_period: 1
+#   reduction_factor: 2
 
 # other parameters specified in main.py::get_args
 checkpoint_path: null

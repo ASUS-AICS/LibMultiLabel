@@ -7,6 +7,7 @@ import time
 import yaml
 from pytorch_lightning.utilities.parsing import AttributeDict
 from ray import tune
+from ray.tune.schedulers import ASHAScheduler
 
 from libmultilabel.nn import data_utils
 from libmultilabel.nn.nn_utils import set_seed
@@ -228,22 +229,25 @@ def main():
                                 metric=f'val_{config.val_metric}',
                                 mode=args.mode,
                                 sort_by_metric=True)
-    # scheduler = ASHAScheduler(
-    #     max_t=100,
-    #     grace_period=1,
-    #     reduction_factor=2)
+    if config.scheduler is not None:
+        scheduler = ASHAScheduler(metric=f'val_{config.val_metric}',
+                                  mode=args.mode,
+                                  **config.scheduler)
+    else:
+        scheduler = None
+
     analysis = tune.run(
         tune.with_parameters(
             train_libmultilable_tune,
             **data),
         search_alg=init_search_algorithm(
             config.search_alg, metric=config.val_metric, mode=args.mode),
+        scheduler=scheduler,
         local_dir=config.result_dir,
         num_samples=config.num_samples,
         resources_per_trial={
             'cpu': args.cpu_count, 'gpu': args.gpu_count},
         progress_reporter=reporter,
-        # scheduler=scheduler,
         config=config)
 
     # Save best model after parameter search.
