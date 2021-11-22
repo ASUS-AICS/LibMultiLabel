@@ -12,7 +12,7 @@ Before we started, make sure you import methods below:
 
 .. literalinclude:: ../examples/nn_quickstart.py
     :language: python3
-    :lines: 3-5
+    :lines: 1-3
 
 Step 0. Setup seed and device
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -21,7 +21,7 @@ Let's start by setting up the seed and device.
 
 .. literalinclude:: ../examples/nn_quickstart.py
     :language: python3
-    :lines: 9-10
+    :lines: 7-8
 
 Step 1. Load data from text files
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -40,7 +40,7 @@ to your word embeddings with each line containing a word followed by its vectors
 
 .. literalinclude:: ../examples/nn_quickstart.py
     :language: python3
-    :lines: 13-16
+    :lines: 11-14
 
 Step 2. Initialize a model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -54,7 +54,7 @@ Here we show how to create a model.
 
 .. literalinclude:: ../examples/nn_quickstart.py
     :language: python3
-    :lines: 19-28
+    :lines: 17-26
 
 Step 3. Initialize trainer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -63,7 +63,7 @@ To train the model, we need a trainer to control processes like training loop or
 
 .. literalinclude:: ../examples/nn_quickstart.py
     :language: python3
-    :lines: 31-34
+    :lines: 29-32
 
 Step 4. Create data loaders
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -73,7 +73,7 @@ Create pytorch data loaders for datasets we created in
 
 .. literalinclude:: ../examples/nn_quickstart.py
     :language: python3
-    :lines: 37-43
+    :lines: 35-41
 
 Step 5. Train and test the model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -82,14 +82,14 @@ Everything's ready. Let's start training with ``trainer.train``.
 
 .. literalinclude:: ../examples/nn_quickstart.py
     :language: python3
-    :lines: 46-46
+    :lines: 44
 
 
 When training is finished, test the model with ``trainer.test``.
 
 .. literalinclude:: ../examples/nn_quickstart.py
     :language: python3
-    :lines: 49-49
+    :lines: 47
 
 
 Get the full source code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/nn_quickstart.py>`_.
