@@ -30,19 +30,18 @@ class Preprocessor:
 
         self.data_format = data_format
 
-    def load_data(self, train_path: str = '', test_path: str = '') -> 'dict[str, dict]':
+    def load_data(self, train_path: str = '', test_path: str = '', eval: bool = False) -> 'dict[str, dict]':
         """Loads and preprocesses data.
 
         Args:
-            train_path (str): Training data path. Ignored if Preprocessor is constructed from load_pipeline. Defaults to ''.
+            train_path (str): Training data path. Ignored if eval is True. Defaults to ''.
             test_path (str): Test data path. Ignored if test_path doesn't exist. Defaults to ''.
+            eval (bool): If True, ignores training data and uses previously loaded state to preprocess test data.
 
         Returns:
             dict[str, dict]: The training and test data, with keys 'train' and 'test' respectively. The data
             has keys 'x' for input features and 'y' for labels.
         """
-        if hasattr(self, 'binarizer'):
-            eval = True
         if self.data_format == 'txt':
             return self._load_txt(train_path, test_path, eval)
         elif self.data_format == 'svm':
