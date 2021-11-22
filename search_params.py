@@ -1,5 +1,4 @@
 import argparse
-import json
 import logging
 import os
 import time
@@ -12,7 +11,6 @@ from ray.tune.schedulers import ASHAScheduler
 from libmultilabel.nn import data_utils
 from libmultilabel.nn.nn_utils import set_seed
 from torch_trainer import TorchTrainer
-
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s:%(message)s')
@@ -168,8 +166,8 @@ def retrain_best_model(log_path, merge_train_val=False):
         merge_train_val (bool, optional): Whether to merge the training and validation data.
             Defaults to False.
     """
-
-    best_config = AttributeDict(json.load(open(log_path, 'r'))['config'])
+    with open(log_path, 'r') as fp:
+        best_config = AttributeDict(yaml.load(fp.readlines()[-1])['config'])
     run_name = os.path.basename(os.path.normpath(best_config.run_name))
     best_config.run_name = best_config.run_name.replace(run_name, f'{run_name}_retrain')
     best_config.checkpoint_dir = os.path.join(best_config.result_dir, best_config.run_name)
@@ -181,7 +179,8 @@ def retrain_best_model(log_path, merge_train_val=False):
     trainer.train()
 
     if 'test' in data:
-        trainer.test()
+        test_metric = trainer.test()
+        logging.info(test_metric)
     logging.info(f'Best model saved to {trainer.checkpoint_callback.best_model_path or trainer.checkpoint_callback.last_model_path}.')
 
 
