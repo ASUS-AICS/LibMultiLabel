@@ -1,5 +1,5 @@
-Neural Network Module
-=====================
+Neural Network API
+==================
 
 The neural network module ``libmultilabel.nn`` contains three methods.
 Method ``libmultilabel.nn.networks`` is a collection of classes that defines the neural networks. The other two methods, ``libmultilabel.nn.data_utils`` and ``libmultilabel.nn.nn_utils``, are utilities for processing data and training a neural network model.
