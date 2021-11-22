@@ -35,7 +35,8 @@ def train_libmultilable_tune(config, datasets, classes, word_dict):
     trainer = TorchTrainer(config=config,
                            datasets=datasets,
                            classes=classes,
-                           word_dict=word_dict)
+                           word_dict=word_dict,
+                           search_params=True)
     trainer.train()
 
     # Remove *.ckpt.

@@ -18,13 +18,16 @@ class TorchTrainer:
         datasets (dict, optional): Datasets for training, validation, and test. Defaults to None.
         classes(list, optional): List of class names.
         word_dict(torchtext.vocab.Vocab, optional): A vocab object which maps tokens to indices.
+        search_params (bool): Enable pytorch-lightning trainer to report the results to ray tune
+            on validation end during hyperparameter search. Defaults to False.
     """
     def __init__(
         self,
         config: dict,
         datasets: dict = None,
         classes: list = None,
-        word_dict: dict = None
+        word_dict: dict = None,
+        search_params: bool = False
     ):
         self.run_name = config.run_name
         self.checkpoint_dir = config.checkpoint_dir
@@ -60,7 +63,8 @@ class TorchTrainer:
                                     use_cpu=config.cpu,
                                     limit_train_batches=config.limit_train_batches,
                                     limit_val_batches=config.limit_val_batches,
-                                    limit_test_batches=config.limit_test_batches)
+                                    limit_test_batches=config.limit_test_batches,
+                                    search_params=search_params)
         self.checkpoint_callback = [
             callback for callback in self.trainer.callbacks if isinstance(callback, ModelCheckpoint)][0]
 
