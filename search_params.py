@@ -4,15 +4,12 @@ import json
 import logging
 import os
 import time
-from datetime import datetime
-from pathlib import Path
 
 import yaml
 from pytorch_lightning.utilities.parsing import AttributeDict
 from ray import tune
 
 from libmultilabel.nn import data_utils
-from libmultilabel.nn.nn_utils import init_device, set_seed
 from torch_trainer import TorchTrainer
 
 
@@ -21,6 +18,14 @@ logging.basicConfig(level=logging.INFO,
 
 
 def train_libmultilable_tune(config, datasets, classes, word_dict):
+    """The training function for ray tune.
+
+    Args:
+        config (AttributeDict): Config of the experiment.
+        datasets (dict): A dictionary of datasets.
+        classes(list): List of class names.
+        word_dict(torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
+    """
     config.run_name = tune.get_trial_dir()
     logging.info(f'Run name: {config.run_name}')
 
@@ -34,7 +39,7 @@ def train_libmultilable_tune(config, datasets, classes, word_dict):
     trainer.train()
 
     # Remove *.ckpt.
-    for model_path in glob.glob(os.path.join(config.checkpoint_dir, '*.ckpt')):
+    for model_path in glob.glob(os.path.join(config.checkpoint_dir, '*/*.ckpt')):
         logging.info(f'Removing {model_path} ...')
         os.remove(model_path)
 
@@ -66,7 +71,6 @@ def load_config_from_file(config_path):
     config['val_path'] = config['val_path'] or os.path.join(config['data_dir'], 'valid.txt')
     config['test_path'] = config['test_path'] or os.path.join(config['data_dir'], 'test.txt')
 
-    set_seed(seed=config['seed'])
     return config
 
 
@@ -165,13 +169,14 @@ def retrain_best_model(log_path, merge_train_val=False):
         merge_train_val (bool, optional): Whether to merge the training and validation data.
             Defaults to False.
     """
+
     best_config = AttributeDict(json.load(open(log_path, 'r'))['config'])
-    best_config.run_name = f'{best_config.run_name}_retrain'
+    run_name = os.path.basename(os.path.normpath(best_config.run_name))
+    best_config.run_name = best_config.run_name.replace(run_name, f'{run_name}_retrain')
     best_config.checkpoint_dir = os.path.join(best_config.result_dir, best_config.run_name)
     best_config.log_path = os.path.join(best_config.checkpoint_dir, 'logs.json')
 
     data = load_static_data(best_config, merge_train_val=merge_train_val)
-
     logging.info(f'Retraining with best config: \n{best_config}')
     trainer = TorchTrainer(config=best_config, **data)
     trainer.train()
@@ -229,7 +234,6 @@ def main():
     #     max_t=100,
     #     grace_period=1,
     #     reduction_factor=2)
-    print(config)
     analysis = tune.run(
         tune.with_parameters(
             train_libmultilable_tune,
