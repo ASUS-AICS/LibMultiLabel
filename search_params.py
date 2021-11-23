@@ -25,6 +25,7 @@ def train_libmultilable_tune(config, datasets, classes, word_dict):
         classes(list): List of class names.
         word_dict(torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
     """
+    set_seed(seed=config.seed)
     config.run_name = tune.get_trial_dir()
     logging.info(f'Run name: {config.run_name}')
 
@@ -67,7 +68,6 @@ def load_config_from_file(config_path):
     config['val_path'] = config['val_path'] or os.path.join(config['data_dir'], 'valid.txt')
     config['test_path'] = config['test_path'] or os.path.join(config['data_dir'], 'test.txt')
 
-    set_seed(seed=config['seed'])
     return config
 
 
@@ -172,6 +172,7 @@ def retrain_best_model(log_path, merge_train_val=False):
     best_config.run_name = best_config.run_name.replace(run_name, f'{run_name}_retrain')
     best_config.checkpoint_dir = os.path.join(best_config.result_dir, best_config.run_name)
     best_config.log_path = os.path.join(best_config.checkpoint_dir, 'logs.json')
+    set_seed(seed=best_config.seed)
 
     data = load_static_data(best_config, merge_train_val=merge_train_val)
     logging.info(f'Retraining with best config: \n{best_config}')
