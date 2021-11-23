@@ -167,7 +167,7 @@ def retrain_best_model(log_path, merge_train_val=False):
             Defaults to False.
     """
     with open(log_path, 'r') as fp:
-        best_config = AttributeDict(yaml.load(fp.readlines()[-1])['config'])
+        best_config = AttributeDict(yaml.safe_load(fp.readlines()[-1])['config'])
     run_name = os.path.basename(os.path.normpath(best_config.run_name))
     best_config.run_name = best_config.run_name.replace(run_name, f'{run_name}_retrain')
     best_config.checkpoint_dir = os.path.join(best_config.result_dir, best_config.run_name)
