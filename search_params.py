@@ -51,7 +51,7 @@ def load_config_from_file(config_path):
         AttributeDict: Config of the experiment.
     """
     with open(config_path) as fp:
-        config = yaml.load(fp)
+        config = yaml.safe_load(fp)
 
     # create directories that hold the shared data
     os.makedirs(config['result_dir'], exist_ok=True)
