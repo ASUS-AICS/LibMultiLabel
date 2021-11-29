@@ -179,7 +179,7 @@ def retrain_best_model(log_path, merge_train_val=False):
     trainer = TorchTrainer(config=best_config, **data)
     trainer.train()
 
-    if 'test' in data:
+    if 'test' in data['datasets']:
         test_results = trainer.test()
         logging.info(f'Test results after retraining: {test_results}')
     logging.info(f'Best model saved to {trainer.checkpoint_callback.best_model_path or trainer.checkpoint_callback.last_model_path}.')
