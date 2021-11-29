@@ -129,17 +129,11 @@ def init_trainer(checkpoint_dir,
         pl.Trainer: A torch lightning trainer.
     """
 
+    callbacks = [EarlyStopping(patience=patience, monitor=val_metric, mode=mode)]
     if save_checkpoints:
-        checkpoint_callback = ModelCheckpoint(
-            dirpath=checkpoint_dir, filename='best_model', save_last=True,
-            save_top_k=1, monitor=val_metric, mode=mode)
-    else:
-        checkpoint_callback = ModelCheckpoint(
-            dirpath=checkpoint_dir, save_top_k=0, monitor=val_metric, mode=mode)
-
-    earlystopping_callback = EarlyStopping(
-        patience=patience, monitor=val_metric, mode=mode)
-    callbacks = [checkpoint_callback, earlystopping_callback]
+        callbacks += [ModelCheckpoint(dirpath=checkpoint_dir, filename='best_model',
+                                      save_last=True, save_top_k=1,
+                                      monitor=val_metric, mode=mode)]
     if search_params:
         from ray.tune.integration.pytorch_lightning import TuneReportCallback
         callbacks += [TuneReportCallback({f'val_{val_metric}': val_metric}, on="validation_end")]

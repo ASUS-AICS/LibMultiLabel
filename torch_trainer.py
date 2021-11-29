@@ -68,8 +68,8 @@ class TorchTrainer:
                                     limit_test_batches=config.limit_test_batches,
                                     search_params=search_params,
                                     save_checkpoints=save_checkpoints)
-        self.checkpoint_callback = [
-            callback for callback in self.trainer.callbacks if isinstance(callback, ModelCheckpoint)][0]
+        callbacks = [callback for callback in self.trainer.callbacks if isinstance(callback, ModelCheckpoint)]
+        self.checkpoint_callback = callbacks[0] if callbacks else None
 
         # Dump config to log
         dump_log(self.log_path, config=config)
