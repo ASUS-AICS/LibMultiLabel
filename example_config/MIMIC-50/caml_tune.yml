@@ -40,10 +40,13 @@ embed_cache_dir: null
 num_samples: 1
 scheduler: null
 # Uncomment the following lines to enable the ASHAScheduler.
-# scheduler:
-#   max_t: 200
-#   grace_period: 1
-#   reduction_factor: 2
+# See the documentation here: https://docs.ray.io/en/latest/tune/api_docs/schedulers.html#asha-tune-schedulers-ashascheduler
+scheduler:
+  time_attr: training_iteration
+  max_t: 100 # maximum training iteration to run every epochs
+  grace_period: 50 # only stop trial at least `grace_period` training iterations
+  reduction_factor: 3 # Reduce the number of configuration to floor(1/reduction_factor) each round (i.e., `rung`)
+  brackets: 1 # number of brackets, a smaller s means more aggressively earlier stopping
 
 # other parameters specified in main.py::get_args
 checkpoint_path: null
