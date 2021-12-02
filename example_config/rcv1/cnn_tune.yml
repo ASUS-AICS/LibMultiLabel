@@ -38,6 +38,7 @@ normalize_embed: false
 search_alg: basic_variant
 embed_cache_dir: .vector_cache
 num_samples: 10 # run `2 (number of grid_search) * num_samples` trials
+scheduler: null
 
 # other parameters specified in main.py::get_args
 checkpoint_path: null
