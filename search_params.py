@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 import time
+from collections import deque
 
 import yaml
 from pytorch_lightning.utilities.parsing import AttributeDict
@@ -16,11 +17,13 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s:%(message)s')
 
 
-def train_libmultilable_tune(config, datasets, classes, word_dict):
+def train_libmultilable_tune(config, parameter_columns, datasets, classes, word_dict):
     """The training function for ray tune.
 
     Args:
         config (AttributeDict): Config of the experiment.
+        parameter_columns (dict): Names of parameters to include in the CLIReporter.
+                                  The keys are parameter names and the values are displayed names.
         datasets (dict): A dictionary of datasets.
         classes(list): List of class names.
         word_dict(torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
@@ -28,6 +31,18 @@ def train_libmultilable_tune(config, datasets, classes, word_dict):
     set_seed(seed=config.seed)
     config.run_name = tune.get_trial_dir()
     logging.info(f'Run name: {config.run_name}')
+
+    """Duplicate the nested key to a flatten one split by '/'.
+    For example, config['network_config']['dropout'] will be config['network_config/dropout'].
+    https://github.com/ray-project/ray/blob/4ef0d4a37a42c529af98b0cfb31e505b51088395/python/ray/tune/progress_reporter.py#L790
+    """
+    for key in parameter_columns.keys():
+        q = deque(key.split('/'))
+        c = config
+        while q:
+            k = q.popleft()
+            c = c[k]
+        config[key] = c
 
     config.checkpoint_dir = os.path.join(config.result_dir, config.run_name)
     config.log_path = os.path.join(config.checkpoint_dir, 'logs.json')
@@ -97,7 +112,7 @@ def init_search_params_spaces(config, parameter_columns, prefix):
                     """)
             else:
                 config[key] = getattr(tune, search_space)(*search_args)
-                parameter_columns[prefix+key] = key
+                parameter_columns[prefix+key] = prefix+key
         elif isinstance(value, dict):
             config[key] = init_search_params_spaces(value, parameter_columns, f'{prefix}{key}/')
 
@@ -225,7 +240,7 @@ def main():
     """
     data = load_static_data(config)
     reporter = tune.CLIReporter(metric_columns=[f'val_{metric}' for metric in config.monitor_metrics],
-                                parameter_columns=parameter_columns,
+                                parameter_columns=['network_config/dropout', 'learning_rate'],# parameter_columns,
                                 metric=f'val_{config.val_metric}',
                                 mode=args.mode,
                                 sort_by_metric=True)
@@ -239,6 +254,7 @@ def main():
     analysis = tune.run(
         tune.with_parameters(
             train_libmultilable_tune,
+            parameter_columns=parameter_columns,
             **data),
         search_alg=init_search_algorithm(
             config.search_alg, metric=config.val_metric, mode=args.mode),
