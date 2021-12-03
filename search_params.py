@@ -112,7 +112,7 @@ def init_search_params_spaces(config, parameter_columns, prefix):
                     """)
             else:
                 config[key] = getattr(tune, search_space)(*search_args)
-                parameter_columns[prefix+key] = prefix+key
+                parameter_columns[prefix+key] = key
         elif isinstance(value, dict):
             config[key] = init_search_params_spaces(value, parameter_columns, f'{prefix}{key}/')
 
@@ -240,7 +240,7 @@ def main():
     """
     data = load_static_data(config)
     reporter = tune.CLIReporter(metric_columns=[f'val_{metric}' for metric in config.monitor_metrics],
-                                parameter_columns=['network_config/dropout', 'learning_rate'],# parameter_columns,
+                                parameter_columns=parameter_columns,
                                 metric=f'val_{config.val_metric}',
                                 mode=args.mode,
                                 sort_by_metric=True)
