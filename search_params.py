@@ -36,13 +36,13 @@ def train_libmultilable_tune(config, parameter_columns, datasets, classes, word_
     For example, config['network_config']['dropout'] will be config['network_config/dropout'].
     https://github.com/ray-project/ray/blob/4ef0d4a37a42c529af98b0cfb31e505b51088395/python/ray/tune/progress_reporter.py#L790
     """
-    for key in parameter_columns.keys():
-        q = deque(key.split('/'))
-        c = config
+    for parameter in parameter_columns.keys():
+        q = deque(parameter.split('/'))
+        subconfig = config
         while q:
-            k = q.popleft()
-            c = c[k]
-        config[key] = c
+            key = q.popleft()
+            subconfig = subconfig[key]
+        config[parameter] = subconfig
 
     config.checkpoint_dir = os.path.join(config.result_dir, config.run_name)
     config.log_path = os.path.join(config.checkpoint_dir, 'logs.json')
