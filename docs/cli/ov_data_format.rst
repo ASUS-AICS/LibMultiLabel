@@ -35,6 +35,9 @@ Install LibMultiLabel from Source
 
     pip3 install -r requirements.txt
 
+If you have a different version of CUDA, follow the installation instructions
+for PyTorch LTS(1.8.2) at their `website <https://pytorch.org/>`_.
+
 ---------------------------------
 
 .. _data_format:
