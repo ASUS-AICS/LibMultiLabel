@@ -34,7 +34,10 @@ def train_libmultilable_tune(config, parameter_columns, datasets, classes, word_
 
     """Duplicate the nested key to a flatten one split by '/'.
     For example, config['network_config']['dropout'] will be config['network_config/dropout'].
-    https://github.com/ray-project/ray/blob/4ef0d4a37a42c529af98b0cfb31e505b51088395/python/ray/tune/progress_reporter.py#L790
+
+    We have a workaround here because ray tune does not parsed the parameter columns (Ex. network_config/dropout)
+    to the nested keys when printing the best trial.
+    (https://github.com/ray-project/ray/blob/4ef0d4a37a42c529af98b0cfb31e505b51088395/python/ray/tune/progress_reporter.py#L790)
     """
     for parameter in parameter_columns.keys():
         q = deque(parameter.split('/'))
