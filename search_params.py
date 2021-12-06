@@ -17,7 +17,7 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s:%(message)s')
 
 
-def train_libmultilable_tune(config, parameter_columns, datasets, classes, word_dict):
+def train_libmultilabel_tune(config, parameter_columns, datasets, classes, word_dict):
     """The training function for ray tune.
 
     Args:
@@ -256,7 +256,7 @@ def main():
 
     analysis = tune.run(
         tune.with_parameters(
-            train_libmultilable_tune,
+            train_libmultilabel_tune,
             parameter_columns=parameter_columns,
             **data),
         search_alg=init_search_algorithm(
