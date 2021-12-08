@@ -12,7 +12,6 @@ from pytorch_lightning.utilities.parsing import AttributeDict
 import libmultilabel.linear as linear
 from libmultilabel.metrics import tabulate_metrics
 from libmultilabel.utils import Timer
-from torch_trainer import TorchTrainer
 
 
 def get_config():
@@ -232,6 +231,7 @@ def main():
     if config.linear:
         linear_run(config)
     else:
+        from torch_trainer import TorchTrainer
         trainer = TorchTrainer(config)  # initialize trainer
         # train
         if not config.eval:
