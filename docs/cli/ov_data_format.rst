@@ -35,8 +35,9 @@ Install LibMultiLabel from Source
 
     pip3 install -r requirements.txt
 
-If you have a different version of CUDA, follow the installation instructions
-for PyTorch LTS(1.8.2) at their `website <https://pytorch.org/>`_.
+For training neural networks, if you have CUDA 11,
+follow the installation instructions for PyTorch LTS at
+their `website <https://pytorch.org/>`_.
 
 ---------------------------------
 
