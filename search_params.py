@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 import time
+from collections import deque
 
 import yaml
 from pytorch_lightning.utilities.parsing import AttributeDict
@@ -16,11 +17,13 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s:%(message)s')
 
 
-def train_libmultilable_tune(config, datasets, classes, word_dict):
+def train_libmultilabel_tune(config, parameter_columns, datasets, classes, word_dict):
     """The training function for ray tune.
 
     Args:
         config (AttributeDict): Config of the experiment.
+        parameter_columns (dict): Names of parameters to include in the CLIReporter.
+                                  The keys are parameter names and the values are displayed names.
         datasets (dict): A dictionary of datasets.
         classes(list): List of class names.
         word_dict(torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
@@ -28,6 +31,21 @@ def train_libmultilable_tune(config, datasets, classes, word_dict):
     set_seed(seed=config.seed)
     config.run_name = tune.get_trial_dir()
     logging.info(f'Run name: {config.run_name}')
+
+    """Duplicate the nested key to a flatten one split by '/'.
+    For example, config['network_config']['dropout'] will be config['network_config/dropout'].
+
+    We have a workaround here because ray tune does not parse the parameter columns (e.g., network_config/dropout)
+    to the nested keys when printing the best trial.
+    (https://github.com/ray-project/ray/blob/4ef0d4a37a42c529af98b0cfb31e505b51088395/python/ray/tune/progress_reporter.py#L790)
+    """
+    for parameter in parameter_columns.keys():
+        q = deque(parameter.split('/'))
+        subconfig = config
+        while q:
+            key = q.popleft()
+            subconfig = subconfig[key]
+        config[parameter] = subconfig
 
     config.checkpoint_dir = os.path.join(config.result_dir, config.run_name)
     config.log_path = os.path.join(config.checkpoint_dir, 'logs.json')
@@ -238,7 +256,8 @@ def main():
 
     analysis = tune.run(
         tune.with_parameters(
-            train_libmultilable_tune,
+            train_libmultilabel_tune,
+            parameter_columns=parameter_columns,
             **data),
         search_alg=init_search_algorithm(
             config.search_alg, metric=config.val_metric, mode=args.mode),
