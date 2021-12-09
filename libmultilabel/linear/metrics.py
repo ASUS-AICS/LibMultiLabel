@@ -3,7 +3,12 @@ import re
 import numpy as np
 import scipy.sparse as sparse
 
-__all__ = ['RPRecision', 'Precision', 'F1', 'MetricCollection', 'get_metrics']
+__all__ = ['RPRecision',
+           'Precision',
+           'F1',
+           'MetricCollection',
+           'get_metrics',
+           'tabulate_metrics']
 
 
 class RPrecision:
@@ -114,3 +119,12 @@ def get_metrics(metric_threshold: float, monitor_metrics: list, num_classes: int
             raise ValueError(f'Invalid metric: {metric}')
 
     return MetricCollection(metrics)
+
+
+def tabulate_metrics(metric_dict, split):
+    msg = f'====== {split} dataset evaluation result =======\n'
+    header = '|'.join([f'{k:^18}' for k in metric_dict.keys()])
+    values = '|'.join([f'{x * 100:^18.4f}' if isinstance(x, (np.floating,
+                      float)) else f'{x:^18}' for x in metric_dict.values()])
+    msg += f"|{header}|\n|{'-----------------:|' * len(metric_dict)}\n|{values}|\n"
+    return msg
