@@ -9,6 +9,13 @@ import yaml
 from libmultilabel.utils import Timer
 
 class AttributeDict(dict):
+    """AttributeDict is an extended dict that can access
+    stored items as attributes.
+
+    >>> ad = AttributeDict({'ans': 42})
+    >>> ad.ans
+    >>> 42
+    """
     def __getattr__(self, key: str) -> any:
         return self[key]
 
