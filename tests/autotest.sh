@@ -70,6 +70,14 @@ main() {
     run_test "rcv1" "kim_cnn" "$template"
   done
 
+  TEST_COMMAND_TEMPLATES=(
+    # Run default linear 1vsrest
+    "python3 main.py --config example_config/%s/%s.yml --result_dir $RESULT_DIR"
+  )
+  for template in "${TEST_COMMAND_TEMPLATES[@]}"; do
+    run_test "rcv1" "l2svm" "$template"
+  done
+
   # Print the test results and remove the intermediate files.
   all_tests=$(less $REPORT_PATH | wc -l)
   passed_tests=$(grep "PASSED" $REPORT_PATH | wc -l)

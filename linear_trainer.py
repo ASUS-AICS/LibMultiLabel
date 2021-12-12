@@ -4,6 +4,7 @@ from math import ceil
 import numpy as np
 
 import libmultilabel.linear as linear
+from libmultilabel.utils import dump_log
 
 
 def linear_test(config, model, datasets):
@@ -18,7 +19,10 @@ def linear_test(config, model, datasets):
         preds = linear.predict_values(model, datasets['test']['x'][slice])
         target = datasets['test']['y'][slice].toarray()
         metrics.update(preds, target)
-    print(linear.tabulate_metrics(metrics.compute(), 'test'))
+    metric_dict = metrics.compute()
+    dump_log(config=config, metrics=metric_dict,
+             split='test', log_path=config.log_path)
+    print(linear.tabulate_metrics(metric_dict, 'test'))
 
 
 def linear_train(datasets, config):
@@ -47,4 +51,3 @@ def linear_run(config):
 
     if os.path.exists(config.test_path):
         linear_test(config, model, datasets)
-    # TODO: dump logs?
