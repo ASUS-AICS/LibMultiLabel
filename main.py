@@ -6,21 +6,8 @@ from pathlib import Path
 
 import yaml
 
-from libmultilabel.utils import Timer
+from libmultilabel.utils import Timer, AttributeDict
 
-class AttributeDict(dict):
-    """AttributeDict is an extended dict that can access
-    stored items as attributes.
-
-    >>> ad = AttributeDict({'ans': 42})
-    >>> ad.ans
-    >>> 42
-    """
-    def __getattr__(self, key: str) -> any:
-        return self[key]
-
-    def __setattr__(self, key: str, value: any) -> None:
-        self[key] = value
 
 def get_config():
     parser = argparse.ArgumentParser(
