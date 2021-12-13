@@ -89,7 +89,10 @@ class AttributeDict(dict):
     """
 
     def __getattr__(self, key: str) -> any:
-        return self[key]
+        try:
+            return self[key]
+        except KeyError:
+            raise AttributeError(f'Missing attribute "{key}"')
 
     def __setattr__(self, key: str, value: any) -> None:
         self[key] = value
