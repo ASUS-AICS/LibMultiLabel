@@ -77,3 +77,19 @@ def argsort_top_k(vals, k, axis=-1):
     sorted_top_k_idx = np.take_along_axis(
         unsorted_top_k_idx, sorted_order, axis=axis)
     return sorted_top_k_idx
+
+
+class AttributeDict(dict):
+    """AttributeDict is an extended dict that can access
+    stored items as attributes.
+
+    >>> ad = AttributeDict({'ans': 42})
+    >>> ad.ans
+    >>> 42
+    """
+
+    def __getattr__(self, key: str) -> any:
+        return self[key]
+
+    def __setattr__(self, key: str, value: any) -> None:
+        self[key] = value

@@ -5,12 +5,12 @@ import time
 from collections import deque
 
 import yaml
-from pytorch_lightning.utilities.parsing import AttributeDict
 from ray import tune
 from ray.tune.schedulers import ASHAScheduler
 
 from libmultilabel.nn import data_utils
 from libmultilabel.nn.nn_utils import set_seed
+from libmultilabel.utils import AttributeDict
 from torch_trainer import TorchTrainer
 
 logging.basicConfig(level=logging.INFO,

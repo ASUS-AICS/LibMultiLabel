@@ -13,7 +13,7 @@ This is an on-going development so many improvements are still being made. Comme
 - CUDA: 10.2 (if training neural networks by GPU)
 - Pytorch 1.8+
 
-If you have a different version of CUDA, go to the [website](https://pytorch.org/) for the detail of PyTorch installation.
+If you have a different version of CUDA, follow the installation instructions for PyTorch LTS at their [website](https://pytorch.org/).
 
 ## Documentation
 See the documentation here: https://www.csie.ntu.edu.tw/~cjlin/libmultilabel

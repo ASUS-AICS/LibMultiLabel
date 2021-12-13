@@ -22,6 +22,12 @@ Then the following modules are available.
 Install LibMultiLabel from Source
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+* Environment
+
+    * Python: 3.7+
+    * CUDA: 10.2 (if training neural networks by GPU)
+    * Pytorch 1.8+
+
 * Clone `LibMultiLabel <https://github.com/ASUS-AICS/LibMultiLabel>`_.
 
 .. code-block:: bash
@@ -35,8 +41,9 @@ Install LibMultiLabel from Source
 
     pip3 install -r requirements.txt
 
-If you have a different version of CUDA, follow the installation instructions
-for PyTorch LTS(1.8.2) at their `website <https://pytorch.org/>`_.
+If you have a different version of CUDA,
+follow the installation instructions for PyTorch LTS at
+their `website <https://pytorch.org/>`_.
 
 ---------------------------------
 
