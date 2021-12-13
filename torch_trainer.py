@@ -196,11 +196,7 @@ class TorchTrainer:
         metric_dict = self.trainer.test(self.model, test_dataloaders=test_loader)[0]
 
         if self.config.save_k_predictions > 0:
-            if not self.config.predict_out_path:
-                predict_out_path = os.path.join(self.checkpoint_dir, 'predictions.txt')
-            else:
-                predict_out_path = self.config.predict_out_path
-            self._save_predictions(test_loader, predict_out_path)
+            self._save_predictions(test_loader, self.config.predict_out_path)
 
         return metric_dict
 
