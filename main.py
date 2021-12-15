@@ -145,6 +145,7 @@ def get_config():
     )
     config.checkpoint_dir = os.path.join(config.result_dir, config.run_name)
     config.log_path = os.path.join(config.checkpoint_dir, 'logs.json')
+    config.predict_out_path = config.predict_out_path or os.path.join(config.checkpoint_dir, 'predictions.txt')
 
     config.train_path = config.train_path or os.path.join(config.data_dir, 'train.txt')
     config.val_path = config.val_path or os.path.join(config.data_dir, 'valid.txt')
