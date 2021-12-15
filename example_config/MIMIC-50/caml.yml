@@ -4,6 +4,7 @@ data_dir: data/MIMIC-50
 data_name: MIMIC-50
 min_vocab_freq: 3
 max_seq_length: 2500
+# We follow caml-mimic that includes labels in both training and test datasets.
 include_test_labels: true
 
 # train

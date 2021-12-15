@@ -231,9 +231,11 @@ def load_or_build_label(datasets, label_file=None, include_test_labels=False):
     """Generate label set either by the given datasets or a predefined label file.
 
     Args:
-        datasets (dict): A dictionary of datasets. Each dataset contains list of instances with index, label, and tokenized text.
+        datasets (dict): A dictionary of datasets. Each dataset contains list of instances
+            with index, label, and tokenized text.
         label_file (str, optional): Path to a file holding all labels.
-        include_test_labels(boolean, optional): Whether to include labels in the test dataset. Defaults to True.
+        include_test_labels (bool, optional): Whether to include labels in the test dataset.
+            Defaults to True.
 
     Returns:
         list: A list of labels sorted in alphabetical order.
@@ -243,6 +245,7 @@ def load_or_build_label(datasets, label_file=None, include_test_labels=False):
         with open(label_file, 'r') as fp:
             classes = sorted([s.strip() for s in fp.readlines()])
     else:
+
         splits = datasets.keys() if include_test_labels else datasets.keys() - {'test'}
         classes = set()
         for split in splits:
