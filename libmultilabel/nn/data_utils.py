@@ -227,27 +227,29 @@ def load_or_build_text_dict(
     return vocabs
 
 
-def load_or_build_label(datasets, label_file=None, silent=False):
+def load_or_build_label(datasets, label_file=None, include_test_labels=False):
     """Generate label set either by the given datasets or a predefined label file.
 
     Args:
         datasets (dict): A dictionary of datasets. Each dataset contains list of instances with index, label, and tokenized text.
         label_file (str, optional): Path to a file holding all labels.
-        silent (bool, optional): Disable print. Defaults to False.
+        include_test_labels(boolean, optional): Whether to include labels in the test dataset. Defaults to True.
 
     Returns:
         list: A list of labels sorted in alphabetical order.
     """
     if label_file:
-        logging.info('Load labels from {label_file}')
+        logging.info(f'Load labels from {label_file}.')
         with open(label_file, 'r') as fp:
             classes = sorted([s.strip() for s in fp.readlines()])
     else:
+        splits = datasets.keys() if include_test_labels else datasets.keys() - {'test'}
         classes = set()
-        for dataset in datasets.values():
-            for d in tqdm(dataset, disable=silent):
+        for split in splits:
+            for d in datasets[split]:
                 classes.update(d['label'])
         classes = sorted(classes)
+    logging.info(f'Read {len(classes)} labels.')
     return classes
 
 

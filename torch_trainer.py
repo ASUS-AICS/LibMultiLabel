@@ -111,7 +111,7 @@ class TorchTrainer:
                 )
             if not classes:
                 classes = data_utils.load_or_build_label(
-                    self.datasets, self.config.label_file, self.config.silent)
+                    self.datasets, self.config.label_file, self.config.include_test_labels)
 
             if self.config.val_metric not in self.config.monitor_metrics:
                 logging.warn(
