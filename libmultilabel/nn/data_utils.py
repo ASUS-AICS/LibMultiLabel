@@ -49,7 +49,7 @@ def generate_batch(data_batch):
     return {
         'text': pad_sequence(text_list, batch_first=True),
         'label': torch.stack(label_list),
-        'length': length_list
+        'length': torch.IntTensor(length_list)
     }
 
 

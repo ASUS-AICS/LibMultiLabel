@@ -20,12 +20,11 @@ monitor_metrics: ['Micro-F1', 'Macro-F1', 'Another-Macro-F1', 'P@1', 'P@5', 'RP@
 val_metric: P@1
 
 # model
-model_name: BiGRU
-init_weight: null
+model_name: BiGRULWAN
+init_weight: kaiming_uniform
 network_config:
-  activation: tanh
-  dropout: 0.4
-  rnn_dim: 300
+  dropout: 0.3
+  rnn_dim: 512
   rnn_layers: 1
 
 # pretrained vocab / embeddings
