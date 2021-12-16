@@ -245,12 +245,12 @@ def load_or_build_label(datasets, label_file=None, include_test_labels=False):
         with open(label_file, 'r') as fp:
             classes = sorted([s.strip() for s in fp.readlines()])
     else:
-
-        splits = datasets.keys() if include_test_labels else datasets.keys() - {'test'}
         classes = set()
-        for split in splits:
-            for d in datasets[split]:
-                classes.update(d['label'])
+        for split, data in datasets.items():
+            if split == 'test' and not include_test_labels:
+                continue
+            for instance in data:
+                classes.update(instance['label'])
         classes = sorted(classes)
     logging.info(f'Read {len(classes)} labels.')
     return classes
