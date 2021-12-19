@@ -40,7 +40,7 @@ class RPrecision(Metric):
         return self.score / self.num_sample
 
 
-class MyMacroF1(Metric):
+class MacroF1(Metric):
     """The macro-f1 score computes the average f1 scores of all labels in the dataset.
 
     Args:
@@ -131,17 +131,9 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes):
             elif metric_abbr == 'nDCG':
                 metrics[metric] = RetrievalNormalizedDCG(k=top_k)
         elif metric == 'Another-Macro-F1':
-            # The f1 value of macro_precision and macro_recall. This variant of
-            # macro_f1 is less preferred but is used in some works. Please
-            # refer to Opitz et al. 2019 [https://arxiv.org/pdf/1911.03347.pdf]
-            macro_prec = Precision(num_classes, metric_threshold, average='macro')
-            macro_recall = Recall(num_classes, metric_threshold, average='macro')
-            metrics[metric] = 2 * (macro_prec * macro_recall) / \
-                (macro_prec + macro_recall + 1e-10)
-        elif metric == 'My-Another-Macro-F1':
-            metrics[metric] = MyMacroF1(num_classes, metric_threshold, another_macro_f1=True)
-        elif metric == 'My-Macro-F1':
-            metrics[metric] = MyMacroF1(num_classes, metric_threshold)
+            metrics[metric] = MacroF1(num_classes, metric_threshold, another_macro_f1=True)
+        elif metric == 'Macro-F1':
+            metrics[metric] = MacroF1(num_classes, metric_threshold)
         elif match_metric:
             average_type = match_metric.group(1).lower() # Micro
             metric_type = match_metric.group(2) # Precision, Recall, or F1
