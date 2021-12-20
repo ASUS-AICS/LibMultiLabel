@@ -73,15 +73,12 @@ class MacroF1(Metric):
         self.tp_sum = torch.add(self.tp_sum, (preds & target).sum(dim=0))
 
     def compute(self):
-        label_prec = torch.nan_to_num(self.tp_sum / self.preds_sum, posinf=0.)
-        label_recall = torch.nan_to_num(self.tp_sum / self.target_sum, posinf=0.)
-
         if self.another_macro_f1:
-            macro_prec = torch.mean(label_prec)
-            macro_recall = torch.mean(label_recall)
+            macro_prec = torch.mean(torch.nan_to_num(self.tp_sum / self.preds_sum, posinf=0.))
+            macro_recall = torch.mean(torch.nan_to_num(self.tp_sum / self.target_sum, posinf=0.))
             return 2 * (macro_prec * macro_recall) / (macro_prec + macro_recall + 1e-10)
         else:
-            label_f1 = 2 * (label_prec * label_recall) / (label_prec + label_recall + 1e-10)
+            label_f1 = 2 * self.tp_sum / (self.preds_sum + self.target_sum + 1e-10)
             return torch.mean(label_f1)
 
 
