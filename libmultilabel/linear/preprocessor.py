@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from array import array
+import logging
 from collections import defaultdict
 
 import pandas as pd
@@ -30,7 +31,11 @@ class Preprocessor:
 
         self.data_format = data_format
 
-    def load_data(self, train_path: str = '', test_path: str = '', eval: bool = False) -> 'dict[str, dict]':
+    def load_data(self, train_path: str = '',
+                  test_path: str = '',
+                  eval: bool = False,
+                  label_file: str = None,
+                  include_test_labels: bool = False) -> 'dict[str, dict]':
         """Loads and preprocesses data.
 
         Args:
@@ -42,6 +47,16 @@ class Preprocessor:
             dict[str, dict]: The training and test data, with keys 'train' and 'test' respectively. The data
             has keys 'x' for input features and 'y' for labels.
         """
+        if label_file:
+            logging.info(f'Load labels from {label_file}.')
+            with open(label_file, 'r') as fp:
+                self.classes = sorted([s.strip() for s in fp.readlines()])
+        else:
+            if not os.path.exists(test_path) and self.include_test_labels:
+                raise ValueError(f'Include test labels but test file does not exist: {test_path}')
+            self.classes = None
+            self.include_test_labels = include_test_labels
+
         if self.data_format == 'txt':
             return self._load_txt(train_path, test_path, eval)
         elif self.data_format == 'svm':
@@ -49,29 +64,43 @@ class Preprocessor:
 
     def _load_txt(self, train_path, test_path, eval) -> 'dict[str, dict]':
         datasets = defaultdict(dict)
+        if os.path.exists(test_path):
+            test = read_libmultilabel_format(test_path)
+
         if not eval:
             train = read_libmultilabel_format(train_path)
             self._generate_tfidf(train['text'])
-            self._generate_label_mapping(train['label'])
+
+            if self.classes or not self.include_test_labels:
+                self._generate_label_mapping(train['label'], self.classes)
+            else:
+                self._generate_label_mapping(train['label'] + test['label'])
             datasets['train']['x'] = self.vectorizer.transform(train['text'])
             datasets['train']['y'] = self.binarizer.transform(
                 train['label']).astype('d')
+
         if os.path.exists(test_path):
-            test = read_libmultilabel_format(test_path)
             datasets['test']['x'] = self.vectorizer.transform(test['text'])
             datasets['test']['y'] = self.binarizer.transform(
                 test['label']).astype('d')
+
         return dict(datasets)
 
     def _load_svm(self, train_path, test_path, eval) -> 'dict[str, dict]':
         datasets = defaultdict(dict)
-        if not eval:
-            y, x = read_libsvm_format(train_path)
-            self._generate_label_mapping(y)
-            datasets['train']['x'] = x
-            datasets['train']['y'] = self.binarizer.transform(y).astype('d')
         if os.path.exists(test_path):
             ty, tx = read_libsvm_format(test_path)
+
+        if not eval:
+            y, x = read_libsvm_format(train_path)
+            if self.classes or not self.include_test_labels:
+                self._generate_label_mapping(y, self.classes)
+            else:
+                self._generate_label_mapping(y + ty)
+            datasets['train']['x'] = x
+            datasets['train']['y'] = self.binarizer.transform(y).astype('d')
+
+        if os.path.exists(test_path):
             datasets['test']['x'] = tx
             datasets['test']['y'] = self.binarizer.transform(ty).astype('d')
         return dict(datasets)
@@ -80,8 +109,9 @@ class Preprocessor:
         self.vectorizer = TfidfVectorizer()
         self.vectorizer.fit(texts)
 
-    def _generate_label_mapping(self, labels):
-        self.binarizer = MultiLabelBinarizer(sparse_output=True)
+    def _generate_label_mapping(self, labels, classes):
+        self.binarizer = MultiLabelBinarizer(
+            sparse_output=True, classes=classes)
         self.binarizer.fit(labels)
 
 
