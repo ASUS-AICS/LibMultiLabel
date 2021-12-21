@@ -108,19 +108,16 @@ def get_metrics(metric_threshold: float, monitor_metrics: list, num_classes: int
     """
     if monitor_metrics is None:
         monitor_metrics = []
-    metrics = {
-        'Macro-F1': F1(num_classes, metric_threshold, average='macro'),
-        'Micro-F1': F1(num_classes, metric_threshold, average='micro'),
-    }
+    metrics = {}
     for metric in monitor_metrics:
         if re.match('P@\d+', metric):
             metrics[metric] = Precision(
                 num_classes, average='samples', top_k=int(metric[2:]))
         elif re.match('RP@\d+', metric):
             metrics[metric] = RPrecision(top_k=int(metric[3:]))
-        elif metric == 'Another-Macro-F1':
-            metrics[metric] = F1(num_classes, metric_threshold, average='another-macro')
-        elif metric not in ['Micro-F1', 'Macro-F1', 'Another-Macro-F1']:
+        elif metric in {'Another-Macro-F1', 'Macro-F1', 'Micro-F1'}:
+            metrics[metric] = F1(num_classes, metric_threshold, average=metric[:-3].lower())
+        else:
             raise ValueError(f'Invalid metric: {metric}')
 
     return MetricCollection(metrics)
