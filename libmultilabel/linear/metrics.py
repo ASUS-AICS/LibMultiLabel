@@ -53,7 +53,7 @@ class F1:
     def __init__(self, num_classes: int, metric_threshold: float, average: str) -> None:
         self.num_classes = num_classes
         self.metric_threshold = metric_threshold
-        if average not in {'macro', 'micro'}:
+        if average not in {'macro', 'micro', 'another-macro'}:
             raise ValueError('unsupported average')
         self.average = average
         self.tp = self.fp = self.fn = 0
@@ -71,8 +71,8 @@ class F1:
         if self.average == 'micro':
             return np.nan_to_num(2*np.sum(self.tp) / np.sum(2*self.tp + self.fp + self.fn))
         if self.average == 'another-macro':
-            macro_prec = np.nan_to_num(self.tp / (self.tp + self.fp))
-            macro_recall = np.nan_to_num(self.tp / (self.tp + self.fn))
+            macro_prec = np.nansum(self.tp / (self.tp + self.fp)) / self.num_classes
+            macro_recall = np.nansum(self.tp / (self.tp + self.fn)) / self.num_classes
             return np.nan_to_num(2 * macro_prec * macro_recall / (macro_prec + macro_recall))
 
 
@@ -109,8 +109,8 @@ def get_metrics(metric_threshold: float, monitor_metrics: list, num_classes: int
     if monitor_metrics is None:
         monitor_metrics = []
     metrics = {
-        'Micro-F1': F1(num_classes, metric_threshold, average='micro'),
         'Macro-F1': F1(num_classes, metric_threshold, average='macro'),
+        'Micro-F1': F1(num_classes, metric_threshold, average='micro'),
     }
     for metric in monitor_metrics:
         if re.match('P@\d+', metric):
