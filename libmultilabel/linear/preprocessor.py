@@ -55,7 +55,8 @@ class Preprocessor:
                 self.classes = sorted([s.strip() for s in fp.readlines()])
         else:
             if not os.path.exists(test_path) and self.include_test_labels:
-                raise ValueError(f'Include test labels but test file does not exist: {test_path}')
+                raise ValueError(
+                    f'Include test labels but test file does not exist: {test_path}')
             self.classes = None
             self.include_test_labels = include_test_labels
 

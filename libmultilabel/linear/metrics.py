@@ -71,8 +71,10 @@ class F1:
         if self.average == 'micro':
             return np.nan_to_num(2*np.sum(self.tp) / np.sum(2*self.tp + self.fp + self.fn))
         if self.average == 'another-macro':
-            macro_prec = np.nansum(self.tp / (self.tp + self.fp)) / self.num_classes
-            macro_recall = np.nansum(self.tp / (self.tp + self.fn)) / self.num_classes
+            macro_prec = np.nansum(
+                self.tp / (self.tp + self.fp)) / self.num_classes
+            macro_recall = np.nansum(
+                self.tp / (self.tp + self.fn)) / self.num_classes
             return np.nan_to_num(2 * macro_prec * macro_recall / (macro_prec + macro_recall))
 
 
@@ -116,7 +118,8 @@ def get_metrics(metric_threshold: float, monitor_metrics: list, num_classes: int
         elif re.match('RP@\d+', metric):
             metrics[metric] = RPrecision(top_k=int(metric[3:]))
         elif metric in {'Another-Macro-F1', 'Macro-F1', 'Micro-F1'}:
-            metrics[metric] = F1(num_classes, metric_threshold, average=metric[:-3].lower())
+            metrics[metric] = F1(
+                num_classes, metric_threshold, average=metric[:-3].lower())
         else:
             raise ValueError(f'Invalid metric: {metric}')
 
