@@ -42,6 +42,8 @@ class Preprocessor:
             train_path (str): Training data path. Ignored if eval is True. Defaults to ''.
             test_path (str): Test data path. Ignored if test_path doesn't exist. Defaults to ''.
             eval (bool): If True, ignores training data and uses previously loaded state to preprocess test data.
+            label_file (str, optional): Path to a file holding all labels.
+            include_test_labels (bool, optional): Whether to include labels in the test dataset. Defaults to False.
 
         Returns:
             dict[str, dict]: The training and test data, with keys 'train' and 'test' respectively. The data
