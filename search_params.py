@@ -10,7 +10,7 @@ from ray.tune.schedulers import ASHAScheduler
 
 from libmultilabel.nn import data_utils
 from libmultilabel.nn.nn_utils import set_seed
-from libmultilabel.utils import AttributeDict
+from libmultilabel.common_utils import AttributeDict
 from torch_trainer import TorchTrainer
 
 logging.basicConfig(level=logging.INFO,

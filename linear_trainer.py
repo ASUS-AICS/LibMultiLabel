@@ -5,7 +5,7 @@ from math import ceil
 import numpy as np
 
 import libmultilabel.linear as linear
-from libmultilabel.utils import dump_log, argsort_top_k
+from libmultilabel.common_utils import dump_log, argsort_top_k
 
 
 def linear_test(config, model, datasets):

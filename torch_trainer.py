@@ -7,7 +7,7 @@ from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from libmultilabel.nn import data_utils
 from libmultilabel.nn.model import Model
 from libmultilabel.nn.nn_utils import init_device, init_model, init_trainer, set_seed
-from libmultilabel.utils import dump_log
+from libmultilabel.common_utils import dump_log
 
 
 class TorchTrainer:

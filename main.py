@@ -6,7 +6,7 @@ from pathlib import Path
 
 import yaml
 
-from libmultilabel.utils import Timer, AttributeDict
+from libmultilabel.common_utils import Timer, AttributeDict
 
 
 def get_config():
