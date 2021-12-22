@@ -122,4 +122,12 @@ class CNNLWAN(LabelwiseAttentionNetwork):
 
     def _get_encoder(self, input_size, dropout):
         return CNNEncoder(input_size, self.filter_sizes,
-                          self.num_filter_per_size, self.activation)
+                          self.num_filter_per_size, self.activation,
+                          channel_last=True)
+
+    def forward(self, input):
+        x = self.embedding(input['text'])  # (batch_size, length, embed_dim)
+        x = self.encoder(x)  # (batch_size, length, hidden_dim)
+        x = self.attention(x)  # (batch_size, num_classes, hidden_dim)
+        x = self.output(x)  # (batch_size, num_classes)
+        return {'logits': x}

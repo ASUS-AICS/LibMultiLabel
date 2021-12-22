@@ -73,12 +73,13 @@ class CNNEncoder(nn.Module):
     """
     """
 
-    def __init__(self, input_size, filter_sizes,
-                 num_filter_per_size, activation):
+    def __init__(self, input_size, filter_sizes, num_filter_per_size,
+                 activation, num_pool=0, channel_last=False):
         super(CNNEncoder, self).__init__()
         if not filter_sizes:
             raise ValueError(f'CNNEncoder expect non-empty filter_sizes. '
                              f'Got: {filter_sizes}')
+        self.channel_last = channel_last
         self.convs = nn.ModuleList()
         for filter_size in filter_sizes:
             conv = nn.Conv1d(
@@ -86,13 +87,24 @@ class CNNEncoder(nn.Module):
                 out_channels=num_filter_per_size,
                 kernel_size=filter_size)
             self.convs.append(conv)
-        self.activation = getattr(F, activation)
+        self.num_pool = num_pool
+        if num_pool > 1:
+            self.pool = nn.AdaptiveMaxPool1d(num_pool)
+        self.activation = getattr(torch, activation, getattr(F, activation))
 
-    def forward(self, inputs, lengths):
+    def forward(self, inputs):
         h = inputs.transpose(1, 2)  # (batch_size, input_size, length)
-        h_list = [conv(h) for conv in self.convs]  # (batch_size, num_filter, length)
-        h = torch.cat(h_list, 1)  # (batch_size, total_num_filter, length)
-        h = h.transpose(1, 2)  # (batch_size, length, total_num_filter)
+        h_list = []
+        for conv in self.convs:
+            h_sub = conv(h)  # (batch_size, num_filter, length)
+            if self.num_pool == 1:
+                h_sub = F.max_pool1d(h_sub, h_sub.shape[2])  # (batch_size, num_filter, 1)
+            elif self.num_pool > 1:
+                h_sub = self.pool(h_sub)  # (batch_size, num_filter, num_pool)
+            h_list.append(h_sub)
+        h = torch.cat(h_list, 1)  # (batch_size, total_num_filter, *)
+        if self.channel_last:
+            h = h.transpose(1, 2)  # (batch_size, *, total_num_filter)
         h = self.activation(h)
         return h
 
