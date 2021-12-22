@@ -7,7 +7,11 @@ from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 
 class Embedding(nn.Module):
-    """
+    """Embedding layer with dropout
+
+    Args:
+        embed_vecs (FloatTensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
+        dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
     """
 
     def __init__(self, embed_vecs, dropout=0.2):
@@ -21,7 +25,13 @@ class Embedding(nn.Module):
 
 
 class RNNEncoder(ABC, nn.Module):
-    """
+    """Base class of RNN encoder with dropout
+
+    Args:
+        input_size (int): The number of expected features in the input.
+        hidden_size (int): The number of features in the hidden state.
+        num_layers (int): Number of recurrent layers.
+        dropout (float): The dropout rate of the word embedding.
     """
 
     def __init__(self, input_size, hidden_size, num_layers, dropout):
@@ -44,7 +54,13 @@ class RNNEncoder(ABC, nn.Module):
 
 
 class GRUEncoder(RNNEncoder):
-    """
+    """Bi-directional GRU encoder with dropout
+
+    Args:
+        input_size (int): The number of expected features in the input.
+        hidden_size (int): The number of features in the hidden state.
+        num_layers (int): Number of recurrent layers.
+        dropout (float): The dropout rate of the word embedding.
     """
 
     def __init__(self, input_size, hidden_size, num_layers, dropout):
@@ -57,7 +73,13 @@ class GRUEncoder(RNNEncoder):
 
 
 class LSTMEncoder(RNNEncoder):
-    """
+    """Bi-directional LSTM encoder with dropout
+
+    Args:
+        input_size (int): The number of expected features in the input.
+        hidden_size (int): The number of features in the hidden state.
+        num_layers (int): Number of recurrent layers.
+        dropout (float): The dropout rate of the word embedding.
     """
 
     def __init__(self, input_size, hidden_size, num_layers, dropout):
@@ -70,7 +92,18 @@ class LSTMEncoder(RNNEncoder):
 
 
 class CNNEncoder(nn.Module):
-    """
+    """Multi-filter-size CNN encoder for text classification with max-pooling
+
+    Args:
+        input_size (int): The number of expected features in the input.
+        filter_sizes (list): Size of convolutional filters.
+        num_filter_per_size (int): Number of filters in convolutional layers in each size. Defaults to 128.
+        activation (str): Activation function to be used. Defaults to 'relu'.
+        num_pool (int): Number of pool for max-pooling.
+                        If num_pool = 0, do nothing.
+                        If num_pool = 1, do typical max-pooling.
+                        If num_pool > 1, do adaptive max-pooling.
+        channel_last (bool): Whether to transpose the dimension from (batch_size, num_channel, length) to (batch_size, length, num_channel)
     """
 
     def __init__(self, input_size, filter_sizes, num_filter_per_size,
@@ -110,26 +143,34 @@ class CNNEncoder(nn.Module):
 
 
 class LabelwiseAttention(nn.Module):
-    """
+    """Applies attention technique to summarize the sequence for each label
+
+    Args:
+        input_size (int): The number of expected features in the input.
+        num_classes (int): Total number of classes.
     """
 
-    def __init__(self, hidden_size, num_classes):
+    def __init__(self, input_size, num_classes):
         super(LabelwiseAttention, self).__init__()
-        self.attention = nn.Linear(hidden_size, num_classes, bias=False)
+        self.attention = nn.Linear(input_size, num_classes, bias=False)
 
     def forward(self, inputs):
         attention = self.attention(inputs).transpose(1, 2)  # N, num_classes, L
         attention = F.softmax(attention, -1)
-        return attention @ inputs   # N, num_classes, hidden_size
+        return attention @ inputs   # N, num_classes, input_size
 
 
 class LabelwiseLinearOutput(nn.Module):
-    """
+    """Applies a linear transformation to the incoming data for each label
+
+    Args:
+        input_size (int): The number of expected features in the input.
+        num_classes (int): Total number of classes.
     """
 
-    def __init__(self, hidden_size, num_classes):
+    def __init__(self, input_size, num_classes):
         super(LabelwiseLinearOutput, self).__init__()
-        self.output = nn.Linear(hidden_size, num_classes)
+        self.output = nn.Linear(input_size, num_classes)
 
     def forward(self, inputs):
         return (self.output.weight * inputs).sum(dim=-1) + self.output.bias

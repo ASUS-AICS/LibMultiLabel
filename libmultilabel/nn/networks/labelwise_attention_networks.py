@@ -6,7 +6,13 @@ from .modules import Embedding, GRUEncoder, LSTMEncoder, CNNEncoder, LabelwiseAt
 
 
 class LabelwiseAttentionNetwork(ABC, nn.Module):
-    """
+    """Base class for Labelwise Attention Network
+
+    Args:
+        embed_vecs (FloatTensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
+        num_classes (int): Total number of classes.
+        dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
+        hidden_dim (int): The output dimension of the encoder.
     """
 
     def __init__(self, embed_vecs, num_classes, dropout, hidden_dim):
