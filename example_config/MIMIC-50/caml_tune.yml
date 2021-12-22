@@ -3,6 +3,7 @@ data_dir: data/MIMIC-50
 data_name: MIMIC-50
 min_vocab_freq: 3
 max_seq_length: 2500
+include_test_labels: true
 
 # train
 seed: 1337
@@ -38,6 +39,15 @@ normalize_embed: true
 search_alg: basic_variant
 embed_cache_dir: null
 num_samples: 1
+scheduler: null
+# Uncomment the following lines to enable the ASHAScheduler.
+# See the documentation here: https://docs.ray.io/en/latest/tune/api_docs/schedulers.html#asha-tune-schedulers-ashascheduler
+# scheduler:
+#   time_attr: training_iteration
+#   max_t: 100 # the maximum epochs to run for each config (parameter R in the ASHA paper)
+#   grace_period: 10 # the minimum epochs to run for each config (parameter r in the ASHA paper)
+#   reduction_factor: 3 # reduce the number of configuration to floor(1/reduction_factor) each round of successive halving (called rung in ASHA paper)
+#   brackets: 1 # number of brackets. A smaller bracket index (parameter s in the ASHA paper) means earlier stopping (i.e., less total resources used)
 
 # other parameters specified in main.py::get_args
 checkpoint_path: null

@@ -2,17 +2,11 @@ import argparse
 import logging
 import os
 from datetime import datetime
-from math import ceil
 from pathlib import Path
 
-import numpy as np
 import yaml
-from pytorch_lightning.utilities.parsing import AttributeDict
 
-import libmultilabel.linear as linear
-from libmultilabel.metrics import tabulate_metrics
-from libmultilabel.utils import Timer
-from torch_trainer import TorchTrainer
+from libmultilabel.common_utils import Timer, AttributeDict
 
 
 def get_config():
@@ -53,6 +47,8 @@ def get_config():
                         help='Whether to shuffle training data before each epoch (default: %(default)s)')
     parser.add_argument('--merge_train_val', action='store_true',
                         help='Whether to merge the training and validation data. (default: %(default)s)')
+    parser.add_argument('--include_test_labels', action='store_true',
+                        help='Whether to include labels in the test dataset. (default: %(default)s)')
 
     # train
     parser.add_argument('--seed', type=int,
@@ -151,6 +147,7 @@ def get_config():
     )
     config.checkpoint_dir = os.path.join(config.result_dir, config.run_name)
     config.log_path = os.path.join(config.checkpoint_dir, 'logs.json')
+    config.predict_out_path = config.predict_out_path or os.path.join(config.checkpoint_dir, 'predictions.txt')
 
     config.train_path = config.train_path or os.path.join(config.data_dir, 'train.txt')
     config.val_path = config.val_path or os.path.join(config.data_dir, 'valid.txt')
@@ -173,50 +170,6 @@ def check_config(config):
         raise ValueError('--eval is specified but there is no test data set')
 
 
-def linear_test(config, model, datasets):
-    metrics = linear.get_metrics(
-        config.metric_threshold,
-        config.monitor_metrics,
-        datasets['test']['y'].shape[1]
-    )
-    num_instance = datasets['test']['x'].shape[0]
-    for i in range(ceil(num_instance / config.eval_batch_size)):
-        slice = np.s_[i*config.eval_batch_size:(i+1)*config.eval_batch_size]
-        preds = linear.predict_values(model, datasets['test']['x'][slice])
-        target = datasets['test']['y'][slice].toarray()
-        metrics.update(preds, target)
-    print(tabulate_metrics(metrics.compute(), 'test'))
-
-
-def linear_train(datasets, config):
-    techniques = {'1vsrest': linear.train_1vsrest,
-               'thresholding': linear.train_thresholding,
-               'cost_sensitive': linear.train_cost_sensitive}
-    model = techniques[config.linear_technique](
-        datasets['train']['y'],
-        datasets['train']['x'],
-        config.liblinear_options,
-    )
-    return model
-
-
-def linear_run(config):
-    if config.eval:
-        preprocessor, model = linear.load_pipeline(config.checkpoint_path)
-        datasets = preprocessor.load_data(
-            config.train_path, config.test_path, config.eval)
-    else:
-        preprocessor = linear.Preprocessor(data_format=config.data_format)
-        datasets = preprocessor.load_data(
-            config.train_path, config.test_path, config.eval)
-        model = linear_train(datasets, config)
-        linear.save_pipeline(config.checkpoint_dir, preprocessor, model)
-
-    if os.path.exists(config.test_path):
-        linear_test(config, model, datasets)
-    # TODO: dump logs?
-
-
 def main():
     # Get config
     config = get_config()
@@ -230,8 +183,10 @@ def main():
     logging.info(f'Run name: {config.run_name}')
 
     if config.linear:
+        from linear_trainer import linear_run
         linear_run(config)
     else:
+        from torch_trainer import TorchTrainer
         trainer = TorchTrainer(config)  # initialize trainer
         # train
         if not config.eval:

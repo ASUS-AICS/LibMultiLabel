@@ -6,8 +6,8 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
-from ..utils import dump_log, argsort_top_k
-from ..metrics import get_metrics, tabulate_metrics
+from ..common_utils import dump_log, argsort_top_k
+from ..nn.metrics import get_metrics, tabulate_metrics
 
 
 class MultiLabelModel(pl.LightningModule):
@@ -19,7 +19,7 @@ class MultiLabelModel(pl.LightningModule):
         optimizer (str, optional): Optimizer name (i.e., sgd, adam, or adamw). Defaults to 'adam'.
         momentum (float, optional): Momentum factor for SGD only. Defaults to 0.9.
         weight_decay (int, optional): Weight decay factor. Defaults to 0.
-        metric_threshold (float, optional): Thresholds to monitor for metrics. Defaults to 0.5.
+        metric_threshold (float, optional): Threshold to monitor for metrics. Defaults to 0.5.
         monitor_metrics (list, optional): Metrics to monitor while validating. Defaults to None.
         log_path (str): Path to a directory holding the log files and models.
         silent (bool, optional): Enable silent mode. Defaults to False.

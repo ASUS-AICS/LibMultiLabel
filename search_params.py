@@ -1,64 +1,62 @@
 import argparse
-import glob
-import itertools
-import json
 import logging
 import os
 import time
-from datetime import datetime
-from pathlib import Path
+from collections import deque
 
 import yaml
-from pytorch_lightning.utilities.parsing import AttributeDict
 from ray import tune
+from ray.tune.schedulers import ASHAScheduler
 
 from libmultilabel.nn import data_utils
-from libmultilabel.nn.nn_utils import init_device, set_seed
+from libmultilabel.nn.nn_utils import set_seed
+from libmultilabel.common_utils import AttributeDict
 from torch_trainer import TorchTrainer
-
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s:%(message)s')
 
 
-class Trainable(tune.Trainable):
-    def setup(self, config, data):
-        self.config = AttributeDict(config)
-        self.datasets = data['datasets']
-        self.word_dict = data['word_dict']
-        self.classes = data['classes']
-        self.device = init_device(config.cpu)
-        set_seed(seed=self.config.seed)
+def train_libmultilabel_tune(config, parameter_columns, datasets, classes, word_dict):
+    """The training function for ray tune.
 
-    def step(self):
-        self.config.run_name = '{}_{}_{}_{}'.format(
-            self.config.data_name,
-            Path(
-                self.config.config).stem if self.config.config else self.config.model_name,
-            datetime.now().strftime('%Y%m%d%H%M%S'),
-            self.trial_id
-        )
-        logging.info(f'Run name: {self.config.run_name}')
+    Args:
+        config (AttributeDict): Config of the experiment.
+        parameter_columns (dict): Names of parameters to include in the CLIReporter.
+                                  The keys are parameter names and the values are displayed names.
+        datasets (dict): A dictionary of datasets.
+        classes(list): List of class names.
+        word_dict(torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
+    """
+    set_seed(seed=config.seed)
+    config.run_name = tune.get_trial_dir()
+    logging.info(f'Run name: {config.run_name}')
 
-        self.config.checkpoint_dir = os.path.join(self.config.result_dir, self.config.run_name)
-        self.config.log_path = os.path.join(self.config.checkpoint_dir, 'logs.json')
+    """Duplicate the nested key to a flatten one split by '/'.
+    For example, config['network_config']['dropout'] will be config['network_config/dropout'].
 
-        trainer = TorchTrainer(config=self.config,
-                               datasets=self.datasets,
-                               classes=self.classes,
-                               word_dict=self.word_dict)
-        trainer.train()
+    We have a workaround here because ray tune does not parse the parameter columns (e.g., network_config/dropout)
+    to the nested keys when printing the best trial.
+    (https://github.com/ray-project/ray/blob/4ef0d4a37a42c529af98b0cfb31e505b51088395/python/ray/tune/progress_reporter.py#L790)
+    """
+    for parameter in parameter_columns.keys():
+        q = deque(parameter.split('/'))
+        subconfig = config
+        while q:
+            key = q.popleft()
+            subconfig = subconfig[key]
+        config[parameter] = subconfig
 
-        # Test the model on the validation set.
-        metric_dict = trainer.test(split='val')
-        val_results = {f'val_{k}': v*100 for k, v in metric_dict.items()}
+    config.checkpoint_dir = os.path.join(config.result_dir, config.run_name)
+    config.log_path = os.path.join(config.checkpoint_dir, 'logs.json')
 
-        # Remove *.ckpt.
-        for model_path in glob.glob(os.path.join(self.config.result_dir, self.config.run_name, '*.ckpt')):
-            logging.info(f'Removing {model_path} ...')
-            os.remove(model_path)
-
-        return val_results
+    trainer = TorchTrainer(config=config,
+                           datasets=datasets,
+                           classes=classes,
+                           word_dict=word_dict,
+                           search_params=True,
+                           save_checkpoints=False)
+    trainer.train()
 
 
 def load_config_from_file(config_path):
@@ -71,7 +69,7 @@ def load_config_from_file(config_path):
         AttributeDict: Config of the experiment.
     """
     with open(config_path) as fp:
-        config = yaml.load(fp, Loader=yaml.SafeLoader)
+        config = yaml.safe_load(fp)
 
     # create directories that hold the shared data
     os.makedirs(config['result_dir'], exist_ok=True)
@@ -88,7 +86,6 @@ def load_config_from_file(config_path):
     config['val_path'] = config['val_path'] or os.path.join(config['data_dir'], 'valid.txt')
     config['test_path'] = config['test_path'] or os.path.join(config['data_dir'], 'test.txt')
 
-    set_seed(seed=config['seed'])
     return config
 
 
@@ -187,19 +184,22 @@ def retrain_best_model(log_path, merge_train_val=False):
         merge_train_val (bool, optional): Whether to merge the training and validation data.
             Defaults to False.
     """
-    best_config = AttributeDict(json.load(open(log_path, 'r'))['config'])
-    best_config.run_name = f'{best_config.run_name}_retrain'
+    with open(log_path, 'r') as fp:
+        best_config = AttributeDict(yaml.safe_load(fp.readlines()[-1])['config'])
+    run_name = os.path.basename(os.path.normpath(best_config.run_name))
+    best_config.run_name = best_config.run_name.replace(run_name, f'{run_name}_retrain')
     best_config.checkpoint_dir = os.path.join(best_config.result_dir, best_config.run_name)
     best_config.log_path = os.path.join(best_config.checkpoint_dir, 'logs.json')
+    set_seed(seed=best_config.seed)
 
     data = load_static_data(best_config, merge_train_val=merge_train_val)
-
     logging.info(f'Retraining with best config: \n{best_config}')
     trainer = TorchTrainer(config=best_config, **data)
     trainer.train()
 
-    if 'test' in data:
-        trainer.test()
+    if 'test' in data['datasets']:
+        test_results = trainer.test()
+        logging.info(f'Test results after retraining: {test_results}')
     logging.info(f'Best model saved to {trainer.checkpoint_callback.best_model_path or trainer.checkpoint_callback.last_model_path}.')
 
 
@@ -211,8 +211,6 @@ def main():
                         help='Number of CPU per trial (default: %(default)s)')
     parser.add_argument('--gpu_count', type=int, default=1,
                         help='Number of GPU per trial (default: %(default)s)')
-    parser.add_argument('--local_dir', default=os.getcwd(),
-                        help='Directory to save training results of tune (default: %(default)s)')
     parser.add_argument('--num_samples', type=int, default=50,
                         help='Number of running trials. If the search space is `grid_search`, the same grid will be repeated `num_samples` times. (default: %(default)s)')
     parser.add_argument('--mode', default='max', choices=['min', 'max'],
@@ -249,13 +247,22 @@ def main():
                                 metric=f'val_{config.val_metric}',
                                 mode=args.mode,
                                 sort_by_metric=True)
+    if config.scheduler is not None:
+        scheduler = ASHAScheduler(metric=f'val_{config.val_metric}',
+                                  mode=args.mode,
+                                  **config.scheduler)
+    else:
+        scheduler = None
+
     analysis = tune.run(
-        tune.with_parameters(Trainable, data=data),
-        # run one step "libmultilabel.model.train"
-        stop={"training_iteration": 1},
+        tune.with_parameters(
+            train_libmultilabel_tune,
+            parameter_columns=parameter_columns,
+            **data),
         search_alg=init_search_algorithm(
             config.search_alg, metric=config.val_metric, mode=args.mode),
-        local_dir=args.local_dir,
+        scheduler=scheduler,
+        local_dir=config.result_dir,
         num_samples=config.num_samples,
         resources_per_trial={
             'cpu': args.cpu_count, 'gpu': args.gpu_count},

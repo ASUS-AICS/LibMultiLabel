@@ -7,7 +7,7 @@ from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from libmultilabel.nn import data_utils
 from libmultilabel.nn.model import Model
 from libmultilabel.nn.nn_utils import init_device, init_model, init_trainer, set_seed
-from libmultilabel.utils import dump_log
+from libmultilabel.common_utils import dump_log
 
 
 class TorchTrainer:
@@ -18,13 +18,18 @@ class TorchTrainer:
         datasets (dict, optional): Datasets for training, validation, and test. Defaults to None.
         classes(list, optional): List of class names.
         word_dict(torchtext.vocab.Vocab, optional): A vocab object which maps tokens to indices.
+        search_params (bool): Enable pytorch-lightning trainer to report the results to ray tune
+            on validation end during hyperparameter search. Defaults to False.
+        save_checkpoints (bool): Whether to save the last and the best checkpoint or not. Defaults to True.
     """
     def __init__(
         self,
         config: dict,
         datasets: dict = None,
         classes: list = None,
-        word_dict: dict = None
+        word_dict: dict = None,
+        search_params: bool = False,
+        save_checkpoints: bool = True
     ):
         self.run_name = config.run_name
         self.checkpoint_dir = config.checkpoint_dir
@@ -60,9 +65,11 @@ class TorchTrainer:
                                     use_cpu=config.cpu,
                                     limit_train_batches=config.limit_train_batches,
                                     limit_val_batches=config.limit_val_batches,
-                                    limit_test_batches=config.limit_test_batches)
-        self.checkpoint_callback = [
-            callback for callback in self.trainer.callbacks if isinstance(callback, ModelCheckpoint)][0]
+                                    limit_test_batches=config.limit_test_batches,
+                                    search_params=search_params,
+                                    save_checkpoints=save_checkpoints)
+        callbacks = [callback for callback in self.trainer.callbacks if isinstance(callback, ModelCheckpoint)]
+        self.checkpoint_callback = callbacks[0] if callbacks else None
 
         # Dump config to log
         dump_log(self.log_path, config=config)
@@ -104,7 +111,7 @@ class TorchTrainer:
                 )
             if not classes:
                 classes = data_utils.load_or_build_label(
-                    self.datasets, self.config.label_file, self.config.silent)
+                    self.datasets, self.config.label_file, self.config.include_test_labels)
 
             if self.config.val_metric not in self.config.monitor_metrics:
                 logging.warn(
@@ -165,8 +172,12 @@ class TorchTrainer:
         # Set model to the best model. If the validation process is skipped during
         # training (i.e., val_size=0), the model is set to the last model.
         model_path = self.checkpoint_callback.best_model_path or self.checkpoint_callback.last_model_path
-        logging.info(f'Finished training. Load best model from {model_path}.')
-        self._setup_model(checkpoint_path=model_path)
+        if model_path:
+            logging.info(f'Finished training. Load best model from {model_path}.')
+            self._setup_model(checkpoint_path=model_path)
+        else:
+            logging.info('No model is saved during training. \
+                If you want to save the best and the last model, please set `save_checkpoints` to True.')
 
     def test(self, split='test'):
         """Test model with pytorch lightning trainer. Top-k predictions are saved
@@ -185,11 +196,7 @@ class TorchTrainer:
         metric_dict = self.trainer.test(self.model, test_dataloaders=test_loader)[0]
 
         if self.config.save_k_predictions > 0:
-            if not self.config.predict_out_path:
-                predict_out_path = os.path.join(self.checkpoint_dir, 'predictions.txt')
-            else:
-                predict_out_path = self.config.predict_out_path
-            self._save_predictions(test_loader, predict_out_path)
+            self._save_predictions(test_loader, self.config.predict_out_path)
 
         return metric_dict
 

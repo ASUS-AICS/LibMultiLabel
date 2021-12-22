@@ -62,7 +62,7 @@ def init_model(model_name,
         optimizer (str, optional): Optimizer name (i.e., sgd, adam, or adamw). Defaults to 'adam'.
         momentum (float, optional): Momentum factor for SGD only. Defaults to 0.9.
         weight_decay (int, optional): Weight decay factor. Defaults to 0.
-        metric_threshold (float, optional): Thresholds to monitor for metrics. Defaults to 0.5.
+        metric_threshold (float, optional): Threshold to monitor for metrics. Defaults to 0.5.
         monitor_metrics (list, optional): Metrics to monitor while validating. Defaults to None.
         silent (bool, optional): Enable silent mode. Defaults to False.
         save_k_predictions (int, optional): Save top k predictions on test set. Defaults to 0.
@@ -106,7 +106,9 @@ def init_trainer(checkpoint_dir,
                  use_cpu=False,
                  limit_train_batches=1.0,
                  limit_val_batches=1.0,
-                 limit_test_batches=1.0):
+                 limit_test_batches=1.0,
+                 search_params=False,
+                 save_checkpoints=True):
     """Initialize a torch lightning trainer.
 
     Args:
@@ -120,20 +122,27 @@ def init_trainer(checkpoint_dir,
         limit_train_batches(Union[int, float]): Percentage of training dataset to use. Defaults to 1.0.
         limit_val_batches(Union[int, float]): Percentage of validation dataset to use. Defaults to 1.0.
         limit_test_batches(Union[int, float]): Percentage of test dataset to use. Defaults to 1.0.
+        search_params (bool): Enable pytorch-lightning trainer to report the results to ray tune
+            on validation end during hyperparameter search. Defaults to False.
+        save_checkpoints (bool): Whether to save the last and the best checkpoint or not. Defaults to True.
     Returns:
         pl.Trainer: A torch lightning trainer.
     """
 
-    checkpoint_callback = ModelCheckpoint(
-        dirpath=checkpoint_dir, filename='best_model', save_last=True,
-        save_top_k=1, monitor=val_metric, mode=mode)
-    earlystopping_callback = EarlyStopping(
-        patience=patience, monitor=val_metric, mode=mode)
+    callbacks = [EarlyStopping(patience=patience, monitor=val_metric, mode=mode)]
+    if save_checkpoints:
+        callbacks += [ModelCheckpoint(dirpath=checkpoint_dir, filename='best_model',
+                                      save_last=True, save_top_k=1,
+                                      monitor=val_metric, mode=mode)]
+    if search_params:
+        from ray.tune.integration.pytorch_lightning import TuneReportCallback
+        callbacks += [TuneReportCallback({f'val_{val_metric}': val_metric}, on="validation_end")]
+
     trainer = pl.Trainer(logger=False, num_sanity_val_steps=0,
                          gpus=0 if use_cpu else 1,
                          progress_bar_refresh_rate=0 if silent else 1,
                          max_epochs=epochs,
-                         callbacks=[checkpoint_callback, earlystopping_callback],
+                         callbacks=callbacks,
                          limit_train_batches=limit_train_batches,
                          limit_val_batches=limit_val_batches,
                          limit_test_batches=limit_test_batches)

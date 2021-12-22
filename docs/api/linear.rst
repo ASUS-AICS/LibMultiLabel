@@ -1,5 +1,5 @@
-Linear Classifier Module
-========================
+Linear Classifier API
+=====================
 
 Linear methods are methods based on
 `LibLinear <https://www.csie.ntu.edu.tw/~cjlin/liblinear/>`_.
@@ -14,10 +14,16 @@ The simplest usage is::
 
 .. autofunction:: train_1vsrest
 
+.. autofunction:: train_thresholding
+
+.. autofunction:: train_cost_sensitive
+
 .. autofunction:: predict_values
 
 .. autoclass:: Preprocessor
    :members:
+
+   .. automethod:: __init__
 
 .. autofunction:: save_pipeline
 

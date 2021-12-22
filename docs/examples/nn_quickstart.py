@@ -8,7 +8,7 @@ device = init_device(use_cpu=False) # use gpu
 set_seed(1337)
 
 # Step 1. Load dataset and build dictionaries.
-datasets = load_datasets(data_dir='data/rcv1', val_size=0.2)
+datasets = load_datasets(train_path='data/rcv1/train.txt', test_path='data/rcv1/test.txt', val_size=0.2)
 classes = load_or_build_label(datasets)
 word_dict = load_or_build_text_dict(dataset=datasets['train'],
                                     embed_file='glove.6B.300d')

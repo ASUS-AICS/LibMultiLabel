@@ -1,7 +1,7 @@
 import re
 
-import torch
 import numpy as np
+import torch
 import torchmetrics.classification
 from torchmetrics import Metric, MetricCollection, Precision, Recall, RetrievalNormalizedDCG
 from torchmetrics.utilities.data import select_topk
@@ -40,12 +40,54 @@ class RPrecision(Metric):
         return self.score / self.num_sample
 
 
+class MacroF1(Metric):
+    """The macro-f1 score computes the average f1 scores of all labels in the dataset.
+
+    Args:
+        num_classes (int): The number of classes.
+        metric_threshold (float): Threshold to monitor for metrics.
+        another_macro_f1 (bool, optional): Whether to compute the 'Another-Macro-F1' score.
+            The 'Another-Macro-F1' is the f1 value of macro-precision and macro-recall.
+            This variant of macro-f1 is less preferred but is used in some works.
+            Please refer to Opitz et al. 2019 [https://arxiv.org/pdf/1911.03347.pdf].
+            Defaults to False.
+    """
+    def __init__(
+        self,
+        num_classes,
+        metric_threshold,
+        another_macro_f1=False
+    ):
+        super().__init__()
+        self.metric_threshold = metric_threshold
+        self.another_macro_f1 = another_macro_f1
+        self.add_state("preds_sum", default=torch.zeros(num_classes, dtype=torch.double))
+        self.add_state("target_sum", default=torch.zeros(num_classes, dtype=torch.double))
+        self.add_state("tp_sum", default=torch.zeros(num_classes, dtype=torch.double))
+
+    def update(self, preds, target):
+        assert preds.shape == target.shape
+        preds = torch.where(preds > self.metric_threshold, 1, 0)
+        self.preds_sum = torch.add(self.preds_sum, preds.sum(dim=0))
+        self.target_sum = torch.add(self.target_sum, target.sum(dim=0))
+        self.tp_sum = torch.add(self.tp_sum, (preds & target).sum(dim=0))
+
+    def compute(self):
+        if self.another_macro_f1:
+            macro_prec = torch.mean(torch.nan_to_num(self.tp_sum / self.preds_sum, posinf=0.))
+            macro_recall = torch.mean(torch.nan_to_num(self.tp_sum / self.target_sum, posinf=0.))
+            return 2 * (macro_prec * macro_recall) / (macro_prec + macro_recall + 1e-10)
+        else:
+            label_f1 = 2 * self.tp_sum / (self.preds_sum + self.target_sum + 1e-10)
+            return torch.mean(label_f1)
+
+
 def get_metrics(metric_threshold, monitor_metrics, num_classes):
     """Map monitor metrics to the corresponding classes defined in `torchmetrics.Metric`
     (https://torchmetrics.readthedocs.io/en/latest/references/modules.html).
 
     Args:
-        metric_threshold (float): Thresholds to monitor for metrics.
+        metric_threshold (float): Threshold to monitor for metrics.
         monitor_metrics (list): Metrics to monitor while validating.
         num_classes (int): Total number of classes.
 
@@ -86,15 +128,11 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes):
             elif metric_abbr == 'nDCG':
                 metrics[metric] = RetrievalNormalizedDCG(k=top_k)
         elif metric == 'Another-Macro-F1':
-            # The f1 value of macro_precision and macro_recall. This variant of
-            # macro_f1 is less preferred but is used in some works. Please
-            # refer to Opitz et al. 2019 [https://arxiv.org/pdf/1911.03347.pdf]
-            macro_prec = Precision(num_classes, metric_threshold, average='macro')
-            macro_recall = Recall(num_classes, metric_threshold, average='macro')
-            metrics[metric] = 2 * (macro_prec * macro_recall) / \
-                (macro_prec + macro_recall + 1e-10)
+            metrics[metric] = MacroF1(num_classes, metric_threshold, another_macro_f1=True)
+        elif metric == 'Macro-F1':
+            metrics[metric] = MacroF1(num_classes, metric_threshold)
         elif match_metric:
-            average_type = match_metric.group(1).lower() # Micro or Macro
+            average_type = match_metric.group(1).lower() # Micro
             metric_type = match_metric.group(2) # Precision, Recall, or F1
             metrics[metric] = getattr(torchmetrics.classification, metric_type)(
                 num_classes, metric_threshold, average=average_type)

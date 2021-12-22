@@ -36,6 +36,9 @@ def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
             np.full((x.shape[0], 1), bias),
         ], 'csr')
 
+    if not '-q' in options:
+        options += ' -q'
+
     y = y.tocsc()
     num_class = y.shape[1]
     num_feature = x.shape[1]
