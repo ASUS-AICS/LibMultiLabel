@@ -2,12 +2,11 @@ from math import floor
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.nn.init import xavier_uniform_
 
-from ..networks.base import BaseModel
 
-
-class CAML(BaseModel):
+class CAML(nn.Module):
     """CAML (Convolutional Attention for Multi-Label classification)
     Follows the work of Mullenbach et al. [https://aclanthology.org/N18-1100.pdf]
 
@@ -28,10 +27,15 @@ class CAML(BaseModel):
         dropout=0.2,
         activation='tanh'
     ):
-        super(CAML, self).__init__(embed_vecs, dropout, activation)
+        super(CAML, self).__init__()
         if not filter_sizes and len(filter_sizes) != 1:
             raise ValueError(f'CAML expect 1 filter size. Got filter_sizes={filter_sizes}')
         filter_size = filter_sizes[0]
+
+        self.embedding = nn.Embedding(len(embed_vecs), embed_vecs.shape[1], padding_idx=0)
+        self.embedding.weight.data = embed_vecs.clone()
+        self.embed_drop = nn.Dropout(p=dropout)
+        self.activation = getattr(torch, activation, getattr(F, activation))
 
         # Initialize conv layer
         self.conv = nn.Conv1d(embed_vecs.shape[1], num_filter_per_size, kernel_size=filter_size, padding=int(floor(filter_size/2)))
