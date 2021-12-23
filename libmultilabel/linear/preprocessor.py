@@ -56,7 +56,7 @@ class Preprocessor:
         else:
             if not os.path.exists(test_path) and self.include_test_labels:
                 raise ValueError(
-                    f'Include test labels but test file does not exist: {test_path}')
+                    f'Specify the inclusion of test labels but test file does not exist: {test_path}')
             self.classes = None
             self.include_test_labels = include_test_labels
 
