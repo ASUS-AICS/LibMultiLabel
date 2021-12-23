@@ -43,6 +43,7 @@ def get_config():
                         help='The minimum frequency needed to include a token in the vocabulary (default: %(default)s)')
     parser.add_argument('--max_seq_length', type=int, default=500,
                         help='The maximum number of tokens of a sample (default: %(default)s)')
+    parser.add_argument('--pretrained_tokenizer', type=str, help='Pretrained tokenizer name (default: %(default)s)')
     parser.add_argument('--shuffle', type=bool, default=True,
                         help='Whether to shuffle training data before each epoch (default: %(default)s)')
     parser.add_argument('--merge_train_val', action='store_true',

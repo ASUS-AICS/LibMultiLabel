@@ -90,12 +90,27 @@ def get_dataset_loader(
     return dataset_loader
 
 
-def tokenize(text):
-    tokenizer = RegexpTokenizer(r'\w+')
-    return [t.lower() for t in tokenizer.tokenize(text) if not t.isnumeric()]
+def tokenize(text, pretrained_tokenizer=None):
+    if pretrained_tokenizer is not None:
+        from transformers import AutoTokenizer
+        tokenizer = AutoTokenizer.from_pretrained(pretrained_tokenizer, use_fast=True)
+        return tokenizer.encode(text, add_special_tokens=False)
+    else:
+        tokenizer = RegexpTokenizer(r'\w+')
+        return [t.lower() for t in tokenizer.tokenize(text) if not t.isnumeric()]
 
 
-def _load_raw_data(path, is_test=False):
+def _load_raw_data(path, pretrained_tokenizer=None, is_test=False):
+    """Load and tokenize raw data.
+
+    Args:
+        path (str): Path to training, test, or validation data.
+        pretrained_tokenizer (str, optional): Pretrained tokenizer name.
+        is_test (bool, optional): Whether the data is for test or not. Defaults to False.
+
+    Returns:
+        pandas.DataFrame: Data composed of index, label, and tokenized text.
+    """
     logging.info(f'Load data from {path}.')
     data = pd.read_csv(path, sep='\t', header=None, error_bad_lines=False, warn_bad_lines=True).fillna('')
     if data.shape[1] == 2:
@@ -106,7 +121,7 @@ def _load_raw_data(path, is_test=False):
     else:
         raise ValueError(f'Expected 2 or 3 columns, got {data.shape[1]}.')
     data['label'] = data['label'].map(lambda s: s.split())
-    data['text'] = data['text'].map(tokenize)
+    data['text'] = data['text'].applymap(tokenize, pretrained_tokenizer)
     data = data.to_dict('records')
     if not is_test:
         data = [d for d in data if len(d['label']) > 0]
@@ -118,7 +133,8 @@ def load_datasets(
     test_path=None,
     val_path=None,
     val_size=0.2,
-    merge_train_val=False
+    merge_train_val=False,
+    pretrained_tokenizer=None
 ):
     """Load data from the specified data paths (i.e., `train_path`, `test_path`, and `val_path`).
     If `valid.txt` does not exist but `val_size` > 0, the validation set will be split from the training dataset.
@@ -127,9 +143,11 @@ def load_datasets(
         train_path (str, optional): Path to training data.
         test_path (str, optional): Path to test data.
         val_path (str, optional): Path to validation data.
-        val_size (float, optional): Training-validation split: a ratio in [0, 1] or an integer for the size of the validation set. Defaults to 0.2.
+        val_size (float, optional): Training-validation split: a ratio in [0, 1] or an integer for the size of the validation set.
+            Defaults to 0.2.
         merge_train_val (bool, optional): Whether to merge the training and validation data.
             Defaults to False.
+        pretrained_tokenizer (str, optional): Pretrained tokenizer name.
 
     Returns:
         dict: A dictionary of datasets.
@@ -138,16 +156,16 @@ def load_datasets(
 
     datasets = {}
     if train_path is not None and os.path.exists(train_path):
-        datasets['train'] = _load_raw_data(train_path)
+        datasets['train'] = _load_raw_data(train_path, pretrained_tokenizer)
 
     if val_path is not None and os.path.exists(val_path):
-        datasets['val'] = _load_raw_data(val_path)
+        datasets['val'] = _load_raw_data(val_path, pretrained_tokenizer)
     elif val_size > 0:
         datasets['train'], datasets['val'] = train_test_split(
             datasets['train'], test_size=val_size, random_state=42)
 
     if test_path is not None and os.path.exists(test_path):
-        datasets['test'] = _load_raw_data(test_path, is_test=True)
+        datasets['test'] = _load_raw_data(test_path, pretrained_tokenizer, is_test=True)
 
     if merge_train_val:
         datasets['train'] = datasets['train'] + datasets['val']
