@@ -99,7 +99,7 @@ class CNNEncoder(nn.Module):
         filter_sizes (list): Size of convolutional filters.
         num_filter_per_size (int): Number of filters in convolutional layers in each size. Defaults to 128.
         activation (str): Activation function to be used. Defaults to 'relu'.
-        num_pool (int): Number of pool for max-pooling.
+        num_pool (int): Number of pools for max-pooling.
                         If num_pool = 0, do nothing.
                         If num_pool = 1, do typical max-pooling.
                         If num_pool > 1, do adaptive max-pooling.
