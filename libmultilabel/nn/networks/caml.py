@@ -9,6 +9,8 @@ from torch.nn.init import xavier_uniform_
 class CAML(nn.Module):
     """CAML (Convolutional Attention for Multi-Label classification)
     Follows the work of Mullenbach et al. [https://aclanthology.org/N18-1100.pdf]
+    This class is for reproducing the results in the paper.
+    Use CNNLWAN instead for better modularization.
 
     Args:
         embed_vecs (FloatTensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
