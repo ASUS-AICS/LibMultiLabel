@@ -157,7 +157,7 @@ class LabelwiseAttention(nn.Module):
     def forward(self, inputs):
         attention = self.attention(inputs).transpose(1, 2)  # N, num_classes, L
         attention = F.softmax(attention, -1)
-        return attention @ inputs   # N, num_classes, input_size
+        return torch.bmm(attention, inputs)  # N, num_classes, input_size
 
 
 class LabelwiseLinearOutput(nn.Module):
