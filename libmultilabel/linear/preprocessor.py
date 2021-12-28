@@ -49,14 +49,14 @@ class Preprocessor:
             dict[str, dict]: The training and test data, with keys 'train' and 'test' respectively. The data
             has keys 'x' for input features and 'y' for labels.
         """
-        if label_file:
+        if label_file is not None:
             logging.info(f'Load labels from {label_file}.')
             with open(label_file, 'r') as fp:
                 self.classes = sorted([s.strip() for s in fp.readlines()])
         else:
-            if not os.path.exists(test_path) and self.include_test_labels:
+            if not os.path.exists(test_path) and include_test_labels:
                 raise ValueError(
-                    f'Specify the inclusion of test labels but test file does not exist: {test_path}')
+                    f'Specified the inclusion of test labels but test file does not exist')
             self.classes = None
             self.include_test_labels = include_test_labels
 

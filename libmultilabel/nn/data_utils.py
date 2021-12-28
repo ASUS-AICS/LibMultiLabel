@@ -240,12 +240,17 @@ def load_or_build_label(datasets, label_file=None, include_test_labels=False):
     Returns:
         list: A list of labels sorted in alphabetical order.
     """
-    if label_file:
+    if label_file is not None:
         logging.info(f'Load labels from {label_file}.')
         with open(label_file, 'r') as fp:
             classes = sorted([s.strip() for s in fp.readlines()])
     else:
+        if 'test' not in datasets and include_test_labels:
+            raise ValueError(
+                f'Specified the inclusion of test labels but test file does not exist')
+
         classes = set()
+
         for split, data in datasets.items():
             if split == 'test' and not include_test_labels:
                 continue
