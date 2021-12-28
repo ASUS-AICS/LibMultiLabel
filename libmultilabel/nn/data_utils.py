@@ -146,7 +146,6 @@ def load_datasets(
     val_path=None,
     val_size=0.2,
     merge_train_val=False,
-    tokenizer=None
 ):
     """Load data from the specified data paths (i.e., `train_path`, `test_path`, and `val_path`).
     If `valid.txt` does not exist but `val_size` > 0, the validation set will be split from the training dataset.
@@ -159,7 +158,6 @@ def load_datasets(
             Defaults to 0.2.
         merge_train_val (bool, optional): Whether to merge the training and validation data.
             Defaults to False.
-        # pretrained_tokenizer (str, optional): Pretrained tokenizer name.
 
     Returns:
         dict: A dictionary of datasets.
@@ -169,18 +167,15 @@ def load_datasets(
     datasets = {}
     if train_path is not None and os.path.exists(train_path):
         datasets['train'] = _load_raw_data(train_path)
-        # datasets['train'] = _load_raw_data(train_path, tokenizer)
 
     if val_path is not None and os.path.exists(val_path):
         datasets['val'] = _load_raw_data(val_path)
-        # datasets['val'] = _load_raw_data(val_path, tokenizer)
     elif val_size > 0:
         datasets['train'], datasets['val'] = train_test_split(
             datasets['train'], test_size=val_size, random_state=42)
 
     if test_path is not None and os.path.exists(test_path):
         datasets['test'] = _load_raw_data(test_path, is_test=True)
-        # datasets['test'] = _load_raw_data(test_path, tokenizer, is_test=True)
 
     if merge_train_val:
         datasets['train'] = datasets['train'] + datasets['val']
