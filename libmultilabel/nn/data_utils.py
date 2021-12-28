@@ -235,7 +235,7 @@ def load_or_build_label(datasets, label_file=None, include_test_labels=False):
             with index, label, and tokenized text.
         label_file (str, optional): Path to a file holding all labels.
         include_test_labels (bool, optional): Whether to include labels in the test dataset.
-            Defaults to True.
+            Defaults to False.
 
     Returns:
         list: A list of labels sorted in alphabetical order.
