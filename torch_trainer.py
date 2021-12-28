@@ -3,6 +3,7 @@ import os
 
 import numpy as np
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
+from transformers import AutoTokenizer
 
 from libmultilabel.nn import data_utils
 from libmultilabel.nn.model import Model
@@ -41,6 +42,10 @@ class TorchTrainer:
         self.device = init_device(use_cpu=config.cpu)
         self.config = config
 
+        # Load pretrained tokenizer for dataset loader
+        # config.network_config['lm_weight'] or move lm_weight out of network_config
+        if config.network_config['lm_weight'] is not None:
+            self.tokenizer = AutoTokenizer.from_pretrained(config.network_config['lm_weight'], use_fast=True)
         # Load dataset
         if datasets is None:
             self.datasets = data_utils.load_datasets(
@@ -48,8 +53,7 @@ class TorchTrainer:
                 test_path=config.test_path,
                 val_path=config.val_path,
                 val_size=config.val_size,
-                merge_train_val=config.merge_train_val,
-                pretrained_tokenizer=config.pretrained_tokenizer
+                merge_train_val=config.merge_train_val
             )
         else:
             self.datasets = datasets
@@ -101,7 +105,8 @@ class TorchTrainer:
             self.model = Model.load_from_checkpoint(checkpoint_path)
         else:
             logging.info('Initialize model from scratch.')
-            if not word_dict:
+            if word_dict is not None and self.config.embed_file is not None:
+                logging.info('Load word dictionary ')
                 word_dict = data_utils.load_or_build_text_dict(
                     dataset=self.datasets['train'],
                     vocab_file=self.config.vocab_file,
@@ -153,7 +158,8 @@ class TorchTrainer:
             max_seq_length=self.config.max_seq_length,
             batch_size=self.config.batch_size if split == 'train' else self.config.eval_batch_size,
             shuffle=shuffle,
-            data_workers=self.config.data_workers
+            data_workers=self.config.data_workers,
+            tokenizer=self.tokenizer
         )
 
     def train(self):

@@ -23,21 +23,29 @@ PAD = '**PAD**'
 class TextDataset(Dataset):
     """Class for text dataset"""
 
-    def __init__(self, data, word_dict, classes, max_seq_length):
+    def __init__(self, data, word_dict, classes, max_seq_length, tokenizer=None):
         self.data = data
         self.word_dict = word_dict
         self.classes = classes
         self.max_seq_length = max_seq_length
         self.num_classes = len(self.classes)
         self.label_binarizer = MultiLabelBinarizer().fit([classes])
+        self.tokenizer = tokenizer
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, index):
         data = self.data[index]
+        input_ids = data['text']
+
+        if self.tokenizer is not None:
+            input_ids = self.tokenizer.encode(data['text'], add_special_tokens=False)
+        else:
+            data['text'] = tokenize(data['text'])
+            input_ids = [self.word_dict[word] for word in data['text']]
         return {
-            'text': torch.LongTensor([self.word_dict[word] for word in data['text']][:self.max_seq_length]),
+            'text': torch.LongTensor(input_ids[:self.max_seq_length]),
             'label': torch.IntTensor(self.label_binarizer.transform([data['label']])[0]),
         }
 
@@ -61,7 +69,8 @@ def get_dataset_loader(
     max_seq_length=500,
     batch_size=1,
     shuffle=False,
-    data_workers=4
+    data_workers=4,
+    tokenizer=None
 ):
     """Create a pytorch DataLoader.
 
@@ -78,7 +87,7 @@ def get_dataset_loader(
     Returns:
         torch.utils.data.DataLoader: A pytorch DataLoader.
     """
-    dataset = TextDataset(data, word_dict, classes, max_seq_length)
+    dataset = TextDataset(data, word_dict, classes, max_seq_length, tokenizer=tokenizer)
     dataset_loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=batch_size,
@@ -90,22 +99,25 @@ def get_dataset_loader(
     return dataset_loader
 
 
-def tokenize(text, pretrained_tokenizer=None):
-    if pretrained_tokenizer is not None:
-        from transformers import AutoTokenizer
-        tokenizer = AutoTokenizer.from_pretrained(pretrained_tokenizer, use_fast=True)
-        return tokenizer.encode(text, add_special_tokens=False)
-    else:
-        tokenizer = RegexpTokenizer(r'\w+')
-        return [t.lower() for t in tokenizer.tokenize(text) if not t.isnumeric()]
+def tokenize(text):
+    """Tokenize text.
+
+    Args:
+        text (str): Text to tokenize.
+
+    Returns:
+        list: A list of tokens.
+    """
+    tokenizer = RegexpTokenizer(r'\w+')
+    return [t.lower() for t in tokenizer.tokenize(text) if not t.isnumeric()]
 
 
-def _load_raw_data(path, pretrained_tokenizer=None, is_test=False):
+def _load_raw_data(path, is_test=False):
     """Load and tokenize raw data.
 
     Args:
         path (str): Path to training, test, or validation data.
-        pretrained_tokenizer (str, optional): Pretrained tokenizer name.
+        # tokenizer (str, optional): A loadPretrained tokenizer name.
         is_test (bool, optional): Whether the data is for test or not. Defaults to False.
 
     Returns:
@@ -121,7 +133,7 @@ def _load_raw_data(path, pretrained_tokenizer=None, is_test=False):
     else:
         raise ValueError(f'Expected 2 or 3 columns, got {data.shape[1]}.')
     data['label'] = data['label'].map(lambda s: s.split())
-    data['text'] = data['text'].applymap(tokenize, pretrained_tokenizer)
+    # data['text'] = data['text'].apply(tokenize, tokenizer=tokenizer)
     data = data.to_dict('records')
     if not is_test:
         data = [d for d in data if len(d['label']) > 0]
@@ -134,7 +146,7 @@ def load_datasets(
     val_path=None,
     val_size=0.2,
     merge_train_val=False,
-    pretrained_tokenizer=None
+    tokenizer=None
 ):
     """Load data from the specified data paths (i.e., `train_path`, `test_path`, and `val_path`).
     If `valid.txt` does not exist but `val_size` > 0, the validation set will be split from the training dataset.
@@ -147,7 +159,7 @@ def load_datasets(
             Defaults to 0.2.
         merge_train_val (bool, optional): Whether to merge the training and validation data.
             Defaults to False.
-        pretrained_tokenizer (str, optional): Pretrained tokenizer name.
+        # pretrained_tokenizer (str, optional): Pretrained tokenizer name.
 
     Returns:
         dict: A dictionary of datasets.
@@ -156,16 +168,19 @@ def load_datasets(
 
     datasets = {}
     if train_path is not None and os.path.exists(train_path):
-        datasets['train'] = _load_raw_data(train_path, pretrained_tokenizer)
+        datasets['train'] = _load_raw_data(train_path)
+        # datasets['train'] = _load_raw_data(train_path, tokenizer)
 
     if val_path is not None and os.path.exists(val_path):
-        datasets['val'] = _load_raw_data(val_path, pretrained_tokenizer)
+        datasets['val'] = _load_raw_data(val_path)
+        # datasets['val'] = _load_raw_data(val_path, tokenizer)
     elif val_size > 0:
         datasets['train'], datasets['val'] = train_test_split(
             datasets['train'], test_size=val_size, random_state=42)
 
     if test_path is not None and os.path.exists(test_path):
-        datasets['test'] = _load_raw_data(test_path, pretrained_tokenizer, is_test=True)
+        datasets['test'] = _load_raw_data(test_path, is_test=True)
+        # datasets['test'] = _load_raw_data(test_path, tokenizer, is_test=True)
 
     if merge_train_val:
         datasets['train'] = datasets['train'] + datasets['val']
