@@ -47,7 +47,10 @@ def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
         yi = y[:, i].toarray().reshape(-1)
         modeli = train(2*yi - 1, x, options)
         w = np.ctypeslib.as_array(modeli.w, (num_feature,))
-        weights[:, i] = w
+        if modeli.get_labels()[0] == -1:
+            weights[:, i] = -w
+        else:
+            weights[:, i] = w
 
     return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': 0}
 
@@ -249,7 +252,10 @@ def do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> np.matrix:
     w = np.ctypeslib.as_array(model.w, (x.shape[1], 1))
     w = np.asmatrix(w)
     # The memory is freed on model deletion so we make a copy.
-    return w.copy()
+    if model.get_labels()[0] == -1:
+        return -w
+    else:
+        return w.copy()
 
 
 class silent_stderr:
