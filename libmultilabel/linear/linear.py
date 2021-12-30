@@ -47,6 +47,10 @@ def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
         yi = y[:, i].toarray().reshape(-1)
         modeli = train(2*yi - 1, x, options)
         w = np.ctypeslib.as_array(modeli.w, (num_feature,))
+        # Liblinear flips +1/-1 labels so +1 is always the first label,
+        # but not if all labels are -1.
+        # For our usage, we need +1 to always be the first label,
+        # so the check is necessary.
         if modeli.get_labels()[0] == -1:
             weights[:, i] = -w
         else:
@@ -251,10 +255,14 @@ def do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> np.matrix:
 
     w = np.ctypeslib.as_array(model.w, (x.shape[1], 1))
     w = np.asmatrix(w)
-    # The memory is freed on model deletion so we make a copy.
+    # Liblinear flips +1/-1 labels so +1 is always the first label,
+    # but not if all labels are -1.
+    # For our usage, we need +1 to always be the first label,
+    # so the check is necessary.
     if model.get_labels()[0] == -1:
         return -w
     else:
+        # The memory is freed on model deletion so we make a copy.
         return w.copy()
 
 
