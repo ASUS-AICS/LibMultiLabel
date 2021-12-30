@@ -69,15 +69,18 @@ class F1:
         prev_settings = np.seterr('ignore')
 
         if self.average == 'macro':
-            score = np.nansum(2*self.tp / (2*self.tp + self.fp + self.fn)) / self.num_classes
+            score = np.nansum(
+                2*self.tp / (2*self.tp + self.fp + self.fn)) / self.num_classes
         elif self.average == 'micro':
-            score = np.nan_to_num(2*np.sum(self.tp) / np.sum(2*self.tp + self.fp + self.fn))
+            score = np.nan_to_num(2*np.sum(self.tp) /
+                                  np.sum(2*self.tp + self.fp + self.fn))
         elif self.average == 'another-macro':
             macro_prec = np.nansum(
                 self.tp / (self.tp + self.fp)) / self.num_classes
             macro_recall = np.nansum(
                 self.tp / (self.tp + self.fn)) / self.num_classes
-            score = np.nan_to_num(2 * macro_prec * macro_recall / (macro_prec + macro_recall))
+            score = np.nan_to_num(
+                2 * macro_prec * macro_recall / (macro_prec + macro_recall))
 
         np.seterr(**prev_settings)
         return score
