@@ -47,7 +47,14 @@ def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
         yi = y[:, i].toarray().reshape(-1)
         modeli = train(2*yi - 1, x, options)
         w = np.ctypeslib.as_array(modeli.w, (num_feature,))
-        weights[:, i] = w
+        # Liblinear flips +1/-1 labels so +1 is always the first label,
+        # but not if all labels are -1.
+        # For our usage, we need +1 to always be the first label,
+        # so the check is necessary.
+        if modeli.get_labels()[0] == -1:
+            weights[:, i] = -w
+        else:
+            weights[:, i] = w
 
     return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': 0}
 
@@ -248,8 +255,15 @@ def do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> np.matrix:
 
     w = np.ctypeslib.as_array(model.w, (x.shape[1], 1))
     w = np.asmatrix(w)
-    # The memory is freed on model deletion so we make a copy.
-    return w.copy()
+    # Liblinear flips +1/-1 labels so +1 is always the first label,
+    # but not if all labels are -1.
+    # For our usage, we need +1 to always be the first label,
+    # so the check is necessary.
+    if model.get_labels()[0] == -1:
+        return -w
+    else:
+        # The memory is freed on model deletion so we make a copy.
+        return w.copy()
 
 
 class silent_stderr:
@@ -309,8 +323,8 @@ def train_cost_sensitive(y: sparse.csr_matrix, x: sparse.csr_matrix, options: st
         A model which can be used in predict_values.
     """
     # Follows the MATLAB implementation at https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/multilabel/
-    if any(o in options for o in ['-R', '-c', '-C', '-v']):
-        raise ValueError('-R, -c, -C and -v are not supported')
+    if any(o in options for o in ['-R', '-C', '-v']):
+        raise ValueError('-R, -C and -v are not supported')
 
     bias = -1.
     if options.find('-B') != -1:
@@ -353,20 +367,17 @@ def cost_sensitive_one_label(y: np.ndarray,
     l = y.shape[0]
     perm = np.random.permutation(l)
 
-    param_space = [(a, c)
-                   for a in [1, 1.33, 1.8, 2.5, 3.67, 6, 13]
-                   for c in [1, 10, 100]]
+    param_space = [1, 1.33, 1.8, 2.5, 3.67, 6, 13]
 
     bestScore = -np.Inf
-    for a, c in param_space:
-        cv_options = f'{options} -c {c} -w1 {a}'
+    for a in param_space:
+        cv_options = f'{options} -w1 {a}'
         score = cross_validate(y, x, cv_options, perm)
         if bestScore < score:
             bestScore = score
             bestA = a
-            bestC = c
 
-    final_options = f'{options} -c {bestC} -w1 {bestA}'
+    final_options = f'{options} -w1 {bestA}'
     return do_train(y, x, final_options)
 
 
