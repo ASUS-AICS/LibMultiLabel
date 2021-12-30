@@ -117,7 +117,6 @@ def _load_raw_data(path, is_test=False):
 
     Args:
         path (str): Path to training, test, or validation data.
-        # tokenizer (str, optional): A loadPretrained tokenizer name.
         is_test (bool, optional): Whether the data is for test or not. Defaults to False.
 
     Returns:
@@ -133,7 +132,6 @@ def _load_raw_data(path, is_test=False):
     else:
         raise ValueError(f'Expected 2 or 3 columns, got {data.shape[1]}.')
     data['label'] = data['label'].map(lambda s: s.split())
-    # data['text'] = data['text'].apply(tokenize, tokenizer=tokenizer)
     data = data.to_dict('records')
     if not is_test:
         data = [d for d in data if len(d['label']) > 0]

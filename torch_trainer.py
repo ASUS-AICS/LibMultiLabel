@@ -43,8 +43,8 @@ class TorchTrainer:
         self.config = config
 
         # Load pretrained tokenizer for dataset loader
-        # config.network_config['lm_weight'] or move lm_weight out of network_config
-        if config.network_config['lm_weight'] is not None:
+        self.tokenizer = None
+        if 'lm_weight' in config.network_config:
             self.tokenizer = AutoTokenizer.from_pretrained(config.network_config['lm_weight'], use_fast=True)
         # Load dataset
         if datasets is None:
@@ -105,7 +105,7 @@ class TorchTrainer:
             self.model = Model.load_from_checkpoint(checkpoint_path)
         else:
             logging.info('Initialize model from scratch.')
-            if word_dict is not None and self.config.embed_file is not None:
+            if self.config.embed_file is not None:
                 logging.info('Load word dictionary ')
                 word_dict = data_utils.load_or_build_text_dict(
                     dataset=self.datasets['train'],
