@@ -1,4 +1,5 @@
 import torch
+from torch.nn.init import xavier_uniform_
 import torch.nn as nn
 from torch.nn.utils.rnn import pad_sequence
 from transformers import AutoModel
@@ -36,6 +37,16 @@ class BERTAttention(nn.Module):
         self.query = nn.Parameter(torch.Tensor(1, embedding_dim))
         self.attention = nn.MultiheadAttention(embedding_dim, num_heads, dropout=dropout)
         self.embed_drop = nn.Dropout(p=dropout)
+
+        """Context vectors for computing attention with
+        (in_features, out_features) = (lm_hidden_size, num_classes) -> lm_linear
+        """
+        self.U = nn.Linear(self.lm.config.hidden_size, num_classes)
+        xavier_uniform_(self.U.weight)
+
+        # Final layer: create a matrix to use for the #labels binary classifiers  -> lm_final
+        self.final = nn.Linear(self.lm.config.hidden_size, num_classes)
+        xavier_uniform_(self.final.weight)
 
     def lm_feature(self, input_ids):
         """BERT takes an input of a sequence of no more than 512 tokens.
@@ -77,14 +88,30 @@ class BERTAttention(nn.Module):
     def forward(self, input):
         input_ids = input['text'] # (batch_size, sequence_length)
         x = self.lm_feature(input_ids) # (batch_size, sequence_length, lm_hidden_size)
-        attention_mask = input_ids == self.lm.config.pad_token_id
+
+        # attention_mask = input_ids == self.lm.config.pad_token_id
         x = self.embed_drop(x)
-        x = self.lm_linear(x)  # (batch_size, sequence_length, embedding_dim)
+        # x = self.lm_linear(x)  # (batch_size, sequence_length, embedding_dim)
 
-        k = v = x.permute(1, 0, 2) # (sequence_length, batch_size, embedding_dim)
-        q = self.query.repeat(1, input_ids.size(0), 1) # (1, batch_size, embedding_dim)
+        # k = v = x.permute(1, 0, 2) # (sequence_length, batch_size, embedding_dim)
+        # q = self.query.repeat(1, input_ids.size(0), 1) # (1, batch_size, embedding_dim)
 
-        output, mulit_head_alpha = self.attention(query=q, key=k, value=v, key_padding_mask=attention_mask)
-        logits = self.lm_final(output.squeeze(0))
+        # output, mulit_head_alpha = self.attention(query=q, key=k, value=v, key_padding_mask=attention_mask)
+        # logits = self.lm_final(output.squeeze(0))
 
-        return {'logits': logits}
+        """Apply per-label attention. The shapes are:
+           - U.weight: (num_classes, lm_hidden_size)
+           - matrix product of U.weight and x: (batch_size, num_classes, length)
+           - alpha: (batch_size, num_classes, length)
+        """
+        alpha = torch.softmax(self.U.weight.matmul(x.transpose(1, 2)), dim=2)
+
+        # Document representations are weighted sums using the attention
+        m = alpha.matmul(x)  # (batch_size, num_classes, lm_hidden_size)
+
+        # Compute a probability for each label
+        x = self.final.weight.mul(m).sum(dim=2).add(
+            self.final.bias)  # (batch_size, num_classes)
+
+        return {'logits': x, 'attention': alpha}
+        # return {'logits': logits}
