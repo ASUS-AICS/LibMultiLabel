@@ -15,7 +15,7 @@ class BERTAttention(nn.Module):
         lm_weight (str): Pretrained model name or path. Defaults to 'bert-base-cased'.
         lm_window (int): Length of the subsequences to be split before feeding them to
             the language model. Defaults to 512.
-        num_heads (int): Number of parallel attention heads. Defaults to 2.
+        num_heads (int): Number of parallel attention heads. Defaults to 8.
     """
     def __init__(
         self,
@@ -24,7 +24,7 @@ class BERTAttention(nn.Module):
         embedding_dim=512,
         lm_weight='bert-base-cased',
         lm_window=512,
-        num_heads=2
+        num_heads=8
     ):
         super().__init__()
         self.lm_window = lm_window

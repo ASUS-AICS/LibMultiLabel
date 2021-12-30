@@ -9,8 +9,8 @@ include_test_labels: true
 
 # train
 seed: 1337
-epochs: 50 # 200
-batch_size: 2 # 16
+epochs: 50
+batch_size: 2
 optimizer: adamax
 learning_rate: 0.0001 # 0.001
 weight_decay: 0
@@ -30,4 +30,4 @@ network_config:
   lm_weight: emilyalsentzer/Bio_ClinicalBERT
   lm_window: 512
   embedding_dim: 512
-  num_heads: 2
+  num_heads: 8 # 2
