@@ -10,7 +10,7 @@ class BERTAttention(nn.Module):
     Args:
         num_classes (int): Total number of classes.
         dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
-        embedding_dim (int): [description]. Defaults to 512.
+        embedding_dim (int): Embedding dimension. Defaults to 512.
         lm_weight (str): Pretrained model name or path. Defaults to 'bert-base-cased'.
         lm_window (int): Length of the subsequences to be split before feeding them to
             the language model. Defaults to 512.

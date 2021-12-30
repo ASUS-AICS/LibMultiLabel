@@ -143,7 +143,7 @@ def load_datasets(
     test_path=None,
     val_path=None,
     val_size=0.2,
-    merge_train_val=False,
+    merge_train_val=False
 ):
     """Load data from the specified data paths (i.e., `train_path`, `test_path`, and `val_path`).
     If `valid.txt` does not exist but `val_size` > 0, the validation set will be split from the training dataset.
