@@ -24,7 +24,8 @@ class BERTAttention(nn.Module):
         embedding_dim=512,
         lm_weight='bert-base-cased',
         lm_window=512,
-        num_heads=8
+        num_heads=8,
+        **kwargs
     ):
         super().__init__()
         self.lm_window = lm_window

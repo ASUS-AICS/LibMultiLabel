@@ -20,6 +20,7 @@ def init_device(use_cpu=False):
     Returns:
         torch.device: One of cuda or cpu.
     """
+
     if not use_cpu and torch.cuda.is_available():
         # Set a debug environment variable CUBLAS_WORKSPACE_CONFIG to ":16:8" (may limit overall performance) or ":4096:8" (will increase library footprint in GPU memory by approximately 24MiB).
         # https://docs.nvidia.com/cuda/cublas/index.html
@@ -70,17 +71,12 @@ def init_model(model_name,
     Returns:
         Model: A class that implements `MultiLabelModel` for initializing and training a neural network.
     """
-    if word_dict is not None:
-        network = getattr(networks, model_name)(
-            embed_vecs=word_dict.vectors,
-            num_classes=len(classes),
-            **dict(network_config)
-        )
-    else:
-        network = getattr(networks, model_name)(
-            num_classes=len(classes),
-            **dict(network_config)
-        )
+
+    network = getattr(networks, model_name)(
+        embed_vecs=word_dict.vectors if word_dict is not None else None,
+        num_classes=len(classes),
+        **dict(network_config)
+    )
 
     if init_weight is not None:
         init_weight = networks.get_init_weight_func(
