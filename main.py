@@ -58,7 +58,7 @@ def get_config():
                         help='Number of epochs to train (default: %(default)s)')
     parser.add_argument('--batch_size', type=int, default=16,
                         help='Size of training batches (default: %(default)s)')
-    parser.add_argument('--optimizer', default='adam', choices=['adam', 'sgd'],
+    parser.add_argument('--optimizer', default='adam', choices=['adam', 'adamw', 'adamax', 'sgd'],
                         help='Optimizer: SGD or Adam (default: %(default)s)')
     parser.add_argument('--learning_rate', type=float, default=0.0001,
                         help='Learning rate for optimizer (default: %(default)s)')
