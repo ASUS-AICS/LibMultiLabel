@@ -32,21 +32,19 @@ class BERTAttention(nn.Module):
         self.embedding_dim = embedding_dim
 
         self.lm = AutoModel.from_pretrained(lm_weight, torchscript=True)
-        self.lm_linear = nn.Linear(self.lm.config.hidden_size, embedding_dim)
-        self.lm_final = nn.Linear(embedding_dim, num_classes)
-
-        self.query = nn.Parameter(torch.Tensor(1, embedding_dim))
-        self.attention = nn.MultiheadAttention(embedding_dim, num_heads, dropout=dropout)
         self.embed_drop = nn.Dropout(p=dropout)
 
-        """Context vectors for computing attention with
-        (in_features, out_features) = (lm_hidden_size, num_classes) -> lm_linear
-        """
+        self.attention = nn.MultiheadAttention(self.lm.config.hidden_size, num_heads, dropout=dropout)
+
+        # Context vectors for computing attention
         self.U = nn.Linear(self.lm.config.hidden_size, num_classes)
+        # To be discussed: xavier_uniform_ is applied in MultiheadAttention init.
+        # Do we need to do twice?
         xavier_uniform_(self.U.weight)
 
-        # Final layer: create a matrix to use for the #labels binary classifiers  -> lm_final
+        # Final layer: create a matrix to use for the #labels binary classifiers
         self.final = nn.Linear(self.lm.config.hidden_size, num_classes)
+        # To be discussed: same as above
         xavier_uniform_(self.final.weight)
 
     def lm_feature(self, input_ids):
@@ -90,29 +88,31 @@ class BERTAttention(nn.Module):
         input_ids = input['text'] # (batch_size, sequence_length)
         x = self.lm_feature(input_ids) # (batch_size, sequence_length, lm_hidden_size)
 
-        # attention_mask = input_ids == self.lm.config.pad_token_id
+        attention_mask = input_ids == self.lm.config.pad_token_id
         x = self.embed_drop(x)
-        # x = self.lm_linear(x)  # (batch_size, sequence_length, embedding_dim)
 
-        # k = v = x.permute(1, 0, 2) # (sequence_length, batch_size, embedding_dim)
-        # q = self.query.repeat(1, input_ids.size(0), 1) # (1, batch_size, embedding_dim)
+        # Apply per-label attention.
 
-        # output, mulit_head_alpha = self.attention(query=q, key=k, value=v, key_padding_mask=attention_mask)
-        # logits = self.lm_final(output.squeeze(0))
+        # Multihead attention
+        # To be discussed: Do we really need to apply a linear layer (768 -> 512) here?
+        k = v = x.permute(1, 0, 2) # (sequence_length, batch_size, embedding_dim)
+        q = self.U.weight.repeat(input_ids.size(0), 1, 1).transpose(0,1) # classes, batch_size, lm_hidden_size
 
-        """Apply per-label attention. The shapes are:
-           - U.weight: (num_classes, lm_hidden_size)
-           - matrix product of U.weight and x: (batch_size, num_classes, length)
-           - alpha: (batch_size, num_classes, length)
-        """
-        alpha = torch.softmax(self.U.weight.matmul(x.transpose(1, 2)), dim=2)
+        # alpha: Dropout(Softmax(QK^T)), then get the average of attention heads
+        # m: (batch_size, num_classes, lm_hidden_size)
+        m, alpha = self.attention(query=q, key=k, value=v, key_padding_mask=attention_mask)
+        m = m.permute(1, 0, 2)
 
-        # Document representations are weighted sums using the attention
-        m = alpha.matmul(x)  # (batch_size, num_classes, lm_hidden_size)
+        # CAML
+        # alpha = torch.softmax(
+        #     self.U.weight.matmul(x.transpose(1, 2)), # (batch_size, num_classes, sequence_length)
+        #     dim=2) # (batch_size, num_classes, sequence_length)
+
+        # # Document representations are weighted sums using the attention
+        # m = alpha.matmul(x)  # (batch_size, num_classes, lm_hidden_size)
 
         # Compute a probability for each label
-        x = self.final.weight.mul(m).sum(dim=2).add(
-            self.final.bias)  # (batch_size, num_classes)
-
+        x = self.final.weight.mul(m)
+        x = x.sum(dim=2)
+        x = x.add(self.final.bias)  # (batch_size, num_classes)
         return {'logits': x, 'attention': alpha}
-        # return {'logits': logits}
