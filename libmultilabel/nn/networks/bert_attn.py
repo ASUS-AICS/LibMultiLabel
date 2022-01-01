@@ -11,7 +11,7 @@ class BERTAttention(nn.Module):
     Args:
         num_classes (int): Total number of classes.
         dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
-        embedding_dim (int): Embedding dimension. Defaults to 512.
+        # embedding_dim (int): Embedding dimension. Defaults to 512.
         lm_weight (str): Pretrained model name or path. Defaults to 'bert-base-cased'.
         lm_window (int): Length of the subsequences to be split before feeding them to
             the language model. Defaults to 512.
@@ -21,7 +21,7 @@ class BERTAttention(nn.Module):
         self,
         num_classes,
         dropout=0.2,
-        embedding_dim=512,
+        # embedding_dim=512,
         lm_weight='bert-base-cased',
         lm_window=512,
         num_heads=8,
@@ -29,7 +29,7 @@ class BERTAttention(nn.Module):
     ):
         super().__init__()
         self.lm_window = lm_window
-        self.embedding_dim = embedding_dim
+        # self.embedding_dim = embedding_dim
 
         self.lm = AutoModel.from_pretrained(lm_weight, torchscript=True)
         self.embed_drop = nn.Dropout(p=dropout)
@@ -95,10 +95,10 @@ class BERTAttention(nn.Module):
 
         # Multihead attention
         # To be discussed: Do we really need to apply a linear layer (768 -> 512) here?
-        k = v = x.permute(1, 0, 2) # (sequence_length, batch_size, embedding_dim)
+        k = v = x.permute(1, 0, 2) # (sequence_length, batch_size, lm_hidden_size)
         q = self.U.weight.repeat(input_ids.size(0), 1, 1).transpose(0,1) # classes, batch_size, lm_hidden_size
 
-        # alpha: Dropout(Softmax(QK^T)), then get the average of attention heads
+        # alpha: Dropout(Softmax(Q*(1/sqrt(d^k)) K^T )), then get the average of attention heads
         # m: (batch_size, num_classes, lm_hidden_size)
         m, alpha = self.attention(query=q, key=k, value=v, key_padding_mask=attention_mask)
         m = m.permute(1, 0, 2)
