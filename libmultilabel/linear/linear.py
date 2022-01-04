@@ -372,7 +372,8 @@ def cost_sensitive_one_label(y: np.ndarray,
     bestScore = -np.Inf
     for a in param_space:
         cv_options = f'{options} -w1 {a}'
-        score = cross_validate(y, x, cv_options, perm)
+        pred = cross_validate(y, x, cv_options, perm)
+        score = fmeasure(y, 2*pred - 1)
         if bestScore < score:
             bestScore = score
             bestA = a
@@ -385,7 +386,7 @@ def cross_validate(y: np.ndarray,
                    x: sparse.csr_matrix,
                    options: str,
                    perm: np.ndarray
-                   ) -> float:
+                   ) ->  np.ndarray:
     """Cross-validation for cost-sensitive.
 
     Args:
@@ -394,7 +395,7 @@ def cross_validate(y: np.ndarray,
         options (str): The option string passed to liblinear.
 
     Returns:
-        float: cross-validation F1 score.
+        np.ndarray: The cross-validation decision-values in the same order as y.
     """
     l = y.shape[0]
     nr_fold = 3
@@ -408,8 +409,70 @@ def cross_validate(y: np.ndarray,
         w = do_train(y[train_idx], x[train_idx], options)
         pred[val_idx] = (x[val_idx] * w).A1 > 0
 
-    return fmeasure(y, 2*pred - 1)
+    return pred
 
+def train_cost_sensitive_micro(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
+    """Trains a linear model for multilabel data using a one-vs-rest strategy
+    and cross-validation to pick an optimal asymmetric misclassification cost
+    for Micro-F1.
+    Outperforms train_1vsrest in most aspects at the cost of higher
+    time complexity.
+    See user guide for more details.
+
+    Args:
+        y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
+        x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
+        options (str): The option string passed to liblinear.
+
+    Returns:
+        A model which can be used in predict_values.
+    """
+    # Follows the MATLAB implementation at https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/multilabel/
+    if any(o in options for o in ['-R', '-C', '-v']):
+        raise ValueError('-R, -C and -v are not supported')
+
+    bias = -1.
+    if options.find('-B') != -1:
+        options_split = options.split()
+        i = options_split.index('-B')
+        bias = float(options_split[i+1])
+        options = ' '.join(options_split[:i] + options_split[i+2:])
+        x = sparse.hstack([
+            x,
+            np.full((x.shape[0], 1), bias),
+        ], 'csr')
+
+    y = y.tocsc()
+    num_class = y.shape[1]
+    num_feature = x.shape[1]
+    weights = np.zeros((num_feature, num_class), order='F')
+
+    l = y.shape[0]
+    perm = np.random.permutation(l)
+    param_space = [1, 1.33, 1.8, 2.5, 3.67, 6, 13]
+    bestScore = -np.Inf
+    for a in param_space:
+        tp = fn = fp = 0
+        for i in range(num_class):
+            yi = y[:, i].toarray().reshape(-1)
+
+            cv_options = f'{options} -w1 {a}'
+            pred = cross_validate(yi, x, cv_options, perm)
+            pred = 2*pred - 1
+            tp = tp + np.sum(np.logical_and(yi == 1, pred == 1))
+            fn = fn + np.sum(np.logical_and(yi == 1, pred == -1))
+            fp = fp + np.sum(np.logical_and(yi == -1, pred == 1))
+
+        score = 2*tp / (2*tp + fn + fp)
+        if bestScore < score:
+            bestScore = score
+            bestA = a
+
+    final_options = f'{options} -w1 {bestA}'
+    for i in range(num_class):
+        weights[:, i] = do_train(y, x, final_options).ravel()
+
+    return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': 0}
 
 def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
     """Calculates the decision values associated with x.
