@@ -275,7 +275,7 @@ class silent_stderr:
 
     def __init__(self):
         self.stderr = os.dup(2)
-        self.devnull = os.open('/dev/null', os.O_WRONLY)
+        self.devnull = os.open(os.devnull, os.O_WRONLY)
 
     def __enter__(self):
         os.dup2(self.devnull, 2)
