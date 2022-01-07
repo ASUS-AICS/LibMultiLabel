@@ -7,6 +7,7 @@ from liblinear.liblinearutil import train
 __all__ = ['train_1vsrest',
            'train_thresholding',
            'train_cost_sensitive',
+           'train_cost_sensitive_micro',
            'predict_values']
 
 
@@ -470,7 +471,8 @@ def train_cost_sensitive_micro(y: sparse.csr_matrix, x: sparse.csr_matrix, optio
 
     final_options = f'{options} -w1 {bestA}'
     for i in range(num_class):
-        weights[:, i] = do_train(y, x, final_options).ravel()
+        yi = y[:, i].toarray().reshape(-1)
+        weights[:, i] = do_train(yi, x, final_options).ravel()
 
     return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': 0}
 

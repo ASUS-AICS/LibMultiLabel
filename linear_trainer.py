@@ -38,7 +38,8 @@ def linear_test(config, model, datasets):
 def linear_train(datasets, config):
     techniques = {'1vsrest': linear.train_1vsrest,
                   'thresholding': linear.train_thresholding,
-                  'cost_sensitive': linear.train_cost_sensitive}
+                  'cost_sensitive': linear.train_cost_sensitive,
+                  'cost_sensitive_micro': linear.train_cost_sensitive_micro}
     model = techniques[config.linear_technique](
         datasets['train']['y'],
         datasets['train']['x'],
