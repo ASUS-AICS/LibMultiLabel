@@ -49,6 +49,9 @@ def linear_train(datasets, config):
 
 
 def linear_run(config):
+    if config.seed is not None:
+        np.random.seed(config.seed)
+
     if config.eval:
         preprocessor, model = linear.load_pipeline(config.checkpoint_path)
         datasets = preprocessor.load_data(
