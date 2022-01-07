@@ -368,7 +368,7 @@ def cost_sensitive_one_label(y: np.ndarray,
     for a in param_space:
         cv_options = f'{options} -w1 {a}'
         pred = cross_validate(y, x, cv_options, perm)
-        score = fmeasure(y, 2*pred - 1)
+        score = fmeasure(y, pred)
         if bestScore < score:
             bestScore = score
             bestA = a
@@ -390,7 +390,7 @@ def cross_validate(y: np.ndarray,
         options (str): The option string passed to liblinear.
 
     Returns:
-        np.ndarray: The cross-validation decision-values in the same order as y.
+        np.ndarray: Cross-validation result as a +1/-1 array.
     """
     l = y.shape[0]
     nr_fold = 3
@@ -404,7 +404,7 @@ def cross_validate(y: np.ndarray,
         w = do_train(y[train_idx], x[train_idx], options)
         pred[val_idx] = (x[val_idx] * w).A1 > 0
 
-    return pred
+    return 2*pred - 1
 
 
 def train_cost_sensitive_micro(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
@@ -443,7 +443,6 @@ def train_cost_sensitive_micro(y: sparse.csr_matrix, x: sparse.csr_matrix, optio
 
             cv_options = f'{options} -w1 {a}'
             pred = cross_validate(yi, x, cv_options, perm)
-            pred = 2*pred - 1
             tp = tp + np.sum(np.logical_and(yi == 1, pred == 1))
             fn = fn + np.sum(np.logical_and(yi == 1, pred == -1))
             fp = fp + np.sum(np.logical_and(yi == -1, pred == 1))
