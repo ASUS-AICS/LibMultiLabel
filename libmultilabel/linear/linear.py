@@ -455,8 +455,7 @@ def train_cost_sensitive_micro(y: sparse.csr_matrix, x: sparse.csr_matrix, optio
     final_options = f'{options} -w1 {bestA}'
     for i in range(num_class):
         yi = y[:, i].toarray().reshape(-1)
-        yi = 2*yi - 1
-        weights[:, i] = do_train(yi, x, final_options).ravel()
+        weights[:, i] = do_train(2*yi - 1, x, final_options).ravel()
 
     return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': 0}
 
