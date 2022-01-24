@@ -6,35 +6,38 @@ from transformers import AutoModel
 
 
 class BERTAttention(nn.Module):
-    """BERT Attention model.
+    """BERT + Label-wise Document Attention
 
     Args:
         num_classes (int): Total number of classes.
         dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
-        # embedding_dim (int): Embedding dimension. Defaults to 512.
         lm_weight (str): Pretrained model name or path. Defaults to 'bert-base-cased'.
         lm_window (int): Length of the subsequences to be split before feeding them to
             the language model. Defaults to 512.
         num_heads (int): Number of parallel attention heads. Defaults to 8.
+        attention_type (str): Type of attention to use (caml or multihead). Defaults to 'multihead'.
     """
     def __init__(
         self,
         num_classes,
         dropout=0.2,
-        # embedding_dim=512,
         lm_weight='bert-base-cased',
         lm_window=512,
         num_heads=8,
+        attention_type='multihead',
+        attention_dropout=0.0,
         **kwargs
     ):
         super().__init__()
         self.lm_window = lm_window
-        # self.embedding_dim = embedding_dim
+        self.attention_type = attention_type
 
         self.lm = AutoModel.from_pretrained(lm_weight, torchscript=True)
         self.embed_drop = nn.Dropout(p=dropout)
 
-        self.attention = nn.MultiheadAttention(self.lm.config.hidden_size, num_heads, dropout=dropout)
+        if self.attention_type == 'multihead':
+            self.attention = nn.MultiheadAttention(
+                self.lm.config.hidden_size, num_heads, dropout=attention_dropout)
 
         # Context vectors for computing attention
         self.U = nn.Linear(self.lm.config.hidden_size, num_classes)
@@ -44,7 +47,6 @@ class BERTAttention(nn.Module):
 
         # Final layer: create a matrix to use for the #labels binary classifiers
         self.final = nn.Linear(self.lm.config.hidden_size, num_classes)
-        # To be discussed: same as above
         xavier_uniform_(self.final.weight)
 
     def lm_feature(self, input_ids):
@@ -92,24 +94,20 @@ class BERTAttention(nn.Module):
         x = self.embed_drop(x)
 
         # Apply per-label attention.
+        if self.attention_type == 'multihead':
+            k = v = x.permute(1, 0, 2) # (sequence_length, batch_size, lm_hidden_size)
+            q = self.U.weight.repeat(input_ids.size(0), 1, 1).transpose(0, 1) # classes, batch_size, lm_hidden_size
 
-        # Multihead attention
-        # To be discussed: Do we really need to apply a linear layer (768 -> 512) here?
-        k = v = x.permute(1, 0, 2) # (sequence_length, batch_size, lm_hidden_size)
-        q = self.U.weight.repeat(input_ids.size(0), 1, 1).transpose(0,1) # classes, batch_size, lm_hidden_size
-
-        # alpha: Dropout(Softmax(Q*(1/sqrt(d^k)) K^T )), then get the average of attention heads
-        # m: (batch_size, num_classes, lm_hidden_size)
-        m, alpha = self.attention(query=q, key=k, value=v, key_padding_mask=attention_mask)
-        m = m.permute(1, 0, 2)
-
-        # CAML
-        # alpha = torch.softmax(
-        #     self.U.weight.matmul(x.transpose(1, 2)), # (batch_size, num_classes, sequence_length)
-        #     dim=2) # (batch_size, num_classes, sequence_length)
-
-        # # Document representations are weighted sums using the attention
-        # m = alpha.matmul(x)  # (batch_size, num_classes, lm_hidden_size)
+            # alpha: Dropout(Softmax(Q*(1/sqrt(d^k)) K^T )), then get the average of attention heads
+            # m: (batch_size, num_classes, lm_hidden_size)
+            m, alpha = self.attention(query=q, key=k, value=v, key_padding_mask=attention_mask)
+            m = m.permute(1, 0, 2)
+        elif self.attention_type == 'caml':
+            alpha = torch.softmax(
+                self.U.weight.matmul(x.transpose(1, 2)), # (batch_size, num_classes, sequence_length)
+                dim=2) # (batch_size, num_classes, sequence_length)
+            # Document representations are weighted sums using the attention
+            m = alpha.matmul(x)  # (batch_size, num_classes, lm_hidden_size)
 
         # Compute a probability for each label
         x = self.final.weight.mul(m)

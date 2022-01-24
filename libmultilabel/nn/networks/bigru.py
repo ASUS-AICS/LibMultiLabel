@@ -46,13 +46,13 @@ class BiGRU(BaseModel):
 
     def forward(self, input):
         text, length, indices = self.sort_data_by_length(input['text'], input['length'])
-        x = self.embedding(text) # (batch_size, length, rnn_dim)
-        x = self.embed_drop(x) # (batch_size, length, rnn_dim)
+        x = self.embedding(text) # (batch_size, length, embed_dim)
+        x = self.embed_drop(x) # (batch_size, length, embed_dim)
 
         packed_inputs = pack_padded_sequence(x, length, batch_first=True)
         x, _ = self.rnn(packed_inputs)
         x = pad_packed_sequence(x)[0]
-        x = x.permute(1, 0, 2)
+        x = x.permute(1, 0, 2) # (batch_size, length, rnn_dim)
 
         x = torch.tanh(x)
 
