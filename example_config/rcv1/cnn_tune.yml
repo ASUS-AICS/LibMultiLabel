@@ -9,7 +9,7 @@ seed: 1337
 epochs: 50
 batch_size: 64
 optimizer: adam
-learning_rate: ['uniform', 0.0003, 0.001]
+learning_rate: ['grid_search', [0.001, 0.0005, 0.0001]]
 momentum: 0.9
 weight_decay: 0
 patience: 5
@@ -17,17 +17,17 @@ shuffle: true
 
 # eval
 eval_batch_size: 256
-monitor_metrics: [P@1, P@3, P@5]
-val_metric: P@1
+monitor_metrics: ['Macro-F1', 'Micro-F1', 'P@1', 'P@3', 'P@5']
+val_metric: Macro-F1
 
 # model
 model_name: KimCNN
 init_weight: kaiming_uniform
 network_config:
-  num_filter_per_size: 128 # filter channels
   filter_sizes: ['grid_search', [[2,4,8], [4,6]]]
-  dropout: ['choice', [0.2, 0.4, 0.6, 0.8]]
+  num_filter_per_size: 128 # filter channels
   activation: relu
+  dropout: ['grid_search', [0.2, 0.4, 0.6, 0.8]]
 
 # pretrained vocab / embeddings
 embed_file: glove.6B.300d
