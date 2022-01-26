@@ -22,6 +22,19 @@ class LabelwiseAttentionNetwork(ABC, nn.Module):
         self.attention = LabelwiseAttention(hidden_dim, num_classes)
         self.output = LabelwiseLinearOutput(hidden_dim, num_classes)
 
+    @abstractmethod
+    def forward(self, input):
+        raise NotImplementedError
+
+    @abstractmethod
+    def _get_encoder(self, input_size, dropout):
+        raise NotImplementedError
+
+
+class RNNLWAN(LabelwiseAttentionNetwork):
+    """Base class for RNN Labelwise Attention Network
+    """
+
     def forward(self, input):
         x = self.embedding(input['text'])  # (batch_size, length, embed_dim)
         x = self.encoder(x, input['length'])  # (batch_size, length, hidden_dim)
@@ -29,12 +42,8 @@ class LabelwiseAttentionNetwork(ABC, nn.Module):
         x = self.output(x)  # (batch_size, num_classes)
         return {'logits': x}
 
-    @abstractmethod
-    def _get_encoder(self, input_size, dropout):
-        raise NotImplementedError
 
-
-class BiGRULWAN(LabelwiseAttentionNetwork):
+class BiGRULWAN(RNNLWAN):
     """BiGRU Labelwise Attention Network
 
     Args:
@@ -66,7 +75,7 @@ class BiGRULWAN(LabelwiseAttentionNetwork):
                           dropout)
 
 
-class BiLSTMLWAN(LabelwiseAttentionNetwork):
+class BiLSTMLWAN(RNNLWAN):
     """BiLSTM Labelwise Attention Network
 
     Args:
