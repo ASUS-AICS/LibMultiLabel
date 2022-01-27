@@ -53,7 +53,7 @@ class F1:
     def __init__(self, num_classes: int, metric_threshold: float, average: str) -> None:
         self.num_classes = num_classes
         self.metric_threshold = metric_threshold
-        if average not in {'macro', 'micro'}:
+        if average not in {'macro', 'micro', 'another-macro'}:
             raise ValueError('unsupported average')
         self.average = average
         self.tp = self.fp = self.fn = 0
@@ -66,10 +66,24 @@ class F1:
         self.fp += np.logical_and(target == 0, preds == 1).sum(axis=0)
 
     def compute(self) -> float:
+        prev_settings = np.seterr('ignore')
+
         if self.average == 'macro':
-            return np.nansum(2*self.tp / (2*self.tp + self.fp + self.fn)) / self.num_classes
-        if self.average == 'micro':
-            return np.nan_to_num(2*np.sum(self.tp) / np.sum(2*self.tp + self.fp + self.fn))
+            score = np.nansum(
+                2*self.tp / (2*self.tp + self.fp + self.fn)) / self.num_classes
+        elif self.average == 'micro':
+            score = np.nan_to_num(2*np.sum(self.tp) /
+                                  np.sum(2*self.tp + self.fp + self.fn))
+        elif self.average == 'another-macro':
+            macro_prec = np.nansum(
+                self.tp / (self.tp + self.fp)) / self.num_classes
+            macro_recall = np.nansum(
+                self.tp / (self.tp + self.fn)) / self.num_classes
+            score = np.nan_to_num(
+                2 * macro_prec * macro_recall / (macro_prec + macro_recall))
+
+        np.seterr(**prev_settings)
+        return score
 
 
 class MetricCollection(dict):
@@ -104,18 +118,17 @@ def get_metrics(metric_threshold: float, monitor_metrics: list, num_classes: int
     """
     if monitor_metrics is None:
         monitor_metrics = []
-    metrics = {
-        'Micro-F1': F1(num_classes, metric_threshold, average='micro'),
-        'Macro-F1': F1(num_classes, metric_threshold, average='macro'),
-    }
+    metrics = {}
     for metric in monitor_metrics:
         if re.match('P@\d+', metric):
             metrics[metric] = Precision(
                 num_classes, average='samples', top_k=int(metric[2:]))
         elif re.match('RP@\d+', metric):
             metrics[metric] = RPrecision(top_k=int(metric[3:]))
-
-        elif metric not in ['Micro-Precision', 'Micro-Recall', 'Micro-F1', 'Macro-F1', 'Another-Macro-F1']:
+        elif metric in {'Another-Macro-F1', 'Macro-F1', 'Micro-F1'}:
+            metrics[metric] = F1(
+                num_classes, metric_threshold, average=metric[:-3].lower())
+        else:
             raise ValueError(f'Invalid metric: {metric}')
 
     return MetricCollection(metrics)

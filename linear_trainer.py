@@ -38,7 +38,8 @@ def linear_test(config, model, datasets):
 def linear_train(datasets, config):
     techniques = {'1vsrest': linear.train_1vsrest,
                   'thresholding': linear.train_thresholding,
-                  'cost_sensitive': linear.train_cost_sensitive}
+                  'cost_sensitive': linear.train_cost_sensitive,
+                  'cost_sensitive_micro': linear.train_cost_sensitive_micro}
     model = techniques[config.linear_technique](
         datasets['train']['y'],
         datasets['train']['x'],
@@ -48,6 +49,9 @@ def linear_train(datasets, config):
 
 
 def linear_run(config):
+    if config.seed is not None:
+        np.random.seed(config.seed)
+
     if config.eval:
         preprocessor, model = linear.load_pipeline(config.checkpoint_path)
         datasets = preprocessor.load_data(
@@ -55,7 +59,11 @@ def linear_run(config):
     else:
         preprocessor = linear.Preprocessor(data_format=config.data_format)
         datasets = preprocessor.load_data(
-            config.train_path, config.test_path, config.eval)
+            config.train_path,
+            config.test_path,
+            config.eval,
+            config.label_file,
+            config.include_test_labels)
         model = linear_train(datasets, config)
         linear.save_pipeline(config.checkpoint_dir, preprocessor, model)
 
