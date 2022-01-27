@@ -23,7 +23,8 @@ val_metric: P@1
 model_name: BiGRULWAN
 init_weight: kaiming_uniform
 network_config:
-  dropout: 0.3
+  embed_dropout: 0.3
+  encoder_dropout: 0.3
   rnn_dim: 512
   rnn_layers: 1
 

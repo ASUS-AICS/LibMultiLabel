@@ -31,10 +31,10 @@ class RNNEncoder(ABC, nn.Module):
         input_size (int): The number of expected features in the input.
         hidden_size (int): The number of features in the hidden state.
         num_layers (int): Number of recurrent layers.
-        dropout (float): The dropout rate of the word embedding.
+        dropout (float): The dropout rate of the encoder. Defaults to 0.
     """
 
-    def __init__(self, input_size, hidden_size, num_layers, dropout):
+    def __init__(self, input_size, hidden_size, num_layers, dropout=0):
         super(RNNEncoder, self).__init__()
         self.rnn = self._get_rnn(input_size, hidden_size, num_layers)
         self.dropout = nn.Dropout(dropout)
@@ -60,10 +60,10 @@ class GRUEncoder(RNNEncoder):
         input_size (int): The number of expected features in the input.
         hidden_size (int): The number of features in the hidden state.
         num_layers (int): Number of recurrent layers.
-        dropout (float): The dropout rate of the word embedding.
+        dropout (float): The dropout rate of the encoder. Defaults to 0.
     """
 
-    def __init__(self, input_size, hidden_size, num_layers, dropout):
+    def __init__(self, input_size, hidden_size, num_layers, dropout=0):
         super(GRUEncoder, self).__init__(input_size, hidden_size, num_layers,
                                          dropout)
 
@@ -79,10 +79,10 @@ class LSTMEncoder(RNNEncoder):
         input_size (int): The number of expected features in the input.
         hidden_size (int): The number of features in the hidden state.
         num_layers (int): Number of recurrent layers.
-        dropout (float): The dropout rate of the word embedding.
+        dropout (float): The dropout rate of the encoder. Defaults to 0.
     """
 
-    def __init__(self, input_size, hidden_size, num_layers, dropout):
+    def __init__(self, input_size, hidden_size, num_layers, dropout=0):
         super(LSTMEncoder, self).__init__(input_size, hidden_size, num_layers,
                                           dropout)
 
@@ -99,6 +99,7 @@ class CNNEncoder(nn.Module):
         filter_sizes (list): Size of convolutional filters.
         num_filter_per_size (int): Number of filters in convolutional layers in each size. Defaults to 128.
         activation (str): Activation function to be used. Defaults to 'relu'.
+        dropout (float): The dropout rate of the encoder. Defaults to 0.
         num_pool (int): Number of pools for max-pooling.
                         If num_pool = 0, do nothing.
                         If num_pool = 1, do typical max-pooling.
@@ -107,7 +108,7 @@ class CNNEncoder(nn.Module):
     """
 
     def __init__(self, input_size, filter_sizes, num_filter_per_size,
-                 activation, num_pool=0, channel_last=False):
+                 activation, dropout=0, num_pool=0, channel_last=False):
         super(CNNEncoder, self).__init__()
         if not filter_sizes:
             raise ValueError(f'CNNEncoder expect non-empty filter_sizes. '
@@ -124,6 +125,7 @@ class CNNEncoder(nn.Module):
         if num_pool > 1:
             self.pool = nn.AdaptiveMaxPool1d(num_pool)
         self.activation = getattr(torch, activation, getattr(F, activation))
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, inputs):
         h = inputs.transpose(1, 2)  # (batch_size, input_size, length)
@@ -139,7 +141,7 @@ class CNNEncoder(nn.Module):
         if self.channel_last:
             h = h.transpose(1, 2)  # (batch_size, *, total_num_filter)
         h = self.activation(h)
-        return h
+        return self.dropout(h)
 
 
 class LabelwiseAttention(nn.Module):

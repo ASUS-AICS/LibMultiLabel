@@ -26,7 +26,8 @@ init_weight: kaiming_uniform
 network_config:
   num_filter_per_size: 128 # filter channels
   filter_sizes: ['grid_search', [[2,4,8], [4,6]]]
-  dropout: ['choice', [0.2, 0.4, 0.6, 0.8]]
+  embed_dropout: ['choice', [0, 0.2, 0.4, 0.6, 0.8]]
+  encoder_dropout: ['choice', [0, 0.2, 0.4, 0.6, 0.8]]
   activation: relu
 
 # pretrained vocab / embeddings
