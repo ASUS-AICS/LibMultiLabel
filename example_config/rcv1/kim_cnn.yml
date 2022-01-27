@@ -10,14 +10,12 @@ epochs: 50
 batch_size: 64
 optimizer: adam
 learning_rate: 0.0005
-momentum: 0.9
 weight_decay: 0
 patience: 5
-shuffle: true
 
 # eval
 eval_batch_size: 256
-monitor_metrics: ['Macro-F1', 'Micro-F1', 'P@1', 'P@3', 'P@5']
+monitor_metrics: ['Micro-Precision', 'Micro-Recall', 'Micro-F1', 'Macro-F1', 'Another-Macro-F1', 'P@1', 'P@3', 'P@5']
 val_metric: Macro-F1
 
 # model
@@ -25,7 +23,6 @@ model_name: KimCNN
 network_config:
   filter_sizes: [2, 4, 8]
   num_filter_per_size: 128 # filter channels
-  activation: relu
   dropout: 0.2
 
 # pretrained vocab / embeddings
