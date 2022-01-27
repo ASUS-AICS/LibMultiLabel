@@ -22,13 +22,13 @@ monitor_metrics: ['Another-Macro-F1', 'Macro-F1', 'Micro-F1', 'P@1', 'P@3', 'P@5
 val_metric: 'P@1'
 
 # model
-model_name: BiGRU
+model_name: BiGRULWAN
 init_weight: null
 network_config:
   rnn_dim: ['grid_search', [150, 300, 600]]
   rnn_layers: ['grid_search', [1, 2]]
-  activation: tanh
-  dropout: ['grid_search', [0.2, 0.4, 0.6, 0.8]]
+  embed_dropout: ['grid_search', [0, 0.2, 0.4, 0.6, 0.8]]
+  encoder_dropout: ['grid_search', [0, 0.2, 0.4, 0.6, 0.8]]
 
 # pretrained vocab / embeddings
 vocab_file: null
