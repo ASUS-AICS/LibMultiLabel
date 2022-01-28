@@ -55,7 +55,11 @@ def linear_run(config):
     else:
         preprocessor = linear.Preprocessor(data_format=config.data_format)
         datasets = preprocessor.load_data(
-            config.train_path, config.test_path, config.eval)
+            config.train_path,
+            config.test_path,
+            config.eval,
+            config.label_file,
+            config.include_test_labels)
         model = linear_train(datasets, config)
         linear.save_pipeline(config.checkpoint_dir, preprocessor, model)
 
