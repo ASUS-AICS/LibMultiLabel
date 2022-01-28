@@ -1,45 +1,44 @@
 # data
-data_dir: data/EUR-Lex
-data_name: EUR-Lex
-min_vocab_freq: 1
-max_seq_length: 500
+data_dir: data/MIMIC-50
+data_name: MIMIC-50
+min_vocab_freq: 3
+max_seq_length: 2500
 include_test_labels: true
 
 # train
 seed: 1337
-epochs: 50
+epochs: 100
 batch_size: 16
 optimizer: adam
-learning_rate: ['grid_search', [0.003, 0.001, 0.0003, 0.0001]]
-momentum: 0.9
+learning_rate: ['grid_search', [0.01, 0.003, 0.001, 0.0003, 0.0001]]
+momentum: 0
 weight_decay: 0
 patience: 10
 shuffle: true
 
 # eval
-eval_batch_size: 64
-monitor_metrics: ['Another-Macro-F1', 'Macro-F1', 'Micro-F1', 'P@1', 'P@3', 'P@5']
-val_metric: 'P@1'
+eval_batch_size: 1
+monitor_metrics: ['Micro-F1', 'Macro-F1', 'Another-Macro-F1', 'P@1', 'P@3', 'P@5', 'RP@5']
+val_metric: P@5
 
 # model
-model_name: BiGRU
-init_weight: null
+model_name: BiGRULWAN
+init_weight: ['grid_search', ['kaiming_uniform', 'xavier_uniform']]
 network_config:
-  rnn_dim: ['grid_search', [150, 300, 600]]
+  embed_dropout: ['grid_search', [0, 0.2, 0.4, 0.6, 0.8]]
+  encoder_dropout: ['grid_search', [0, 0.2, 0.4, 0.6, 0.8]]
+  rnn_dim: ['grid_search', [256, 512, 1024, 2048]]
   rnn_layers: ['grid_search', [1, 2]]
-  activation: tanh
-  dropout: ['grid_search', [0.2, 0.4, 0.6, 0.8]]
 
 # pretrained vocab / embeddings
-vocab_file: null
-embed_file: glove.6B.200d
-normalize_embed: false
+vocab_file: data/MIMIC-50/vocab.csv
+embed_file: data/MIMIC-50/processed_full.embed
+normalize_embed: true
 
 # hyperparamter search
 search_alg: basic_variant
 embed_cache_dir: null
 num_samples: 1
-cpu_count: 6
 scheduler: null
 # Uncomment the following lines to enable the ASHAScheduler.
 # See the documentation here: https://docs.ray.io/en/latest/tune/api_docs/schedulers.html#asha-tune-schedulers-ashascheduler
@@ -63,7 +62,7 @@ metric_threshold: 0.5
 result_dir: runs
 save_k_predictions: 0
 silent: true
-test_path: data/EUR-Lex/test.txt
-train_path: data/EUR-Lex/train.txt
-val_path: null
+test_path: data/MIMIC-50/test.txt
+train_path: data/MIMIC-50/train.txt
+val_path: data/MIMIC-50/valid.txt
 val_size: 0.2

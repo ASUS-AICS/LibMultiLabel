@@ -25,9 +25,10 @@ model_name: KimCNN
 init_weight: kaiming_uniform
 network_config:
   filter_sizes: ['grid_search', [[2,4,8], [4,6]]]
+  embed_dropout: ['choice', [0, 0.2, 0.4, 0.6, 0.8]]
+  encoder_dropout: ['choice', [0, 0.2, 0.4, 0.6, 0.8]]
   num_filter_per_size: 128 # filter channels
   activation: relu
-  dropout: ['grid_search', [0.2, 0.4, 0.6, 0.8]]
 
 # pretrained vocab / embeddings
 embed_file: glove.6B.300d
