@@ -1,12 +1,13 @@
 import os
+
 import numpy as np
 import scipy.sparse as sparse
-
 from liblinear.liblinearutil import train
 
 __all__ = ['train_1vsrest',
            'train_thresholding',
            'train_cost_sensitive',
+           'train_cost_sensitive_micro',
            'predict_values']
 
 
@@ -22,6 +23,40 @@ def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
         A model which can be used in predict_values.
     """
     # Follows the MATLAB implementation at https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/multilabel/
+    x, options, bias = prepare_options(x, options)
+
+    y = y.tocsc()
+    num_class = y.shape[1]
+    num_feature = x.shape[1]
+    weights = np.zeros((num_feature, num_class), order='F')
+    for i in range(num_class):
+        yi = y[:, i].toarray().reshape(-1)
+        modeli = train(2*yi - 1, x, options)
+        w = np.ctypeslib.as_array(modeli.w, (num_feature,))
+        # Liblinear flips +1/-1 labels so +1 is always the first label,
+        # but not if all labels are -1.
+        # For our usage, we need +1 to always be the first label,
+        # so the check is necessary.
+        if modeli.get_labels()[0] == -1:
+            weights[:, i] = -w
+        else:
+            weights[:, i] = w
+
+    return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': 0}
+
+
+def prepare_options(x: sparse.csr_matrix, options: str) -> 'tuple[sparse.csr_matrix, str, float]':
+    """Prepare options and x for multi-label training. Called in the first line of
+    any training function.
+
+    Args:
+        x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
+        options (str): The option string passed to liblinear.
+
+    Returns:
+        tuple[sparse.csr_matrix, str, float]: Transformed x, transformed options and
+        bias parsed from options.
+    """
     if any(o in options for o in ['-R', '-C', '-v']):
         raise ValueError('-R, -C and -v are not supported')
 
@@ -39,17 +74,10 @@ def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
     if not '-q' in options:
         options += ' -q'
 
-    y = y.tocsc()
-    num_class = y.shape[1]
-    num_feature = x.shape[1]
-    weights = np.zeros((num_feature, num_class), order='F')
-    for i in range(num_class):
-        yi = y[:, i].toarray().reshape(-1)
-        modeli = train(2*yi - 1, x, options)
-        w = np.ctypeslib.as_array(modeli.w, (num_feature,))
-        weights[:, i] = w
+    if not '-m' in options:
+        options += f' -m {int(os.cpu_count() / 2)}'
 
-    return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': 0}
+    return x, options, bias
 
 
 def train_thresholding(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
@@ -68,19 +96,7 @@ def train_thresholding(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str)
         A model which can be used in predict_values.
     """
     # Follows the MATLAB implementation at https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/multilabel/
-    if any(o in options for o in ['-R', '-C', '-v']):
-        raise ValueError('-R, -C and -v are not supported')
-
-    bias = -1.
-    if options.find('-B') != -1:
-        options_split = options.split()
-        i = options_split.index('-B')
-        bias = float(options_split[i+1])
-        options = ' '.join(options_split[:i] + options_split[i+2:])
-        x = sparse.hstack([
-            x,
-            np.full((x.shape[0], 1), bias),
-        ], 'csr')
+    x, options, bias = prepare_options(x, options)
 
     y = y.tocsc()
     num_class = y.shape[1]
@@ -241,15 +257,20 @@ def do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> np.matrix:
     Returns:
         np.matrix: the weights.
     """
-    if not '-q' in options:
-        options += ' -q'
     with silent_stderr():
         model = train(y, x, options)
 
     w = np.ctypeslib.as_array(model.w, (x.shape[1], 1))
     w = np.asmatrix(w)
-    # The memory is freed on model deletion so we make a copy.
-    return w.copy()
+    # Liblinear flips +1/-1 labels so +1 is always the first label,
+    # but not if all labels are -1.
+    # For our usage, we need +1 to always be the first label,
+    # so the check is necessary.
+    if model.get_labels()[0] == -1:
+        return -w
+    else:
+        # The memory is freed on model deletion so we make a copy.
+        return w.copy()
 
 
 class silent_stderr:
@@ -261,7 +282,7 @@ class silent_stderr:
 
     def __init__(self):
         self.stderr = os.dup(2)
-        self.devnull = os.open('/dev/null', os.O_WRONLY)
+        self.devnull = os.open(os.devnull, os.O_WRONLY)
 
     def __enter__(self):
         os.dup2(self.devnull, 2)
@@ -309,19 +330,7 @@ def train_cost_sensitive(y: sparse.csr_matrix, x: sparse.csr_matrix, options: st
         A model which can be used in predict_values.
     """
     # Follows the MATLAB implementation at https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/multilabel/
-    if any(o in options for o in ['-R', '-c', '-C', '-v']):
-        raise ValueError('-R, -c, -C and -v are not supported')
-
-    bias = -1.
-    if options.find('-B') != -1:
-        options_split = options.split()
-        i = options_split.index('-B')
-        bias = float(options_split[i+1])
-        options = ' '.join(options_split[:i] + options_split[i+2:])
-        x = sparse.hstack([
-            x,
-            np.full((x.shape[0], 1), bias),
-        ], 'csr')
+    x, options, bias = prepare_options(x, options)
 
     y = y.tocsc()
     num_class = y.shape[1]
@@ -353,20 +362,18 @@ def cost_sensitive_one_label(y: np.ndarray,
     l = y.shape[0]
     perm = np.random.permutation(l)
 
-    param_space = [(a, c)
-                   for a in [1, 1.33, 1.8, 2.5, 3.67, 6, 13]
-                   for c in [1, 10, 100]]
+    param_space = [1, 1.33, 1.8, 2.5, 3.67, 6, 13]
 
     bestScore = -np.Inf
-    for a, c in param_space:
-        cv_options = f'{options} -c {c} -w1 {a}'
-        score = cross_validate(y, x, cv_options, perm)
+    for a in param_space:
+        cv_options = f'{options} -w1 {a}'
+        pred = cross_validate(y, x, cv_options, perm)
+        score = fmeasure(y, pred)
         if bestScore < score:
             bestScore = score
             bestA = a
-            bestC = c
 
-    final_options = f'{options} -c {bestC} -w1 {bestA}'
+    final_options = f'{options} -w1 {bestA}'
     return do_train(y, x, final_options)
 
 
@@ -374,7 +381,7 @@ def cross_validate(y: np.ndarray,
                    x: sparse.csr_matrix,
                    options: str,
                    perm: np.ndarray
-                   ) -> float:
+                   ) -> np.ndarray:
     """Cross-validation for cost-sensitive.
 
     Args:
@@ -383,7 +390,7 @@ def cross_validate(y: np.ndarray,
         options (str): The option string passed to liblinear.
 
     Returns:
-        float: cross-validation F1 score.
+        np.ndarray: Cross-validation result as a +1/-1 array.
     """
     l = y.shape[0]
     nr_fold = 3
@@ -397,7 +404,61 @@ def cross_validate(y: np.ndarray,
         w = do_train(y[train_idx], x[train_idx], options)
         pred[val_idx] = (x[val_idx] * w).A1 > 0
 
-    return fmeasure(y, 2*pred - 1)
+    return 2*pred - 1
+
+
+def train_cost_sensitive_micro(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
+    """Trains a linear model for multilabel data using a one-vs-rest strategy
+    and cross-validation to pick an optimal asymmetric misclassification cost
+    for Micro-F1.
+    Outperforms train_1vsrest in most aspects at the cost of higher
+    time complexity.
+    See user guide for more details.
+
+    Args:
+        y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
+        x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
+        options (str): The option string passed to liblinear.
+
+    Returns:
+        A model which can be used in predict_values.
+    """
+    # Follows the MATLAB implementation at https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/multilabel/
+    x, options, bias = prepare_options(x, options)
+
+    y = y.tocsc()
+    num_class = y.shape[1]
+    num_feature = x.shape[1]
+    weights = np.zeros((num_feature, num_class), order='F')
+
+    l = y.shape[0]
+    perm = np.random.permutation(l)
+    param_space = [1, 1.33, 1.8, 2.5, 3.67, 6, 13]
+    bestScore = -np.Inf
+    for a in param_space:
+        tp = fn = fp = 0
+        for i in range(num_class):
+            yi = y[:, i].toarray().reshape(-1)
+            yi = 2*yi - 1
+
+            cv_options = f'{options} -w1 {a}'
+            pred = cross_validate(yi, x, cv_options, perm)
+            tp = tp + np.sum(np.logical_and(yi == 1, pred == 1))
+            fn = fn + np.sum(np.logical_and(yi == 1, pred == -1))
+            fp = fp + np.sum(np.logical_and(yi == -1, pred == 1))
+
+        score = 2*tp / (2*tp + fn + fp)
+        if bestScore < score:
+            bestScore = score
+            bestA = a
+
+    final_options = f'{options} -w1 {bestA}'
+    for i in range(num_class):
+        yi = y[:, i].toarray().reshape(-1)
+        w = do_train(2*yi - 1, x, final_options)
+        weights[:, i] = w.ravel()
+
+    return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': 0}
 
 
 def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:

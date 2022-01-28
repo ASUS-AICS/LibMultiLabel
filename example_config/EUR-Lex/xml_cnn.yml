@@ -21,8 +21,8 @@ val_metric: P@1
 # model
 model_name: XMLCNN
 network_config:
-  dropout: 0.2
-  dropout2: 0.2
+  embed_dropout: 0.2
+  hidden_dropout: 0.2
   filter_sizes: [2, 4, 8]
   hidden_dim: 512
   num_filter_per_size: 256 # filter channels

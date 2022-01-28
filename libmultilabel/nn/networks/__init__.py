@@ -1,10 +1,12 @@
 import torch.nn as nn
 
 from .bert_attn import BERTAttention
-from .bigru import BiGRU
 from .caml import CAML
 from .kim_cnn import KimCNN
 from .xml_cnn import XMLCNN
+from .labelwise_attention_networks import BiGRULWAN
+from .labelwise_attention_networks import BiLSTMLWAN
+from .labelwise_attention_networks import CNNLWAN
 
 
 def get_init_weight_func(init_weight):
