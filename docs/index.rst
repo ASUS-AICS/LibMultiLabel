@@ -10,6 +10,7 @@ and a simple command line tool with the following functionalities
 
 You can use the `Command Line Interface <cli/ov_data_format.html>`_  or the `APIs <api/api.html>`_ to work with LibMultiLabel.
 
+For practical tips, please see the `User Guide <https://www.csie.ntu.edu.tw/~cjlin/papers/libmultilabel/userguide.pdf>`_.
 
 .. toctree::
     :caption: Command Line Interface
@@ -19,6 +20,7 @@ You can use the `Command Line Interface <cli/ov_data_format.html>`_  or the `API
     cli/ov_data_format
     cli/linear
     cli/nn
+    User Guide <https://www.csie.ntu.edu.tw/~cjlin/papers/libmultilabel/userguide.pdf>
 
 .. toctree::
    :caption: Library
