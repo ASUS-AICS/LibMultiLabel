@@ -161,6 +161,17 @@ class LabelwiseAttention(nn.Module):
         attention = F.softmax(attention, -1)
         return torch.bmm(attention, inputs)  # N, num_classes, input_size
 
+    def _get_attention(self, inputs):
+        raise NotImplementedError
+
+
+class CAMLAttention(LabelwiseAttention):
+    pass
+
+
+class MultiHeadAttention(LabelwiseAttention):
+    pass
+
 
 class LabelwiseLinearOutput(nn.Module):
     """Applies a linear transformation to the incoming data for each label
