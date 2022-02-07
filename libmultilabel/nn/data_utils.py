@@ -37,17 +37,28 @@ class TextDataset(Dataset):
 
     def __getitem__(self, index):
         data = self.data[index]
-        input_ids = data['text']
 
-        if self.tokenizer is not None:
+        if self.tokenizer is not None: # transformers tokenizer
             input_ids = self.tokenizer.encode(data['text'], add_special_tokens=False)
         else:
-            data['text'] = tokenize(data['text'])
+            data['text'] = self.tokenize(data['text'])
             input_ids = [self.word_dict[word] for word in data['text']]
         return {
             'text': torch.LongTensor(input_ids[:self.max_seq_length]),
-            'label': torch.IntTensor(self.label_binarizer.transform([data['label']])[0]),
+            'label': torch.IntTensor(self.label_binarizer.transform([data['label']])[0])
         }
+
+    def tokenize(self, text):
+        """Tokenize text.
+
+        Args:
+            text (str): Text to tokenize.
+
+        Returns:
+            list: A list of tokens.
+        """
+        tokenizer = RegexpTokenizer(r'\w+')
+        return [t.lower() for t in tokenizer.tokenize(text) if not t.isnumeric()]
 
 
 def generate_batch(data_batch):
@@ -97,19 +108,6 @@ def get_dataset_loader(
         pin_memory='cuda' in device.type,
     )
     return dataset_loader
-
-
-def tokenize(text):
-    """Tokenize text.
-
-    Args:
-        text (str): Text to tokenize.
-
-    Returns:
-        list: A list of tokens.
-    """
-    tokenizer = RegexpTokenizer(r'\w+')
-    return [t.lower() for t in tokenizer.tokenize(text) if not t.isnumeric()]
 
 
 def _load_raw_data(path, is_test=False):
