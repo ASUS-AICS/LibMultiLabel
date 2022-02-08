@@ -145,14 +145,14 @@ class CNNEncoder(nn.Module):
 
 
 class LabelwiseAttention(nn.Module):
-    def __init__(self, input_size, num_classes):
-        """Label-wise attention
-        See `Explainable Prediction of Medical Codes from Clinical Text <https://aclanthology.org/N18-1100.pdf>`_
+    """Applies attention technique to summarize the sequence for each label
+    See `Explainable Prediction of Medical Codes from Clinical Text <https://aclanthology.org/N18-1100.pdf>`_
 
-        Args:
-            input_size (int): The number of expected features in the input.
-            num_classes (int): Number of classes.
-        """
+    Args:
+        input_size (int): The number of expected features in the input.
+        num_classes (int): Number of classes.
+    """
+    def __init__(self, input_size, num_classes):
         super(LabelwiseAttention, self).__init__()
         self.attention = nn.Linear(input_size, num_classes, bias=False)
 
@@ -179,7 +179,7 @@ class LabelwiseMultiHeadAttention(nn.Module):
         key = value = inputs.permute(1, 0, 2) # (sequence_length, batch_size, lm_hidden_size)
         query = self.attention.weight.repeat(inputs.size(0), 1, 1).transpose(0, 1) # (num_classes, batch_size, lm_hidden_size)
 
-        logits, attention = self.attention(query=query, key=key, value=value, key_padding_mask=attention_mask)
+        logits, attention = self.attention(query, key, value, key_padding_mask=attention_mask)
         logits = logits.permute(1, 0, 2) # (num_classes, batch_size, lm_hidden_size)
         return logits, attention
 
