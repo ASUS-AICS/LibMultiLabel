@@ -145,32 +145,43 @@ class CNNEncoder(nn.Module):
 
 
 class LabelwiseAttention(nn.Module):
-    """Applies attention technique to summarize the sequence for each label
-
-    Args:
-        input_size (int): The number of expected features in the input.
-        num_classes (int): Total number of classes.
-    """
-
     def __init__(self, input_size, num_classes):
+        """Label-wise attention
+        See `Explainable Prediction of Medical Codes from Clinical Text <https://aclanthology.org/N18-1100.pdf>`_
+
+        Args:
+            input_size (int): The number of expected features in the input.
+            num_classes (int): Number of classes.
+        """
         super(LabelwiseAttention, self).__init__()
         self.attention = nn.Linear(input_size, num_classes, bias=False)
 
     def forward(self, inputs):
         attention = self.attention(inputs).transpose(1, 2)  # N, num_classes, L
         attention = F.softmax(attention, -1)
-        return torch.bmm(attention, inputs)  # N, num_classes, input_size
-
-    def _get_attention(self, inputs):
-        raise NotImplementedError
+        logits = torch.bmm(attention, inputs)  # N, num_classes, input_size
+        return logits, attention
 
 
-class CAMLAttention(LabelwiseAttention):
-    pass
+class LabelwiseMultiHeadAttention(nn.Module):
+    """Labelwise multi-head attention
 
+    Args:
+        input_size (int): The number of expected features in the input.
+        num_heads (int): Number of parallel attention heads.
+        attention_dropout (float): Dropout rate for the attention. Defaults to 0.0.
+    """
+    def __init__(self, input_size, num_heads, attention_dropout=0.0):
+        super(LabelwiseMultiHeadAttention, self).__init__()
+        self.attention = nn.MultiheadAttention(embed_dim=input_size, num_heads=num_heads, dropout=attention_dropout)
 
-class MultiHeadAttention(LabelwiseAttention):
-    pass
+    def forward(self, inputs, attention_mask=None):
+        key = value = inputs.permute(1, 0, 2) # (sequence_length, batch_size, lm_hidden_size)
+        query = self.attention.weight.repeat(inputs.size(0), 1, 1).transpose(0, 1) # (num_classes, batch_size, lm_hidden_size)
+
+        logits, attention = self.attention(query=query, key=key, value=value, key_padding_mask=attention_mask)
+        logits = logits.permute(1, 0, 2) # (num_classes, batch_size, lm_hidden_size)
+        return logits, attention
 
 
 class LabelwiseLinearOutput(nn.Module):

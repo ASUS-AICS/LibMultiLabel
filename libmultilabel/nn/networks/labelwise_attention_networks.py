@@ -20,7 +20,7 @@ class LabelwiseAttentionNetwork(ABC, nn.Module):
         super(LabelwiseAttentionNetwork, self).__init__()
         self.embedding = Embedding(embed_vecs, embed_dropout)
         self.encoder = self._get_encoder(embed_vecs.shape[1], encoder_dropout)
-        self.attention = LabelwiseAttention(hidden_dim, num_classes)
+        self.attention = self._get_attention()
         self.output = LabelwiseLinearOutput(hidden_dim, num_classes)
 
     @abstractmethod
@@ -29,6 +29,10 @@ class LabelwiseAttentionNetwork(ABC, nn.Module):
 
     @abstractmethod
     def _get_encoder(self, input_size, dropout):
+        raise NotImplementedError
+
+    @abstractmethod
+    def _get_attention(self):
         raise NotImplementedError
 
 
@@ -69,6 +73,7 @@ class BiGRULWAN(RNNLWAN):
     ):
         self.rnn_dim = rnn_dim
         self.rnn_layers = rnn_layers
+        self.num_classes = num_classes
         super(BiGRULWAN, self).__init__(embed_vecs, num_classes, embed_dropout,
                                         encoder_dropout, rnn_dim)
 
@@ -76,6 +81,9 @@ class BiGRULWAN(RNNLWAN):
         assert self.rnn_dim % 2 == 0, """`rnn_dim` should be even."""
         return GRUEncoder(input_size, self.rnn_dim // 2, self.rnn_layers,
                           dropout)
+
+    def _get_attention(self):
+        return LabelwiseAttention(self.rnn_dim, self.num_classes)
 
 
 class BiLSTMLWAN(RNNLWAN):
@@ -111,6 +119,9 @@ class BiLSTMLWAN(RNNLWAN):
         return LSTMEncoder(input_size, self.rnn_dim //
                            2, self.rnn_layers, dropout)
 
+    def _get_attention(self):
+        return LabelwiseAttention(self.rnn_dim, self.num_classes)
+
 
 class CNNLWAN(LabelwiseAttentionNetwork):
     """CNN Labelwise Attention Network
@@ -135,6 +146,7 @@ class CNNLWAN(LabelwiseAttentionNetwork):
         encoder_dropout=0,
         activation='tanh'
     ):
+        self.num_classes = num_classes
         self.filter_sizes = filter_sizes
         self.num_filter_per_size = num_filter_per_size
         self.activation = activation
@@ -146,6 +158,9 @@ class CNNLWAN(LabelwiseAttentionNetwork):
         return CNNEncoder(input_size, self.filter_sizes,
                           self.num_filter_per_size, self.activation, dropout,
                           channel_last=True)
+
+    def _get_attention(self):
+        return LabelwiseAttention(self.rnn_dim, self.num_classes)
 
     def forward(self, input):
         x = self.embedding(input['text'])  # (batch_size, length, embed_dim)
