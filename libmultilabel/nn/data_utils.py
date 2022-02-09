@@ -41,24 +41,24 @@ class TextDataset(Dataset):
         if self.tokenizer is not None: # transformers tokenizer
             input_ids = self.tokenizer.encode(data['text'], add_special_tokens=False)
         else:
-            data['text'] = self.tokenize(data['text'])
             input_ids = [self.word_dict[word] for word in data['text']]
         return {
             'text': torch.LongTensor(input_ids[:self.max_seq_length]),
             'label': torch.IntTensor(self.label_binarizer.transform([data['label']])[0])
         }
 
-    def tokenize(self, text):
-        """Tokenize text.
 
-        Args:
-            text (str): Text to tokenize.
+def tokenize(text):
+    """Tokenize text.
 
-        Returns:
-            list: A list of tokens.
-        """
-        tokenizer = RegexpTokenizer(r'\w+')
-        return [t.lower() for t in tokenizer.tokenize(text) if not t.isnumeric()]
+    Args:
+        text (str): Text to tokenize.
+
+    Returns:
+        list: A list of tokens.
+    """
+    tokenizer = RegexpTokenizer(r'\w+')
+    return [t.lower() for t in tokenizer.tokenize(text) if not t.isnumeric()]
 
 
 def generate_batch(data_batch):
@@ -130,6 +130,7 @@ def _load_raw_data(path, is_test=False):
     else:
         raise ValueError(f'Expected 2 or 3 columns, got {data.shape[1]}.')
     data['label'] = data['label'].map(lambda s: s.split())
+    data['text'] = data['text'].map(tokenize)
     data = data.to_dict('records')
     if not is_test:
         data = [d for d in data if len(d['label']) > 0]
