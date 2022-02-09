@@ -43,7 +43,7 @@ class RNNLWAN(LabelwiseAttentionNetwork):
     def forward(self, input):
         x = self.embedding(input['text'])  # (batch_size, length, embed_dim)
         x = self.encoder(x, input['length'])  # (batch_size, length, hidden_dim)
-        x = self.attention(x)  # (batch_size, num_classes, hidden_dim)
+        x, _ = self.attention(x)  # (batch_size, num_classes, hidden_dim)
         x = self.output(x)  # (batch_size, num_classes)
         return {'logits': x}
 
@@ -165,6 +165,6 @@ class CNNLWAN(LabelwiseAttentionNetwork):
     def forward(self, input):
         x = self.embedding(input['text'])  # (batch_size, length, embed_dim)
         x = self.encoder(x)  # (batch_size, length, hidden_dim)
-        x = self.attention(x)  # (batch_size, num_classes, hidden_dim)
+        x, _ = self.attention(x)  # (batch_size, num_classes, hidden_dim)
         x = self.output(x)  # (batch_size, num_classes)
         return {'logits': x}
