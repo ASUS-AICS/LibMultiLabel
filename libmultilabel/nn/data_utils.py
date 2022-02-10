@@ -41,24 +41,24 @@ class TextDataset(Dataset):
         if self.tokenizer is not None: # transformers tokenizer
             input_ids = self.tokenizer.encode(data['text'], add_special_tokens=False)
         else:
-            data['text'] = self.tokenize(data['text'])
             input_ids = [self.word_dict[word] for word in data['text']]
         return {
             'text': torch.LongTensor(input_ids[:self.max_seq_length]),
             'label': torch.IntTensor(self.label_binarizer.transform([data['label']])[0])
         }
 
-    def tokenize(self, text):
-        """Tokenize text.
 
-        Args:
-            text (str): Text to tokenize.
+def tokenize(text):
+    """Tokenize text.
 
-        Returns:
-            list: A list of tokens.
-        """
-        tokenizer = RegexpTokenizer(r'\w+')
-        return [t.lower() for t in tokenizer.tokenize(text) if not t.isnumeric()]
+    Args:
+        text (str): Text to tokenize.
+
+    Returns:
+        list: A list of tokens.
+    """
+    tokenizer = RegexpTokenizer(r'\w+')
+    return [t.lower() for t in tokenizer.tokenize(text) if not t.isnumeric()]
 
 
 def generate_batch(data_batch):
@@ -110,7 +110,7 @@ def get_dataset_loader(
     return dataset_loader
 
 
-def _load_raw_data(path, is_test=False):
+def _load_raw_data(path, is_test=False, tokenize_text=True):
     """Load and tokenize raw data.
 
     Args:
@@ -129,7 +129,10 @@ def _load_raw_data(path, is_test=False):
         data.columns = ['index', 'label', 'text']
     else:
         raise ValueError(f'Expected 2 or 3 columns, got {data.shape[1]}.')
+
     data['label'] = data['label'].map(lambda s: s.split())
+    if tokenize_text:
+        data['text'] = data['text'].map(tokenize)
     data = data.to_dict('records')
     if not is_test:
         data = [d for d in data if len(d['label']) > 0]
@@ -141,7 +144,8 @@ def load_datasets(
     test_path=None,
     val_path=None,
     val_size=0.2,
-    merge_train_val=False
+    merge_train_val=False,
+    tokenize_text=True
 ):
     """Load data from the specified data paths (i.e., `train_path`, `test_path`, and `val_path`).
     If `valid.txt` does not exist but `val_size` > 0, the validation set will be split from the training dataset.
@@ -154,6 +158,7 @@ def load_datasets(
             Defaults to 0.2.
         merge_train_val (bool, optional): Whether to merge the training and validation data.
             Defaults to False.
+        tokenize_text(bool, optional): Whether to tokenize text. Defaults to True.
 
     Returns:
         dict: A dictionary of datasets.
@@ -162,16 +167,16 @@ def load_datasets(
 
     datasets = {}
     if train_path is not None and os.path.exists(train_path):
-        datasets['train'] = _load_raw_data(train_path)
+        datasets['train'] = _load_raw_data(train_path, tokenize_text=tokenize_text)
 
     if val_path is not None and os.path.exists(val_path):
-        datasets['val'] = _load_raw_data(val_path)
+        datasets['val'] = _load_raw_data(val_path, tokenize_text=tokenize_text)
     elif val_size > 0:
         datasets['train'], datasets['val'] = train_test_split(
             datasets['train'], test_size=val_size, random_state=42)
 
     if test_path is not None and os.path.exists(test_path):
-        datasets['test'] = _load_raw_data(test_path, is_test=True)
+        datasets['test'] = _load_raw_data(test_path, is_test=True, tokenize_text=tokenize_text)
 
     if merge_train_val:
         datasets['train'] = datasets['train'] + datasets['val']

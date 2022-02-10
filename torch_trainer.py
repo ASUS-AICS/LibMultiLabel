@@ -44,7 +44,8 @@ class TorchTrainer:
 
         # Load pretrained tokenizer for dataset loader
         self.tokenizer = None
-        if 'lm_weight' in config.network_config:
+        tokenize_text = 'lm_weight' not in config.network_config
+        if not tokenize_text:
             self.tokenizer = AutoTokenizer.from_pretrained(config.network_config['lm_weight'], use_fast=True)
         # Load dataset
         if datasets is None:
@@ -53,7 +54,8 @@ class TorchTrainer:
                 test_path=config.test_path,
                 val_path=config.val_path,
                 val_size=config.val_size,
-                merge_train_val=config.merge_train_val
+                merge_train_val=config.merge_train_val,
+                tokenize_text=tokenize_text
             )
         else:
             self.datasets = datasets
