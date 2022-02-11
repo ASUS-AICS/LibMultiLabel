@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 import torch.nn as nn
 
-from .modules import Embedding, GRUEncoder, LSTMEncoder, CNNEncoder, LabelwiseAttention, LabelwiseLinearOutput
+from .modules import Embedding, GRUEncoder, LSTMEncoder, CNNEncoder, LabelwiseAttention, LabelwiseMultiHeadAttention, LabelwiseLinearOutput
 
 
 class LabelwiseAttentionNetwork(ABC, nn.Module):
@@ -79,8 +79,7 @@ class BiGRULWAN(RNNLWAN):
 
     def _get_encoder(self, input_size, dropout):
         assert self.rnn_dim % 2 == 0, """`rnn_dim` should be even."""
-        return GRUEncoder(input_size, self.rnn_dim // 2, self.rnn_layers,
-                          dropout)
+        return GRUEncoder(input_size, self.rnn_dim // 2, self.rnn_layers, dropout)
 
     def _get_attention(self):
         return LabelwiseAttention(self.rnn_dim, self.num_classes)
@@ -116,11 +115,53 @@ class BiLSTMLWAN(RNNLWAN):
 
     def _get_encoder(self, input_size, dropout):
         assert self.rnn_dim % 2 == 0, """`rnn_dim` should be even."""
-        return LSTMEncoder(input_size, self.rnn_dim //
-                           2, self.rnn_layers, dropout)
+        return LSTMEncoder(input_size, self.rnn_dim // 2, self.rnn_layers, dropout)
 
     def _get_attention(self):
         return LabelwiseAttention(self.rnn_dim, self.num_classes)
+
+
+class BiLSTMLWMHAN(RNNLWAN):
+    """BiLSTM Labelwise Multihead Attention Network
+
+    Args:
+        embed_vecs (FloatTensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
+        num_classes (int): Total number of classes.
+        rnn_dim (int): The size of bidirectional hidden layers. The hidden size of the LSTM network
+            is set to rnn_dim//2. Defaults to 512.
+        rnn_layers (int): Number of recurrent layers. Defaults to 1.
+        embed_dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
+        encoder_dropout (float): The dropout rate of the encoder output. Defaults to 0.
+        num_heads (int): Number of parallel attention heads. Defaults to 8.
+        attention_dropout (float): Dropout rate for the attention. Defaults to 0.0.
+    """
+
+    def __init__(
+        self,
+        embed_vecs,
+        num_classes,
+        rnn_dim=512,
+        rnn_layers=1,
+        embed_dropout=0.2,
+        encoder_dropout=0,
+        num_heads=8,
+        attention_dropout=0.0
+    ):
+        self.rnn_dim = rnn_dim
+        self.rnn_layers = rnn_layers
+        self.num_classes = num_classes
+        self.num_heads = num_heads
+        self.attention_dropout = attention_dropout
+        super(BiLSTMLWMHAN, self).__init__(embed_vecs, num_classes, embed_dropout,
+                                           encoder_dropout, rnn_dim)
+
+    def _get_encoder(self, input_size, dropout):
+        assert self.rnn_dim % 2 == 0, """`rnn_dim` should be even."""
+        return LSTMEncoder(input_size, self.rnn_dim // 2,
+                           self.rnn_layers, dropout)
+
+    def _get_attention(self):
+        return LabelwiseMultiHeadAttention(self.rnn_dim, self.num_classes, self.num_heads, self.attention_dropout)
 
 
 class CNNLWAN(LabelwiseAttentionNetwork):
