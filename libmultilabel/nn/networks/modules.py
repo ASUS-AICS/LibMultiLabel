@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn.init import xavier_uniform_
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 
@@ -171,13 +172,16 @@ class LabelwiseMultiHeadAttention(nn.Module):
         num_heads (int): Number of parallel attention heads.
         attention_dropout (float): Dropout rate for the attention. Defaults to 0.0.
     """
-    def __init__(self, input_size, num_heads, attention_dropout=0.0):
+    def __init__(self, input_size, num_classes, num_heads, attention_dropout=0.0):
         super(LabelwiseMultiHeadAttention, self).__init__()
         self.attention = nn.MultiheadAttention(embed_dim=input_size, num_heads=num_heads, dropout=attention_dropout)
+        # parameter matrix for each class
+        self.Q = nn.Linear(input_size, num_classes)
+        xavier_uniform_(self.Q.weight)
 
     def forward(self, inputs, attention_mask=None):
         key = value = inputs.permute(1, 0, 2) # (sequence_length, batch_size, lm_hidden_size)
-        query = self.attention.weight.repeat(inputs.size(0), 1, 1).transpose(0, 1) # (num_classes, batch_size, lm_hidden_size)
+        query = self.Q.weight.repeat(inputs.size(0), 1, 1).transpose(0, 1) # (num_classes, batch_size, lm_hidden_size)
 
         logits, attention = self.attention(query, key, value, key_padding_mask=attention_mask)
         logits = logits.permute(1, 0, 2) # (num_classes, batch_size, lm_hidden_size)

@@ -40,13 +40,7 @@ class BERTLWAN(nn.Module):
         if attention_type == 'caml':
             self.attention = LabelwiseAttention(self.lm.config.hidden_size, num_classes)
         else:
-            self.attention = LabelwiseMultiHeadAttention(self.lm.config.hidden_size, num_heads, attention_dropout)
-
-        # Context vectors for computing attention
-        self.U = nn.Linear(self.lm.config.hidden_size, num_classes)
-        # To be discussed: xavier_uniform_ is applied in MultiheadAttention init.
-        # Do we need to do twice?
-        xavier_uniform_(self.U.weight)
+            self.attention = LabelwiseMultiHeadAttention(self.lm.config.hidden_size, num_classes, num_heads, attention_dropout)
 
         # Final layer: create a matrix to use for the #labels binary classifiers
         self.final = nn.Linear(self.lm.config.hidden_size, num_classes)
@@ -95,12 +89,12 @@ class BERTLWAN(nn.Module):
         x = self.lm_feature(input_ids) # (batch_size, sequence_length, lm_hidden_size)
 
         attention_mask = input_ids == self.lm.config.pad_token_id
-        x = self.embed_drop(x, attention_mask)
+        x = self.embed_drop(x)
 
         # Apply per-label attention.
-        logits, attention = self.attention(x)
+        logits, attention = self.attention(x, attention_mask)
+
         # Compute a probability for each label
-        # TODO: use LabelwiseLinearOutput
         x = self.final.weight.mul(logits)
         x = x.sum(dim=2).add(self.final.bias)  # (batch_size, num_classes)
         return {'logits': x, 'attention': attention}

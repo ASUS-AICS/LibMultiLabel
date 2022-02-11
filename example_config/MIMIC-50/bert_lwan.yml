@@ -23,7 +23,7 @@ monitor_metrics: ['Micro-F1', 'Macro-F1', 'Another-Macro-F1', 'P@1', 'P@3', 'P@5
 val_metric: P@5
 
 # model
-model_name: BERTAttention
+model_name: BERTLWAN
 init_weight: null
 network_config:
   dropout: 0.2
