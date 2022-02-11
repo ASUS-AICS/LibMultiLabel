@@ -1,6 +1,6 @@
 import torch.nn as nn
 
-from .bert_lwan import BERTLWAN
+from .bert_attention import BERTAttention
 from .caml import CAML
 from .kim_cnn import KimCNN
 from .xml_cnn import XMLCNN

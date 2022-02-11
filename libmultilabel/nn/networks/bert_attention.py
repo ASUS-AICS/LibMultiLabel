@@ -5,7 +5,7 @@ from transformers import AutoModel
 from .modules import LabelwiseAttention, LabelwiseLinearOutput, LabelwiseMultiHeadAttention
 
 
-class BERTLWAN(nn.Module):
+class BERTAttention(nn.Module):
     """BERT + Label-wise Document Attention
 
     Args:
