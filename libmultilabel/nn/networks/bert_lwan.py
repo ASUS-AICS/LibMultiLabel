@@ -1,9 +1,8 @@
-from torch.nn.init import xavier_uniform_
 import torch.nn as nn
 from torch.nn.utils.rnn import pad_sequence
 from transformers import AutoModel
 
-from .modules import LabelwiseAttention, LabelwiseMultiHeadAttention
+from .modules import LabelwiseAttention, LabelwiseLinearOutput, LabelwiseMultiHeadAttention
 
 
 class BERTLWAN(nn.Module):
@@ -38,13 +37,14 @@ class BERTLWAN(nn.Module):
         self.embed_drop = nn.Dropout(p=dropout)
 
         if attention_type == 'caml':
-            self.attention = LabelwiseAttention(self.lm.config.hidden_size, num_classes)
+            self.attention = LabelwiseAttention(
+                self.lm.config.hidden_size, num_classes)
         else:
-            self.attention = LabelwiseMultiHeadAttention(self.lm.config.hidden_size, num_classes, num_heads, attention_dropout)
+            self.attention = LabelwiseMultiHeadAttention(
+                self.lm.config.hidden_size, num_classes, num_heads, attention_dropout)
 
         # Final layer: create a matrix to use for the #labels binary classifiers
-        self.final = nn.Linear(self.lm.config.hidden_size, num_classes)
-        xavier_uniform_(self.final.weight)
+        self.output = LabelwiseLinearOutput(self.lm.config.hidden_size, num_classes)
 
     def lm_feature(self, input_ids):
         """BERT takes an input of a sequence of no more than 512 tokens.
@@ -87,14 +87,11 @@ class BERTLWAN(nn.Module):
         input_ids = input['text'] # (batch_size, sequence_length)
         attention_mask = input_ids == self.lm.config.pad_token_id
         x = self.lm_feature(input_ids) # (batch_size, sequence_length, lm_hidden_size)
-
-        attention_mask = input_ids == self.lm.config.pad_token_id
         x = self.embed_drop(x)
 
         # Apply per-label attention.
         logits, attention = self.attention(x, attention_mask)
 
         # Compute a probability for each label
-        x = self.final.weight.mul(logits)
-        x = x.sum(dim=2).add(self.final.bias)  # (batch_size, num_classes)
+        x = self.output(logits)
         return {'logits': x, 'attention': attention}

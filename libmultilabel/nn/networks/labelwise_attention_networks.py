@@ -69,7 +69,7 @@ class BiGRULWAN(RNNLWAN):
         rnn_dim=512,
         rnn_layers=1,
         embed_dropout=0.2,
-        encoder_dropout=0,
+        encoder_dropout=0
     ):
         self.rnn_dim = rnn_dim
         self.rnn_layers = rnn_layers
@@ -107,7 +107,7 @@ class BiLSTMLWAN(RNNLWAN):
         rnn_dim=512,
         rnn_layers=1,
         embed_dropout=0.2,
-        encoder_dropout=0,
+        encoder_dropout=0
     ):
         self.rnn_dim = rnn_dim
         self.rnn_layers = rnn_layers
