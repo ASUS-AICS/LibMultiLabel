@@ -1,12 +1,12 @@
-import torch
-from torch.nn.init import xavier_uniform_
 import torch.nn as nn
 from torch.nn.utils.rnn import pad_sequence
 from transformers import AutoModel
 
+from .modules import LabelwiseAttention, LabelwiseLinearOutput, LabelwiseMultiHeadAttention
+
 
 class BERTAttention(nn.Module):
-    """BERT + Label-wise Document Attention
+    """BERT + Label-wise Document Attention or Multi-Head Attention
 
     Args:
         num_classes (int): Total number of classes.
@@ -16,6 +16,7 @@ class BERTAttention(nn.Module):
             the language model. Defaults to 512.
         num_heads (int): Number of parallel attention heads. Defaults to 8.
         attention_type (str): Type of attention to use (caml or multihead). Defaults to 'multihead'.
+        attention_dropout (float): Dropout rate for the attention. Defaults to 0.0.
     """
     def __init__(
         self,
@@ -35,19 +36,15 @@ class BERTAttention(nn.Module):
         self.lm = AutoModel.from_pretrained(lm_weight, torchscript=True)
         self.embed_drop = nn.Dropout(p=dropout)
 
-        if self.attention_type == 'multihead':
-            self.attention = nn.MultiheadAttention(
-                self.lm.config.hidden_size, num_heads, dropout=attention_dropout)
-
-        # Context vectors for computing attention
-        self.U = nn.Linear(self.lm.config.hidden_size, num_classes)
-        # To be discussed: xavier_uniform_ is applied in MultiheadAttention init.
-        # Do we need to do twice?
-        xavier_uniform_(self.U.weight)
+        if attention_type == 'caml':
+            self.attention = LabelwiseAttention(
+                self.lm.config.hidden_size, num_classes)
+        else:
+            self.attention = LabelwiseMultiHeadAttention(
+                self.lm.config.hidden_size, num_classes, num_heads, attention_dropout)
 
         # Final layer: create a matrix to use for the #labels binary classifiers
-        self.final = nn.Linear(self.lm.config.hidden_size, num_classes)
-        xavier_uniform_(self.final.weight)
+        self.output = LabelwiseLinearOutput(self.lm.config.hidden_size, num_classes)
 
     def lm_feature(self, input_ids):
         """BERT takes an input of a sequence of no more than 512 tokens.
@@ -88,29 +85,13 @@ class BERTAttention(nn.Module):
 
     def forward(self, input):
         input_ids = input['text'] # (batch_size, sequence_length)
-        x = self.lm_feature(input_ids) # (batch_size, sequence_length, lm_hidden_size)
-
         attention_mask = input_ids == self.lm.config.pad_token_id
+        x = self.lm_feature(input_ids) # (batch_size, sequence_length, lm_hidden_size)
         x = self.embed_drop(x)
 
         # Apply per-label attention.
-        if self.attention_type == 'multihead':
-            k = v = x.permute(1, 0, 2) # (sequence_length, batch_size, lm_hidden_size)
-            q = self.U.weight.repeat(input_ids.size(0), 1, 1).transpose(0, 1) # classes, batch_size, lm_hidden_size
-
-            # alpha: Dropout(Softmax(Q*(1/sqrt(d^k)) K^T )), then get the average of attention heads
-            # m: (batch_size, num_classes, lm_hidden_size)
-            m, alpha = self.attention(query=q, key=k, value=v, key_padding_mask=attention_mask)
-            m = m.permute(1, 0, 2)
-        elif self.attention_type == 'caml':
-            alpha = torch.softmax(
-                self.U.weight.matmul(x.transpose(1, 2)), # (batch_size, num_classes, sequence_length)
-                dim=2) # (batch_size, num_classes, sequence_length)
-            # Document representations are weighted sums using the attention
-            m = alpha.matmul(x)  # (batch_size, num_classes, lm_hidden_size)
+        logits, attention = self.attention(x, attention_mask)
 
         # Compute a probability for each label
-        x = self.final.weight.mul(m)
-        x = x.sum(dim=2)
-        x = x.add(self.final.bias)  # (batch_size, num_classes)
-        return {'logits': x, 'attention': alpha}
+        x = self.output(logits)
+        return {'logits': x, 'attention': attention}
