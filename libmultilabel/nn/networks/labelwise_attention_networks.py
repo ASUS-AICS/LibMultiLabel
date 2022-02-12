@@ -42,7 +42,7 @@ class RNNLWAN(LabelwiseAttentionNetwork):
 
     def forward(self, input):
         x = self.embedding(input['text'])  # (batch_size, length, embed_dim)
-        x = self.encoder(x, input['length'])  # (batch_size, length, hidden_dim)
+        x = self.encoder(x, input['length']) # (batch_size, length, hidden_dim)
         x, _ = self.attention(x)  # (batch_size, num_classes, hidden_dim)
         x = self.output(x)  # (batch_size, num_classes)
         return {'logits': x}
@@ -71,9 +71,9 @@ class BiGRULWAN(RNNLWAN):
         embed_dropout=0.2,
         encoder_dropout=0
     ):
+        self.num_classes = num_classes
         self.rnn_dim = rnn_dim
         self.rnn_layers = rnn_layers
-        self.num_classes = num_classes
         super(BiGRULWAN, self).__init__(embed_vecs, num_classes, embed_dropout,
                                         encoder_dropout, rnn_dim)
 
@@ -108,6 +108,7 @@ class BiLSTMLWAN(RNNLWAN):
         embed_dropout=0.2,
         encoder_dropout=0
     ):
+        self.num_classes = num_classes
         self.rnn_dim = rnn_dim
         self.rnn_layers = rnn_layers
         super(BiLSTMLWAN, self).__init__(embed_vecs, num_classes, embed_dropout,
@@ -147,9 +148,9 @@ class BiLSTMLWMHAN(LabelwiseAttentionNetwork):
         num_heads=8,
         attention_dropout=0.0
     ):
+        self.num_classes = num_classes
         self.rnn_dim = rnn_dim
         self.rnn_layers = rnn_layers
-        self.num_classes = num_classes
         self.num_heads = num_heads
         self.attention_dropout = attention_dropout
         super(BiLSTMLWMHAN, self).__init__(embed_vecs, num_classes, embed_dropout,
@@ -164,9 +165,9 @@ class BiLSTMLWMHAN(LabelwiseAttentionNetwork):
         return LabelwiseMultiHeadAttention(self.rnn_dim, self.num_classes, self.num_heads, self.attention_dropout)
 
     def forward(self, input):
-        x = self.embedding(input['text'])  # (batch_size, length, embed_dim)
-        x = self.encoder(x, input['length'])  # (batch_size, length, hidden_dim)
-        x, _ = self.attention(x, attention_mask=input['text'] == 0)  # (batch_size, num_classes, hidden_dim)
+        x = self.embedding(input['text']) # (batch_size, length, embed_dim)
+        x = self.encoder(x, input['length']) # (batch_size, length, hidden_dim)
+        x, _ = self.attention(x, attention_mask=input['text'] == 0) # (batch_size, num_classes, hidden_dim)
         x = self.output(x)  # (batch_size, num_classes)
         return {'logits': x}
 
