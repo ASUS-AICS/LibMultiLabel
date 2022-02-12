@@ -121,7 +121,7 @@ class BiLSTMLWAN(RNNLWAN):
         return LabelwiseAttention(self.rnn_dim, self.num_classes)
 
 
-class BiLSTMLWMHAN(RNNLWAN):
+class BiLSTMLWMHAN(LabelwiseAttentionNetwork):
     """BiLSTM Labelwise Multihead Attention Network
 
     Args:
@@ -162,6 +162,13 @@ class BiLSTMLWMHAN(RNNLWAN):
 
     def _get_attention(self):
         return LabelwiseMultiHeadAttention(self.rnn_dim, self.num_classes, self.num_heads, self.attention_dropout)
+
+    def forward(self, input):
+        x = self.embedding(input['text'])  # (batch_size, length, embed_dim)
+        x = self.encoder(x, input['length'])  # (batch_size, length, hidden_dim)
+        x, _ = self.attention(x, attention_mask=input['text'] == 0)  # (batch_size, num_classes, hidden_dim)
+        x = self.output(x)  # (batch_size, num_classes)
+        return {'logits': x}
 
 
 class CNNLWAN(LabelwiseAttentionNetwork):

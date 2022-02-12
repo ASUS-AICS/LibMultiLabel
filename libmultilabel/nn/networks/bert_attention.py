@@ -6,7 +6,7 @@ from .modules import LabelwiseAttention, LabelwiseLinearOutput, LabelwiseMultiHe
 
 
 class BERTAttention(nn.Module):
-    """BERT + Label-wise Document Attention
+    """BERT + Label-wise Document Attention or Multi-Head Attention
 
     Args:
         num_classes (int): Total number of classes.
