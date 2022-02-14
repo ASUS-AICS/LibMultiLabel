@@ -79,8 +79,10 @@ class Tree:
 
     def _beam_search(self, x: sparse.csr_matrix, node: Node) -> np.ndarray:
         num_class = self.root.labelmap.shape[0]
-
         ret = np.zeros((x.shape[0], num_class))
+        if x.shape[0] == 0:
+            return ret
+
         pred = predict_values(node.model, x)
         ret[node.labelmap] = pred
 
