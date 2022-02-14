@@ -16,15 +16,22 @@ class Node:
 
 
 class Tree:
-    def __init__(self,
-                 y: sparse.csr_matrix,
-                 x: sparse.csr_matrix
-                 ) -> None:
+    def __init__(self) -> None:
         self.K = 100
         self.dmax = 10   # no mention of value?
+        self.beam_width = 10    # no mention of value?
+
+    def train(self,
+              y: sparse.csr_matrix,
+              x: sparse.csr_matrix,
+              options: str
+              ) -> None:
         rep = y.T * sparse.hstack([x, y])
         self.root = self._build(rep, np.arange(y.shape[0]), 0)
-        self.beam_width = 10    # no mention of value?
+        self._dfs(
+            self.root,
+            lambda node: self._train_node(y, x, options, node),
+        )
 
     def _build(self,
                rep: sparse.csr_matrix,
@@ -40,16 +47,6 @@ class Tree:
         children = [self._build(reps[i], labelmaps[i], d+1)
                     for i in range(self.K)]
         return Node(labelmap, children)
-
-    def train(self,
-              y: sparse.csr_matrix,
-              x: sparse.csr_matrix,
-              options: str
-              ) -> None:
-        self._dfs(
-            self.root,
-            lambda node: self._train_node(y, x, options, node),
-        )
 
     @staticmethod
     def _train_node(y: sparse.csr_matrix,
