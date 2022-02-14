@@ -36,9 +36,9 @@ class BERTAttention(nn.Module):
         self.lm = AutoModel.from_pretrained(lm_weight, torchscript=True)
         self.embed_drop = nn.Dropout(p=dropout)
 
-        if attention_type == 'caml':
-            self.attention = LabelwiseAttention(
-                self.lm.config.hidden_size, num_classes)
+        assert attention_type in ['singlehead', 'multihead'], "attention_type must be 'singlehead' or 'multihead'"
+        if attention_type == 'singlehead':
+            self.attention = LabelwiseAttention(self.lm.config.hidden_size, num_classes)
         else:
             self.attention = LabelwiseMultiHeadAttention(
                 self.lm.config.hidden_size, num_classes, num_heads, attention_dropout)
