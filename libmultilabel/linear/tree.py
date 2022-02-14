@@ -61,7 +61,7 @@ class Tree:
                     x: sparse.csr_matrix,
                     options: str,
                     node: Node
-                    ) -> bool:
+                    ):
         if node.children == []:
             node.model = train_1vsrest(
                 y[:, node.labelmap], x, options,
@@ -73,11 +73,9 @@ class Tree:
             node.model = train_1vsrest(
                 childy, x, options,
             )
-        return True
 
     def _dfs(self, node, visit):
-        if not visit(node):
-            return
+        visit(node)
         for child in node.children:
             self._dfs(child, visit)
 
