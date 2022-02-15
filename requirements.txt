@@ -10,3 +10,4 @@ tqdm
 liblinear-multicore
 numba
 scipy
+transformers
