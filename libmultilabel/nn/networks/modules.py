@@ -128,18 +128,18 @@ class CNNEncoder(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, inputs):
-        h = inputs.transpose(1, 2) # (batch_size, input_size, length)
+        h = inputs.transpose(1, 2)  # (batch_size, input_size, length)
         h_list = []
         for conv in self.convs:
-            h_sub = conv(h) # (batch_size, num_filter, length)
+            h_sub = conv(h)  # (batch_size, num_filter, length)
             if self.num_pool == 1:
-                h_sub = F.max_pool1d(h_sub, h_sub.shape[2]) # (batch_size, num_filter, 1)
+                h_sub = F.max_pool1d(h_sub, h_sub.shape[2])  # (batch_size, num_filter, 1)
             elif self.num_pool > 1:
-                h_sub = self.pool(h_sub) # (batch_size, num_filter, num_pool)
+                h_sub = self.pool(h_sub)  # (batch_size, num_filter, num_pool)
             h_list.append(h_sub)
-        h = torch.cat(h_list, 1) # (batch_size, total_num_filter, *)
+        h = torch.cat(h_list, 1)  # (batch_size, total_num_filter, *)
         if self.channel_last:
-            h = h.transpose(1, 2) # (batch_size, *, total_num_filter)
+            h = h.transpose(1, 2)  # (batch_size, *, total_num_filter)
         h = self.activation(h)
         return self.dropout(h)
 
@@ -157,9 +157,9 @@ class LabelwiseAttention(nn.Module):
         self.attention = nn.Linear(input_size, num_classes, bias=False)
 
     def forward(self, inputs):
-        attention = self.attention(inputs).transpose(1, 2)  # N, num_classes, L
+        attention = self.attention(inputs).transpose(1, 2)  # (batch_size, num_classes, seqence_length)
         attention = F.softmax(attention, -1)
-        logits = torch.bmm(attention, inputs)  # N, num_classes, input_size
+        logits = torch.bmm(attention, inputs)  # (batch_size, num_classes, hidden_dim)
         return logits, attention
 
 
@@ -178,11 +178,12 @@ class LabelwiseMultiHeadAttention(nn.Module):
         self.Q = nn.Linear(input_size, num_classes)
 
     def forward(self, inputs, attention_mask=None):
-        key = value = inputs.permute(1, 0, 2) # (sequence_length, batch_size, lm_hidden_size)
-        query = self.Q.weight.repeat(inputs.size(0), 1, 1).transpose(0, 1) # (num_classes, batch_size, lm_hidden_size)
+        key = value = inputs.permute(1, 0, 2)  # (sequence_length, batch_size, hidden_dim)
+        query = self.Q.weight.repeat(inputs.size(0), 1, 1).transpose(
+            0, 1)  # (num_classes, batch_size, hidden_dim)
 
         logits, attention = self.attention(query, key, value, key_padding_mask=attention_mask)
-        logits = logits.permute(1, 0, 2) # (num_classes, batch_size, lm_hidden_size)
+        logits = logits.permute(1, 0, 2)  # (num_classes, batch_size, hidden_dim)
         return logits, attention
 
 

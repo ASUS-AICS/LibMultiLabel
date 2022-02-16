@@ -25,7 +25,7 @@ network_config:
   hidden_dropout: 0.2
   filter_sizes: [2, 4, 8]
   hidden_dim: 512
-  num_filter_per_size: 256 # filter channels
+  num_filter_per_size: 256  # filter channels
   num_pool: 2
 
 # pretrained vocab / embeddings

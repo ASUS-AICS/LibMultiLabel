@@ -4,7 +4,7 @@ from libmultilabel.nn.nn_utils import init_device, init_model, init_trainer, set
 
 
 # Step 0. Setup seed and device
-device = init_device(use_cpu=False) # use gpu
+device = init_device(use_cpu=False)  # use gpu
 set_seed(1337)
 
 # Step 1. Load dataset and build dictionaries.

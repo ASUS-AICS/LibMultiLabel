@@ -45,7 +45,7 @@ class XMLCNN(nn.Module):
     def forward(self, input):
         x = self.embedding(input['text'])  # (batch_size, length, embed_dim)
         x = self.encoder(x)  # (batch_size, num_filter, num_pool)
-        x = x.view(x.shape[0], -1) # (batch_size, num_filter * num_pool)
+        x = x.view(x.shape[0], -1)  # (batch_size, num_filter * num_pool)
         x = self.activation(self.linear1(x))
         x = self.dropout(x)
         x = self.linear2(x)
