@@ -20,8 +20,8 @@ class Embedding(nn.Module):
             embed_vecs, freeze=False, padding_idx=0)
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, inputs):
-        return self.dropout(self.embedding(inputs))
+    def forward(self, input):
+        return self.dropout(self.embedding(input))
 
 
 class RNNEncoder(ABC, nn.Module):
@@ -39,13 +39,13 @@ class RNNEncoder(ABC, nn.Module):
         self.rnn = self._get_rnn(input_size, hidden_size, num_layers)
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, inputs, lengths, **kwargs):
+    def forward(self, input, length, **kwargs):
         self.rnn.flatten_parameters()
-        idx = torch.argsort(lengths, descending=True)
-        packed_inputs = pack_padded_sequence(
-            inputs[idx], lengths[idx].cpu(), batch_first=True)
+        idx = torch.argsort(length, descending=True)
+        packed_input = pack_padded_sequence(
+            input[idx], length[idx].cpu(), batch_first=True)
         outputs, _ = pad_packed_sequence(
-            self.rnn(packed_inputs)[0], batch_first=True)
+            self.rnn(packed_input)[0], batch_first=True)
         return self.dropout(outputs[torch.argsort(idx)])
 
     @abstractmethod
@@ -127,8 +127,8 @@ class CNNEncoder(nn.Module):
         self.activation = getattr(torch, activation, getattr(F, activation))
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, inputs):
-        h = inputs.transpose(1, 2)  # (batch_size, input_size, length)
+    def forward(self, input):
+        h = input.transpose(1, 2)  # (batch_size, input_size, length)
         h_list = []
         for conv in self.convs:
             h_sub = conv(h)  # (batch_size, num_filter, length)
@@ -156,10 +156,10 @@ class LabelwiseAttention(nn.Module):
         super(LabelwiseAttention, self).__init__()
         self.attention = nn.Linear(input_size, num_classes, bias=False)
 
-    def forward(self, inputs):
-        attention = self.attention(inputs).transpose(1, 2)  # (batch_size, num_classes, seqence_length)
+    def forward(self, input):
+        attention = self.attention(input).transpose(1, 2)  # (batch_size, num_classes, seqence_length)
         attention = F.softmax(attention, -1)
-        logits = torch.bmm(attention, inputs)  # (batch_size, num_classes, hidden_dim)
+        logits = torch.bmm(attention, input)  # (batch_size, num_classes, hidden_dim)
         return logits, attention
 
 
@@ -177,9 +177,9 @@ class LabelwiseMultiHeadAttention(nn.Module):
         self.attention = nn.MultiheadAttention(embed_dim=input_size, num_heads=num_heads, dropout=attention_dropout)
         self.Q = nn.Linear(input_size, num_classes)
 
-    def forward(self, inputs, attention_mask=None):
-        key = value = inputs.permute(1, 0, 2)  # (sequence_length, batch_size, hidden_dim)
-        query = self.Q.weight.repeat(inputs.size(0), 1, 1).transpose(
+    def forward(self, input, attention_mask=None):
+        key = value = input.permute(1, 0, 2)  # (sequence_length, batch_size, hidden_dim)
+        query = self.Q.weight.repeat(input.size(0), 1, 1).transpose(
             0, 1)  # (num_classes, batch_size, hidden_dim)
 
         logits, attention = self.attention(query, key, value, key_padding_mask=attention_mask)
@@ -199,5 +199,5 @@ class LabelwiseLinearOutput(nn.Module):
         super(LabelwiseLinearOutput, self).__init__()
         self.output = nn.Linear(input_size, num_classes)
 
-    def forward(self, inputs):
-        return (self.output.weight * inputs).sum(dim=-1) + self.output.bias
+    def forward(self, input):
+        return (self.output.weight * input).sum(dim=-1) + self.output.bias
