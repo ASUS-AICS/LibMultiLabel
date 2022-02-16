@@ -134,7 +134,7 @@ class BiLSTMLWMHAN(LabelwiseAttentionNetwork):
         embed_dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
         encoder_dropout (float): The dropout rate of the encoder output. Defaults to 0.
         num_heads (int): The number of parallel attention heads. Defaults to 8.
-        attention_dropout (float): Dropout rate for the attention. Defaults to 0.0.
+        attention_dropout (float): The dropout rate for the attention. Defaults to 0.0.
     """
 
     def __init__(

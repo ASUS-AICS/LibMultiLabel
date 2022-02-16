@@ -170,7 +170,7 @@ class LabelwiseMultiHeadAttention(nn.Module):
         input_size (int): The number of expected features in the input.
         num_classes (int): Total number of classes.
         num_heads (int): The number of parallel attention heads.
-        attention_dropout (float): Dropout rate for the attention. Defaults to 0.0.
+        attention_dropout (float): The dropout rate for the attention. Defaults to 0.0.
     """
     def __init__(self, input_size, num_classes, num_heads, attention_dropout=0.0):
         super(LabelwiseMultiHeadAttention, self).__init__()

@@ -14,9 +14,9 @@ class BERTAttention(nn.Module):
         lm_weight (str): Pretrained model name or path. Defaults to 'bert-base-cased'.
         lm_window (int): Length of the subsequences to be split before feeding them to
             the language model. Defaults to 512.
-        num_heads (int): Number of parallel attention heads. Defaults to 8.
+        num_heads (int): The number of parallel attention heads. Defaults to 8.
         attention_type (str): Type of attention to use (caml or multihead). Defaults to 'multihead'.
-        attention_dropout (float): Dropout rate for the attention. Defaults to 0.0.
+        attention_dropout (float): The dropout rate for the attention. Defaults to 0.0.
     """
     def __init__(
         self,

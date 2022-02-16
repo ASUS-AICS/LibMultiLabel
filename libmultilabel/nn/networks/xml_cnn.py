@@ -15,8 +15,8 @@ class XMLCNN(nn.Module):
         hidden_dropout (float): The dropout rate of the hidden layer output. Defaults to 0.
         filter_sizes (list): Size of convolutional filters.
         hidden_dim (int): Dimension of the hidden layer. Defaults to 512.
-        num_filter_per_size (int): Number of filters in convolutional layers in each size. Defaults to 256.
-        num_pool (int): Number of pool for dynamic max-pooling. Defaults to 2.
+        num_filter_per_size (int): The number of filters in convolutional layers in each size. Defaults to 256.
+        num_pool (int): The number of pool for dynamic max-pooling. Defaults to 2.
         activation (str): Activation function to be used. Defaults to 'relu'.
     """
     def __init__(
