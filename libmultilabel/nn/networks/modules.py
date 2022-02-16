@@ -30,7 +30,7 @@ class RNNEncoder(ABC, nn.Module):
     Args:
         input_size (int): The number of expected features in the input.
         hidden_size (int): The number of features in the hidden state.
-        num_layers (int): Number of recurrent layers.
+        num_layers (int): The number of recurrent layers.
         dropout (float): The dropout rate of the encoder. Defaults to 0.
     """
 
@@ -59,7 +59,7 @@ class GRUEncoder(RNNEncoder):
     Args:
         input_size (int): The number of expected features in the input.
         hidden_size (int): The number of features in the hidden state.
-        num_layers (int): Number of recurrent layers.
+        num_layers (int): The number of recurrent layers.
         dropout (float): The dropout rate of the encoder. Defaults to 0.
     """
 
@@ -78,7 +78,7 @@ class LSTMEncoder(RNNEncoder):
     Args:
         input_size (int): The number of expected features in the input.
         hidden_size (int): The number of features in the hidden state.
-        num_layers (int): Number of recurrent layers.
+        num_layers (int): The number of recurrent layers.
         dropout (float): The dropout rate of the encoder. Defaults to 0.
     """
 
@@ -97,10 +97,10 @@ class CNNEncoder(nn.Module):
     Args:
         input_size (int): The number of expected features in the input.
         filter_sizes (list): Size of convolutional filters.
-        num_filter_per_size (int): Number of filters in convolutional layers in each size. Defaults to 128.
+        num_filter_per_size (int): The number of filters in convolutional layers in each size. Defaults to 128.
         activation (str): Activation function to be used. Defaults to 'relu'.
         dropout (float): The dropout rate of the encoder. Defaults to 0.
-        num_pool (int): Number of pools for max-pooling.
+        num_pool (int): The number of pools for max-pooling.
                         If num_pool = 0, do nothing.
                         If num_pool = 1, do typical max-pooling.
                         If num_pool > 1, do adaptive max-pooling.
@@ -128,18 +128,18 @@ class CNNEncoder(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, inputs):
-        h = inputs.transpose(1, 2)  # (batch_size, input_size, length)
+        h = inputs.transpose(1, 2) # (batch_size, input_size, length)
         h_list = []
         for conv in self.convs:
-            h_sub = conv(h)  # (batch_size, num_filter, length)
+            h_sub = conv(h) # (batch_size, num_filter, length)
             if self.num_pool == 1:
-                h_sub = F.max_pool1d(h_sub, h_sub.shape[2])  # (batch_size, num_filter, 1)
+                h_sub = F.max_pool1d(h_sub, h_sub.shape[2]) # (batch_size, num_filter, 1)
             elif self.num_pool > 1:
-                h_sub = self.pool(h_sub)  # (batch_size, num_filter, num_pool)
+                h_sub = self.pool(h_sub) # (batch_size, num_filter, num_pool)
             h_list.append(h_sub)
-        h = torch.cat(h_list, 1)  # (batch_size, total_num_filter, *)
+        h = torch.cat(h_list, 1) # (batch_size, total_num_filter, *)
         if self.channel_last:
-            h = h.transpose(1, 2)  # (batch_size, *, total_num_filter)
+            h = h.transpose(1, 2) # (batch_size, *, total_num_filter)
         h = self.activation(h)
         return self.dropout(h)
 
@@ -150,7 +150,7 @@ class LabelwiseAttention(nn.Module):
 
     Args:
         input_size (int): The number of expected features in the input.
-        num_classes (int): Number of classes.
+        num_classes (int): Total number of classes.
     """
     def __init__(self, input_size, num_classes):
         super(LabelwiseAttention, self).__init__()
@@ -168,8 +168,8 @@ class LabelwiseMultiHeadAttention(nn.Module):
 
     Args:
         input_size (int): The number of expected features in the input.
-        num_classes (int): Number of classes.
-        num_heads (int): Number of parallel attention heads.
+        num_classes (int): Total number of classes.
+        num_heads (int): The number of parallel attention heads.
         attention_dropout (float): Dropout rate for the attention. Defaults to 0.0.
     """
     def __init__(self, input_size, num_classes, num_heads, attention_dropout=0.0):

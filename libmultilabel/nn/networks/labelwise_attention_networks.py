@@ -56,7 +56,7 @@ class BiGRULWAN(RNNLWAN):
         num_classes (int): Total number of classes.
         rnn_dim (int): The size of bidirectional hidden layers. The hidden size of the GRU network
             is set to rnn_dim//2. Defaults to 512.
-        rnn_layers (int): Number of recurrent layers. Defaults to 1.
+        rnn_layers (int): The number of recurrent layers. Defaults to 1.
         embed_dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
         encoder_dropout (float): The dropout rate of the encoder output. Defaults to 0.
         activation (str): Activation function to be used. Defaults to 'tanh'.
@@ -93,7 +93,7 @@ class BiLSTMLWAN(RNNLWAN):
         num_classes (int): Total number of classes.
         rnn_dim (int): The size of bidirectional hidden layers. The hidden size of the LSTM network
             is set to rnn_dim//2. Defaults to 512.
-        rnn_layers (int): Number of recurrent layers. Defaults to 1.
+        rnn_layers (int): The number of recurrent layers. Defaults to 1.
         embed_dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
         encoder_dropout (float): The dropout rate of the encoder output. Defaults to 0.
         activation (str): Activation function to be used. Defaults to 'tanh'.
@@ -130,10 +130,10 @@ class BiLSTMLWMHAN(LabelwiseAttentionNetwork):
         num_classes (int): Total number of classes.
         rnn_dim (int): The size of bidirectional hidden layers. The hidden size of the LSTM network
             is set to rnn_dim//2. Defaults to 512.
-        rnn_layers (int): Number of recurrent layers. Defaults to 1.
+        rnn_layers (int): The number of recurrent layers. Defaults to 1.
         embed_dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
         encoder_dropout (float): The dropout rate of the encoder output. Defaults to 0.
-        num_heads (int): Number of parallel attention heads. Defaults to 8.
+        num_heads (int): The number of parallel attention heads. Defaults to 8.
         attention_dropout (float): Dropout rate for the attention. Defaults to 0.0.
     """
 
@@ -179,7 +179,7 @@ class CNNLWAN(LabelwiseAttentionNetwork):
         embed_vecs (FloatTensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
         num_classes (int): Total number of classes.
         filter_sizes (list): Size of convolutional filters.
-        num_filter_per_size (int): Number of filters in convolutional layers in each size. Defaults to 50.
+        num_filter_per_size (int): The number of filters in convolutional layers in each size. Defaults to 50.
         embed_dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
         encoder_dropout (float): The dropout rate of the encoder output. Defaults to 0.
         activation (str): Activation function to be used. Defaults to 'tanh'.
