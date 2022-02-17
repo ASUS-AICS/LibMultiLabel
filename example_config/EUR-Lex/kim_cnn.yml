@@ -24,7 +24,7 @@ network_config:
   embed_dropout: 0.2
   encoder_dropout: 0.2
   filter_sizes: [2, 4, 8]
-  num_filter_per_size: 128 # filter channels
+  num_filter_per_size: 128  # filter channels
 
 # pretrained vocab / embeddings
 embed_file: glove.6B.300d

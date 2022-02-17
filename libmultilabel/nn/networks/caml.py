@@ -16,7 +16,7 @@ class CAML(nn.Module):
         embed_vecs (FloatTensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
         num_classes (int): Total number of classes.
         filter_sizes (list): Size of convolutional filters.
-        num_filter_per_size (int): Number of filters in convolutional layers in each size. Defaults to 50.
+        num_filter_per_size (int): The number of filters in convolutional layers in each size. Defaults to 50.
         dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
         activation (str): Activation function to be used. Defaults to 'tanh'.
     """
@@ -57,7 +57,7 @@ class CAML(nn.Module):
         # Get embeddings and apply dropout
         x = self.embedding(input['text'])  # (batch_size, length, embed_dim)
         x = self.embed_drop(x)
-        x = x.transpose(1, 2) # (batch_size, embed_dim, length)
+        x = x.transpose(1, 2)  # (batch_size, embed_dim, length)
 
         """ Apply convolution and nonlinearity (tanh). The shapes are:
             - self.conv(x): (batch_size, num_filte_per_size, length)
@@ -74,9 +74,9 @@ class CAML(nn.Module):
         alpha = torch.softmax(self.U.weight.matmul(x.transpose(1, 2)), dim=2)
 
         # Document representations are weighted sums using the attention
-        m = alpha.matmul(x) # (batch_size, num_classes, num_filter_per_size)
+        m = alpha.matmul(x)  # (batch_size, num_classes, num_filter_per_size)
 
         # Compute a probability for each label
-        x = self.final.weight.mul(m).sum(dim=2).add(self.final.bias) # (batch_size, num_classes)
+        x = self.final.weight.mul(m).sum(dim=2).add(self.final.bias)  # (batch_size, num_classes)
 
         return {'logits': x, 'attention': alpha}

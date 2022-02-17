@@ -41,8 +41,8 @@ class RNNLWAN(LabelwiseAttentionNetwork):
     """
 
     def forward(self, input):
-        x = self.embedding(input['text'])  # (batch_size, length, embed_dim)
-        x = self.encoder(x, input['length']) # (batch_size, length, hidden_dim)
+        x = self.embedding(input['text'])  # (batch_size, sequence_length, embed_dim)
+        x = self.encoder(x, input['length'])  # (batch_size, sequence_length, hidden_dim)
         x, _ = self.attention(x)  # (batch_size, num_classes, hidden_dim)
         x = self.output(x)  # (batch_size, num_classes)
         return {'logits': x}
@@ -56,7 +56,7 @@ class BiGRULWAN(RNNLWAN):
         num_classes (int): Total number of classes.
         rnn_dim (int): The size of bidirectional hidden layers. The hidden size of the GRU network
             is set to rnn_dim//2. Defaults to 512.
-        rnn_layers (int): Number of recurrent layers. Defaults to 1.
+        rnn_layers (int): The number of recurrent layers. Defaults to 1.
         embed_dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
         encoder_dropout (float): The dropout rate of the encoder output. Defaults to 0.
         activation (str): Activation function to be used. Defaults to 'tanh'.
@@ -93,7 +93,7 @@ class BiLSTMLWAN(RNNLWAN):
         num_classes (int): Total number of classes.
         rnn_dim (int): The size of bidirectional hidden layers. The hidden size of the LSTM network
             is set to rnn_dim//2. Defaults to 512.
-        rnn_layers (int): Number of recurrent layers. Defaults to 1.
+        rnn_layers (int): The number of recurrent layers. Defaults to 1.
         embed_dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
         encoder_dropout (float): The dropout rate of the encoder output. Defaults to 0.
         activation (str): Activation function to be used. Defaults to 'tanh'.
@@ -130,11 +130,11 @@ class BiLSTMLWMHAN(LabelwiseAttentionNetwork):
         num_classes (int): Total number of classes.
         rnn_dim (int): The size of bidirectional hidden layers. The hidden size of the LSTM network
             is set to rnn_dim//2. Defaults to 512.
-        rnn_layers (int): Number of recurrent layers. Defaults to 1.
+        rnn_layers (int): The number of recurrent layers. Defaults to 1.
         embed_dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
         encoder_dropout (float): The dropout rate of the encoder output. Defaults to 0.
-        num_heads (int): Number of parallel attention heads. Defaults to 8.
-        attention_dropout (float): Dropout rate for the attention. Defaults to 0.0.
+        num_heads (int): The number of parallel attention heads. Defaults to 8.
+        attention_dropout (float): The dropout rate for the attention. Defaults to 0.0.
     """
 
     def __init__(
@@ -165,9 +165,9 @@ class BiLSTMLWMHAN(LabelwiseAttentionNetwork):
         return LabelwiseMultiHeadAttention(self.rnn_dim, self.num_classes, self.num_heads, self.attention_dropout)
 
     def forward(self, input):
-        x = self.embedding(input['text']) # (batch_size, length, embed_dim)
-        x = self.encoder(x, input['length']) # (batch_size, length, hidden_dim)
-        x, _ = self.attention(x, attention_mask=input['text'] == 0) # (batch_size, num_classes, hidden_dim)
+        x = self.embedding(input['text'])  # (batch_size, sequence_length, embed_dim)
+        x = self.encoder(x, input['length'])  # (batch_size, sequence_length, hidden_dim)
+        x, _ = self.attention(x, attention_mask=input['text'] == 0)  # (batch_size, num_classes, hidden_dim)
         x = self.output(x)  # (batch_size, num_classes)
         return {'logits': x}
 
@@ -179,7 +179,7 @@ class CNNLWAN(LabelwiseAttentionNetwork):
         embed_vecs (FloatTensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
         num_classes (int): Total number of classes.
         filter_sizes (list): Size of convolutional filters.
-        num_filter_per_size (int): Number of filters in convolutional layers in each size. Defaults to 50.
+        num_filter_per_size (int): The number of filters in convolutional layers in each size. Defaults to 50.
         embed_dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
         encoder_dropout (float): The dropout rate of the encoder output. Defaults to 0.
         activation (str): Activation function to be used. Defaults to 'tanh'.
@@ -212,8 +212,8 @@ class CNNLWAN(LabelwiseAttentionNetwork):
         return LabelwiseAttention(self.rnn_dim, self.num_classes)
 
     def forward(self, input):
-        x = self.embedding(input['text'])  # (batch_size, length, embed_dim)
-        x = self.encoder(x)  # (batch_size, length, hidden_dim)
+        x = self.embedding(input['text'])  # (batch_size, sequence_length, embed_dim)
+        x = self.encoder(x)  # (batch_size, sequence_length, hidden_dim)
         x, _ = self.attention(x)  # (batch_size, num_classes, hidden_dim)
         x = self.output(x)  # (batch_size, num_classes)
         return {'logits': x}

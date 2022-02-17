@@ -55,7 +55,7 @@ def get_config():
     parser.add_argument('--seed', type=int,
                         help='Random seed (default: %(default)s)')
     parser.add_argument('--epochs', type=int, default=10000,
-                        help='Number of epochs to train (default: %(default)s)')
+                        help='The number of epochs to train (default: %(default)s)')
     parser.add_argument('--batch_size', type=int, default=16,
                         help='Size of training batches (default: %(default)s)')
     parser.add_argument('--optimizer', default='adam', choices=['adam', 'adamw', 'adamax', 'sgd'],
@@ -67,7 +67,7 @@ def get_config():
     parser.add_argument('--momentum', type=float, default=0.9,
                         help='Momentum factor for SGD only (default: %(default)s)')
     parser.add_argument('--patience', type=int, default=5,
-                        help='Number of epochs to wait for improvement before early stopping (default: %(default)s)')
+                        help='The number of epochs to wait for improvement before early stopping (default: %(default)s)')
     parser.add_argument('--normalize_embed', action='store_true',
                         help='Whether the embeddings of each word is normalized to a unit vector (default: %(default)s)')
 

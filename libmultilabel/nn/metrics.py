@@ -44,7 +44,7 @@ class MacroF1(Metric):
     """The macro-f1 score computes the average f1 scores of all labels in the dataset.
 
     Args:
-        num_classes (int): The number of classes.
+        num_classes (int): Total number of classes.
         metric_threshold (float): Threshold to monitor for metrics.
         another_macro_f1 (bool, optional): Whether to compute the 'Another-Macro-F1' score.
             The 'Another-Macro-F1' is the f1 value of macro-precision and macro-recall.
