@@ -9,10 +9,12 @@ from .linear import train_1vsrest, predict_values
 class Node:
     def __init__(self,
                  labelmap: np.ndarray,
-                 children: 'list[Node]'
+                 children: 'list[Node]',
+                 metalabels: np.ndarray,
                  ) -> None:
         self.labelmap = labelmap
         self.children = children
+        self.metalabels = metalabels
 
 
 def dfs(node, visit):
@@ -45,14 +47,14 @@ class Tree:
                d: int
                ) -> Node:
         if d >= self.dmax or rep.shape[0] < self.K:
-            return Node(labelmap, [])
+            return Node(labelmap, [], np.array([]))
 
-        clusters = KMeans(self.K).fit(rep).labels_
-        labelmaps = [labelmap[clusters == i] for i in range(self.K)]
-        reps = [rep[clusters == i] for i in range(self.K)]
-        children = [self._build(reps[i], labelmaps[i], d+1)
+        metalabels = KMeans(self.K).fit(rep).labels_
+        maps = [labelmap[metalabels == i] for i in range(self.K)]
+        reps = [rep[metalabels == i] for i in range(self.K)]
+        children = [self._build(reps[i], maps[i], d+1)
                     for i in range(self.K)]
-        return Node(labelmap, children)
+        return Node(labelmap, children, metalabels)
 
     @staticmethod
     def _train_node(y: sparse.csr_matrix,
@@ -60,14 +62,14 @@ class Tree:
                     options: str,
                     node: Node
                     ):
-        if node.children == []:
+        if len(node.children) == 0:
             node.model = train_1vsrest(
                 y[:, node.labelmap], x, options,
             )
         else:
-            childy = [np.sum(y[:, child.labelmap], axis=0).reshape(-1, 1) > 0
+            childy = [np.sum(y[:, child.labelmap], axis=1).reshape(-1, 1) > 0
                       for child in node.children]
-            childy = sparse.hstack(childy).tocsr()
+            childy = sparse.csr_matrix(np.hstack(childy))
             node.model = train_1vsrest(
                 childy, x, options,
             )
@@ -82,16 +84,18 @@ class Tree:
             return ret
 
         pred = predict_values(node.model, x)
-        ret[:, node.labelmap] = pred
+        if len(node.children) == 0:
+            ret[:, node.labelmap] = pred
+            return ret
 
-        if node.children != []:
-            ord = np.argsort(pred, axis=1)
-            top = ord[:, -self.beam_width:]
-            childidx = [np.where(top == i)[0]
-                        for i in range(len(node.children))]
-            childpred = [self._beam_search(x[childidx], child)
-                         for child in node.children]
-            for ci, cp in zip(childidx, childpred):
-                ret[ci] = ret[ci] * cp
+        ret[:, node.labelmap] = pred[:, node.metalabels]
+        order = np.argsort(pred, axis=1)
+        top = order[:, -self.beam_width:]
+        childidx = [np.where(top == i)[0]
+                    for i in range(len(node.children))]
+        childpred = [self._beam_search(x[childidx], child)
+                        for child in node.children]
+        for ci, cp in zip(childidx, childpred):
+            ret[ci] = ret[ci] * cp
 
         return ret
