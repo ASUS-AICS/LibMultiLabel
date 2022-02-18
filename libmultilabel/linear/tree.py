@@ -15,6 +15,12 @@ class Node:
         self.children = children
 
 
+def dfs(node, visit):
+    visit(node)
+    for child in node.children:
+        dfs(child, visit)
+
+
 class Tree:
     def __init__(self) -> None:
         self.K = 100
@@ -27,8 +33,8 @@ class Tree:
               options: str
               ) -> None:
         rep = y.T * sparse.hstack([x, y])
-        self.root = self._build(rep, np.arange(y.shape[0]), 0)
-        self._dfs(
+        self.root = self._build(rep, np.arange(y.shape[1]), 0)
+        dfs(
             self.root,
             lambda node: self._train_node(y, x, options, node),
         )
@@ -38,7 +44,7 @@ class Tree:
                labelmap: np.ndarray,
                d: int
                ) -> Node:
-        if d >= self.dmax or rep.shape[0] >= self.K:
+        if d >= self.dmax or rep.shape[0] < self.K:
             return Node(labelmap, [])
 
         clusters = KMeans(self.K).fit(rep).labels_
@@ -66,13 +72,8 @@ class Tree:
                 childy, x, options,
             )
 
-    def _dfs(self, node, visit):
-        visit(node)
-        for child in node.children:
-            self._dfs(child, visit)
-
     def predict_values(self, x: sparse.csr_matrix) -> np.ndarray:
-        self._beam_search(x, self.root)
+        return self._beam_search(x, self.root)
 
     def _beam_search(self, x: sparse.csr_matrix, node: Node) -> np.ndarray:
         num_class = self.root.labelmap.shape[0]
@@ -81,7 +82,7 @@ class Tree:
             return ret
 
         pred = predict_values(node.model, x)
-        ret[node.labelmap] = pred
+        ret[:, node.labelmap] = pred
 
         if node.children != []:
             ord = np.argsort(pred, axis=1)
