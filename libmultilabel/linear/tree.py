@@ -22,12 +22,6 @@ class Node:
         self.metalabels = metalabels
 
 
-def dfs(node, visit):
-    visit(node)
-    for child in node.children:
-        dfs(child, visit)
-
-
 class Tree:
     def __init__(self) -> None:
         self.K = 100
@@ -41,10 +35,15 @@ class Tree:
               ) -> None:
         rep = y.T * sparse.hstack([x, y])
         self.root = self._build(rep, np.arange(y.shape[1]), 0)
-        dfs(
-            self.root,
-            lambda node: self._train_node(y, x, options, node),
-        )
+
+        def visit(node): return self._train_node(y, x, options, node)
+
+        def dfs(node):
+            visit(node)
+            for child in node.children:
+                dfs(child)
+
+        dfs(self.root)
 
     def _build(self,
                rep: sparse.csr_matrix,
@@ -54,7 +53,8 @@ class Tree:
         if d >= self.dmax or rep.shape[0] < self.K:
             return Node(labelmap, [], np.array([]))
 
-        metalabels = KMeans(self.K).fit(rep).labels_
+        # metalabels = KMeans(self.K).fit(rep).labels_
+        metalabels = KMeans(self.K, n_init=1, tol=1e-3).fit(rep).labels_
         maps = [labelmap[metalabels == i] for i in range(self.K)]
         reps = [rep[metalabels == i] for i in range(self.K)]
         children = [self._build(reps[i], maps[i], d+1)
@@ -83,24 +83,22 @@ class Tree:
         return self._beam_search(x, self.root)
 
     def _beam_search(self, x: sparse.csr_matrix, node: Node) -> np.ndarray:
+        def sigmoid(pred): return 1 / (1 + np.exp(-pred))
+
         num_class = self.root.labelmap.shape[0]
         ret = np.zeros((x.shape[0], num_class))
-        if x.shape[0] == 0:
-            return ret
-
         pred = predict_values(node.model, x)
+        prob = sigmoid(pred)
         if len(node.children) == 0:
-            ret[:, node.labelmap] = pred
+            ret[:, node.labelmap] = prob
             return ret
 
-        ret[:, node.labelmap] = pred[:, node.metalabels]
+        ret[:, node.labelmap] = prob[:, node.metalabels]
         order = np.argsort(pred, axis=1)
         top = order[:, -self.beam_width:]
-        childidx = [np.where(top == i)[0]
-                    for i in range(len(node.children))]
-        childpred = [self._beam_search(x[childidx], child)
-                        for child in node.children]
-        for ci, cp in zip(childidx, childpred):
-            ret[ci] = ret[ci] * cp
+        for i, child in enumerate(node.children):
+            childidx = np.sum(top == i, axis=1) > 0
+            childpred = self._beam_search(x[childidx], child)
+            ret[childidx] *= sigmoid(childpred)  # ???
 
         return ret
