@@ -99,5 +99,4 @@ class Tree:
             for i, child in enumerate(node.children):
                 possible = np.sum(top == i, axis=1) > 0
                 self._beam_search(totalprob[possible], x[possible], child)
-                impossible = np.where(~possible)[0].reshape(-1, 1)
-                totalprob[impossible, child.labelmap] = 0
+                totalprob[np.ix_(~possible, child.labelmap)] = 0
