@@ -94,8 +94,7 @@ class Tree:
             totalprob[:, node.labelmap] *= prob
         else:
             totalprob[:, node.labelmap] *= prob[:, node.metalabels]
-            order = np.argsort(pred, axis=1)
-            top = order[:, -self.beam_width:]
+            top = np.argpartition(pred, -self.beam_width, axis=1)[:, -self.beam_width:]
             for i, child in enumerate(node.children):
                 possible = np.sum(top == i, axis=1) > 0
                 self._beam_search(totalprob[possible], x[possible], child)
