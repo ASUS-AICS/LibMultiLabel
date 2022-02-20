@@ -16,6 +16,8 @@ class Node:
         self.children = children
         self.metalabels = metalabels
 
+    def isLeaf(self) -> bool:
+        return len(self.children) == 0
 
 class Tree:
     def __init__(self) -> None:
@@ -46,7 +48,7 @@ class Tree:
                d: int
                ) -> Node:
         if d >= self.dmax or rep.shape[0] < self.K:
-            return Node(labelmap, [], np.array([]))
+            return Node(labelmap, [], np.arange(len(labelmap)))
 
         # metalabels = KMeans(self.K).fit(rep).labels_
         metalabels = KMeans(self.K, n_init=1, tol=1e-3).fit(rep).labels_
@@ -62,7 +64,7 @@ class Tree:
                     options: str,
                     node: Node
                     ):
-        if len(node.children) == 0:
+        if node.isLeaf():
             node.model = train_1vsrest(
                 y[:, node.labelmap], x, options,
             )
@@ -75,25 +77,22 @@ class Tree:
             )
 
     def predict_values(self, x: sparse.csr_matrix) -> np.ndarray:
-        return self._beam_search(x, self.root)
-
-    def _beam_search(self, x: sparse.csr_matrix, node: Node) -> np.ndarray:
-        def sigmoid(pred): return 1 / (1 + np.exp(-pred))
-
         num_class = self.root.labelmap.shape[0]
-        ret = np.zeros((x.shape[0], num_class))
+        totalprob = np.ones((x.shape[0], num_class))
+        self._beam_search(totalprob, x, self.root)
+        return totalprob
+
+    def _beam_search(self, totalprob: np.ndarray, x: sparse.csr_matrix, node: Node):
         pred = predict_values(node.model, x)
-        prob = sigmoid(pred)
-        if len(node.children) == 0:
-            ret[:, node.labelmap] = prob
-            return ret
-
-        ret[:, node.labelmap] = prob[:, node.metalabels]
-        order = np.argsort(pred, axis=1)
-        top = order[:, -self.beam_width:]
-        for i, child in enumerate(node.children):
-            childidx = np.sum(top == i, axis=1) > 0
-            childpred = self._beam_search(x[childidx], child)
-            ret[childidx] *= sigmoid(childpred)  # ???
-
-        return ret
+        prob = 1 / (1 + np.exp(-pred))
+        if node.isLeaf():
+            totalprob[:, node.labelmap] *= prob
+        else:
+            totalprob[:, node.labelmap] *= prob[:, node.metalabels]
+            order = np.argsort(pred, axis=1)
+            top = order[:, -self.beam_width:]
+            for i, child in enumerate(node.children):
+                possible = np.sum(top == i, axis=1) > 0
+                self._beam_search(totalprob[possible], x[possible], child)
+                impossible = np.where(~possible)[0].reshape(-1, 1)
+                totalprob[impossible, child.labelmap] = 0
