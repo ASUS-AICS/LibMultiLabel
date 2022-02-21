@@ -275,7 +275,8 @@ def main():
         retrain_best_model(log_path, args.merge_train_val)
 
 
-# calculate wall time.
-wall_time_start = time.time()
-main()
-logging.info(f'\nWall time: {time.time()-wall_time_start}')
+if __name__ == '__main__':
+    # calculate wall time.
+    wall_time_start = time.time()
+    main()
+    logging.info(f'\nWall time: {time.time()-wall_time_start}')
