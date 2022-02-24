@@ -59,7 +59,6 @@ class BiGRULWAN(RNNLWAN):
         rnn_layers (int): The number of recurrent layers. Defaults to 1.
         embed_dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
         encoder_dropout (float): The dropout rate of the encoder output. Defaults to 0.
-        activation (str): Activation function to be used. Defaults to 'tanh'.
     """
 
     def __init__(
@@ -96,7 +95,6 @@ class BiLSTMLWAN(RNNLWAN):
         rnn_layers (int): The number of recurrent layers. Defaults to 1.
         embed_dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
         encoder_dropout (float): The dropout rate of the encoder output. Defaults to 0.
-        activation (str): Activation function to be used. Defaults to 'tanh'.
     """
 
     def __init__(
