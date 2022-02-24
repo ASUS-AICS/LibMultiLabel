@@ -230,6 +230,7 @@ def load_or_build_text_dict(
                        min_freq=min_vocab_freq)
     logging.info(f'Read {len(vocabs)} vocabularies.')
 
+    embedding_weights = None
     if os.path.exists(embed_file):
         logging.info(f'Load pretrained embedding from file: {embed_file}.')
         embedding_weights = get_embedding_weights_from_file(vocabs, embed_file, silent)
