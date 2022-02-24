@@ -172,7 +172,7 @@ def load_static_data(config, merge_train_val=False):
             silent=config.silent,
             normalize_embed=config.normalize_embed
         ),
-        "classes": data_utils.load_or_build_label(datasets, config.label_file, config.silent)
+        "classes": data_utils.load_or_build_label(datasets, config.label_file, config.include_test_labels)
     }
 
 
