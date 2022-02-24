@@ -26,7 +26,6 @@ val_metric: P@5
 model_name: CAML
 init_weight: null
 network_config:
-  activation: tanh
   dropout: 0.2
   filter_sizes: [10]
   num_filter_per_size: 50

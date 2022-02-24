@@ -18,7 +18,6 @@ class CAML(nn.Module):
         filter_sizes (list): Size of convolutional filters.
         num_filter_per_size (int): The number of filters in convolutional layers in each size. Defaults to 50.
         dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
-        activation (str): Activation function to be used. Defaults to 'tanh'.
     """
     def __init__(
         self,
@@ -27,7 +26,6 @@ class CAML(nn.Module):
         filter_sizes=None,
         num_filter_per_size=50,
         dropout=0.2,
-        activation='tanh'
     ):
         super(CAML, self).__init__()
         if not filter_sizes and len(filter_sizes) != 1:
@@ -37,7 +35,6 @@ class CAML(nn.Module):
         self.embedding = nn.Embedding(len(embed_vecs), embed_vecs.shape[1], padding_idx=0)
         self.embedding.weight.data = embed_vecs.clone()
         self.embed_drop = nn.Dropout(p=dropout)
-        self.activation = getattr(torch, activation, getattr(F, activation))
 
         # Initialize conv layer
         self.conv = nn.Conv1d(embed_vecs.shape[1], num_filter_per_size, kernel_size=filter_size, padding=int(floor(filter_size/2)))
