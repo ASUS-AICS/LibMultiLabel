@@ -43,12 +43,12 @@ class CAML(nn.Module):
         """Context vectors for computing attention with
         (in_features, out_features) = (num_filter_per_size, num_classes)
         """
-        self.U = nn.Linear(num_filter_per_size, num_classes)
-        xavier_uniform_(self.U.weight)
+        self.Q = nn.Linear(num_filter_per_size, num_classes)
+        xavier_uniform_(self.Q.weight)
 
         # Final layer: create a matrix to use for the #labels binary classifiers
-        self.final = nn.Linear(num_filter_per_size, num_classes)
-        xavier_uniform_(self.final.weight)
+        self.output = nn.Linear(num_filter_per_size, num_classes)
+        xavier_uniform_(self.output.weight)
 
     def forward(self, input):
         # Get embeddings and apply dropout
@@ -61,19 +61,19 @@ class CAML(nn.Module):
             - x after transposing the first and the second dimension and applying
               the activation function: (batch_size, length, num_filte_per_size)
         """
-        x = torch.tanh(self.conv(x).transpose(1, 2))
+        Z = torch.tanh(self.conv(x).transpose(1, 2))
 
         """Apply per-label attention. The shapes are:
-           - U.weight: (num_classes, num_filte_per_size)
+           - Q.weight: (num_classes, num_filte_per_size)
            - matrix product of U.weight and x: (batch_size, num_classes, length)
            - alpha: (batch_size, num_classes, length)
         """
-        alpha = torch.softmax(self.U.weight.matmul(x.transpose(1, 2)), dim=2)
+        alpha = torch.softmax(self.Q.weight.matmul(Z.transpose(1, 2)), dim=2)
 
         # Document representations are weighted sums using the attention
-        m = alpha.matmul(x)  # (batch_size, num_classes, num_filter_per_size)
+        E = alpha.matmul(Z)  # (batch_size, num_classes, num_filter_per_size)
 
         # Compute a probability for each label
-        x = self.final.weight.mul(m).sum(dim=2).add(self.final.bias)  # (batch_size, num_classes)
+        logits = self.output.weight.mul(E).sum(dim=2).add(self.output.bias)  # (batch_size, num_classes)
 
-        return {'logits': x, 'attention': alpha}
+        return {'logits': logits, 'attention': alpha}
