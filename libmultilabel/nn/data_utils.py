@@ -230,22 +230,21 @@ def load_or_build_text_dict(
                        min_freq=min_vocab_freq)
     logging.info(f'Read {len(vocabs)} vocabularies.')
 
-    if os.path.exists(embed_file):
+    load_embedding_from_file = os.path.exists(embed_file)
+    if load_embedding_from_file:
         logging.info(f'Load pretrained embedding from file: {embed_file}.')
         embedding_weights = get_embedding_weights_from_file(vocabs, embed_file, silent)
         dim = torch.as_tensor(embedding_weights).shape[1]
         vocabs.set_vectors(vocabs.stoi, torch.Tensor(embedding_weights), dim=dim)
-    elif not embed_file.isdigit():
+    else:
         logging.info(f'Load pretrained embedding from torchtext.')
         vocabs.load_vectors(embed_file, cache=embed_cache_dir)
-    else:
-        raise NotImplementedError
 
     if normalize_embed:
         # vocabs.vectors is a torch.FloatTensor from the result of vocabs.set_vectors earlier.
         # To have better precision for calculating the normalization, we use the original
         # embedding_weights, a torch.DobleTensor, if it is available.
-        embedding_weights = embedding_weights if embedding_weights else vocabs.vectors.numpy()
+        embedding_weights = embedding_weights if load_embedding_from_file else vocabs.vectors.numpy()
         for i, vector in enumerate(embedding_weights):
             # We use the constant 1e-6 by following https://github.com/jamesmullenbach/caml-mimic/blob/44a47455070d3d5c6ee69fb5305e32caec104960/dataproc/extract_wvs.py#L60
             # for an internal experiment of reproducing their results.
