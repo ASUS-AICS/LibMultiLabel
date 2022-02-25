@@ -3,6 +3,8 @@ import logging
 import os
 import time
 from collections import deque
+from datetime import datetime
+from pathlib import Path
 
 import yaml
 from ray import tune
@@ -170,11 +172,11 @@ def load_static_data(config, merge_train_val=False):
             silent=config.silent,
             normalize_embed=config.normalize_embed
         ),
-        "classes": data_utils.load_or_build_label(datasets, config.label_file, config.silent)
+        "classes": data_utils.load_or_build_label(datasets, config.label_file, config.include_test_labels)
     }
 
 
-def retrain_best_model(log_path, merge_train_val=False):
+def retrain_best_model(exp_name, best_config, result_dir, merge_train_val=False):
     """Retrain the best model with the best hyperparameters.
     A new model is trained on the combined training and validation data if `merge_train_val` is True.
     If a test set is provided, it will be evaluated by the obtained model.
@@ -184,11 +186,14 @@ def retrain_best_model(log_path, merge_train_val=False):
         merge_train_val (bool, optional): Whether to merge the training and validation data.
             Defaults to False.
     """
-    with open(log_path, 'r') as fp:
-        best_config = AttributeDict(yaml.safe_load(fp.readlines()[-1])['config'])
-    run_name = os.path.basename(os.path.normpath(best_config.run_name))
-    best_config.run_name = best_config.run_name.replace(run_name, f'{run_name}_retrain')
-    best_config.checkpoint_dir = os.path.join(best_config.result_dir, best_config.run_name)
+    best_config['silent'] = False
+    checkpoint_dir = os.path.join(result_dir, exp_name, 'best_trial')
+    os.makedirs(checkpoint_dir, exist_ok=True)
+    with open(os.path.join(checkpoint_dir, 'params.yml'), 'w') as fp:
+        yaml.dump(dict(best_config), fp)
+    best_config = AttributeDict(best_config)
+    best_config.run_name = '_'.join(exp_name.split('_')[:-1]) + '_best'
+    best_config.checkpoint_dir = checkpoint_dir
     best_config.log_path = os.path.join(best_config.checkpoint_dir, 'logs.json')
     set_seed(seed=best_config.seed)
 
@@ -254,6 +259,11 @@ def main():
     else:
         scheduler = None
 
+    exp_name = '{}_{}_{}'.format(
+        config.data_name,
+        Path(config.config).stem if config.config else config.model_name,
+        datetime.now().strftime('%Y%m%d%H%M%S'),
+    )
     analysis = tune.run(
         tune.with_parameters(
             train_libmultilabel_tune,
@@ -267,12 +277,13 @@ def main():
         resources_per_trial={
             'cpu': args.cpu_count, 'gpu': args.gpu_count},
         progress_reporter=reporter,
-        config=config)
+        config=config,
+        name=exp_name,
+    )
 
     # Save best model after parameter search.
-    if args.retrain_best:
-        log_path = os.path.join(analysis.get_best_logdir(f'val_{config.val_metric}', args.mode), 'result.json')
-        retrain_best_model(log_path, args.merge_train_val)
+    best_config = analysis.get_best_config(f'val_{config.val_metric}', args.mode)
+    retrain_best_model(exp_name, best_config, config.result_dir, args.merge_train_val)
 
 
 if __name__ == '__main__':
