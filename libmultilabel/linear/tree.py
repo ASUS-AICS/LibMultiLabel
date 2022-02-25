@@ -1,6 +1,8 @@
 import numpy as np
 import scipy.sparse as sparse
 
+import time
+
 from sklearn.cluster import KMeans
 
 from .linear import train_1vsrest, predict_values
@@ -19,6 +21,13 @@ class Node:
     def isLeaf(self) -> bool:
         return len(self.children) == 0
 
+    def dfs(self, visit):
+        visit(self)
+        for child in self.children:
+            child.dfs(visit)
+
+ovrtime = 0
+
 class Tree:
     def __init__(self) -> None:
         self.K = 100
@@ -30,17 +39,19 @@ class Tree:
               x: sparse.csr_matrix,
               options: str
               ) -> None:
-        rep = y.T * sparse.hstack([x, y])
+        rep = (y.T * x).tocsr()
+
+        start = time.time()
         self.root = self._build(rep, np.arange(y.shape[1]), 0)
+        print(f'tree building done in {time.time() - start}s')
 
-        def visit(node): return self._train_node(y, x, options, node)
+        def visit(node):
+            idx = y[:, node.labelmap].getnnz(axis=1) > 0
+            return self._train_node(y[idx], x[idx], options, node)
 
-        def dfs(node):
-            visit(node)
-            for child in node.children:
-                dfs(child)
-
-        dfs(self.root)
+        start = time.time()
+        self.root.dfs(visit)
+        print(f'training done in {time.time() - start}s')
 
     def _build(self,
                rep: sparse.csr_matrix,
@@ -50,8 +61,8 @@ class Tree:
         if d >= self.dmax or rep.shape[0] < self.K:
             return Node(labelmap, [], np.arange(len(labelmap)))
 
-        # metalabels = KMeans(self.K).fit(rep).labels_
-        metalabels = KMeans(self.K, n_init=1, tol=1e-3).fit(rep).labels_
+        metalabels = KMeans(self.K).fit(rep).labels_
+        # metalabels = KMeans(self.K, n_init=1, tol=1e-3).fit(rep).labels_
         maps = [labelmap[metalabels == i] for i in range(self.K)]
         reps = [rep[metalabels == i] for i in range(self.K)]
         children = [self._build(reps[i], maps[i], d+1)
@@ -64,17 +75,22 @@ class Tree:
                     options: str,
                     node: Node
                     ):
+        global ovrtime
         if node.isLeaf():
+            start = time.time()
             node.model = train_1vsrest(
                 y[:, node.labelmap], x, options,
             )
+            ovrtime += time.time() - start
         else:
             childy = [np.sum(y[:, child.labelmap], axis=1).reshape(-1, 1) > 0
                       for child in node.children]
             childy = sparse.csr_matrix(np.hstack(childy))
+            start = time.time()
             node.model = train_1vsrest(
                 childy, x, options,
             )
+            ovrtime += time.time() - start
 
     def predict_values(self, x: sparse.csr_matrix) -> np.ndarray:
         num_class = self.root.labelmap.shape[0]
@@ -89,7 +105,8 @@ class Tree:
             totalprob[:, node.labelmap] *= prob
         else:
             totalprob[:, node.labelmap] *= prob[:, node.metalabels]
-            top = np.argpartition(pred, -self.beam_width, axis=1)[:, -self.beam_width:]
+            top = np.argpartition(pred, -self.beam_width,
+                                  axis=1)[:, -self.beam_width:]
             for i, child in enumerate(node.children):
                 possible = np.sum(top == i, axis=1) > 0
                 self._beam_search(totalprob[possible], x[possible], child)
