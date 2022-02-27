@@ -24,13 +24,11 @@ class Node:
         for child in self.children:
             child.dfs(visit)
 
-ovrtime = 0
-
 class Tree:
-    def __init__(self) -> None:
-        self.K = 100
-        self.dmax = 10   # no mention of value?
-        self.beam_width = 10    # no mention of value?
+    def __init__(self, K = 100, dmax = 10, beam_width = 10) -> None:
+        self.K = K
+        self.dmax = dmax   # no mention of value?
+        self.beam_width = beam_width    # no mention of value?
 
     def train(self,
               y: sparse.csr_matrix,
@@ -75,24 +73,21 @@ class Tree:
                     ):
         global ovrtime
         if node.isLeaf():
-            start = time.time()
             node.model = train_1vsrest(
                 y[:, node.labelmap], x, options,
             )
-            ovrtime += time.time() - start
         else:
             childy = [np.sum(y[:, child.labelmap], axis=1).reshape(-1, 1) > 0
                       for child in node.children]
             childy = sparse.csr_matrix(np.hstack(childy))
-            start = time.time()
             node.model = train_1vsrest(
                 childy, x, options,
             )
-            ovrtime += time.time() - start
 
     def predict_values(self, x: sparse.csr_matrix) -> np.ndarray:
         num_class = self.root.labelmap.shape[0]
         totalprob = np.ones((x.shape[0], num_class))
+        # totalprob = np.zeros((x.shape[0], num_class))
         self._beam_search(totalprob, x, self.root)
         return totalprob
 
@@ -101,11 +96,15 @@ class Tree:
         prob = 1 / (1 + np.exp(-pred))
         if node.isLeaf():
             totalprob[:, node.labelmap] *= prob
+            # totalprob[:, node.labelmap] -= np.maximum(0, 1 - pred) ** 2
         else:
             totalprob[:, node.labelmap] *= prob[:, node.metalabels]
+            # totalprob[:, node.labelmap] -= (np.maximum(0, 1 - pred)**2)[:, node.metalabels]
+            # totalprob[:, node.labelmap] *= 0.8
             top = np.argpartition(pred, -self.beam_width,
                                   axis=1)[:, -self.beam_width:]
             for i, child in enumerate(node.children):
                 possible = np.sum(top == i, axis=1) > 0
                 self._beam_search(totalprob[possible], x[possible], child)
                 totalprob[np.ix_(~possible, child.labelmap)] = 0
+                # totalprob[np.ix_(~possible, child.labelmap)] = -np.Inf
