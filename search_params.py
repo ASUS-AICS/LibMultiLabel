@@ -2,7 +2,6 @@ import argparse
 import logging
 import os
 import time
-from collections import deque
 from datetime import datetime
 from pathlib import Path
 
@@ -19,13 +18,11 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s:%(message)s')
 
 
-def train_libmultilabel_tune(config, parameter_columns, datasets, classes, word_dict):
+def train_libmultilabel_tune(config, datasets, classes, word_dict):
     """The training function for ray tune.
 
     Args:
         config (AttributeDict): Config of the experiment.
-        parameter_columns (dict): Names of parameters to include in the CLIReporter.
-                                  The keys are parameter names and the values are displayed names.
         datasets (dict): A dictionary of datasets.
         classes(list): List of class names.
         word_dict(torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
@@ -251,7 +248,6 @@ def main():
     analysis = tune.run(
         tune.with_parameters(
             train_libmultilabel_tune,
-            parameter_columns=parameter_columns,
             **data),
         search_alg=init_search_algorithm(
             config.search_alg, metric=config.val_metric, mode=args.mode),
