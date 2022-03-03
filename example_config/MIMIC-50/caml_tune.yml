@@ -28,7 +28,6 @@ network_config:
   num_filter_per_size: ['grid_search', [50, 150, 250, 350, 450, 550]]
   filter_sizes: ['grid_search', [[2], [4], [6], [8], [10]]]
   dropout: ['grid_search', [0.2, 0.4, 0.6, 0.8]]
-  activation: tanh
 
 # pretrained vocab / embeddings
 vocab_file: data/MIMIC-50/vocab.csv
