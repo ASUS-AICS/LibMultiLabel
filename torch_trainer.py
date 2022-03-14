@@ -115,7 +115,8 @@ class TorchTrainer:
                     min_vocab_freq=self.config.min_vocab_freq,
                     embed_file=self.config.embed_file,
                     silent=self.config.silent,
-                    normalize_embed=self.config.normalize_embed
+                    normalize_embed=self.config.normalize_embed,
+                    embed_cache_dir=self.config.embed_cache_dir
                 )
             if not classes:
                 classes = data_utils.load_or_build_label(
