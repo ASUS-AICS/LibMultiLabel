@@ -156,9 +156,9 @@ def read_libsvm_format(file_path: str) -> 'tuple[list[list[int]], sparse.csr_mat
         m = pattern.fullmatch(line)
         if m is None:
             raise ValueError(f'invalid svm format at line {i}')
-        label = m[1] or ''
+        labels = m[1]
+        prob_y.append(as_ints(labels) if labels else [])
         features = m[2] or ''
-        prob_y.append(as_ints(label))
         nz = 0
         for e in features.split():
             ind, val = e.split(':')
