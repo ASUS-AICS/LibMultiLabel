@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-import os
-from array import array
 import logging
+import os
+import re
+from array import array
 from collections import defaultdict
 
 import pandas as pd
@@ -150,12 +151,13 @@ def read_libsvm_format(file_path: str) -> 'tuple[list[list[int]], sparse.csr_mat
     row_ptr = array('l', [0])
     col_idx = array('l')
 
+    pattern = re.compile(r'(?:(\d+(?:,\d+)*)\s+)?((?:\d+:\d+(?:\.\d+)?\s)*)')
     for i, line in enumerate(open(file_path)):
-        line = line.split(None, 1)
-        # In case an instance with all zero features
-        if len(line) == 1:
-            line += ['']
-        label, features = line
+        m = pattern.fullmatch(line)
+        if m is None:
+            raise ValueError(f'invalid svm format at line {i}')
+        label = m[1] or ''
+        features = m[2] or ''
         prob_y.append(as_ints(label))
         nz = 0
         for e in features.split():
