@@ -38,7 +38,7 @@ normalize_embed: false
 
 # hyperparamter search
 search_alg: basic_variant
-embed_cache_dir: null
+embed_cache_dir: .vector_cache
 num_samples: 1
 scheduler: null
 # Uncomment the following lines to enable the ASHAScheduler.
