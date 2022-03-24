@@ -42,8 +42,9 @@ class RNNEncoder(ABC, nn.Module):
     def forward(self, input, length, **kwargs):
         self.rnn.flatten_parameters()
         idx = torch.argsort(length, descending=True)
+        length_clamped = length[idx].cpu().clamp(min=1)  # avoid the empty text with length 0
         packed_input = pack_padded_sequence(
-            input[idx], length[idx].cpu(), batch_first=True)
+            input[idx], length_clamped, batch_first=True)
         outputs, _ = pad_packed_sequence(
             self.rnn(packed_input)[0], batch_first=True)
         return self.dropout(outputs[torch.argsort(idx)])
