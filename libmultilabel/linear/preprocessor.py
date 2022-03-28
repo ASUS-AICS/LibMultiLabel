@@ -151,23 +151,24 @@ def read_libsvm_format(file_path: str) -> 'tuple[list[list[int]], sparse.csr_mat
     row_ptr = array('l', [0])
     col_idx = array('l')
 
-    pattern = re.compile(r'(?:(\d+(?:,\d+)*)\s+)?((?:\d+:\d+(?:\.\d+)?\s)*)')
+    pattern = re.compile(r'(?!^$)([+\-0-9,]+\s+)?(.*\n?)')
     for i, line in enumerate(open(file_path)):
         m = pattern.fullmatch(line)
-        if m is None:
+        try:
+            labels = m[1]
+            prob_y.append(as_ints(labels) if labels else [])
+            features = m[2] or ''
+            nz = 0
+            for e in features.split():
+                ind, val = e.split(':')
+                val = float(val)
+                if val != 0:
+                    col_idx.append(int(ind) - 1)
+                    prob_x.append(val)
+                    nz += 1
+            row_ptr.append(row_ptr[-1]+nz)
+        except:
             raise ValueError(f'invalid svm format at line {i+1}')
-        labels = m[1]
-        prob_y.append(as_ints(labels) if labels else [])
-        features = m[2] or ''
-        nz = 0
-        for e in features.split():
-            ind, val = e.split(':')
-            val = float(val)
-            if val != 0:
-                col_idx.append(int(ind) - 1)
-                prob_x.append(val)
-                nz += 1
-        row_ptr.append(row_ptr[-1]+nz)
 
     prob_x = scipy.frombuffer(prob_x, dtype='d')
     col_idx = scipy.frombuffer(col_idx, dtype='l')
