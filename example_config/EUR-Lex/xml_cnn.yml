@@ -3,6 +3,7 @@ data_dir: data/EUR-Lex
 data_name: EUR-Lex
 min_vocab_freq: 1
 max_seq_length: 500
+include_test_labels: true
 
 # train
 # seed: 1337
@@ -12,6 +13,7 @@ optimizer: adam
 learning_rate: 0.0005
 weight_decay: 0
 patience: 5
+shuffle: true
 
 # eval
 eval_batch_size: 256
