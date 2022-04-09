@@ -141,10 +141,12 @@ def load_static_data(config, merge_train_val=False):
                                         test_path=config.test_path,
                                         val_path=config.val_path,
                                         val_size=config.val_size,
-                                        merge_train_val=merge_train_val)
+                                        merge_train_val=merge_train_val,
+                                        tokenize_text='lm_weight' not in config['network_config'],
+                                        )
     return {
         "datasets": datasets,
-        "word_dict": data_utils.load_or_build_text_dict(
+        "word_dict": None if config.embed_file is None else data_utils.load_or_build_text_dict(
             dataset=datasets['train'],
             vocab_file=config.vocab_file,
             min_vocab_freq=config.min_vocab_freq,
@@ -262,7 +264,7 @@ def main():
     )
 
     # Save best model after parameter search.
-    best_config = analysis.get_best_config(f'val_{config.val_metric}', args.mode)
+    best_config = analysis.get_best_config(f'val_{config.val_metric}', args.mode, scope='all')
     retrain_best_model(exp_name, best_config, config.result_dir, args.merge_train_val)
 
 
