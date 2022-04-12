@@ -36,6 +36,7 @@ class BERTAttention(nn.Module):
         self.lm = AutoModel.from_pretrained(lm_weight, torchscript=True)
         self.embed_drop = nn.Dropout(p=dropout)
 
+        self.attention_type = attention_type
         assert attention_type in ['singlehead', 'multihead'], "attention_type must be 'singlehead' or 'multihead'"
         if attention_type == 'singlehead':
             self.attention = LabelwiseAttention(self.lm.config.hidden_size, num_classes)
@@ -90,7 +91,10 @@ class BERTAttention(nn.Module):
         x = self.embed_drop(x)
 
         # Apply per-label attention.
-        logits, attention = self.attention(x, attention_mask)
+        if self.attention_type == 'singlehead':
+            logits, attention = self.attention(x)
+        else:
+            logits, attention = self.attention(x, attention_mask)
 
         # Compute a probability for each label
         x = self.output(logits)
