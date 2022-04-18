@@ -4,14 +4,42 @@ import numpy as np
 import torch
 import torchmetrics.classification
 from torchmetrics import Metric, MetricCollection, Precision, Recall, RetrievalNormalizedDCG
+from torchmetrics.functional.retrieval.ndcg import retrieval_normalized_dcg
 from torchmetrics.utilities.data import select_topk
+
+
+class NDCG(Metric):
+    """NDCG (Normalized Discounted Cumulative Gain) sums the true scores
+    ranked in the order induced by the predicted scores after applying a logarithmic discount,
+    and then divides by the best possible score (Ideal DCG, obtained for a perfect ranking)
+    to obtain a score between 0 and 1. Please find the definition here:
+    https://nlp.stanford.edu/IR-book/html/htmledition/evaluation-of-ranked-retrieval-results-1.html 
+    Args:
+        top_k (int): the top k relevant labels to evaluate.
+    """
+    def __init__(
+        self,
+        top_k
+    ):
+        super().__init__()
+        self.top_k = top_k
+        self.add_state("ndcg", default=[], dist_reduce_fx="cat")
+
+    def update(self, preds, target):
+        assert preds.shape == target.shape
+        self.ndcg += [self._metric(p, t) for p, t in zip(preds, target)]
+
+    def compute(self):
+        return torch.stack(self.ndcg).mean()
+
+    def _metric(self, preds, target):
+        return retrieval_normalized_dcg(preds, target, k=self.top_k)
 
 
 class RPrecision(Metric):
     """R-precision calculates precision at k by adjusting k to the minimum value of the number of
     relevant labels and k. Please find the definition here:
     https://nlp.stanford.edu/IR-book/html/htmledition/evaluation-of-ranked-retrieval-results-1.html
-
     Args:
         top_k (int): the top k relevant labels to evaluate.
     """
@@ -42,7 +70,6 @@ class RPrecision(Metric):
 
 class MacroF1(Metric):
     """The macro-f1 score computes the average f1 scores of all labels in the dataset.
-
     Args:
         num_classes (int): Total number of classes.
         metric_threshold (float): Threshold to monitor for metrics.
@@ -85,19 +112,16 @@ class MacroF1(Metric):
 def get_metrics(metric_threshold, monitor_metrics, num_classes):
     """Map monitor metrics to the corresponding classes defined in `torchmetrics.Metric`
     (https://torchmetrics.readthedocs.io/en/latest/references/modules.html).
-
     Args:
         metric_threshold (float): Threshold to monitor for metrics.
         monitor_metrics (list): Metrics to monitor while validating.
         num_classes (int): Total number of classes.
-
     Raises:
         ValueError: The metric is invalid if:
             (1) It is not one of 'P@k', 'R@k', 'RP@k', 'nDCG@k', 'Micro-Precision',
                 'Micro-Recall', 'Micro-F1', 'Macro-F1', 'Another-Macro-F1', or a
                 `torchmetrics.Metric`.
             (2) Metric@k: k is greater than `num_classes`.
-
     Returns:
         torchmetrics.MetricCollection: A collections of `torchmetrics.Metric` for evaluation.
     """
@@ -126,7 +150,8 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes):
             elif metric_abbr == 'RP':
                 metrics[metric] = RPrecision(top_k=top_k)
             elif metric_abbr == 'nDCG':
-                metrics[metric] = RetrievalNormalizedDCG(k=top_k)
+                metrics[metric] = NDCG(top_k=top_k)
+                # metrics[metric] = RetrievalNormalizedDCG(k=top_k) # CUDA out of memory
         elif metric == 'Another-Macro-F1':
             metrics[metric] = MacroF1(num_classes, metric_threshold, another_macro_f1=True)
         elif metric == 'Macro-F1':
