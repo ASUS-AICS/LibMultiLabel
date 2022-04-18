@@ -13,7 +13,8 @@ class NDCG(Metric):
     ranked in the order induced by the predicted scores after applying a logarithmic discount,
     and then divides by the best possible score (Ideal DCG, obtained for a perfect ranking)
     to obtain a score between 0 and 1. Please find the definition here:
-    https://nlp.stanford.edu/IR-book/html/htmledition/evaluation-of-ranked-retrieval-results-1.html 
+    https://nlp.stanford.edu/IR-book/html/htmledition/evaluation-of-ranked-retrieval-results-1.html
+
     Args:
         top_k (int): the top k relevant labels to evaluate.
     """
@@ -40,6 +41,7 @@ class RPrecision(Metric):
     """R-precision calculates precision at k by adjusting k to the minimum value of the number of
     relevant labels and k. Please find the definition here:
     https://nlp.stanford.edu/IR-book/html/htmledition/evaluation-of-ranked-retrieval-results-1.html
+
     Args:
         top_k (int): the top k relevant labels to evaluate.
     """
@@ -70,6 +72,7 @@ class RPrecision(Metric):
 
 class MacroF1(Metric):
     """The macro-f1 score computes the average f1 scores of all labels in the dataset.
+
     Args:
         num_classes (int): Total number of classes.
         metric_threshold (float): Threshold to monitor for metrics.
@@ -112,16 +115,19 @@ class MacroF1(Metric):
 def get_metrics(metric_threshold, monitor_metrics, num_classes):
     """Map monitor metrics to the corresponding classes defined in `torchmetrics.Metric`
     (https://torchmetrics.readthedocs.io/en/latest/references/modules.html).
+
     Args:
         metric_threshold (float): Threshold to monitor for metrics.
         monitor_metrics (list): Metrics to monitor while validating.
         num_classes (int): Total number of classes.
+
     Raises:
         ValueError: The metric is invalid if:
             (1) It is not one of 'P@k', 'R@k', 'RP@k', 'nDCG@k', 'Micro-Precision',
                 'Micro-Recall', 'Micro-F1', 'Macro-F1', 'Another-Macro-F1', or a
                 `torchmetrics.Metric`.
             (2) Metric@k: k is greater than `num_classes`.
+
     Returns:
         torchmetrics.MetricCollection: A collections of `torchmetrics.Metric` for evaluation.
     """
