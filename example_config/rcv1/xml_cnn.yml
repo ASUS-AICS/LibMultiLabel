@@ -3,7 +3,6 @@ data_dir: data/rcv1
 data_name: rcv1
 min_vocab_freq: 1
 max_seq_length: 500
-include_test_labels: true
 
 # train
 # seed: 1337

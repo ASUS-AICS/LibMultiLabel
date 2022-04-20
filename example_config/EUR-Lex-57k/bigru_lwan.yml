@@ -3,7 +3,7 @@ data_dir: data/EUR-Lex-57k
 data_name: EUR-Lex-57k
 min_vocab_freq: 1
 max_seq_length: 500
-include_test_labels: true
+include_test_labels: true # to compare Micro-F1 on zero-shots
 
 # train
 seed: 1337
