@@ -12,6 +12,7 @@ optimizer: adam
 learning_rate: 0.0005099137446356937
 weight_decay: 0
 patience: 5
+shuffle: true
 
 # eval
 eval_batch_size: 256
