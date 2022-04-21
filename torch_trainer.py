@@ -122,6 +122,10 @@ class TorchTrainer:
                 classes = data_utils.load_or_build_label(
                     self.datasets, self.config.label_file, self.config.include_test_labels)
 
+            label_embedding = None
+            if self.config.label_file:
+                label_embedding = data_utils.load_label_embedding(self.config.label_file, classes, word_dict)
+
             if self.config.val_metric not in self.config.monitor_metrics:
                 logging.warn(
                     f'{self.config.val_metric} is not in `monitor_metrics`. Add {self.config.val_metric} to `monitor_metrics`.')
@@ -131,6 +135,7 @@ class TorchTrainer:
                                     network_config=dict(self.config.network_config),
                                     classes=classes,
                                     word_dict=word_dict,
+                                    label_embedding=label_embedding,
                                     init_weight=self.config.init_weight,
                                     log_path=log_path,
                                     learning_rate=self.config.learning_rate,

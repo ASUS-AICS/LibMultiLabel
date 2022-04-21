@@ -268,25 +268,45 @@ def load_or_build_label(datasets, label_file=None, include_test_labels=False):
     Returns:
         list: A list of labels sorted in alphabetical order.
     """
-    if label_file is not None:
-        logging.info(f'Load labels from {label_file}.')
-        with open(label_file, 'r') as fp:
-            classes = sorted([s.strip() for s in fp.readlines()])
-    else:
-        if 'test' not in datasets and include_test_labels:
-            raise ValueError(
-                f'Specified the inclusion of test labels but test file does not exist')
+    if 'test' not in datasets and include_test_labels:
+        raise ValueError(
+            f'Specified the inclusion of test labels but test file does not exist')
 
-        classes = set()
+    classes = set()
 
-        for split, data in datasets.items():
-            if split == 'test' and not include_test_labels:
-                continue
-            for instance in data:
-                classes.update(instance['label'])
-        classes = sorted(classes)
+    for split, data in datasets.items():
+        if split == 'test' and not include_test_labels:
+            continue
+        for instance in data:
+            classes.update(instance['label'])
+    classes = sorted(classes)
     logging.info(f'Read {len(classes)} labels.')
     return classes
+
+
+def load_label_embedding(label_file, classes, word_dict):
+    """Generate label embeddings from predefined label descriptions.
+
+    Args:
+        label_file (str): Path to a file holding all labels.
+        classes (list): List of labels.
+        word_dict (torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
+
+    Returns:
+        torch.Tensor: Label embedding weights (num_classes, embed_size)
+    """
+    logging.info(f'Load label descriptions from {label_file}.')
+    df = pd.read_csv(label_file, sep='\t', header=None)
+    label_desc = df.set_index(0)[1]
+    logging.info(f'Loaded {len(label_desc)} label descriptions from {label_file}.')
+
+    def desc2vec(s):
+        return word_dict.vectors[word_dict.lookup_indices(tokenize(s))].mean(dim=0)
+
+    embeddings = label_desc[classes].map(desc2vec)
+    embeddings = torch.stack(list(embeddings.values))
+    logging.info(f'Generated label embeddings: {embeddings.shape}.')
+    return embeddings
 
 
 def get_embedding_weights_from_file(word_dict, embed_file, silent=False):
