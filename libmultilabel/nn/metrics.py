@@ -12,7 +12,10 @@ class NDCG(Metric):
     """NDCG (Normalized Discounted Cumulative Gain) sums the true scores
     ranked in the order induced by the predicted scores after applying a logarithmic discount,
     and then divides by the best possible score (Ideal DCG, obtained for a perfect ranking)
-    to obtain a score between 0 and 1. Please find the definition here:
+    to obtain a score between 0 and 1.
+    The definition is quoted from:
+    https://scikit-learn.org/stable/modules/generated/sklearn.metrics.ndcg_score.html
+    Please find the formal definition here:
     https://nlp.stanford.edu/IR-book/html/htmledition/evaluation-of-ranked-retrieval-results-1.html
 
     Args:
@@ -28,6 +31,7 @@ class NDCG(Metric):
 
     def update(self, preds, target):
         assert preds.shape == target.shape
+        # implement batch-wise calculations instead of storing results of all batches
         self.ndcg += [self._metric(p, t) for p, t in zip(preds, target)]
 
     def compute(self):
@@ -157,7 +161,9 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes):
                 metrics[metric] = RPrecision(top_k=top_k)
             elif metric_abbr == 'nDCG':
                 metrics[metric] = NDCG(top_k=top_k)
-                # metrics[metric] = RetrievalNormalizedDCG(k=top_k) # CUDA out of memory
+                # The implementation in torchmetrics stores the prediction/target of all batches,
+                # which can lead to CUDA out of memory.
+                # metrics[metric] = RetrievalNormalizedDCG(k=top_k)
         elif metric == 'Another-Macro-F1':
             metrics[metric] = MacroF1(num_classes, metric_threshold, another_macro_f1=True)
         elif metric == 'Macro-F1':
