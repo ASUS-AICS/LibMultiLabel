@@ -31,7 +31,7 @@ class NDCG(Metric):
 
     def update(self, preds, target):
         assert preds.shape == target.shape
-        # We use batch-wise calculations instead of storing results of all batches
+        # implement batch-wise calculations instead of storing results of all batches
         self.ndcg += [self._metric(p, t) for p, t in zip(preds, target)]
 
     def compute(self):
@@ -162,7 +162,7 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes):
             elif metric_abbr == 'nDCG':
                 metrics[metric] = NDCG(top_k=top_k)
                 # The implementation in torchmetrics stores the prediction/target of all batches,
-                # which can lead to CUDA out of memory
+                # which can lead to CUDA out of memory.
                 # metrics[metric] = RetrievalNormalizedDCG(k=top_k)
         elif metric == 'Another-Macro-F1':
             metrics[metric] = MacroF1(num_classes, metric_threshold, another_macro_f1=True)
