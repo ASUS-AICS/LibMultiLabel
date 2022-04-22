@@ -4,7 +4,7 @@ data_name: EUR-Lex-57k
 min_vocab_freq: 1
 max_seq_length: 500
 # We set include_test_labels to true for comparison with Chalkidis et al. (2019),
-# which handle zero-shots and report Micro-F1.
+# which handles zero-shots and reports Micro-F1.
 include_test_labels: true
  
 # train
