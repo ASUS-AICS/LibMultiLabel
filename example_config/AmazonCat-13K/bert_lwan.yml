@@ -1,0 +1,33 @@
+# data
+data_dir: data/AmazonCat-13K
+data_name: AmazonCat-13K
+min_vocab_freq: 1
+max_seq_length: 512
+include_test_labels: true
+
+# train
+seed: 1337
+epochs: 30
+batch_size: 8
+optimizer: adamw
+learning_rate: 0.00002
+weight_decay: 0.001
+patience: 15
+shuffle: true
+
+# eval
+eval_batch_size: 8
+monitor_metrics: ['Micro-F1', 'Macro-F1', 'Another-Macro-F1', 'P@1', 'P@5', 'RP@5']
+val_metric: RP@5
+
+# model
+model_name: BERTAttention
+init_weight: null
+network_config:
+  dropout: 0.1
+  lm_weight: bert-base-uncased
+  lm_window: 512
+  attention_type: singlehead
+
+# pretrained vocab / embeddings
+embed_file: null
