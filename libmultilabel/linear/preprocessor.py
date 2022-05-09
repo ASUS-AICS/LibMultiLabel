@@ -120,6 +120,7 @@ class Preprocessor:
 
 def read_libmultilabel_format(path: str) -> 'dict[str,list[str]]':
     data = pd.read_csv(path, sep='\t', header=None,
+                       dtype=str,
                        on_bad_lines='skip').fillna('')
     if data.shape[1] == 2:
         data.columns = ['label', 'text']
