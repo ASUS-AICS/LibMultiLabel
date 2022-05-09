@@ -131,7 +131,9 @@ def get_config():
     parser.add_argument('--liblinear_options', type=str,
                         help='Options passed to liblinear (default: %(default)s)')
     parser.add_argument('--linear_technique', type=str, default='1vsrest',
-                    help='Technique for linear classification (default: %(default)s)')
+                        help='Technique for linear classification (default: %(default)s)')
+    parser.add_argument('--keep_zero_labels', action='store_true',
+                        help='Keep training instances without labels')
 
     parser.add_argument('-h', '--help', action='help',
                         help="""If you are trying to specify network config such as dropout or activation, use a yaml file instead.

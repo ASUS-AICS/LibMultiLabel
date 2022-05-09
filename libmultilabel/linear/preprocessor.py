@@ -6,6 +6,7 @@ import re
 from array import array
 from collections import defaultdict
 
+import numpy as np
 import pandas as pd
 import scipy
 import scipy.sparse as sparse
@@ -36,7 +37,8 @@ class Preprocessor:
                   test_path: str = '',
                   eval: bool = False,
                   label_file: str = None,
-                  include_test_labels: bool = False) -> 'dict[str, dict]':
+                  include_test_labels: bool = False,
+                  keep_zero_labels: bool = False) -> 'dict[str, dict]':
         """Loads and preprocesses data.
 
         Args:
@@ -45,6 +47,7 @@ class Preprocessor:
             eval (bool): If True, ignores training data and uses previously loaded state to preprocess test data.
             label_file (str, optional): Path to a file holding all labels.
             include_test_labels (bool, optional): Whether to include labels in the test dataset. Defaults to False.
+            keep_zero_labels (bool, optional): Whether to keep training instances without labels.
 
         Returns:
             dict[str, dict]: The training and test data, with keys 'train' and 'test' respectively. The data
@@ -62,9 +65,16 @@ class Preprocessor:
             self.include_test_labels = include_test_labels
 
         if self.data_format == 'txt':
-            return self._load_txt(train_path, test_path, eval)
+            data = self._load_txt(train_path, test_path, eval)
         elif self.data_format == 'svm':
-            return self._load_svm(train_path, test_path, eval)
+            data = self._load_svm(train_path, test_path, eval)
+
+        if not keep_zero_labels and 'train' in data:
+            num_labels = data['train']['y'].sum(axis=1).A1
+            data['train']['x'] = data['train']['x'][num_labels > 0]
+            data['train']['y'] = data['train']['y'][num_labels > 0]
+
+        return data
 
     def _load_txt(self, train_path, test_path, eval) -> 'dict[str, dict]':
         datasets = defaultdict(dict)

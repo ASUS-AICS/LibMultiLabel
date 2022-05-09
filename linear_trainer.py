@@ -63,7 +63,8 @@ def linear_run(config):
             config.test_path,
             config.eval,
             config.label_file,
-            config.include_test_labels)
+            config.include_test_labels,
+            config.keep_zero_labels)
         model = linear_train(datasets, config)
         linear.save_pipeline(config.checkpoint_dir, preprocessor, model)
 
