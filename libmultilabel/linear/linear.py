@@ -57,6 +57,8 @@ def prepare_options(x: sparse.csr_matrix, options: str) -> 'tuple[sparse.csr_mat
         tuple[sparse.csr_matrix, str, float]: Transformed x, transformed options and
         bias parsed from options.
     """
+    if options is None:
+        options = ''
     if any(o in options for o in ['-R', '-C', '-v']):
         raise ValueError('-R, -C and -v are not supported')
 
