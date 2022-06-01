@@ -15,7 +15,7 @@ word_dict = load_or_build_text_dict(dataset=datasets['train'],
 
 # Step 2. Initialize model with network config.
 network_config = {
-    "dropout": 0.2,
+    "embed_dropout": 0.2,
     "filter_sizes": [2, 4, 8],
     "num_filter_per_size": 128
 }
