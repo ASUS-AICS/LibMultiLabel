@@ -9,7 +9,7 @@ LibMultiLabel is a simple tool with the following functionalities.
 This is an on-going development so many improvements are still being made. Comments are very welcome.
 
 ## Environments
-- Python: 3.7+
+- Python: 3.7+ (support for Python 3.10 is not fully ready)
 - CUDA: 10.2 (if training neural networks by GPU)
 - Pytorch 1.8+
 
