@@ -83,7 +83,6 @@ class Tree:
     def predict_values(self, x: sparse.csr_matrix) -> np.ndarray:
         num_class = self.root.labelmap.shape[0]
         totalprob = np.ones((x.shape[0], num_class))
-        # totalprob = np.zeros((x.shape[0], num_class))
         self._beam_search(totalprob, x, np.arange(x.shape[0]), self.root)
         return totalprob
 
@@ -96,15 +95,11 @@ class Tree:
         prob = 1 / (1 + np.exp(-pred))
         if node.isLeaf():
             totalprob[np.ix_(instances, node.labelmap)] *= prob
-            # totalprob[:, node.labelmap] -= np.maximum(0, 1 - pred) ** 2
         else:
             totalprob[np.ix_(instances, node.labelmap)] *= prob[:, node.metalabels]
-            # totalprob[:, node.labelmap] -= (np.maximum(0, 1 - pred)**2)[:, node.metalabels]
-            # totalprob[:, node.labelmap] *= 0.8
             top = np.argpartition(pred, -self.beam_width,
                                   axis=1)[:, -self.beam_width:]
             for i, child in enumerate(node.children):
                 possible = np.sum(top == i, axis=1) > 0
                 self._beam_search(totalprob, x, instances[possible], child)
-                totalprob[np.ix_(~instances[possible], child.labelmap)] = 0
-                # totalprob[np.ix_(~possible, child.labelmap)] = -np.Inf
+                totalprob[np.ix_(instances[~possible], child.labelmap)] = 0
