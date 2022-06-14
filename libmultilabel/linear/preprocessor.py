@@ -70,7 +70,7 @@ class Preprocessor:
             data = self._load_svm(train_path, test_path, eval)
 
         if not keep_zero_labels and 'train' in data:
-            num_labels = data['train']['y'].sum(axis=1).A1
+            num_labels = data['train']['y'].getnnz(axis=1)
             data['train']['x'] = data['train']['x'][num_labels > 0]
             data['train']['y'] = data['train']['y'][num_labels > 0]
 
