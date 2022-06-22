@@ -11,7 +11,7 @@ from ray.tune.schedulers import ASHAScheduler
 
 from libmultilabel.nn import data_utils
 from libmultilabel.nn.nn_utils import set_seed
-from libmultilabel.common_utils import AttributeDict
+from libmultilabel.common_utils import AttributeDict, Timer
 from torch_trainer import TorchTrainer
 
 logging.basicConfig(level=logging.INFO,
@@ -270,6 +270,6 @@ def main():
 
 if __name__ == '__main__':
     # calculate wall time.
-    wall_time_start = time.time()
+    wall_time = Timer()
     main()
-    logging.info(f'\nWall time: {time.time()-wall_time_start}')
+    print(f'Wall time: {wall_time.time():.2f} (s)')

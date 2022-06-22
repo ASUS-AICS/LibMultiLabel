@@ -158,7 +158,7 @@ class LabelwiseAttention(nn.Module):
         self.attention = nn.Linear(input_size, num_classes, bias=False)
 
     def forward(self, input):
-        attention = self.attention(input).transpose(1, 2)  # (batch_size, num_classes, seqence_length)
+        attention = self.attention(input).transpose(1, 2)  # (batch_size, num_classes, sequence_length)
         attention = F.softmax(attention, -1)
         logits = torch.bmm(attention, input)  # (batch_size, num_classes, hidden_dim)
         return logits, attention
@@ -184,7 +184,7 @@ class LabelwiseMultiHeadAttention(nn.Module):
             0, 1)  # (num_classes, batch_size, hidden_dim)
 
         logits, attention = self.attention(query, key, value, key_padding_mask=attention_mask)
-        logits = logits.permute(1, 0, 2)  # (num_classes, batch_size, hidden_dim)
+        logits = logits.permute(1, 0, 2)  # (batch_size, num_classes, hidden_dim)
         return logits, attention
 
 
