@@ -50,6 +50,8 @@ def get_config():
                         help='Whether to merge the training and validation data. (default: %(default)s)')
     parser.add_argument('--include_test_labels', action='store_true',
                         help='Whether to include labels in the test dataset. (default: %(default)s)')
+    parser.add_argument('--keep_zero_labels', action='store_true',
+                        help='Keep training and validation instances without labels')
 
     # train
     parser.add_argument('--seed', type=int,
@@ -132,8 +134,6 @@ def get_config():
                         help='Options passed to liblinear (default: %(default)s)')
     parser.add_argument('--linear_technique', type=str, default='1vsrest',
                         help='Technique for linear classification (default: %(default)s)')
-    parser.add_argument('--keep_zero_labels', action='store_true',
-                        help='Keep training instances without labels')
 
     parser.add_argument('-h', '--help', action='help',
                         help="""If you are trying to specify network config such as dropout or activation, use a yaml file instead.

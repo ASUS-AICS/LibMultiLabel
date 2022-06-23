@@ -55,7 +55,8 @@ class TorchTrainer:
                 val_path=config.val_path,
                 val_size=config.val_size,
                 merge_train_val=config.merge_train_val,
-                tokenize_text=tokenize_text
+                tokenize_text=tokenize_text,
+                keep_zero_labels=config.keep_zero_labels
             )
         else:
             self.datasets = datasets
