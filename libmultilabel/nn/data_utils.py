@@ -116,7 +116,8 @@ def _load_raw_data(path, is_test=False, tokenize_text=True, keep_zero_labels=Fal
     Args:
         path (str): Path to training, test, or validation data.
         is_test (bool, optional): Whether the data is for test or not. Defaults to False.
-        keep_zero_labels (bool, optional): Whether to keep samples with no positive labels when is_test=False. This has no effect when is_test=True. Default to False.
+        keep_zero_labels (bool, optional): Whether to keep samples with no positive labels when is_test=False. 
+            This has no effect when is_test=True. Default to False.
 
     Returns:
         pandas.DataFrame: Data composed of index, label, and tokenized text.
