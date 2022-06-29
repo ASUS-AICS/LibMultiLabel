@@ -9,7 +9,7 @@ seed: 1337
 epochs: 50
 batch_size: 16
 optimizer: adam
-learning_rate: 0.0003
+learning_rate: 0.001
 weight_decay: 0
 patience: 10
 shuffle: true
@@ -20,13 +20,13 @@ monitor_metrics: ['Macro-F1', 'Micro-F1', 'P@1', 'P@5', 'RP@5', 'nDCG@5']
 val_metric: RP@5
 
 # model
-model_name: BiGRULWAN
+model_name: CNNLWAN
 init_weight: kaiming_uniform
 network_config:
   embed_dropout: 0.4
   encoder_dropout: 0.4
-  rnn_dim: 512
-  rnn_layers: 1
+  filter_sizes: [8]
+  num_filter_per_size: 128
 
 # pretrained vocab / embeddings
 embed_file: glove.6B.200d

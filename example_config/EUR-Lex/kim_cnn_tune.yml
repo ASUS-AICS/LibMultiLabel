@@ -3,8 +3,6 @@ data_dir: data/EUR-Lex
 data_name: EUR-Lex
 min_vocab_freq: 1
 max_seq_length: 500
-include_test_labels: false
-keep_no_label_data: false
 
 # train
 seed: 1337
@@ -19,17 +17,18 @@ shuffle: true
 
 # eval
 eval_batch_size: 16
-monitor_metrics: ['Macro-F1', 'Micro-F1', 'P@1', 'P@5', 'RP@5', 'nDCG@5']
+monitor_metrics: ['RP@5']
 val_metric: RP@5
 
 # model
-model_name: BiGRULWAN
+model_name: KimCNN
 init_weight: kaiming_uniform
 network_config:
-  embed_dropout: ['grid_search', [0, 0.2, 0.4, 0.6, 0.8]]
+  activation: relu
+  embed_dropout: ['grid_search', [0, 0.2, 0.4]]
   encoder_dropout: ['grid_search', [0, 0.2, 0.4]]
-  rnn_dim: ['grid_search', [256, 512, 1024]]
-  rnn_layers: 1
+  filter_sizes: [8]
+  num_filter_per_size: ['grid_search', [128, 256, 384, 512, 768, 1024]]
 
 # pretrained vocab / embeddings
 vocab_file: null

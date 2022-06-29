@@ -1,15 +1,14 @@
 # data
-data_dir: data/EUR-Lex
-data_name: EUR-Lex
-min_vocab_freq: 1
-max_seq_length: 500
-include_test_labels: false
-keep_no_label_data: false
+data_dir: data/MIMIC
+data_name: MIMIC
+min_vocab_freq: 3
+max_seq_length: 2500
+include_test_labels: true
 
 # train
 seed: 1337
 epochs: 50
-batch_size: 16
+batch_size: 8
 optimizer: adam
 learning_rate: ['grid_search', [0.003, 0.001, 0.0003]]
 momentum: 0
@@ -18,27 +17,28 @@ patience: 10
 shuffle: true
 
 # eval
-eval_batch_size: 16
-monitor_metrics: ['Macro-F1', 'Micro-F1', 'P@1', 'P@5', 'RP@5', 'nDCG@5']
-val_metric: RP@5
+eval_batch_size: 1
+monitor_metrics: ['RP@15']
+val_metric: RP@15
 
 # model
-model_name: BiGRULWAN
+model_name: KimCNN
 init_weight: kaiming_uniform
 network_config:
-  embed_dropout: ['grid_search', [0, 0.2, 0.4, 0.6, 0.8]]
+  activation: relu
+  embed_dropout: ['grid_search', [0, 0.2, 0.4]]
   encoder_dropout: ['grid_search', [0, 0.2, 0.4]]
-  rnn_dim: ['grid_search', [256, 512, 1024]]
-  rnn_layers: 1
+  filter_sizes: [10]
+  num_filter_per_size: ['grid_search', [128, 256, 384, 512, 768, 1024]]
 
 # pretrained vocab / embeddings
-vocab_file: null
-embed_file: glove.6B.200d
-normalize_embed: false
+vocab_file: data/MIMIC/vocab.csv
+embed_file: data/MIMIC/processed_full.embed
+normalize_embed: true
 
 # hyperparamter search
 search_alg: basic_variant
-embed_cache_dir: .vector_cache
+embed_cache_dir: null
 num_samples: 1
 scheduler: null
 # Uncomment the following lines to enable the ASHAScheduler.
