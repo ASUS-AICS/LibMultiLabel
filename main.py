@@ -50,8 +50,8 @@ def get_config():
                         help='Whether to merge the training and validation data. (default: %(default)s)')
     parser.add_argument('--include_test_labels', action='store_true',
                         help='Whether to include labels in the test dataset. (default: %(default)s)')
-    parser.add_argument('--keep_zero_labels', action='store_true',
-                        help='Keep training and validation instances without labels')
+    parser.add_argument('--keep_no_label_data', action='store_true',
+                        help='Keep training and validation instances even if they have no labels.')
 
     # train
     parser.add_argument('--seed', type=int,
