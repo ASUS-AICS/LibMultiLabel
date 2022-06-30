@@ -19,7 +19,7 @@ shuffle: true
 
 # eval
 eval_batch_size: 1
-monitor_metrics: ['Micro-F1', 'Macro-F1', 'Another-Macro-F1', 'P@8', 'P@15', 'RP@8', 'RP@15']
+monitor_metrics: ['Macro-F1', 'Micro-F1', 'P@8', 'P@15', 'RP@8', 'RP@15', 'nDCG@15']
 val_metric: RP@15
 
 # model

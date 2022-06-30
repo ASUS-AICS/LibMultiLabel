@@ -3,6 +3,7 @@ data_dir: data/EUR-Lex
 data_name: EUR-Lex
 min_vocab_freq: 1
 max_seq_length: 500
+include_test_labels: false
 
 # train
 seed: 1337
@@ -17,7 +18,7 @@ shuffle: true
 
 # eval
 eval_batch_size: 16
-monitor_metrics: ['RP@5']
+monitor_metrics: ['Macro-F1', 'Micro-F1', 'P@1', 'P@5', 'RP@5', 'nDCG@5']
 val_metric: RP@5
 
 # model
