@@ -1,6 +1,6 @@
 # MIMIC-III
 
-Download: [MIMIC-III Clinical Database](https://physionet.org/content/mimiciii/1.4/)
+Download: [MIMIC-III Clinical Database](https://physionet.org/content/mimiciii/1.4/)  
 Note: We follow [Mullenbach et al., 2018](https://arxiv.org/abs/1802.05695) to process the data. The detail can be found in their [repository](https://github.com/jamesmullenbach/caml-mimic).
 ## Benchmark
 The best model is selected by **RP@15** on validation set then evaluated on test set.
