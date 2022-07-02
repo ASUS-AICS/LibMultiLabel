@@ -143,6 +143,7 @@ def load_static_data(config, merge_train_val=False):
                                         val_size=config.val_size,
                                         merge_train_val=merge_train_val,
                                         tokenize_text='lm_weight' not in config['network_config'],
+                                        keep_no_label_data=config.keep_no_label_data
                                         )
     return {
         "datasets": datasets,

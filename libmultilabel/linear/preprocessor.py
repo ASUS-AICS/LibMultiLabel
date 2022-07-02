@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-import os
-from array import array
 import logging
+import os
+import re
+from array import array
 from collections import defaultdict
 
 import pandas as pd
@@ -35,7 +36,8 @@ class Preprocessor:
                   test_path: str = '',
                   eval: bool = False,
                   label_file: str = None,
-                  include_test_labels: bool = False) -> 'dict[str, dict]':
+                  include_test_labels: bool = False,
+                  keep_no_label_data: bool = False) -> 'dict[str, dict]':
         """Loads and preprocesses data.
 
         Args:
@@ -44,6 +46,7 @@ class Preprocessor:
             eval (bool): If True, ignores training data and uses previously loaded state to preprocess test data.
             label_file (str, optional): Path to a file holding all labels.
             include_test_labels (bool, optional): Whether to include labels in the test dataset. Defaults to False.
+            keep_no_label_data (bool, optional): Whether to keep training instances without labels.
 
         Returns:
             dict[str, dict]: The training and test data, with keys 'train' and 'test' respectively. The data
@@ -61,9 +64,16 @@ class Preprocessor:
             self.include_test_labels = include_test_labels
 
         if self.data_format == 'txt':
-            return self._load_txt(train_path, test_path, eval)
+            data = self._load_txt(train_path, test_path, eval)
         elif self.data_format == 'svm':
-            return self._load_svm(train_path, test_path, eval)
+            data = self._load_svm(train_path, test_path, eval)
+
+        if not keep_no_label_data and 'train' in data:
+            num_labels = data['train']['y'].getnnz(axis=1)
+            data['train']['x'] = data['train']['x'][num_labels > 0]
+            data['train']['y'] = data['train']['y'][num_labels > 0]
+
+        return data
 
     def _load_txt(self, train_path, test_path, eval) -> 'dict[str, dict]':
         datasets = defaultdict(dict)
@@ -150,22 +160,24 @@ def read_libsvm_format(file_path: str) -> 'tuple[list[list[int]], sparse.csr_mat
     row_ptr = array('l', [0])
     col_idx = array('l')
 
+    pattern = re.compile(r'(?!^$)([+\-0-9,]+\s+)?(.*\n?)')
     for i, line in enumerate(open(file_path)):
-        line = line.split(None, 1)
-        # In case an instance with all zero features
-        if len(line) == 1:
-            line += ['']
-        label, features = line
-        prob_y.append(as_ints(label))
-        nz = 0
-        for e in features.split():
-            ind, val = e.split(':')
-            val = float(val)
-            if val != 0:
-                col_idx.append(int(ind) - 1)
-                prob_x.append(val)
-                nz += 1
-        row_ptr.append(row_ptr[-1]+nz)
+        m = pattern.fullmatch(line)
+        try:
+            labels = m[1]
+            prob_y.append(as_ints(labels) if labels else [])
+            features = m[2] or ''
+            nz = 0
+            for e in features.split():
+                ind, val = e.split(':')
+                val = float(val)
+                if val != 0:
+                    col_idx.append(int(ind) - 1)
+                    prob_x.append(val)
+                    nz += 1
+            row_ptr.append(row_ptr[-1]+nz)
+        except:
+            raise ValueError(f'invalid svm format at line {i+1}')
 
     prob_x = scipy.frombuffer(prob_x, dtype='d')
     col_idx = scipy.frombuffer(col_idx, dtype='l')
