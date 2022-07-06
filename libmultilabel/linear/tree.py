@@ -1,9 +1,11 @@
+from collections import deque
+from itertools import chain
+
 import numpy as np
 import scipy.sparse as sparse
-
 from sklearn.cluster import KMeans
 
-from .linear import train_1vsrest, predict_values
+from .linear import predict_values, train_1vsrest
 
 
 class Node:
@@ -81,25 +83,26 @@ class Tree:
             )
 
     def predict_values(self, x: sparse.csr_matrix) -> np.ndarray:
-        num_class = self.root.labelmap.shape[0]
-        totalprob = np.ones((x.shape[0], num_class))
-        self._beam_search(totalprob, x, np.arange(x.shape[0]), self.root)
-        return totalprob
+        return np.vstack([self._beam_search(x[i]) for i in range(x.shape[0])])
 
-    def _beam_search(self,
-                     totalprob: np.ndarray,
-                     x: sparse.csr_matrix,
-                     instances: np.ndarray,
-                     node: Node):
-        pred = predict_values(node.model, x[instances])
-        prob = 1 / (1 + np.exp(-pred))
-        if node.isLeaf():
-            totalprob[np.ix_(instances, node.labelmap)] *= prob
-        else:
-            totalprob[np.ix_(instances, node.labelmap)] *= prob[:, node.metalabels]
-            top = np.argpartition(pred, -self.beam_width,
-                                  axis=1)[:, -self.beam_width:]
-            for i, child in enumerate(node.children):
-                possible = np.sum(top == i, axis=1) > 0
-                self._beam_search(totalprob, x, instances[possible], child)
-                totalprob[np.ix_(instances[~possible], child.labelmap)] = 0
+    def _beam_search(self, x: sparse.csr_matrix) -> np.ndarray:
+        cur_level = deque([(self.root, 0.)])
+        next_level = deque()
+        while len(list(filter(lambda pair: not pair[0].isLeaf(), cur_level))) > 0:
+            for node, score in cur_level:
+                if node.isLeaf():
+                    next_level.append((node, score))
+                    continue
+                pred = predict_values(node.model, x).ravel()
+                child_score = score - np.log(1 + np.exp(-pred))
+                next_level.extend(zip(node.children, child_score.tolist()))
+
+            cur_level = deque(
+                sorted(next_level, key=lambda pair: -pair[1])[:self.beam_width])
+            next_level.clear()
+
+        scores = np.empty_like(self.root.labelmap, dtype='d')
+        scores[:] = -np.inf
+        for node, score in cur_level:
+            scores[node.labelmap] = predict_values(node.model, x) + score
+        return scores
