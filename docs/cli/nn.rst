@@ -1,4 +1,4 @@
-Training, Prediction, and Hyperparameter Search for Neural Networks
+Training, Prediction, and Hyper-parameter Search for Neural Networks
 ===================================================================
 
 For users who are just getting started, see:
@@ -130,7 +130,7 @@ To deploy/evaluate a model (i.e., a pre-obtained checkpoint), you can predict a 
 
 .. _nn_hs:
 
-Hyperparameter Search
+Hyper-parameter Search
 ^^^^^^^^^^^^^^^^^^^^^
 
 Parameter selection is known to be extremely important in machine learning practice; see a powerful reminder in "`this paper <https://www.csie.ntu.edu.tw/~cjlin/papers/parameter_selection/acl2021_parameter_selection.pdf>`_". Here we leverage `Ray Tune <https://docs.ray.io/en/master/tune/index.html>`_, which is a python library for hyper-parameter tuning, to select parameters. Due to the dependency of Ray Tune, first make sure your python version is not greater than 3.8. Then, install the related packages with::
