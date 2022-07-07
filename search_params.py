@@ -130,7 +130,7 @@ def init_search_algorithm(search_alg, metric=None, mode=None):
 
 
 def prepare_retrain_config(best_config, best_log_dir, merge_train_val):
-    """Prepare for the configuration for retraining.
+    """Prepare for the configuration for re-training.
 
     Args:
         best_config (AttributeDict): The best hyper-parameter configuration.
@@ -147,7 +147,7 @@ def prepare_retrain_config(best_config, best_log_dir, merge_train_val):
         else:
             raise FileNotFoundError("The log directory does not contain a log.")
 
-        # For retraining with validation data,
+        # For re-training with validation data,
         # we use the number of epochs at the point of optimal validation performance.
         log_metric = np.array([l[best_config.val_metric] for l in log['val']])
         optimal_idx = log_metric.argmax() if best_config.mode == 'max' else log_metric.argmin()
@@ -191,7 +191,7 @@ def load_static_data(config, merge_train_val=False):
 
 
 def retrain_best_model(exp_name, best_config, best_log_dir, merge_train_val):
-    """Retrain the model with the best hyperparameters.
+    """Retrain the model with the best hyper-parameters.
     A new model is trained on the combined training and validation data if `merge_train_val` is True.
     If a test set is provided, it will be evaluated by the obtained model.
 
@@ -213,13 +213,13 @@ def retrain_best_model(exp_name, best_config, best_log_dir, merge_train_val):
     set_seed(seed=best_config.seed)
 
     data = load_static_data(best_config, merge_train_val=best_config.merge_train_val)
-    logging.info(f'Retraining with best config: \n{best_config}')
+    logging.info(f'Re-training with best config: \n{best_config}')
     trainer = TorchTrainer(config=best_config, **data)
     trainer.train()
 
     if 'test' in data['datasets']:
         test_results = trainer.test()
-        logging.info(f'Test results after retraining: {test_results}')
+        logging.info(f'Test results after re-training: {test_results}')
     logging.info(f'Best model saved to {trainer.checkpoint_callback.best_model_path or trainer.checkpoint_callback.last_model_path}.')
 
 
