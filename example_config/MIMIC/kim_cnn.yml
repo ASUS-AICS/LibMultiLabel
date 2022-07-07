@@ -21,13 +21,13 @@ monitor_metrics: ['Macro-F1', 'Micro-F1', 'P@8', 'P@15', 'RP@8', 'RP@15', 'nDCG@
 val_metric: RP@15
 
 # model
-model_name: BiGRULWAN
+model_name: KimCNN
 init_weight: kaiming_uniform
 network_config:
   embed_dropout: 0.4
-  encoder_dropout: 0.4
-  rnn_dim: 1024
-  rnn_layers: 1
+  encoder_dropout: 0
+  filter_sizes: [10]
+  num_filter_per_size: 768
 
 # pretrained vocab / embeddings
 vocab_file: data/MIMIC/vocab.csv

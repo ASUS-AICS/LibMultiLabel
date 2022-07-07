@@ -1,6 +1,6 @@
 # data
-data_dir: data/EUR-Lex
-data_name: EUR-Lex
+data_dir: data/Wiki10-31K
+data_name: Wiki10-31K
 min_vocab_freq: 1
 max_seq_length: 500
 
@@ -16,8 +16,8 @@ shuffle: true
 
 # eval
 eval_batch_size: 16
-monitor_metrics: ['Macro-F1', 'Micro-F1', 'P@1', 'P@5', 'RP@5', 'nDCG@5']
-val_metric: RP@5
+monitor_metrics: ['P@1', 'P@3', 'P@5', 'P@15', 'RP@8', 'RP@15', 'nDCG@15']
+val_metric: RP@15
 
 # model
 model_name: BiGRULWAN

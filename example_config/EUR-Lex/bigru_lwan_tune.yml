@@ -3,7 +3,7 @@ data_dir: data/EUR-Lex
 data_name: EUR-Lex
 min_vocab_freq: 1
 max_seq_length: 500
-include_test_labels: true
+include_test_labels: false
 keep_no_label_data: false
 
 # train
@@ -11,25 +11,25 @@ seed: 1337
 epochs: 50
 batch_size: 16
 optimizer: adam
-learning_rate: ['grid_search', [0.003, 0.001, 0.0003, 0.0001]]
-momentum: 0.9
+learning_rate: ['grid_search', [0.003, 0.001, 0.0003]]
+momentum: 0
 weight_decay: 0
 patience: 10
 shuffle: true
 
 # eval
-eval_batch_size: 64
-monitor_metrics: ['Another-Macro-F1', 'Macro-F1', 'Micro-F1', 'P@1', 'P@3', 'P@5']
-val_metric: P@1
+eval_batch_size: 16
+monitor_metrics: ['Macro-F1', 'Micro-F1', 'P@1', 'P@5', 'RP@5', 'nDCG@5']
+val_metric: RP@5
 
 # model
 model_name: BiGRULWAN
-init_weight: null
+init_weight: kaiming_uniform
 network_config:
-  rnn_dim: ['grid_search', [150, 300, 600]]
-  rnn_layers: ['grid_search', [1, 2]]
   embed_dropout: ['grid_search', [0, 0.2, 0.4, 0.6, 0.8]]
-  encoder_dropout: ['grid_search', [0, 0.2, 0.4, 0.6, 0.8]]
+  encoder_dropout: ['grid_search', [0, 0.2, 0.4]]
+  rnn_dim: ['grid_search', [256, 512, 1024]]
+  rnn_layers: 1
 
 # pretrained vocab / embeddings
 vocab_file: null
@@ -40,16 +40,15 @@ normalize_embed: false
 search_alg: basic_variant
 embed_cache_dir: .vector_cache
 num_samples: 1
-cpu_count: 6
 scheduler: null
 # Uncomment the following lines to enable the ASHAScheduler.
 # See the documentation here: https://docs.ray.io/en/latest/tune/api_docs/schedulers.html#asha-tune-schedulers-ashascheduler
-# scheduler:
-#   time_attr: training_iteration
-#   max_t: 100  # the maximum epochs to run for each config (parameter R in the ASHA paper)
-#   grace_period: 10  # the minimum epochs to run for each config (parameter r in the ASHA paper)
-#   reduction_factor: 3  # reduce the number of configuration to floor(1/reduction_factor) each round of successive halving (called rung in ASHA paper)
-#   brackets: 1  # number of brackets. A smaller bracket index (parameter s in the ASHA paper) means earlier stopping (i.e., less total resources used)
+#scheduler:
+  #time_attr: training_iteration
+  #max_t: 50 # the maximum epochs to run for each config (parameter R in the ASHA paper)
+  #grace_period: 10 # the minimum epochs to run for each config (parameter r in the ASHA paper)
+  #reduction_factor: 3 # reduce the number of configuration to floor(1/reduction_factor) each round of successive halving (called rung in ASHA paper)
+  #brackets: 1 # number of brackets. A smaller bracket index (parameter s in the ASHA paper) means earlier stopping (i.e., less total resources used)
 
 # other parameters specified in main.py::get_args
 checkpoint_path: null
@@ -64,7 +63,7 @@ metric_threshold: 0.5
 result_dir: runs
 save_k_predictions: 0
 silent: true
-test_path: data/EUR-Lex/test.txt
-train_path: data/EUR-Lex/train.txt
+test_path: null
+train_path: null
 val_path: null
 val_size: 0.2

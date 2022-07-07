@@ -23,13 +23,13 @@ monitor_metrics: ['Macro-F1', 'Micro-F1', 'P@1', 'P@5', 'RP@5', 'nDCG@5']
 val_metric: RP@5
 
 # model
-model_name: CNNLWAN
+model_name: KimCNN
 init_weight: kaiming_uniform
 network_config:
-  embed_dropout: 0.2
+  embed_dropout: 0
   encoder_dropout: 0.4
   filter_sizes: [8]
-  num_filter_per_size: 256
+  num_filter_per_size: 1024
 
 # pretrained vocab / embeddings
 embed_file: glove.6B.200d
