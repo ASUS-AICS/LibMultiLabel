@@ -133,7 +133,7 @@ To deploy/evaluate a model (i.e., a pre-obtained checkpoint), you can predict a 
 Hyperparameter Search
 ^^^^^^^^^^^^^^^^^^^^^
 
-Parameter selection is known to be extremely important in machine learning practice; see a powerful reminder in "`this paper <https://www.csie.ntu.edu.tw/~cjlin/papers/parameter_selection/acl2021_parameter_selection.pdf>`_". Here we leverage `Ray Tune <https://docs.ray.io/en/master/tune/index.html>`_, which is a python library for hyperparameter tuning, to select parameters. Due to the dependency of Ray Tune, first make sure your python version is not greater than 3.8. Then, install the related packages with::
+Parameter selection is known to be extremely important in machine learning practice; see a powerful reminder in "`this paper <https://www.csie.ntu.edu.tw/~cjlin/papers/parameter_selection/acl2021_parameter_selection.pdf>`_". Here we leverage `Ray Tune <https://docs.ray.io/en/master/tune/index.html>`_, which is a python library for hyper-parameter tuning, to select parameters. Due to the dependency of Ray Tune, first make sure your python version is not greater than 3.8. Then, install the related packages with::
 
     pip3 install -Ur requirements_parameter_search.txt
 
@@ -149,7 +149,7 @@ We provide a program ``search_params.py`` to demonstrate how to run LibMultiLabe
     dropout: ['grid_search', [0.2, 0.4, 0.6, 0.8]] # grid search
     num_filter_per_size: ['choice', [350, 450, 550]] # discrete
     learning_rate: ['uniform', 0.2, 0.8] # continuous
-    activation: tanh # not for hyperparameter search
+    activation: tanh # not for hyper-parameter search
 
 - **search_alg**: specify a search algorithm considered in `Ray Tune <https://docs.ray.io/en/master/tune/api_docs/suggestion.html>`_. We support basic_variant (e.g., grid/random), bayesopt, and optuna. You can also define ``search_alg`` in the config file. For example, if you want to run grid search over ``learning_rate``, the config is like this:
 
@@ -157,3 +157,16 @@ We provide a program ``search_params.py`` to demonstrate how to run LibMultiLabe
 
     search_alg: basic_variant
     learning_rate: ['grid_search', [0.2, 0.4, 0.6, 0.8]]
+
+After the search process, the program will re-train the model using the best hyper-parameters to obtain the test performance.
+The default behavior of re-training will combine the validation data for training and re-train from scratch for the number of epochs at optimal validation performance.
+Our empirical analysis shows that this re-training strategy can further improve test results.
+If you do not want to incorporate the validation data for training, you can cancel this strategy using ``no_merge_train_val`` by either the command line or the config::
+
+    python3 search_params.py --config example_config/rcv1/cnn_tune.yml \
+                             --search_alg basic_variant \
+                             --no_merge_train_val
+
+.. code-block:: yaml
+
+    no_merge_train_val: true
