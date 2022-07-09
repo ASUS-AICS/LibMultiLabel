@@ -158,15 +158,8 @@ We provide a program ``search_params.py`` to demonstrate how to run LibMultiLabe
     search_alg: basic_variant
     learning_rate: ['grid_search', [0.2, 0.4, 0.6, 0.8]]
 
-After the search process, the program will re-train the model using the best hyper-parameters to obtain the test performance.
-The default behavior of re-training will combine the validation data for training and re-train from scratch for the number of epochs at optimal validation performance.
-Our empirical analysis shows that this re-training strategy can further improve test results.
-If you do not want to incorporate the validation data for training, you can cancel this strategy using ``no_merge_train_val`` by either the command line or the config::
-
-    python3 search_params.py --config example_config/rcv1/cnn_tune.yml \
-                             --search_alg basic_variant \
-                             --no_merge_train_val
-
-.. code-block:: yaml
-
-    no_merge_train_val: true
+After the search process, the program applies the best hyper-parameters to obtain the final model.
+The re-training process by default adds the validation set for training.
+Our empirical analysis shows that this setting improves test results.
+If you do not want to incorporate the validation data for training, you can specify the option ``no_merge_train_val``.
+In either case, the optimization starts from scratch and runs for the number of epochs that leads to the best validation results in the hyper-parameter search.

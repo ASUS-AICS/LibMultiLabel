@@ -130,7 +130,7 @@ def init_search_algorithm(search_alg, metric=None, mode=None):
 
 
 def prepare_retrain_config(best_config, best_log_dir, merge_train_val):
-    """Prepare for the configuration for re-training.
+    """Prepare the configuration for re-training.
 
     Args:
         best_config (AttributeDict): The best hyper-parameter configuration.
@@ -191,7 +191,7 @@ def load_static_data(config, merge_train_val=False):
 
 
 def retrain_best_model(exp_name, best_config, best_log_dir, merge_train_val):
-    """Retrain the model with the best hyper-parameters.
+    """Re-train the model with the best hyper-parameters.
     A new model is trained on the combined training and validation data if `merge_train_val` is True.
     If a test set is provided, it will be evaluated by the obtained model.
 
@@ -238,7 +238,7 @@ def main():
     parser.add_argument('--search_alg', default=None, choices=['basic_variant', 'bayesopt', 'optuna'],
                         help='Search algorithms (default: %(default)s)')
     parser.add_argument('--no_merge_train_val', action='store_true',
-                        help='Do not merge the training and validation data after parameter search.')
+                        help='Do not add the validation set in re-training the final model after hyper-parameter search.')
     args, _ = parser.parse_known_args()
 
     # Load config from the config file and overwrite values specified in CLI.
