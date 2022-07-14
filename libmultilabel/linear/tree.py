@@ -3,7 +3,7 @@ from itertools import chain
 
 import numpy as np
 import scipy.sparse as sparse
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, MiniBatchKMeans
 
 from .linear import predict_values, train_1vsrest
 
@@ -40,10 +40,14 @@ class Tree:
               ) -> None:
         rep = (y.T * x).tocsr()
 
+        import time
+        start = time.time()
         self.root = self._build(rep, np.arange(y.shape[1]), 0)
+        print(f'building in {time.time() - start:.2f}s')
 
         def visit(node):
             idx = y[:, node.labelmap].getnnz(axis=1) > 0
+            assert(np.all(y[idx].getnnz(axis=1) > 0))
             return self._train_node(y[idx], x[idx], options, node)
 
         self.root.dfs(visit)
@@ -56,8 +60,9 @@ class Tree:
         if d >= self.dmax or rep.shape[0] <= self.K:
             return Node(labelmap, [], np.arange(len(labelmap)))
 
-        metalabels = KMeans(self.K).fit(rep).labels_
-        # metalabels = KMeans(self.K, n_init=1, tol=1e-3).fit(rep).labels_
+        # metalabels = KMeans(self.K).fit(rep).labels_
+        metalabels = MiniBatchKMeans(
+            self.K, random_state=np.random.randint(2**32)).fit(rep).labels_
         maps = [labelmap[metalabels == i] for i in range(self.K)]
         reps = [rep[metalabels == i] for i in range(self.K)]
         children = [self._build(reps[i], maps[i], d+1)
@@ -86,8 +91,8 @@ class Tree:
         return np.vstack([self._beam_search(x[i]) for i in range(x.shape[0])])
 
     def _beam_search(self, x: sparse.csr_matrix) -> np.ndarray:
-        cur_level = deque([(self.root, 0.)])
-        next_level = deque()
+        cur_level = [(self.root, 0.)]
+        next_level = []
         while len(list(filter(lambda pair: not pair[0].isLeaf(), cur_level))) > 0:
             for node, score in cur_level:
                 if node.isLeaf():
@@ -97,9 +102,9 @@ class Tree:
                 child_score = score - np.log(1 + np.exp(-pred))
                 next_level.extend(zip(node.children, child_score.tolist()))
 
-            cur_level = deque(
-                sorted(next_level, key=lambda pair: -pair[1])[:self.beam_width])
-            next_level.clear()
+            cur_level = sorted(next_level, key=lambda pair: -
+                               pair[1])[:self.beam_width]
+            next_level = []
 
         scores = np.empty_like(self.root.labelmap, dtype='d')
         scores[:] = -np.inf
