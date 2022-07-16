@@ -12,7 +12,7 @@ model = linear.train_1vsrest(datasets['train']['y'],
 preds = linear.predict_values(model, datasets['test']['x'])
 
 metrics = linear.get_metrics(metric_threshold=0,
-                             monitor_metrics=['P@1', 'P@3', 'P@5'],
+                             monitor_metrics=['Micro-F1', 'Macro-F1', 'P@1', 'P@3', 'P@5'],
                              num_classes=datasets['test']['y'].shape[1])
 
 target = datasets['test']['y'].toarray()
