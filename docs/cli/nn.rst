@@ -1,5 +1,5 @@
 Training, Prediction, and Hyper-parameter Search for Neural Networks
-===================================================================
+====================================================================
 
 For users who are just getting started, see:
 
@@ -131,9 +131,9 @@ To deploy/evaluate a model (i.e., a pre-obtained checkpoint), you can predict a 
 .. _nn_hs:
 
 Hyper-parameter Search
-^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^
 
-Parameter selection is known to be extremely important in machine learning practice; see a powerful reminder in "`this paper <https://www.csie.ntu.edu.tw/~cjlin/papers/parameter_selection/acl2021_parameter_selection.pdf>`_". Here we leverage `Ray Tune <https://docs.ray.io/en/master/tune/index.html>`_, which is a python library for hyper-parameter tuning, to select parameters. Due to the dependency of Ray Tune, first make sure your python version is not greater than 3.8. Then, install the related packages with::
+Parameter selection is known to be extremely important in machine learning practice; see a powerful reminder in "`this paper <https://www.csie.ntu.edu.tw/~cjlin/papers/parameter_selection/acl2021_parameter_selection.pdf>`_". Here we leverage `Ray Tune <https://docs.ray.io/en/master/tune/index.html>`__, which is a python library for hyper-parameter tuning, to select parameters. Due to the dependency of Ray Tune, first make sure your python version is not greater than 3.8. Then, install the related packages with::
 
     pip3 install -Ur requirements_parameter_search.txt
 
@@ -151,7 +151,7 @@ We provide a program ``search_params.py`` to demonstrate how to run LibMultiLabe
     learning_rate: ['uniform', 0.2, 0.8] # continuous
     activation: tanh # not for hyper-parameter search
 
-- **search_alg**: specify a search algorithm considered in `Ray Tune <https://docs.ray.io/en/master/tune/api_docs/suggestion.html>`_. We support basic_variant (e.g., grid/random), bayesopt, and optuna. You can also define ``search_alg`` in the config file. For example, if you want to run grid search over ``learning_rate``, the config is like this:
+- **search_alg**: specify a search algorithm considered in `Ray Tune <https://docs.ray.io/en/master/tune/api_docs/suggestion.html>`__. We support basic_variant (e.g., grid/random), bayesopt, and optuna. You can also define ``search_alg`` in the config file. For example, if you want to run grid search over ``learning_rate``, the config is like this:
 
 .. code-block:: yaml
 
