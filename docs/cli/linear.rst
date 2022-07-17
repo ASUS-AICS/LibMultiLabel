@@ -56,7 +56,7 @@ The most commonly used three options for linear classifier are ``--linear``, ``-
 
 .. code-block:: bash
 
-    python3 main.py --config example_config/rcv1/l2svm.yml --linear --liblinear_options "-s 2 -B 1 -e 0.0001 -q" --linear_technique 1vsrest
+    python3 main.py --config example_config/rcv1/l2svm.yml --linear --liblinear_options="-s 2 -B 1 -e 0.0001 -q" --linear_technique 1vsrest
 
 ----------------------------------------------
 
@@ -84,7 +84,7 @@ The linear classifiers are based on `LIBLINEAR <https://www.csie.ntu.edu.tw/~cjl
 
     .. code-block:: bash
 
-        --liblinear_options='-s 2 -B 1 -c 1'
+        --liblinear_options="-s 2 -B 1 -c 1"
 
 - **linear_technique**: An option for multi-label techniques. We now support ``1vsrest`` (implementing one-vs-rest technique), ``thresholding`` (implementing thresholding technique), and ``cost_sensitive`` (implementing cost-sensitive technique).
 
