@@ -110,7 +110,7 @@ class TorchTrainer:
             logging.info('Initialize model from scratch.')
             if self.config.embed_file is not None:
                 logging.info('Load word dictionary ')
-                word_dict = data_utils.load_or_build_text_dict(
+                word_dict, embed_vecs = data_utils.load_or_build_text_dict(
                     dataset=self.datasets['train'],
                     vocab_file=self.config.vocab_file,
                     min_vocab_freq=self.config.min_vocab_freq,
@@ -132,6 +132,7 @@ class TorchTrainer:
                                     network_config=dict(self.config.network_config),
                                     classes=classes,
                                     word_dict=word_dict,
+                                    embed_vecs=embed_vecs,
                                     init_weight=self.config.init_weight,
                                     log_path=log_path,
                                     learning_rate=self.config.learning_rate,

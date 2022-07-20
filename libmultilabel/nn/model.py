@@ -196,6 +196,7 @@ class Model(MultiLabelModel):
         self,
         classes,
         word_dict,
+        embed_vecs,
         network,
         log_path=None,
         **kwargs
@@ -203,6 +204,7 @@ class Model(MultiLabelModel):
         super().__init__(num_classes=len(classes), log_path=log_path, **kwargs)
         self.save_hyperparameters()
         self.word_dict = word_dict
+        self.embed_vecs = embed_vecs
         self.classes = classes
         self.network = network
 

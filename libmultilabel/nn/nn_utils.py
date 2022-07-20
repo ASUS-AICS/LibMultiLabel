@@ -38,6 +38,7 @@ def init_model(model_name,
                network_config,
                classes,
                word_dict,
+               embed_vecs,
                init_weight=None,
                log_path=None,
                learning_rate=0.0001,
@@ -73,7 +74,7 @@ def init_model(model_name,
     """
 
     network = getattr(networks, model_name)(
-        embed_vecs=word_dict.vectors if word_dict is not None else None,
+        embed_vecs=embed_vecs,
         num_classes=len(classes),
         **dict(network_config)
     )
@@ -86,6 +87,7 @@ def init_model(model_name,
     model = Model(
         classes=classes,
         word_dict=word_dict,
+        embed_vecs=embed_vecs,
         network=network,
         log_path=log_path,
         learning_rate=learning_rate,
