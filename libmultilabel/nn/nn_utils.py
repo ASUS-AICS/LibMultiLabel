@@ -145,7 +145,7 @@ def init_trainer(checkpoint_dir,
 
     trainer = pl.Trainer(logger=False, num_sanity_val_steps=0,
                          gpus=0 if use_cpu else 1,
-                         progress_bar_refresh_rate=0 if silent else 1,
+                         enable_progress_bar=False if silent else True,
                          max_epochs=epochs,
                          callbacks=callbacks,
                          limit_train_batches=limit_train_batches,
