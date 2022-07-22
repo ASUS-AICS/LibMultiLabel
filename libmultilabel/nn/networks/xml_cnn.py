@@ -9,7 +9,7 @@ class XMLCNN(nn.Module):
     """XML-CNN
 
     Args:
-        embed_vecs (FloatTensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
+        embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
         num_classes (int): Total number of classes.
         embed_dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
         hidden_dropout (float): The dropout rate of the hidden layer output. Defaults to 0.

@@ -54,8 +54,9 @@ def init_model(model_name,
     Args:
         model_name (str): Model to be used such as KimCNN.
         network_config (dict): Configuration for defining the network.
-        classes(list): List of class names.
-        word_dict(torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
+        classes (list): List of class names.
+        word_dict (torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
+        embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
         init_weight (str): Weight initialization method from `torch.nn.init`.
             For example, the `init_weight` of `torch.nn.init.kaiming_uniform_`
             is `kaiming_uniform`. Defaults to None.
@@ -124,9 +125,9 @@ def init_trainer(checkpoint_dir,
         val_metric (str): The metric to monitor for early stopping. Defaults to 'P@1'.
         silent (bool): Enable silent mode. Defaults to False.
         use_cpu (bool): Disable CUDA. Defaults to False.
-        limit_train_batches(Union[int, float]): Percentage of training dataset to use. Defaults to 1.0.
-        limit_val_batches(Union[int, float]): Percentage of validation dataset to use. Defaults to 1.0.
-        limit_test_batches(Union[int, float]): Percentage of test dataset to use. Defaults to 1.0.
+        limit_train_batches (Union[int, float]): Percentage of training dataset to use. Defaults to 1.0.
+        limit_val_batches (Union[int, float]): Percentage of validation dataset to use. Defaults to 1.0.
+        limit_test_batches (Union[int, float]): Percentage of test dataset to use. Defaults to 1.0.
         search_params (bool): Enable pytorch-lightning trainer to report the results to ray tune
             on validation end during hyperparameter search. Defaults to False.
         save_checkpoints (bool): Whether to save the last and the best checkpoint or not. Defaults to True.

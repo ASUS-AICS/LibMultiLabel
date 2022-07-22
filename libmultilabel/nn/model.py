@@ -14,7 +14,7 @@ class MultiLabelModel(pl.LightningModule):
     """Abstract class handling Pytorch Lightning training flow
 
     Args:
-        num_classes(int): Total number of classes.
+        num_classes (int): Total number of classes.
         learning_rate (float, optional): Learning rate for optimizer. Defaults to 0.0001.
         optimizer (str, optional): Optimizer name (i.e., sgd, adam, or adamw). Defaults to 'adam'.
         momentum (float, optional): Momentum factor for SGD only. Defaults to 0.9.
@@ -187,9 +187,10 @@ class Model(MultiLabelModel):
     """A class that implements `MultiLabelModel` for initializing and training a neural network.
 
     Args:
-        classes(list): List of class names.
-        word_dict(torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
-        network(nn.Module): Network (i.e., CAML, KimCNN, or XMLCNN).
+        classes (list): List of class names.
+        word_dict (torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
+        embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
+        network (nn.Module): Network (i.e., CAML, KimCNN, or XMLCNN).
         log_path (str): Path to a directory holding the log files and models.
     """
     def __init__(

@@ -10,7 +10,7 @@ class Embedding(nn.Module):
     """Embedding layer with dropout
 
     Args:
-        embed_vecs (FloatTensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
+        embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
         dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
     """
 

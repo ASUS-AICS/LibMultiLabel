@@ -13,7 +13,7 @@ class CAML(nn.Module):
     Use CNNLWAN instead for better modularization.
 
     Args:
-        embed_vecs (FloatTensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
+        embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
         num_classes (int): Total number of classes.
         filter_sizes (list): Size of convolutional filters.
         num_filter_per_size (int): The number of filters in convolutional layers in each size. Defaults to 50.

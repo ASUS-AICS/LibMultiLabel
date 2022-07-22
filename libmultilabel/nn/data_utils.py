@@ -222,7 +222,7 @@ def load_or_build_text_dict(
         normalize_embed (bool, optional): Whether the embeddings of each word is normalized to a unit vector. Defaults to False.
 
     Returns:
-        tuple[torchtext.vocab.Vocab, torch.Tensor]: A vocab object which maps tokens to indices and a torch tensor that maps indices to pretrained embeddings.
+        tuple[torchtext.vocab.Vocab, torch.Tensor]: A vocab object which maps tokens to indices and the pre-trained word vectors of shape (vocab_size, embed_dim).
     """
     if vocab_file:
         logging.info(f'Load vocab from {vocab_file}')
