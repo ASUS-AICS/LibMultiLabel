@@ -21,9 +21,8 @@ class RPrecision:
         top_k_ind = np.argpartition(preds, -self.top_k)[:, -self.top_k:]
         num_relevant = np.take_along_axis(
             target, top_k_ind, axis=-1).sum(axis=-1)  # (batch_size, top_k)
-        top_ks = np.full(preds.shape[0], self.top_k)
         self.score += np.nan_to_num(
-            num_relevant / np.minimum(top_ks, target.sum(axis=-1)),
+            num_relevant / np.minimum(self.top_k, target.sum(axis=-1)),
             posinf=0.
         ).sum()
         self.num_sample += preds.shape[0]
