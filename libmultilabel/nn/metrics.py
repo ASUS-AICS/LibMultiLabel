@@ -43,8 +43,8 @@ class NDCG(Metric):
 
 class RPrecision(Metric):
     """R-precision calculates precision at k by adjusting k to the minimum value of the number of
-    relevant labels and k. Please find the definition here:
-    https://nlp.stanford.edu/IR-book/html/htmledition/evaluation-of-ranked-retrieval-results-1.html
+    relevant labels and k. The definition is given at Appendix C equation (3) of
+    https://aclanthology.org/P19-1636.pdf
 
     Args:
         top_k (int): the top k relevant labels to evaluate.
