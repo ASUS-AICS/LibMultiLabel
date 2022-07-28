@@ -241,10 +241,15 @@ def load_or_build_text_dict(
     embedding_weights = get_embedding_weights_from_file(vocabs, embed_file, silent, embed_cache_dir)
 
     if normalize_embed:
+        # To have better precision for calculating the normalization, we convert the original
+        # embedding_weights from a torch.FloatTensor to a torch.DoubleTensor.
+        # After the normalization, we will convert the embedding_weights back to a torch.FloatTensor.
+        embedding_weights = embedding_weights.double()
         for i, vector in enumerate(embedding_weights):
             # We use the constant 1e-6 by following https://github.com/jamesmullenbach/caml-mimic/blob/44a47455070d3d5c6ee69fb5305e32caec104960/dataproc/extract_wvs.py#L60
             # for an internal experiment of reproducing their results.
             embedding_weights[i] = vector / float(torch.linalg.norm(vector) + 1e-6)
+        embedding_weights = embedding_weights.float()
 
     return vocabs, embedding_weights
 
