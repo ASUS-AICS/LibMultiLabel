@@ -17,7 +17,7 @@ from torchtext.vocab import build_vocab_from_iterator, pretrained_aliases
 from tqdm import tqdm
 
 UNK = '<unk>'
-PAD = '**PAD**'
+PAD = '<pad>'
 
 
 class TextDataset(Dataset):
@@ -227,10 +227,10 @@ def load_or_build_text_dict(
     if vocab_file:
         logging.info(f'Load vocab from {vocab_file}')
         with open(vocab_file, 'r') as fp:
-            vocab_list = [[PAD] + [vocab.strip() for vocab in fp.readlines()]]
+            vocab_list = [[vocab.strip() for vocab in fp.readlines()]]
         # special_first=False to keep PAD index 0
         vocabs = build_vocab_from_iterator(vocab_list, min_freq=1,
-                                           specials=[UNK], special_first=False)
+                                           specials=[PAD, UNK])
     else:
         vocab_list = [set(data['text']) for data in dataset]
         vocabs = build_vocab_from_iterator(vocab_list, min_freq=min_vocab_freq,
