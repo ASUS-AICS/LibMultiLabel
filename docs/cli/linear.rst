@@ -27,32 +27,41 @@ Create a data sub-directory within LibMultiLabel and go to this sub-directory.
     mkdir -p data/rcv1
     cd data/rcv1
 
-Download the RCV1 :ref:`libsvm-format` dataset from `LIBSVM Data <https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel.html>`_ by the following commands.
+Download and uncompress the RCV1 dataset from
+`LIBSVM Data <https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel.html>`_ with
 
 .. code-block:: bash
 
-    wget -O train.svm.bz2 https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/rcv1_topics_train.svm.bz2
-    wget -O test.svm.bz2 https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/rcv1_topics_combined_test.svm.bz2
-
-Uncompress data files and change the directory back to LibMultiLabel.
-
-.. code-block:: bash
-
+    wget -O train.txt.bz2 https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/rcv1_topics_train.txt.bz2
+    wget -O test.txt.bz2 https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/rcv1_topics_test.txt.bz2
     bzip2 -d *.bz2
-    cd ../..
 
-See `Dataset Formats <ov_data_format.html#dataset-formats>`_ here if you want to use your own dataset.
+We may browse an instance of the data with
+
+.. code-block:: bash
+
+    head -n 1 train.txt
+    2286    E11 ECAT M11 M12 MCAT   recov recov recov recov excit excit bring mexic mexic [...]
+
+In this example, the dataset used is in :ref:`libmultilabel-format`, which is a textual
+data format. See `Dataset Formats <ov_data_format.html#dataset-formats>`_
+for more details on accepted data formats.
 
 Step 2. Training and Prediction via an Example
 ----------------------------------------------
 
-Train a L2-regularized L2-loss (primal) SVM and predict the test set by an example config.
+Next, we move back to the root directory and run the main script
 
 .. code-block:: bash
 
+    cd ../..
     python3 main.py --config example_config/rcv1/l2svm.yml
 
-The most commonly used three options for linear classifier are ``--linear``, ``--liblinear_options``, and ``--linear_technique``.
+This trains a L2-regularized L2-loss (primal) SVM and predict the test set.
+The config file holds all the options used, of which
+three commonly used options for linear classifiers are ``--linear``,
+``--liblinear_options``, and ``--linear_technique``.
+These options may be overriden on the command line
 
 .. code-block:: bash
 
