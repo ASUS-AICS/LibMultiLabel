@@ -1,14 +1,19 @@
 Training and Prediction for Linear Classifiers
 ==============================================
 
-For users who are just getting started, see:
+For a step-by-step tutorial, see
 
     - :ref:`cli-quickstart`
 
-If you have been familiar with the basic operations, see:
+For the documentation on some commonly used command line flags,
+see
 
     - :ref:`linear_train`
     - :ref:`linear_predict`
+
+For the complete set of command line flags see
+
+    - `Command Line Options <flags.html>`_
 
 -------------------------------------------------------------------
 
@@ -36,7 +41,7 @@ Download and uncompress the RCV1 dataset from
     wget -O test.txt.bz2 https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/rcv1_topics_test.txt.bz2
     bzip2 -d *.bz2
 
-We may browse an instance of the data with
+Browse an instance of the data with
 
 .. code-block:: bash
 
@@ -50,7 +55,7 @@ for more details on accepted data formats.
 Step 2. Training and Prediction via an Example
 ----------------------------------------------
 
-Next, we move back to the root directory and run the main script
+Next, move back to the root directory and run the main script
 
 .. code-block:: bash
 
@@ -74,36 +79,62 @@ These options may be overriden on the command line
 Training and (Optional) Prediction
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-For training, use
+To train a model, use
 
 .. code-block:: bash
 
     python3 main.py --config CONFIG_PATH \
                     --linear \
                     --liblinear_options=LIBLINEAR_OPTIONS \
-                    --linear_technique MULTILABEL_TECHNIQUE
+                    --linear_technique MULTILABEL_TECHNIQUE \
+                    --data_format DATA_FORMAT
 
-- **config**: configure parameters in a yaml file.  A validation set is not needed because the program may split the training set for internal validation. If specified, it will be ignored.
+- **config**: configure parameters in a yaml file.
+  A validation set is not needed because the program may split the training set for
+  internal validation. If specified, it will be ignored.
 
-The linear classifiers are based on `LIBLINEAR <https://www.csie.ntu.edu.tw/~cjlin/liblinear/>`_, and its options may be specified.
+The linear classifiers are based on
+`LIBLINEAR <https://www.csie.ntu.edu.tw/~cjlin/liblinear/>`_,
+and its options may be specified.
 
-- **linear**: If this option exists, it is set to True such that the linear classifiers will be run. Otherwise it is set to False by default such that the neural network module will be executed and the program will terminate if the neural network config is not given.
+- **linear**: If this option exists, it is set to True such that the linear
+  classifiers will be run. Otherwise it is set to False by default such that
+  the neural network module will be executed and the program will terminate if
+  the neural network config is not given.
 
-- **liblinear_options**: An `option string for LIBLINEAR <https://github.com/cjlin1/liblinear>`_. For example
+- **liblinear_options**: An
+  `option string for LIBLINEAR <https://github.com/cjlin1/liblinear>`_.
+  For example
 
     .. code-block:: bash
 
         --liblinear_options="-s 2 -B 1 -c 1"
 
-- **linear_technique**: An option for multi-label techniques. We now support ``1vsrest`` (implementing one-vs-rest technique), ``thresholding`` (implementing thresholding technique), and ``cost_sensitive`` (implementing cost-sensitive technique).
+- **linear_technique**: An option for multi-label techniques.
+  It should be one of:
+  ``1vsrest`` (one-vs-rest),
+  ``thresholding`` (thresholding),
+  and ``cost_sensitive`` (cost-sensitive).
+
+- **data_format**: The data format, it should be one of
+  ``txt`` (LibMultiLabel format),
+  ``svm`` (LibSVM format).
+  See `Dataset Formats <ov_data_format.html#dataset-formats>`_
+  for more details on accepted data formats.
 
 .. _linear_predict:
 
 Prediction
 ^^^^^^^^^^
 
-To deploy/evaluate a model, you can predict a test set by the following command.
+To predict a test set on a previously trained model, use
 
 .. code-block:: bash
 
-    python3 main.py --eval --config CONFIG_PATH --linear --checkpoint_path CHECKPOINT_PATH
+    python3 main.py --eval \
+                    --config CONFIG_PATH \
+                    --linear \
+                    --data_format DATA_FORMAT \
+                    --checkpoint_path CHECKPOINT_PATH
+
+where ``CHECKPOINT_PATH`` is a path to a ``linear_pipeline.pickle``.
