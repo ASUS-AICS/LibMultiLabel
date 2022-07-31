@@ -32,8 +32,9 @@ Create a data sub-directory within LibMultiLabel and go to this sub-directory.
     mkdir -p data/rcv1
     cd data/rcv1
 
-Download and uncompress the RCV1 dataset from
-`LIBSVM Data <https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel.html>`_ with
+Linear methods takes both textual and numeric data as inputs.
+For this example, the data will be in :ref:`libmultilabel-format`, a textual data format.
+Download and uncompress the RCV1 dataset with
 
 .. code-block:: bash
 
@@ -46,11 +47,20 @@ Browse an instance of the data with
 .. code-block:: bash
 
     head -n 1 train.txt
-    2286    E11 ECAT M11 M12 MCAT   recov recov recov recov excit excit bring mexic mexic [...]
+    # Output: 2286    E11 ECAT M11 M12 MCAT   recov recov recov recov excit excit bring mexic mexic [...]
 
-In this example, the dataset used is in :ref:`libmultilabel-format`, which is a textual
-data format. See `Dataset Formats <ov_data_format.html#dataset-formats>`_
-for more details on accepted data formats.
+If you want to use numeric data in :ref:`libsvm-format` instead, you may do so with
+
+.. code-block::
+
+    wget -O train.svm.bz2 https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/rcv1_topics_train.svm.bz2
+    wget -O test.svm.bz2 https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/rcv1_topics_combined_test.svm.bz2
+    bzip2 -d *.bz2
+    head -n 1 train.svm
+    # Output: 34,59,93,94,102  864:0.0497399253756197 1523:0.044664135988103 1681:0.0673871572152868 [...]
+
+See `Dataset Formats <ov_data_format.html#dataset-formats>`_
+for more details on the data formats.
 
 Step 2. Training and Prediction via an Example
 ----------------------------------------------
@@ -62,15 +72,7 @@ Next, move back to the root directory and run the main script
     cd ../..
     python3 main.py --config example_config/rcv1/l2svm.yml
 
-This trains a L2-regularized L2-loss (primal) SVM and predict the test set.
-The config file holds all the options used, of which
-four commonly used options for linear classifiers are ``--linear``,
-``--liblinear_options``, ``--linear_technique`` and ``--data_format``.
-These options may be overriden on the command line
-
-.. code-block:: bash
-
-    python3 main.py --config example_config/rcv1/l2svm.yml --linear --liblinear_options="-s 2 -B 1 -e 0.0001 -q" --linear_technique 1vsrest --data_format txt
+This trains a L2-regularized L2-loss SVM and evaluates the model on the test set.
 
 ----------------------------------------------
 
@@ -79,28 +81,29 @@ These options may be overriden on the command line
 Training and (Optional) Prediction
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To train a model, use
+To train and evaluate a model, use
 
 .. code-block:: bash
 
     python3 main.py --config CONFIG_PATH \
+                    --data_dir DATA_DIR \
                     --linear \
                     --liblinear_options=LIBLINEAR_OPTIONS \
                     --linear_technique MULTILABEL_TECHNIQUE \
                     --data_format DATA_FORMAT
 
-- **config**: configure parameters in a yaml file.
-  A validation set is not needed because the program may split the training set for
-  internal validation. If specified, it will be ignored.
+- **config**: Path to a configuration file. Command line options
+  may be specified here instead. See `Command Line Options <flags.html>`_ for more details.
 
 The linear classifiers are based on
 `LIBLINEAR <https://www.csie.ntu.edu.tw/~cjlin/liblinear/>`_,
 and its options may be specified.
 
-- **linear**: If this option exists, it is set to True such that the linear
-  classifiers will be run. Otherwise it is set to False by default such that
-  the neural network module will be executed and the program will terminate if
-  the neural network config is not given.
+- **data_dir**: The path to data directory.
+  If test data is available, also evaluates the trained model on the test data.
+
+- **linear**: This option specifies that linear models should be ran,
+  as opposed to running neural network models.
 
 - **liblinear_options**: An
   `option string for LIBLINEAR <https://github.com/cjlin1/liblinear>`_.
@@ -108,7 +111,7 @@ and its options may be specified.
 
     .. code-block:: bash
 
-        --liblinear_options="-s 2 -B 1 -c 1"
+        --liblinear_options='-s 2 -B 1 -e 0.0001 -q'
 
 - **linear_technique**: An option for multi-label techniques.
   It should be one of:
@@ -131,8 +134,9 @@ To predict a test set on a previously trained model, use
 
 .. code-block:: bash
 
-    python3 main.py --eval \
-                    --config CONFIG_PATH \
+    python3 main.py --config CONFIG_PATH \
+                    --data_dir DATA_DIR \
+                    --eval \
                     --linear \
                     --data_format DATA_FORMAT \
                     --checkpoint_path CHECKPOINT_PATH

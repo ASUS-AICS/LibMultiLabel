@@ -126,8 +126,8 @@ def add_all_arguments(parser):
                         help='Technique for linear classification (default: %(default)s)')
 
     parser.add_argument('-h', '--help', action='help',
-                        help="""If you are trying to specify network config such as dropout or activation, use a yaml file instead.
-                                See example config for more information (https://github.com/ASUS-AICS/LibMultiLabel/tree/master/example_config)')""")
+                        help="If you are trying to specify network config such as dropout or activation, use a yaml file instead. "
+                             "See example config for more information (https://github.com/ASUS-AICS/LibMultiLabel/tree/master/example_config)')")
 
 
 def get_config():
