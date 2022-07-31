@@ -43,6 +43,7 @@ class FakeParser(dict):
 
 
 parser = FakeParser()
+# Keep this line in sync with the same one in main.py:get_config()
 parser.add_argument('-c', '--config', help='Path to configuration file')
 main.add_all_arguments(parser)
 
