@@ -3,17 +3,6 @@ import os
 sys.path.insert(1, os.path.join(sys.path[0], '..', '..'))
 import main
 
-
-def nameof(type):
-    return {
-        bool: 'bool',
-        float: 'float',
-        int: 'int',
-        str: 'str',
-        None: 'None',
-    }[type]
-
-
 class FakeParser(dict):
     def __init__(self):
         self.flags = []
@@ -28,8 +17,6 @@ class FakeParser(dict):
                      nargs=None,
                      const=None):
         flag = {'name': ' '.join(list(args)).replace('--', r'\-\-')}
-        if action == 'store_true':
-            type = bool
 
         help = help.replace('%(default)s', str(default))
         help = help.replace('%(const)s', str(const))
@@ -37,7 +24,6 @@ class FakeParser(dict):
             flag['description'] = f'{help}. One of {{{", ".join(choices)}}}.'
         else:
             flag['description'] = f'{help}.'
-        flag['type'] = nameof(type)
 
         self.flags.append(flag)
 
