@@ -64,13 +64,13 @@ Next, move back to the root directory and run the main script
 
 This trains a L2-regularized L2-loss (primal) SVM and predict the test set.
 The config file holds all the options used, of which
-three commonly used options for linear classifiers are ``--linear``,
-``--liblinear_options``, and ``--linear_technique``.
+four commonly used options for linear classifiers are ``--linear``,
+``--liblinear_options``, ``--linear_technique`` and ``--data_format``.
 These options may be overriden on the command line
 
 .. code-block:: bash
 
-    python3 main.py --config example_config/rcv1/l2svm.yml --linear --liblinear_options="-s 2 -B 1 -e 0.0001 -q" --linear_technique 1vsrest
+    python3 main.py --config example_config/rcv1/l2svm.yml --linear --liblinear_options="-s 2 -B 1 -e 0.0001 -q" --linear_technique 1vsrest --data_format txt
 
 ----------------------------------------------
 

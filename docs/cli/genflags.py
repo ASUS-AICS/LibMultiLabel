@@ -27,7 +27,7 @@ class FakeParser(dict):
                      choices=None,
                      nargs=None,
                      const=None):
-        flag = {'name': ' '.join(list(args))}
+        flag = {'name': ' '.join(list(args)).replace('--', r'\-\-')}
         if action == 'store_true':
             type = bool
 
