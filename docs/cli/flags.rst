@@ -3,7 +3,7 @@ Command Line Options
 
 Command line options may be specified in either a config file
 or directly passed as flags. If an option exists in both the config
-file and flags, flags takes precedent and overrides the config file.
+file and flags, flags take precedent and override the config file.
 
 The config file is a yaml file, examples may be found in
 `example_config <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/example_config>`_.
