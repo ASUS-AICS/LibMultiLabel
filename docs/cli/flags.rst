@@ -15,7 +15,7 @@ in the config file
 
     data_dir: path/to/data
 
-For lists of arguments such as ``monitor_metrics``, the value is a list
+For an option with multiple values, it can be specified as a list
 
 .. code-block:: yaml
 
