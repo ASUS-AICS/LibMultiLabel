@@ -32,7 +32,7 @@ Create a data sub-directory within LibMultiLabel and go to this sub-directory.
     mkdir -p data/rcv1
     cd data/rcv1
 
-Linear methods takes both textual and numeric data as inputs.
+Linear methods take either textual or bag-of-words numeric data as inputs.
 For this example, the data will be in :ref:`libmultilabel-format`, a textual data format.
 Download and uncompress the RCV1 dataset with
 
