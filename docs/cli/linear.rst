@@ -119,7 +119,7 @@ and its options may be specified.
   ``thresholding`` (thresholding),
   and ``cost_sensitive`` (cost-sensitive).
 
-- **data_format**: The data format, it should be one of
+- **data_format**: The data format. It should be one of
   ``txt`` (LibMultiLabel format),
   ``svm`` (LibSVM format).
   See `Dataset Formats <ov_data_format.html#dataset-formats>`_
