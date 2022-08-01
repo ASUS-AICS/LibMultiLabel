@@ -11,7 +11,7 @@ see
     - :ref:`linear_train`
     - :ref:`linear_predict`
 
-For the complete set of command line flags see
+For the complete set of command line flags, see
 
     - `Command Line Options <flags.html>`_
 
