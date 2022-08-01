@@ -115,7 +115,7 @@ def init_trainer(checkpoint_dir,
                  limit_test_batches=1.0,
                  search_params=False,
                  save_checkpoints=True,
-                 merge_train_val=False):
+                 enable_early_stopping=True):
     """Initialize a torch lightning trainer.
 
     Args:
@@ -132,15 +132,14 @@ def init_trainer(checkpoint_dir,
         search_params (bool): Enable pytorch-lightning trainer to report the results to ray tune
             on validation end during hyperparameter search. Defaults to False.
         save_checkpoints (bool): Whether to save the last and the best checkpoint or not. Defaults to True.
-        merge_train_val (bool, optional): Whether to merge the training and validation data.
-            Defaults to False.
+        enable_early_stopping (bool, optional): Whether to enable the early stopping. Defaults to True.
 
     Returns:
         pl.Trainer: A torch lightning trainer.
     """
 
     callbacks = []
-    if not merge_train_val:
+    if enable_early_stopping:
         callbacks += [EarlyStopping(patience=patience, monitor=val_metric, mode=mode)]
     if save_checkpoints:
         callbacks += [ModelCheckpoint(dirpath=checkpoint_dir, filename='best_model',
