@@ -34,7 +34,7 @@ use ``=`` to pass the value on the command line
 
     python3 main.py --liblinear_options='-s 2 -B 1 -e 0.0001 -q'
 
-Hierarchical parameters such as ``network_config`` must be specified in a config file.
+ Second-level parameters such as those under``network_config`` must be specified in a config file.
 
 List of Options
 ^^^^^^^^^^^^^^^
