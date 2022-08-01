@@ -228,7 +228,8 @@ def load_or_build_text_dict(
         logging.info(f'Load vocab from {vocab_file}')
         with open(vocab_file, 'r') as fp:
             vocab_list = [[vocab.strip() for vocab in fp.readlines()]]
-        # special_first=False to keep PAD index 0
+        # Keep PAD index 0 to align `padding_idx` of
+        # class Embedding in libmultilabel.nn.networks.modules.
         vocabs = build_vocab_from_iterator(vocab_list, min_freq=1,
                                            specials=[PAD, UNK])
     else:
