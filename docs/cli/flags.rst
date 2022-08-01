@@ -7,7 +7,7 @@ file and flags, flags take precedent and override the config file.
 
 The config file is a yaml file, examples may be found in
 `example_config <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/example_config>`_.
-Each key-value pair ``key: value`` corresponds to
+In the config file, each key-value pair ``key: value`` corresponds to
 passing the flag ``--key value``. For example, to set the data directory
 in the config file
 
