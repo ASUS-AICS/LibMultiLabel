@@ -19,7 +19,7 @@ For an option with multiple values, it can be specified as a list
 
 .. code-block:: yaml
 
-    monitor_metrics: [P@1, P@3, P@3]
+    monitor_metrics: [P@1, P@3, P@5]
 
 The corresponding command line flag is passed as
 
