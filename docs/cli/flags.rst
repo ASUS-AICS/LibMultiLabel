@@ -27,7 +27,7 @@ The corresponding command line flag is passed as
 
     python3 main.py --monitor_metrics P@1 P@3 P@5
 
-For values which contains dashes such as ``liblinear_options``,
+For a value which contains dashes such as ``liblinear_options``,
 use ``=`` to pass the value on the command line
 
 .. code-block:: bash
