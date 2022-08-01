@@ -21,6 +21,11 @@ class NDCG(Metric):
     Args:
         top_k (int): the top k relevant labels to evaluate.
     """
+    # If the metric state of one batch is independent of the state of other batches,
+    # full_state_update can be set to False,
+    # which leads to more efficient computation with calling update() only once.
+    # Please find the detailed explanation here:
+    # https://torchmetrics.readthedocs.io/en/stable/pages/implement.html
     full_state_update = False
 
     def __init__(
@@ -51,6 +56,11 @@ class RPrecision(Metric):
     Args:
         top_k (int): the top k relevant labels to evaluate.
     """
+    # If the metric state of one batch is independent of the state of other batches,
+    # full_state_update can be set to False,
+    # which leads to more efficient computation with calling update() only once.
+    # Please find the detailed explanation here:
+    # https://torchmetrics.readthedocs.io/en/stable/pages/implement.html
     full_state_update = False
 
     def __init__(
@@ -90,6 +100,11 @@ class MacroF1(Metric):
             Please refer to Opitz et al. 2019 [https://arxiv.org/pdf/1911.03347.pdf].
             Defaults to False.
     """
+    # If the metric state of one batch is independent of the state of other batches,
+    # full_state_update can be set to False,
+    # which leads to more efficient computation with calling update() only once.
+    # Please find the detailed explanation here:
+    # https://torchmetrics.readthedocs.io/en/stable/pages/implement.html
     full_state_update = False
 
     def __init__(
@@ -184,6 +199,8 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes):
             raise ValueError(
                 f'Invalid metric: {metric}. Make sure the metric is in the right format: Macro/Micro-Precision/Recall/F1 (ex. Micro-F1)')
 
+    # If compute_groups is set to True (default), incorrect results may be calculated.
+    # Please refer to https://github.com/Lightning-AI/metrics/issues/746 for more details.
     return MetricCollection(metrics, compute_groups=False)
 
 
