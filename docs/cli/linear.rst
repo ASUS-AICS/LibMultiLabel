@@ -130,7 +130,7 @@ and its options may be specified.
 Prediction
 ^^^^^^^^^^
 
-To predict a test set on a previously trained model, use
+To predict a test set by applying a previously trained model, use
 
 .. code-block:: bash
 
