@@ -327,23 +327,23 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, cache=N
 
     embedding_weights = torch.zeros(len(word_dict), embed_size)
 
-    """ Add UNK embedding.
-    AttentionXML: np.random.uniform(-1.0, 1.0, embed_size)
-    CAML: np.random.randn(embed_size)
-    """
-    unk_vector = torch.randn(embed_size)
-    embedding_weights[word_dict[UNK]] = unk_vector
-
     # Store pretrained word embedding
     vec_counts = 0
     for word in word_dict.get_itos():
         # The condition can be used to process the word that does not in the embedding file.
         # Note that torchtext vector object has already dealt with this,
         # so we can directly make a query without addtional handling.
-         if (load_embedding_from_file and word in vector_dict) or not load_embedding_from_file:
+        if (load_embedding_from_file and word in vector_dict) or not load_embedding_from_file:
             embedding_weights[word_dict[word]] = vector_dict[word]
             vec_counts += 1
 
     logging.info(f'loaded {vec_counts}/{len(word_dict)} word embeddings')
+
+    """ Add UNK embedding.
+    AttentionXML: np.random.uniform(-1.0, 1.0, embed_size)
+    CAML: np.random.randn(embed_size)
+    """
+    unk_vector = torch.randn(embed_size)
+    embedding_weights[word_dict[UNK]] = unk_vector
 
     return embedding_weights
