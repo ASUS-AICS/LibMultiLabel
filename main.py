@@ -127,7 +127,7 @@ def add_all_arguments(parser):
 
     parser.add_argument('-h', '--help', action='help',
                         help="If you are trying to specify network config such as dropout or activation, use a yaml file instead. "
-                             "See example configs in example_config for more")
+                             "See example configs in example_config")
 
 
 def get_config():
