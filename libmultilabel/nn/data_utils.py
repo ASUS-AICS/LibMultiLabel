@@ -327,6 +327,13 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, cache=N
 
     embedding_weights = torch.zeros(len(word_dict), embed_size)
 
+    if load_embedding_from_file:
+        # Add UNK embedding
+        # AttentionXML: np.random.uniform(-1.0, 1.0, embed_size)
+        # CAML: np.random.randn(embed_size)
+        unk_vector = torch.randn(embed_size)
+        embedding_weights[word_dict[UNK]] = unk_vector
+
     # Store pretrained word embedding
     vec_counts = 0
     for word in word_dict.get_itos():
@@ -338,12 +345,5 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, cache=N
             vec_counts += 1
 
     logging.info(f'loaded {vec_counts}/{len(word_dict)} word embeddings')
-
-    """ Add UNK embedding.
-    AttentionXML: np.random.uniform(-1.0, 1.0, embed_size)
-    CAML: np.random.randn(embed_size)
-    """
-    unk_vector = torch.randn(embed_size)
-    embedding_weights[word_dict[UNK]] = unk_vector
 
     return embedding_weights
