@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 import scipy.sparse as sparse
+from tqdm import tqdm
 from liblinear.liblinearutil import train
 
 __all__ = ['train_1vsrest',
@@ -29,7 +30,7 @@ def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
     num_class = y.shape[1]
     num_feature = x.shape[1]
     weights = np.zeros((num_feature, num_class), order='F')
-    for i in range(num_class):
+    for i in tqdm(range(num_class)):
         yi = y[:, i].toarray().reshape(-1)
         modeli = train(2*yi - 1, x, options)
         w = np.ctypeslib.as_array(modeli.w, (num_feature,))
@@ -105,7 +106,7 @@ def train_thresholding(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str)
     num_feature = x.shape[1]
     weights = np.zeros((num_feature, num_class), order='F')
     thresholds = np.zeros(num_class)
-    for i in range(num_class):
+    for i in tqdm(range(num_class)):
         yi = y[:, i].toarray().reshape(-1)
         w, t = thresholding_one_label(2*yi - 1, x, options)
         weights[:, i] = w.ravel()
@@ -338,7 +339,7 @@ def train_cost_sensitive(y: sparse.csr_matrix, x: sparse.csr_matrix, options: st
     num_class = y.shape[1]
     num_feature = x.shape[1]
     weights = np.zeros((num_feature, num_class), order='F')
-    for i in range(num_class):
+    for i in tqdm(range(num_class)):
         yi = y[:, i].toarray().reshape(-1)
         w = cost_sensitive_one_label(2*yi - 1, x, options)
         weights[:, i] = w.ravel()
@@ -437,6 +438,8 @@ def train_cost_sensitive_micro(y: sparse.csr_matrix, x: sparse.csr_matrix, optio
     perm = np.random.permutation(l)
     param_space = [1, 1.33, 1.8, 2.5, 3.67, 6, 13]
     bestScore = -np.Inf
+
+    progress = tqdm(total=len(param_space * num_class))
     for a in param_space:
         tp = fn = fp = 0
         for i in range(num_class):
@@ -449,10 +452,14 @@ def train_cost_sensitive_micro(y: sparse.csr_matrix, x: sparse.csr_matrix, optio
             fn = fn + np.sum(np.logical_and(yi == 1, pred == -1))
             fp = fp + np.sum(np.logical_and(yi == -1, pred == 1))
 
+            progress.update(1)
+
         score = 2*tp / (2*tp + fn + fp)
         if bestScore < score:
             bestScore = score
             bestA = a
+
+    progress.close()
 
     final_options = f'{options} -w1 {bestA}'
     for i in range(num_class):
