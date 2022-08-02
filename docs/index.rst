@@ -20,6 +20,7 @@ For practical tips, please see the `User Guide <https://www.csie.ntu.edu.tw/~cjl
     cli/ov_data_format
     cli/linear
     cli/nn
+    cli/flags
     User Guide <https://www.csie.ntu.edu.tw/~cjlin/papers/libmultilabel/userguide.pdf>
 
 .. toctree::

@@ -9,19 +9,7 @@ import yaml
 from libmultilabel.common_utils import Timer, AttributeDict
 
 
-def get_config():
-    parser = argparse.ArgumentParser(
-        add_help=False,
-        description='multi-label learning for text classification')
-
-    # load params from config file
-    parser.add_argument('-c', '--config', help='Path to configuration file')
-    args, _ = parser.parse_known_args()
-    config = {}
-    if args.config:
-        with open(args.config) as fp:
-            config = yaml.load(fp, Loader=yaml.SafeLoader)
-
+def add_all_arguments(parser):
     # path / directory
     parser.add_argument('--data_dir', default='./data/rcv1',
                         help='The directory to load data (default: %(default)s)')
@@ -43,7 +31,8 @@ def get_config():
                         help='The minimum frequency needed to include a token in the vocabulary (default: %(default)s)')
     parser.add_argument('--max_seq_length', type=int, default=500,
                         help='The maximum number of tokens of a sample (default: %(default)s)')
-    parser.add_argument('--lm_weight', type=str, help='Pretrained model name or path (default: %(default)s)')
+    parser.add_argument('--lm_weight', type=str,
+                        help='Pretrained model name or path (default: %(default)s)')
     parser.add_argument('--shuffle', type=bool, default=True,
                         help='Whether to shuffle training data before each epoch (default: %(default)s)')
     parser.add_argument('--merge_train_val', action='store_true',
@@ -61,7 +50,7 @@ def get_config():
     parser.add_argument('--batch_size', type=int, default=16,
                         help='Size of training batches (default: %(default)s)')
     parser.add_argument('--optimizer', default='adam', choices=['adam', 'adamw', 'adamax', 'sgd'],
-                        help='Optimizer: SGD or Adam (default: %(default)s)')
+                        help='Optimizer (default: %(default)s)')
     parser.add_argument('--learning_rate', type=float, default=0.0001,
                         help='Learning rate for optimizer (default: %(default)s)')
     parser.add_argument('--weight_decay', type=float, default=0,
@@ -133,11 +122,28 @@ def get_config():
     parser.add_argument('--liblinear_options', type=str,
                         help='Options passed to liblinear (default: %(default)s)')
     parser.add_argument('--linear_technique', type=str, default='1vsrest',
+                        choices=['1vsrest', 'thresholding', 'cost_sensitive', 'cost_sensitive_micro'],
                         help='Technique for linear classification (default: %(default)s)')
 
     parser.add_argument('-h', '--help', action='help',
-                        help="""If you are trying to specify network config such as dropout or activation, use a yaml file instead.
-                                See example config for more information (https://github.com/ASUS-AICS/LibMultiLabel/tree/master/example_config)')""")
+                        help="If you are trying to specify network config such as dropout or activation, use a yaml file instead. "
+                             "See example configs in example_config")
+
+
+def get_config():
+    parser = argparse.ArgumentParser(
+        add_help=False,
+        description='multi-label learning for text classification')
+
+    # load params from config file
+    parser.add_argument('-c', '--config', help='Path to configuration file')
+    args, _ = parser.parse_known_args()
+    config = {}
+    if args.config:
+        with open(args.config) as fp:
+            config = yaml.load(fp, Loader=yaml.SafeLoader)
+
+    add_all_arguments(parser)
 
     parser.set_defaults(**config)
     args = parser.parse_args()
@@ -150,11 +156,15 @@ def get_config():
     )
     config.checkpoint_dir = os.path.join(config.result_dir, config.run_name)
     config.log_path = os.path.join(config.checkpoint_dir, 'logs.json')
-    config.predict_out_path = config.predict_out_path or os.path.join(config.checkpoint_dir, 'predictions.txt')
+    config.predict_out_path = config.predict_out_path or os.path.join(
+        config.checkpoint_dir, 'predictions.txt')
 
-    config.train_path = config.train_path or os.path.join(config.data_dir, 'train.txt')
-    config.val_path = config.val_path or os.path.join(config.data_dir, 'valid.txt')
-    config.test_path = config.test_path or os.path.join(config.data_dir, 'test.txt')
+    config.train_path = config.train_path or os.path.join(
+        config.data_dir, 'train.txt')
+    config.val_path = config.val_path or os.path.join(
+        config.data_dir, 'valid.txt')
+    config.test_path = config.test_path or os.path.join(
+        config.data_dir, 'test.txt')
 
     return config
 
