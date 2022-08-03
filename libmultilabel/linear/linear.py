@@ -439,10 +439,9 @@ def train_cost_sensitive_micro(y: sparse.csr_matrix, x: sparse.csr_matrix, optio
     param_space = [1, 1.33, 1.8, 2.5, 3.67, 6, 13]
     bestScore = -np.Inf
 
-    progress = tqdm(total=len(param_space * num_class))
     for a in param_space:
         tp = fn = fp = 0
-        for i in range(num_class):
+        for i in tqdm(range(num_class)):
             yi = y[:, i].toarray().reshape(-1)
             yi = 2*yi - 1
 
@@ -452,14 +451,10 @@ def train_cost_sensitive_micro(y: sparse.csr_matrix, x: sparse.csr_matrix, optio
             fn = fn + np.sum(np.logical_and(yi == 1, pred == -1))
             fp = fp + np.sum(np.logical_and(yi == -1, pred == 1))
 
-            progress.update(1)
-
         score = 2*tp / (2*tp + fn + fp)
         if bestScore < score:
             bestScore = score
             bestA = a
-
-    progress.close()
 
     final_options = f'{options} -w1 {bestA}'
     for i in range(num_class):
