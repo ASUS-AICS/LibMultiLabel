@@ -66,6 +66,7 @@ class TorchTrainer:
 
         self._setup_model(classes=classes,
                           word_dict=word_dict,
+                          embed_vec=embed_vec,
                           log_path=self.log_path,
                           checkpoint_path=config.checkpoint_path)
         self.trainer = init_trainer(checkpoint_dir=self.checkpoint_dir,
