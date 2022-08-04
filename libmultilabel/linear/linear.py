@@ -1,5 +1,6 @@
 import os
 
+import logging
 import numpy as np
 import scipy.sparse as sparse
 from tqdm import tqdm
@@ -11,6 +12,8 @@ __all__ = ['train_1vsrest',
            'train_cost_sensitive_micro',
            'predict_values']
 
+def training_log(technique, num_class):
+    return f'Training {technique} model on {num_class} labels'
 
 def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
     """Trains a linear model for multiabel data using a one-vs-rest strategy.
@@ -30,6 +33,8 @@ def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
     num_class = y.shape[1]
     num_feature = x.shape[1]
     weights = np.zeros((num_feature, num_class), order='F')
+
+    logging.info(f'Training one-vs-rest model on {num_class} labels')
     for i in tqdm(range(num_class)):
         yi = y[:, i].toarray().reshape(-1)
         modeli = train(2*yi - 1, x, options)
@@ -106,6 +111,8 @@ def train_thresholding(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str)
     num_feature = x.shape[1]
     weights = np.zeros((num_feature, num_class), order='F')
     thresholds = np.zeros(num_class)
+
+    logging.info(f'Training thresholding model on {num_class} labels')
     for i in tqdm(range(num_class)):
         yi = y[:, i].toarray().reshape(-1)
         w, t = thresholding_one_label(2*yi - 1, x, options)
@@ -339,6 +346,8 @@ def train_cost_sensitive(y: sparse.csr_matrix, x: sparse.csr_matrix, options: st
     num_class = y.shape[1]
     num_feature = x.shape[1]
     weights = np.zeros((num_feature, num_class), order='F')
+
+    logging.info(f'Training cost-sensitive model for Macro-F1 on {num_class} labels')
     for i in tqdm(range(num_class)):
         yi = y[:, i].toarray().reshape(-1)
         w = cost_sensitive_one_label(2*yi - 1, x, options)
@@ -439,6 +448,7 @@ def train_cost_sensitive_micro(y: sparse.csr_matrix, x: sparse.csr_matrix, optio
     param_space = [1, 1.33, 1.8, 2.5, 3.67, 6, 13]
     bestScore = -np.Inf
 
+    logging.info(f'Training cost-sensitive model for Micro-F1 on {num_class} labels')
     for a in param_space:
         tp = fn = fp = 0
         for i in tqdm(range(num_class)):
