@@ -66,7 +66,7 @@ class TorchTrainer:
 
         self._setup_model(classes=classes,
                           word_dict=word_dict,
-                          embed_vec=embed_vec,
+                          embed_vecs=embed_vecs,
                           log_path=self.log_path,
                           checkpoint_path=config.checkpoint_path)
         self.trainer = init_trainer(checkpoint_dir=self.checkpoint_dir,
@@ -182,11 +182,12 @@ class TorchTrainer:
 
         if 'val' not in self.datasets:
             logging.info('No validation dataset is provided. Train without vaildation.')
-            from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-            self.trainer.callbacks = \
-                [callback for callback in self.trainer.callbacks if not isinstance(callback, EarlyStopping)]
             self.trainer.fit(self.model, train_loader)
         else:
+            from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+            self.trainer.callbacks += [EarlyStopping(patience=self.config.patience,
+                                                    monitor=self.config.val_metric,
+                                                    mode='max')]  # tentative hard code
             val_loader = self._get_dataset_loader(split='val')
             self.trainer.fit(self.model, train_loader, val_loader)
 
