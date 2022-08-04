@@ -38,6 +38,7 @@ def init_model(model_name,
                network_config,
                classes,
                word_dict,
+               embed_vecs,
                init_weight=None,
                log_path=None,
                learning_rate=0.0001,
@@ -53,8 +54,9 @@ def init_model(model_name,
     Args:
         model_name (str): Model to be used such as KimCNN.
         network_config (dict): Configuration for defining the network.
-        classes(list): List of class names.
-        word_dict(torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
+        classes (list): List of class names.
+        word_dict (torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
+        embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
         init_weight (str): Weight initialization method from `torch.nn.init`.
             For example, the `init_weight` of `torch.nn.init.kaiming_uniform_`
             is `kaiming_uniform`. Defaults to None.
@@ -73,7 +75,7 @@ def init_model(model_name,
     """
 
     network = getattr(networks, model_name)(
-        embed_vecs=word_dict.vectors if word_dict is not None else None,
+        embed_vecs=embed_vecs,
         num_classes=len(classes),
         **dict(network_config)
     )
@@ -86,6 +88,7 @@ def init_model(model_name,
     model = Model(
         classes=classes,
         word_dict=word_dict,
+        embed_vecs=embed_vecs,
         network=network,
         log_path=log_path,
         learning_rate=learning_rate,
@@ -122,17 +125,18 @@ def init_trainer(checkpoint_dir,
         val_metric (str): The metric to monitor for early stopping. Defaults to 'P@1'.
         silent (bool): Enable silent mode. Defaults to False.
         use_cpu (bool): Disable CUDA. Defaults to False.
-        limit_train_batches(Union[int, float]): Percentage of training dataset to use. Defaults to 1.0.
-        limit_val_batches(Union[int, float]): Percentage of validation dataset to use. Defaults to 1.0.
-        limit_test_batches(Union[int, float]): Percentage of test dataset to use. Defaults to 1.0.
+        limit_train_batches (Union[int, float]): Percentage of training dataset to use. Defaults to 1.0.
+        limit_val_batches (Union[int, float]): Percentage of validation dataset to use. Defaults to 1.0.
+        limit_test_batches (Union[int, float]): Percentage of test dataset to use. Defaults to 1.0.
         search_params (bool): Enable pytorch-lightning trainer to report the results to ray tune
             on validation end during hyperparameter search. Defaults to False.
         save_checkpoints (bool): Whether to save the last and the best checkpoint or not. Defaults to True.
+
     Returns:
         pl.Trainer: A torch lightning trainer.
     """
 
-    callbacks = [EarlyStopping(patience=patience, monitor=val_metric, mode=mode)]
+    callbacks = []
     if save_checkpoints:
         callbacks += [ModelCheckpoint(dirpath=checkpoint_dir, filename='best_model',
                                       save_last=True, save_top_k=1,
@@ -143,12 +147,13 @@ def init_trainer(checkpoint_dir,
 
     trainer = pl.Trainer(logger=False, num_sanity_val_steps=0,
                          gpus=0 if use_cpu else 1,
-                         progress_bar_refresh_rate=0 if silent else 1,
+                         enable_progress_bar=False if silent else True,
                          max_epochs=epochs,
                          callbacks=callbacks,
                          limit_train_batches=limit_train_batches,
                          limit_val_batches=limit_val_batches,
-                         limit_test_batches=limit_test_batches)
+                         limit_test_batches=limit_test_batches,
+                         deterministic=True)
     return trainer
 
 
@@ -161,8 +166,6 @@ def set_seed(seed):
 
     if seed is not None:
         if seed >= 0:
-            seed_everything(seed=seed)
-            torch.use_deterministic_algorithms(True)
-            torch.backends.cudnn.benchmark = False
+            seed_everything(seed=seed, workers=True)
         else:
             logging.warning('the random seed should be a non-negative integer')

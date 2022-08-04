@@ -9,7 +9,7 @@ class LabelwiseAttentionNetwork(ABC, nn.Module):
     """Base class for Labelwise Attention Network
 
     Args:
-        embed_vecs (FloatTensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
+        embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
         num_classes (int): Total number of classes.
         embed_dropout (float): The dropout rate of the word embedding.
         encoder_dropout (float): The dropout rate of the encoder output.
@@ -52,7 +52,7 @@ class BiGRULWAN(RNNLWAN):
     """BiGRU Labelwise Attention Network
 
     Args:
-        embed_vecs (FloatTensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
+        embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
         num_classes (int): Total number of classes.
         rnn_dim (int): The size of bidirectional hidden layers. The hidden size of the GRU network
             is set to rnn_dim//2. Defaults to 512.
@@ -88,7 +88,7 @@ class BiLSTMLWAN(RNNLWAN):
     """BiLSTM Labelwise Attention Network
 
     Args:
-        embed_vecs (FloatTensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
+        embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
         num_classes (int): Total number of classes.
         rnn_dim (int): The size of bidirectional hidden layers. The hidden size of the LSTM network
             is set to rnn_dim//2. Defaults to 512.
@@ -124,7 +124,7 @@ class BiLSTMLWMHAN(LabelwiseAttentionNetwork):
     """BiLSTM Labelwise Multihead Attention Network
 
     Args:
-        embed_vecs (FloatTensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
+        embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
         num_classes (int): Total number of classes.
         rnn_dim (int): The size of bidirectional hidden layers. The hidden size of the LSTM network
             is set to rnn_dim//2. Defaults to 512.
@@ -174,7 +174,7 @@ class CNNLWAN(LabelwiseAttentionNetwork):
     """CNN Labelwise Attention Network
 
     Args:
-        embed_vecs (FloatTensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
+        embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
         num_classes (int): Total number of classes.
         filter_sizes (list): Size of convolutional filters.
         num_filter_per_size (int): The number of filters in convolutional layers in each size. Defaults to 50.

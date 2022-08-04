@@ -9,8 +9,8 @@ device = init_device()  # use gpu by default
 datasets = load_datasets('data/rcv1/train.txt',
                          'data/rcv1/test.txt')
 classes = load_or_build_label(datasets)
-word_dict = load_or_build_text_dict(dataset=datasets['train'],
-                                    embed_file='glove.6B.300d')
+word_dict, embed_vecs = load_or_build_text_dict(dataset=datasets['train'],
+                                                embed_file='glove.6B.300d')
 
 # Step 2. Initialize a model.
 network_config = {
@@ -23,6 +23,7 @@ model = init_model(model_name='KimCNN',
                    network_config=network_config,
                    classes=classes,
                    word_dict=word_dict,
+                   embed_vecs=embed_vecs,
                    monitor_metrics=['Macro-F1', 'Micro-F1', 'P@1', 'P@3', 'P@5'])
 
 # Step 3. Initialize a trainer.
@@ -43,4 +44,4 @@ for split in ['train', 'val', 'test']:
 trainer.fit(model, loaders['train'], loaders['val'])
 
 # Step 5-2. Test the model.
-trainer.test(model, test_dataloaders=loaders['test'])
+trainer.test(model, dataloaders=loaders['test'])

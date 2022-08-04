@@ -247,6 +247,7 @@ def main():
     config = init_search_params_spaces(config, parameter_columns, prefix='')
     parser.set_defaults(**config)
     config = AttributeDict(vars(parser.parse_args()))
+    config.merge_train_val = False  # no need to include validation during parameter search
 
     # Check if the validation set is provided.
     val_path = config.val_path or os.path.join(config.data_dir, 'valid.txt')

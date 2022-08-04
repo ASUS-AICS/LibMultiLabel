@@ -1,4 +1,3 @@
-import collections
 import gc
 import logging
 import os
@@ -13,11 +12,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer
 from torch.utils.data import Dataset
 from torch.nn.utils.rnn import pad_sequence
-from torchtext.vocab import Vocab
+from torchtext.vocab import build_vocab_from_iterator, pretrained_aliases
 from tqdm import tqdm
 
-UNK = Vocab.UNK
-PAD = '**PAD**'
+UNK = '<unk>'
+PAD = '<pad>'
 
 
 class TextDataset(Dataset):
@@ -209,7 +208,8 @@ def load_or_build_text_dict(
 ):
     """Build or load the vocabulary from the training dataset or the predefined `vocab_file`.
     The pretrained embedding can be either from a self-defined `embed_file` or from one of
-    the vectors defined in torchtext `vectors` (https://pytorch.org/text/0.9.0/vocab.html#torchtext.vocab.Vocab.load_vectors).
+    the vectors defined in torchtext.vocab.pretrained_aliases
+    (https://github.com/pytorch/text/blob/main/torchtext/vocab/vectors.py).
 
     Args:
         dataset (list): List of training instances with index, label, and tokenized text.
@@ -221,46 +221,37 @@ def load_or_build_text_dict(
         normalize_embed (bool, optional): Whether the embeddings of each word is normalized to a unit vector. Defaults to False.
 
     Returns:
-        torchtext.vocab.Vocab: A vocab object which maps tokens to indices.
+        tuple[torchtext.vocab.Vocab, torch.Tensor]: A vocab object which maps tokens to indices and the pre-trained word vectors of shape (vocab_size, embed_dim).
     """
     if vocab_file:
         logging.info(f'Load vocab from {vocab_file}')
         with open(vocab_file, 'r') as fp:
-            vocab_list = [PAD] + [vocab.strip() for vocab in fp.readlines()]
-        vocabs = Vocab(collections.Counter(vocab_list), specials=[UNK],
-                       min_freq=1, specials_first=False)  # specials_first=False to keep PAD index 0
+            vocab_list = [[vocab.strip() for vocab in fp.readlines()]]
+        # Keep PAD index 0 to align `padding_idx` of
+        # class Embedding in libmultilabel.nn.networks.modules.
+        vocabs = build_vocab_from_iterator(vocab_list, min_freq=1,
+                                           specials=[PAD, UNK])
     else:
-        counter = collections.Counter()
-        for data in dataset:
-            unique_tokens = set(data['text'])
-            counter.update(unique_tokens)
-        vocabs = Vocab(counter, specials=[PAD, UNK],
-                       min_freq=min_vocab_freq)
+        vocab_list = [set(data['text']) for data in dataset]
+        vocabs = build_vocab_from_iterator(vocab_list, min_freq=min_vocab_freq,
+                                           specials=[PAD, UNK])
+    vocabs.set_default_index(vocabs[UNK])
     logging.info(f'Read {len(vocabs)} vocabularies.')
 
-    load_embedding_from_file = os.path.exists(embed_file)
-    if load_embedding_from_file:
-        logging.info(f'Load pretrained embedding from file: {embed_file}.')
-        embedding_weights = get_embedding_weights_from_file(vocabs, embed_file, silent)
-        dim = torch.as_tensor(embedding_weights).shape[1]
-        vocabs.set_vectors(vocabs.stoi, torch.Tensor(embedding_weights), dim=dim)
-    else:
-        logging.info(f'Load pretrained embedding from torchtext.')
-        vocabs.load_vectors(embed_file, cache=embed_cache_dir)
+    embedding_weights = get_embedding_weights_from_file(vocabs, embed_file, silent, embed_cache_dir)
 
     if normalize_embed:
-        # vocabs.vectors is a torch.FloatTensor from the result of vocabs.set_vectors earlier.
-        # To have better precision for calculating the normalization, we use the original
-        # embedding_weights, a torch.DobleTensor, if it is available.
-        embedding_weights = embedding_weights if load_embedding_from_file else vocabs.vectors.numpy()
+        # To have better precision for calculating the normalization, we convert the original
+        # embedding_weights from a torch.FloatTensor to a torch.DoubleTensor.
+        # After the normalization, we will convert the embedding_weights back to a torch.FloatTensor.
+        embedding_weights = embedding_weights.double()
         for i, vector in enumerate(embedding_weights):
             # We use the constant 1e-6 by following https://github.com/jamesmullenbach/caml-mimic/blob/44a47455070d3d5c6ee69fb5305e32caec104960/dataproc/extract_wvs.py#L60
             # for an internal experiment of reproducing their results.
-            embedding_weights[i] = vector / float(np.linalg.norm(vector) + 1e-6)
-        embedding_weights = torch.as_tensor(embedding_weights)
-        vocabs.set_vectors(vocabs.stoi, embedding_weights, dim=embedding_weights.shape[1])
+            embedding_weights[i] = vector / float(torch.linalg.norm(vector) + 1e-6)
+        embedding_weights = embedding_weights.float()
 
-    return vocabs
+    return vocabs, embedding_weights
 
 
 def load_or_build_label(datasets, label_file=None, include_test_labels=False):
@@ -297,38 +288,60 @@ def load_or_build_label(datasets, label_file=None, include_test_labels=False):
     return classes
 
 
-def get_embedding_weights_from_file(word_dict, embed_file, silent=False):
-    """If there is an embedding file, load pretrained word embedding.
+def get_embedding_weights_from_file(word_dict, embed_file, silent=False, cache=None):
+    """If the word exists in the embedding file, load the pretrained word embedding.
     Otherwise, assign a zero vector to that word.
 
     Args:
         word_dict (torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
         embed_file (str): Path to a file holding pre-trained embeddings.
         silent (bool, optional): Enable silent mode. Defaults to False.
+        cache (str, optional): Path to a directory for storing cached embeddings. Defaults to None.
 
     Returns:
         torch.Tensor: Embedding weights (vocab_size, embed_size)
     """
-    with open(embed_file) as f:
-        word_vectors = f.readlines()
-
-    embed_size = len(word_vectors[0].split())-1
-    embedding_weights = [np.zeros(embed_size) for i in range(len(word_dict))]
-
-    """ Add UNK embedding.
-    Attention xml: np.random.uniform(-1.0, 1.0, embed_size)
-    CAML: np.random.randn(embed_size)
-    """
-    unk_vector = np.random.randn(embed_size)
-    embedding_weights[word_dict[word_dict.UNK]] = unk_vector
-
     # Load pretrained word embedding
+    load_embedding_from_file = os.path.exists(embed_file)
+    if load_embedding_from_file:
+        logging.info(f'Load pretrained embedding from file: {embed_file}.')
+        with open(embed_file) as f:
+            word_vectors = f.readlines()
+        embed_size = len(word_vectors[0].split())-1
+        vector_dict = {}
+        for word_vector in tqdm(word_vectors, disable=silent):
+            word, vector = word_vector.rstrip().split(' ', 1)
+            vector = torch.Tensor(list(map(float, vector.split())))
+            vector_dict[word] = vector
+    else:
+        logging.info(f'Load pretrained embedding from torchtext.')
+        # Adapted from https://pytorch.org/text/0.9.0/_modules/torchtext/vocab.html#Vocab.load_vectors.
+        if embed_file not in pretrained_aliases:
+            raise ValueError(
+                "Got string input vector {}, but allowed pretrained "
+                "vectors are {}".format(
+                    vector, list(pretrained_aliases.keys())))
+        vector_dict = pretrained_aliases[embed_file](cache=cache)
+        embed_size = vector_dict.dim
+
+    embedding_weights = torch.zeros(len(word_dict), embed_size)
+
+    if load_embedding_from_file:
+        # Add UNK embedding
+        # AttentionXML: np.random.uniform(-1.0, 1.0, embed_size)
+        # CAML: np.random.randn(embed_size)
+        unk_vector = torch.randn(embed_size)
+        embedding_weights[word_dict[UNK]] = unk_vector
+
+    # Store pretrained word embedding
     vec_counts = 0
-    for word_vector in tqdm(word_vectors, disable=silent):
-        word, vector = word_vector.rstrip().split(' ', 1)
-        vector = np.array(vector.split()).astype(np.float)
-        embedding_weights[word_dict[word]] = vector
-        vec_counts += 1
+    for word in word_dict.get_itos():
+        # The condition can be used to process the word that does not in the embedding file.
+        # Note that torchtext vector object has already dealt with this,
+        # so we can directly make a query without addtional handling.
+        if (load_embedding_from_file and word in vector_dict) or not load_embedding_from_file:
+            embedding_weights[word_dict[word]] = vector_dict[word]
+            vec_counts += 1
 
     logging.info(f'loaded {vec_counts}/{len(word_dict)} word embeddings')
 

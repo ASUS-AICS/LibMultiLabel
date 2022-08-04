@@ -19,9 +19,11 @@ class TorchTrainer:
         datasets (dict, optional): Datasets for training, validation, and test. Defaults to None.
         classes(list, optional): List of class names.
         word_dict(torchtext.vocab.Vocab, optional): A vocab object which maps tokens to indices.
-        search_params (bool): Enable pytorch-lightning trainer to report the results to ray tune
+        embed_vecs (torch.Tensor, optional): The pre-trained word vectors of shape (vocab_size, embed_dim).
+        search_params (bool, optional): Enable pytorch-lightning trainer to report the results to ray tune
             on validation end during hyperparameter search. Defaults to False.
-        save_checkpoints (bool): Whether to save the last and the best checkpoint or not. Defaults to True.
+        save_checkpoints (bool, optional): Whether to save the last and the best checkpoint or not.
+            Defaults to True.
     """
     def __init__(
         self,
@@ -29,6 +31,7 @@ class TorchTrainer:
         datasets: dict = None,
         classes: list = None,
         word_dict: dict = None,
+        embed_vecs = None,
         search_params: bool = False,
         save_checkpoints: bool = True
     ):
@@ -63,6 +66,7 @@ class TorchTrainer:
 
         self._setup_model(classes=classes,
                           word_dict=word_dict,
+                          embed_vecs=embed_vecs,
                           log_path=self.log_path,
                           checkpoint_path=config.checkpoint_path)
         self.trainer = init_trainer(checkpoint_dir=self.checkpoint_dir,
@@ -86,6 +90,7 @@ class TorchTrainer:
         self,
         classes: list = None,
         word_dict: dict = None,
+        embed_vecs = None,
         log_path: str = None,
         checkpoint_path: str = None
     ):
@@ -95,6 +100,7 @@ class TorchTrainer:
         Args:
             classes(list): List of class names.
             word_dict(torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
+            embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
             log_path (str): Path to the log file. The log file contains the validation
                 results for each epoch and the test results. If the `log_path` is None, no performance
                 results will be logged.
@@ -110,7 +116,7 @@ class TorchTrainer:
             logging.info('Initialize model from scratch.')
             if self.config.embed_file is not None:
                 logging.info('Load word dictionary ')
-                word_dict = data_utils.load_or_build_text_dict(
+                word_dict, embed_vecs = data_utils.load_or_build_text_dict(
                     dataset=self.datasets['train'],
                     vocab_file=self.config.vocab_file,
                     min_vocab_freq=self.config.min_vocab_freq,
@@ -132,6 +138,7 @@ class TorchTrainer:
                                     network_config=dict(self.config.network_config),
                                     classes=classes,
                                     word_dict=word_dict,
+                                    embed_vecs=embed_vecs,
                                     init_weight=self.config.init_weight,
                                     log_path=log_path,
                                     learning_rate=self.config.learning_rate,
@@ -177,6 +184,10 @@ class TorchTrainer:
             logging.info('No validation dataset is provided. Train without vaildation.')
             self.trainer.fit(self.model, train_loader)
         else:
+            from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+            self.trainer.callbacks += [EarlyStopping(patience=self.config.patience,
+                                                    monitor=self.config.val_metric,
+                                                    mode='max')]  # tentative hard code
             val_loader = self._get_dataset_loader(split='val')
             self.trainer.fit(self.model, train_loader, val_loader)
 
@@ -204,7 +215,7 @@ class TorchTrainer:
 
         logging.info(f'Testing on {split} set.')
         test_loader = self._get_dataset_loader(split=split)
-        metric_dict = self.trainer.test(self.model, test_dataloaders=test_loader)[0]
+        metric_dict = self.trainer.test(self.model, dataloaders=test_loader)[0]
 
         if self.config.save_k_predictions > 0:
             self._save_predictions(test_loader, self.config.predict_out_path)

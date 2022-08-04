@@ -56,7 +56,7 @@ Here we show how to create a model.
 
 .. literalinclude:: ../examples/nn_quickstart.py
     :language: python3
-    :lines: 16-26
+    :lines: 16-27
 
 Step 3. Initialize a trainer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -65,7 +65,7 @@ To train the model, we need a trainer to control processes like training loop or
 
 .. literalinclude:: ../examples/nn_quickstart.py
     :language: python3
-    :lines: 29-31
+    :lines: 30-32
 
 Step 4. Create data loaders
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -75,7 +75,7 @@ Create pytorch data loaders for datasets we created in
 
 .. literalinclude:: ../examples/nn_quickstart.py
     :language: python3
-    :lines: 34-40
+    :lines: 35-41
 
 Step 5. Train and test the model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -84,13 +84,13 @@ Everything's ready. Let's start training with ``trainer.train``.
 
 .. literalinclude:: ../examples/nn_quickstart.py
     :language: python3
-    :lines: 43
+    :lines: 44
 
 When training is finished, test the model with ``trainer.test``.
 
 .. literalinclude:: ../examples/nn_quickstart.py
     :language: python3
-    :lines: 46
+    :lines: 47
 
 The results will look similar to::
 
