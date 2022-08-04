@@ -19,9 +19,11 @@ class TorchTrainer:
         datasets (dict, optional): Datasets for training, validation, and test. Defaults to None.
         classes(list, optional): List of class names.
         word_dict(torchtext.vocab.Vocab, optional): A vocab object which maps tokens to indices.
-        search_params (bool): Enable pytorch-lightning trainer to report the results to ray tune
+        embed_vecs (torch.Tensor, optional): The pre-trained word vectors of shape (vocab_size, embed_dim).
+        search_params (bool, optional): Enable pytorch-lightning trainer to report the results to ray tune
             on validation end during hyperparameter search. Defaults to False.
-        save_checkpoints (bool): Whether to save the last and the best checkpoint or not. Defaults to True.
+        save_checkpoints (bool, optional): Whether to save the last and the best checkpoint or not.
+            Defaults to True.
     """
     def __init__(
         self,
@@ -29,6 +31,7 @@ class TorchTrainer:
         datasets: dict = None,
         classes: list = None,
         word_dict: dict = None,
+        embed_vecs = None,
         search_params: bool = False,
         save_checkpoints: bool = True
     ):
@@ -86,6 +89,7 @@ class TorchTrainer:
         self,
         classes: list = None,
         word_dict: dict = None,
+        embed_vecs = None,
         log_path: str = None,
         checkpoint_path: str = None
     ):
@@ -95,6 +99,7 @@ class TorchTrainer:
         Args:
             classes(list): List of class names.
             word_dict(torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
+            embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
             log_path (str): Path to the log file. The log file contains the validation
                 results for each epoch and the test results. If the `log_path` is None, no performance
                 results will be logged.
