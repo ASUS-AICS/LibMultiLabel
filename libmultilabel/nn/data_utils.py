@@ -109,14 +109,14 @@ def get_dataset_loader(
     return dataset_loader
 
 
-def _load_raw_data(path, is_test=False, tokenize_text=True, keep_no_label_data=False):
+def _load_raw_data(path, is_test=False, tokenize_text=True, remove_no_label_data=False):
     """Load and tokenize raw data.
 
     Args:
         path (str): Path to training, test, or validation data.
         is_test (bool, optional): Whether the data is for test or not. Defaults to False.
-        keep_no_label_data (bool, optional): Whether to keep training/validation samples without labels.
-            This is effective only when is_test=False. Default to False.
+        remove_no_label_data (bool, optional): Whether to remove training/validation instances that have no labels.
+            This is effective only when is_test=False. Defaults to False.
 
     Returns:
         pandas.DataFrame: Data composed of index, label, and tokenized text.
@@ -135,7 +135,7 @@ def _load_raw_data(path, is_test=False, tokenize_text=True, keep_no_label_data=F
     if tokenize_text:
         data['text'] = data['text'].map(tokenize)
     data = data.to_dict('records')
-    if not is_test and not keep_no_label_data:
+    if not is_test and remove_no_label_data:
         data = [d for d in data if len(d['label']) > 0]
     return data
 
@@ -147,7 +147,7 @@ def load_datasets(
     val_size=0.2,
     merge_train_val=False,
     tokenize_text=True,
-    keep_no_label_data=False
+    remove_no_label_data=False
 ):
     """Load data from the specified data paths (i.e., `train_path`, `test_path`, and `val_path`).
     If `valid.txt` does not exist but `val_size` > 0, the validation set will be split from the training dataset.
@@ -161,8 +161,8 @@ def load_datasets(
         merge_train_val (bool, optional): Whether to merge the training and validation data.
             Defaults to False.
         tokenize_text (bool, optional): Whether to tokenize text. Defaults to True.
-        keep_no_label_data (bool, optional): Whether to keep training/validation samples without labels.
-            Default to False.
+        remove_no_label_data (bool, optional): Whether to remove training/validation instances that have no labels.
+            Defaults to False.
 
     Returns:
         dict: A dictionary of datasets.
@@ -172,18 +172,18 @@ def load_datasets(
     datasets = {}
     if train_path is not None and os.path.exists(train_path):
         datasets['train'] = _load_raw_data(train_path, tokenize_text=tokenize_text, 
-                                           keep_no_label_data=keep_no_label_data)
+                                           remove_no_label_data=remove_no_label_data)
 
     if val_path is not None and os.path.exists(val_path):
         datasets['val'] = _load_raw_data(val_path, tokenize_text=tokenize_text, 
-                                         keep_no_label_data=keep_no_label_data)
+                                         remove_no_label_data=remove_no_label_data)
     elif val_size > 0:
         datasets['train'], datasets['val'] = train_test_split(
             datasets['train'], test_size=val_size, random_state=42)
 
     if test_path is not None and os.path.exists(test_path):
         datasets['test'] = _load_raw_data(test_path, is_test=True, tokenize_text=tokenize_text, 
-                                          keep_no_label_data=keep_no_label_data)
+                                          remove_no_label_data=remove_no_label_data)
 
     if merge_train_val:
         datasets['train'] = datasets['train'] + datasets['val']
