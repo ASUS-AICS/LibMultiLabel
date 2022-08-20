@@ -6,6 +6,9 @@ min_vocab_freq: 3
 max_seq_length: 2500
 # We follow caml-mimic that includes labels in both training and test datasets.
 include_test_labels: true
+# Follow https://github.com/jamesmullenbach/caml-mimic/blob/master/datasets.py#L45
+# to remove training and validation instances that have no labels.
+remove_no_label_data: true
 
 # train
 seed: 1337
