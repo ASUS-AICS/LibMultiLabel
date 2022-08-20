@@ -4,7 +4,9 @@ data_name: MIMIC
 min_vocab_freq: 3
 max_seq_length: 2500
 include_test_labels: true
-keep_no_label_data: false
+# Follow https://github.com/jamesmullenbach/caml-mimic/blob/master/datasets.py#L45
+# to remove training and validation instances that have no labels.
+remove_no_label_data: true
 
 # train
 seed: 1337
