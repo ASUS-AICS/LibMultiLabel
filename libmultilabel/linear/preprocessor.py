@@ -68,10 +68,16 @@ class Preprocessor:
         elif self.data_format == 'svm':
             data = self._load_svm(train_path, test_path, eval)
 
-        if remove_no_label_data and 'train' in data:
+        if 'train' in data:
             num_labels = data['train']['y'].getnnz(axis=1)
-            data['train']['x'] = data['train']['x'][num_labels > 0]
-            data['train']['y'] = data['train']['y'][num_labels > 0]
+            num_no_label_data = data['train']['x'][num_labels == 0].shape[0]
+            if num_no_label_data > 0:
+                if remove_no_label_data:
+                    logging.info(f'Remove {num_no_label_data} instances that have no labels from {train_path}.')
+                    data['train']['x'] = data['train']['x'][num_labels > 0]
+                    data['train']['y'] = data['train']['y'][num_labels > 0]
+                else:
+                    logging.info(f'Keep {num_no_label_data} instances that have no labels from {train_path}.')
 
         return data
 
