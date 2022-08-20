@@ -26,7 +26,19 @@ Install LibMultiLabel from Source
 
     * Python: 3.7+
     * CUDA: 10.2 (if training neural networks by GPU)
-    * Pytorch 1.8+
+    * Pytorch 1.12+
+
+It is optional but highly recommended to
+create a virtual environment.
+For example, you can first refer to the
+`link <https://docs.conda.io/en/latest/miniconda.html>`_
+for the installation guidances of Miniconda
+and then create a virtual enviroment as follows.
+
+.. code-block:: bash
+
+    conda create -n LibMultiLabel python=3.7
+    conda activate LibMultiLabel
 
 * Clone `LibMultiLabel <https://github.com/ASUS-AICS/LibMultiLabel>`_.
 
