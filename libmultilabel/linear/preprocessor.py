@@ -6,6 +6,7 @@ import re
 from array import array
 from collections import defaultdict
 
+import numpy as np
 import pandas as pd
 import scipy
 import scipy.sparse as sparse
@@ -70,7 +71,7 @@ class Preprocessor:
 
         if 'train' in data:
             num_labels = data['train']['y'].getnnz(axis=1)
-            num_no_label_data = data['train']['x'][num_labels == 0].shape[0]
+            num_no_label_data = np.count_nonzero(num_labels == 0)
             if num_no_label_data > 0:
                 if remove_no_label_data:
                     logging.info(f'Remove {num_no_label_data} instances that have no labels from {train_path}.')

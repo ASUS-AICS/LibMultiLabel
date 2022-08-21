@@ -136,12 +136,11 @@ def _load_raw_data(path, is_test=False, tokenize_text=True, remove_no_label_data
         data['text'] = data['text'].map(tokenize)
     data = data.to_dict('records')
     if not is_test:
-        filtered_data = [d for d in data if len(d['label']) > 0]
-        num_no_label_data = len(data)-len(filtered_data)
+        num_no_label_data = len([d for d in data if len(d['label']) == 0])
         if num_no_label_data > 0:
             if remove_no_label_data:
                 logging.info(f'Remove {num_no_label_data} instances that have no labels from {path}.')
-                data = filtered_data
+                data = [d for d in data if len(d['label']) > 0]
             else:
                 logging.info(f'Keep {num_no_label_data} instances that have no labels from {path}.')
     return data
