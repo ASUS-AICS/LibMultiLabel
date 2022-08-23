@@ -3,7 +3,7 @@
 LibMultiLabel is a simple tool with the following functionalities.
 
 - end-to-end services from raw texts to final evaluation/analysis
-- support for common neural network architectures and linear classsifiers
+- support for common neural network architectures and linear classifiers
 - easy hyper-parameter selection
 
 This is an on-going development so many improvements are still being made. Comments are very welcome.
