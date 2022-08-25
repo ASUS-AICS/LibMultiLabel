@@ -28,7 +28,7 @@ get_test_results() {
 # Test results between current branch and master branch.
 # Arguments:
 #   $1: Data name such as EUR-Lex, MIMIC-50, or rcv1.
-#   $2: Nework name defined in libmultilabel/nn/networks/*
+#   $2: Network name defined in libmultilabel/nn/networks/*
 #   $3: Command template to run.
 #######################################
 run_test() {
