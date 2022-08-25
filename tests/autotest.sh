@@ -75,7 +75,7 @@ main() {
 
   TEST_COMMAND_TEMPLATES=(
     # Run 20% of the training data, 20% of the validation data, and 1% of the test data for 2 epochs.
-    "python3 test_main.py --config example_config/%s/%s.yml --result_dir $RESULT_DIR --limit_train_batches 0.2 --limit_val_batches 0.2 --limit_test_batches 0.01 --epochs 2"
+    "python3 run_and_store_results.py --config example_config/%s/%s.yml --result_dir $RESULT_DIR --limit_train_batches 0.2 --limit_val_batches 0.2 --limit_test_batches 0.01 --epochs 2"
   )
   for template in "${TEST_COMMAND_TEMPLATES[@]}"; do
     run_test "EUR-Lex" "kim_cnn" "$template"
