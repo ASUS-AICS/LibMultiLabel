@@ -1,8 +1,8 @@
-from .components import datasets, stoi, embed_vecs, classes, network
+from .components import datasets, token_to_id, embed_vecs, classes, network
 
 
 test_components = [datasets(),
-                   stoi(),
+                   token_to_id(),
                    embed_vecs(),
                    classes(),
                    network()]

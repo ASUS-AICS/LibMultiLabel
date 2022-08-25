@@ -12,12 +12,12 @@ class datasets(object):
         return a == b
 
 
-class stoi(object):
+class token_to_id(object):
     def __init__(self):
         pass
 
     def get_name(self):
-        return 'stoi'
+        return 'token_to_id'
 
     def get_from_trainer(self, trainer):
         return trainer.model.word_dict.get_stoi()

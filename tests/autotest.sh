@@ -25,13 +25,13 @@ get_test_results() {
 }
 
 #######################################
-# Test results between current branch and master branch.
+# Compare results between current branch and master branch.
 # Arguments:
 #   $1: Data name such as EUR-Lex, MIMIC-50, or rcv1.
 #   $2: Network name defined in libmultilabel/nn/networks/*
 #   $3: Command template to run.
 #######################################
-run_test() {
+run_and_compare() {
   data_name=$1
   network_name=$2
   command=$(echo "$3" | sed "s/%s/$data_name/" | sed "s/%s/$network_name/")
@@ -56,7 +56,7 @@ run_test() {
 
   # Compare each API component
   if [ "$network_name" != "l2svm" ]; then
-    python3 tests/compare_api.py --current_dir $current_dir --master_dir $master_dir >> $REPORT_PATH
+    python3 tests/compare_components.py --current_dir $current_dir --master_dir $master_dir >> $REPORT_PATH
   fi
 
   # Compare the results between current branch and master.
@@ -78,8 +78,8 @@ main() {
     "python3 run_and_store_results.py --config example_config/%s/%s.yml --result_dir $RESULT_DIR --limit_train_batches 0.2 --limit_val_batches 0.2 --limit_test_batches 0.01 --epochs 2"
   )
   for template in "${TEST_COMMAND_TEMPLATES[@]}"; do
-    run_test "EUR-Lex" "kim_cnn" "$template"
-    run_test "MIMIC-50" "caml" "$template"
+    run_and_compare "EUR-Lex" "kim_cnn" "$template"
+    run_and_compare "MIMIC-50" "caml" "$template"
   done
 
   TEST_COMMAND_TEMPLATES=(
@@ -87,7 +87,7 @@ main() {
     "python3 main.py --config example_config/%s/%s.yml --result_dir $RESULT_DIR"
   )
   for template in "${TEST_COMMAND_TEMPLATES[@]}"; do
-    run_test "rcv1" "l2svm" "$template"
+    run_and_compare "rcv1" "l2svm" "$template"
   done
 
   # Print the test results and remove the intermediate files.
