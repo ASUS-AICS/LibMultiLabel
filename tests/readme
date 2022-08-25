@@ -1,4 +1,4 @@
 To run the tests
     # Change to the LibMultilabel directory
-    # Git checkout to the current branch
+    # Git checkout to the current branch to be tested
     bash tests/autotest.sh
