@@ -1,14 +1,14 @@
-Dataset Formats, Installation, and Modules
+Installation, Dataset Formats, and Modules
 ==========================================
+
+To work with the command line interface, firstly
+
+    - :ref:`installation`
 
 The supported :ref:`data_format` include:
 
     - :ref:`libmultilabel-format`
     - :ref:`libsvm-format`
-
-To work with the command line interface, firstly
-
-    - :ref:`installation`
 
 Then the following modules are available.
 
