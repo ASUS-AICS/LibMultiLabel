@@ -177,14 +177,18 @@ def read_libsvm_format(file_path: str) -> 'tuple[list[list[int]], sparse.csr_mat
             nz = 0
             for e in features.split():
                 ind, val = e.split(':')
-                val = float(val)
+                ind, val = int(ind), float(val)
+                if ind < 1:
+                    raise IndexError(f'invalid svm format at line {i+1} of the file \'{file_path}\' --> Indices should start from one.')
                 if val != 0:
-                    col_idx.append(int(ind) - 1)
+                    col_idx.append(ind - 1)
                     prob_x.append(val)
                     nz += 1
             row_ptr.append(row_ptr[-1]+nz)
+        except IndexError:
+            raise
         except:
-            raise ValueError(f'invalid svm format at line {i+1}')
+            raise ValueError(f'invalid svm format at line {i+1} of the file \'{file_path}\'')
 
     prob_x = scipy.frombuffer(prob_x, dtype='d')
     col_idx = scipy.frombuffer(col_idx, dtype='l')
