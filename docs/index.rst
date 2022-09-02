@@ -8,7 +8,7 @@ and a simple command line tool with the following functionalities
 - support for common neural network architectures and linear classsifiers
 - easy hyper-parameter selection
 
-You can use the `Command Line Interface <cli/ov_data_format.html>`_  or the `APIs <api/api.html>`_ to work with LibMultiLabel.
+For installation of LibMultiLabel, you can visit the `Command Line Interface <cli/ov_data_format.html>`_  or the `APIs <api/api.html>`_.
 
 For practical tips, please see the `User Guide <https://www.csie.ntu.edu.tw/~cjlin/papers/libmultilabel/userguide.pdf>`_.
 
