@@ -175,12 +175,21 @@ def check_config(config):
             exec('config.{} = \'\''.format(data_path))
             print('Warning: {} is not found'.format(data_path))
 
-        basename = os.path.basename(eval('config.{}'.format(data_path)))
-        file_ext = basename.split('.')[-1]
-        if file_ext != config.data_format and basename != '':
-            print('Warning: The data format of \'{path}\' is different to config.data_format={txt_or_svm}'.format(
-                path = eval('config.{}'.format(data_path)),
-                txt_or_svm = config.data_format)
+        if os.path.exists( eval('config.{}'.format(data_path)) ):
+            basename = os.path.basename(eval('config.{}'.format(data_path)))
+            file_ext = basename.split('.')[-1]
+            if file_ext != config.data_format:
+                print('Warning: The data format of {data_path}=\'{path}\' is different to config.data_format={txt_or_svm}'.format(
+                    data_path = data_path,
+                    path = eval('config.{}'.format(data_path)),
+                    txt_or_svm = config.data_format
+                    )
+                )
+        else:
+            print('Warning: {data_path}=\'{path}\' does not exist'.format(
+                data_path = data_path,
+                path = eval('config.{}'.format(data_path))
+                )
             )
 
     if config.eval and not os.path.exists(config.test_path):
