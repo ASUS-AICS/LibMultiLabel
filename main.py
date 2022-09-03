@@ -38,7 +38,9 @@ def add_all_arguments(parser):
     parser.add_argument('--include_test_labels', action='store_true',
                         help='Whether to include labels in the test dataset. (default: %(default)s)')
     parser.add_argument('--remove_no_label_data', action='store_true',
-                        help='Whether to remove training and validation instances that have no labels.')
+                        help='Whether to remove training and validation instances that have no labels. (default: %(default)s)')
+    parser.add_argument('--add_special_tokens', action='store_true',
+                        help='Whether to add the special tokens for inputs of the transformer-based language model. (default: %(default)s)')
 
     # train
     parser.add_argument('--seed', type=int,

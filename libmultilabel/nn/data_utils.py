@@ -22,7 +22,7 @@ PAD = '<pad>'
 class TextDataset(Dataset):
     """Class for text dataset"""
 
-    def __init__(self, data, word_dict, classes, max_seq_length, tokenizer=None):
+    def __init__(self, data, word_dict, classes, max_seq_length, tokenizer=None, add_special_tokens=False):
         self.data = data
         self.word_dict = word_dict
         self.classes = classes
@@ -30,6 +30,7 @@ class TextDataset(Dataset):
         self.num_classes = len(self.classes)
         self.label_binarizer = MultiLabelBinarizer().fit([classes])
         self.tokenizer = tokenizer
+        self.add_special_tokens = add_special_tokens
 
     def __len__(self):
         return len(self.data)
@@ -38,7 +39,7 @@ class TextDataset(Dataset):
         data = self.data[index]
 
         if self.tokenizer is not None: # transformers tokenizer
-            input_ids = self.tokenizer.encode(data['text'], add_special_tokens=False)
+            input_ids = self.tokenizer.encode(data['text'], add_special_tokens=self.add_special_tokens)
         else:
             input_ids = [self.word_dict[word] for word in data['text']]
         return {
@@ -80,7 +81,8 @@ def get_dataset_loader(
     batch_size=1,
     shuffle=False,
     data_workers=4,
-    tokenizer=None
+    tokenizer=None,
+    add_special_tokens=False
 ):
     """Create a pytorch DataLoader.
 
@@ -93,6 +95,8 @@ def get_dataset_loader(
         batch_size (int, optional): Size of training batches. Defaults to 1.
         shuffle (bool, optional): Whether to shuffle training data before each epoch. Defaults to False.
         data_workers (int, optional): Use multi-cpu core for data pre-processing. Defaults to 4.
+        tokenizer (optional): Tokenizer of the transformer-based language model. Defaults to None.
+        add_special_tokens (bool, optional): Whether to add the special tokens. Defaults to False.
 
     Returns:
         torch.utils.data.DataLoader: A pytorch DataLoader.
