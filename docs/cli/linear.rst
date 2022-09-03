@@ -86,7 +86,8 @@ To train and evaluate a model, use
 .. code-block:: bash
 
     python3 main.py --config CONFIG_PATH \
-                    --data_dir DATA_DIR \
+                    --train_path TRAIN_DATA_PATH \
+                    --test_path TEST_DATA_PATH \
                     --linear \
                     --liblinear_options=LIBLINEAR_OPTIONS \
                     --linear_technique MULTILABEL_TECHNIQUE \
@@ -99,7 +100,9 @@ The linear classifiers are based on
 `LIBLINEAR <https://www.csie.ntu.edu.tw/~cjlin/liblinear/>`_,
 and its options may be specified.
 
-- **data_dir**: The path to data directory.
+- **train_path**: The path to training data.
+
+- **test_path**: The path to test data.
   If test data is available, also evaluates the trained model on the test data.
 
 - **linear**: This option specifies that linear models should be ran,
@@ -135,7 +138,7 @@ To predict a test set by applying a previously trained model, use
 .. code-block:: bash
 
     python3 main.py --config CONFIG_PATH \
-                    --data_dir DATA_DIR \
+                    --test_path TEST_PATH \
                     --eval \
                     --linear \
                     --data_format DATA_FORMAT \

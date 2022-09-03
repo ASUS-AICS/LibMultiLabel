@@ -8,12 +8,12 @@ file and flags, flags take precedent and override the config file.
 The config file is a yaml file, examples may be found in
 `example_config <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/example_config>`_.
 In the config file, each key-value pair ``key: value`` corresponds to
-passing the flag ``--key value``. The following example sets the data directory
+passing the flag ``--key value``. The following example sets the training data path
 in the config file
 
 .. code-block:: yaml
 
-    data_dir: path/to/data
+    train_path: path/to/data
 
 For an option with multiple values, it can be specified as a list
 
