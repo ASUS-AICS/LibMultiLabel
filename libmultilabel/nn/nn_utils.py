@@ -136,7 +136,8 @@ def init_trainer(checkpoint_dir,
         pl.Trainer: A torch lightning trainer.
     """
 
-    callbacks = []
+    # Set strict to False to prevent EarlyStopping from crashing the training if no validation data are provided
+    callbacks = [EarlyStopping(patience=patience, monitor=val_metric, mode=mode, strict=False)]
     if save_checkpoints:
         callbacks += [ModelCheckpoint(dirpath=checkpoint_dir, filename='best_model',
                                       save_last=True, save_top_k=1,

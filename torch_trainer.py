@@ -184,10 +184,6 @@ class TorchTrainer:
             logging.info('No validation dataset is provided. Train without vaildation.')
             self.trainer.fit(self.model, train_loader)
         else:
-            from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-            self.trainer.callbacks += [EarlyStopping(patience=self.config.patience,
-                                                    monitor=self.config.val_metric,
-                                                    mode='max')]  # tentative hard code
             val_loader = self._get_dataset_loader(split='val')
             self.trainer.fit(self.model, train_loader, val_loader)
 
