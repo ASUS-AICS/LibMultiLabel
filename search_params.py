@@ -67,11 +67,6 @@ def load_config_from_file(config_path):
         if isinstance(v, str) and os.path.exists(v):
             config[k] = os.path.abspath(v)
 
-    # find `train.txt`, `val.txt`, and `test.txt` from the data directory if not specified.
-    config['train_path'] = config['train_path'] or os.path.join(config['data_dir'], 'train.txt')
-    config['val_path'] = config['val_path'] or os.path.join(config['data_dir'], 'valid.txt')
-    config['test_path'] = config['test_path'] or os.path.join(config['data_dir'], 'test.txt')
-
     return config
 
 
@@ -250,9 +245,9 @@ def main():
     config.merge_train_val = False  # no need to include validation during parameter search
 
     # Check if the validation set is provided.
-    val_path = config.val_path or os.path.join(config.data_dir, 'valid.txt')
+    val_path = config.val_path
     assert config.val_size > 0 or os.path.exists(val_path), \
-        "You should specify either a positive `val_size` or a `val_path` defaults to `data_dir/valid.txt` for parameter search."
+        "You should specify either a positive `val_size` or a `val_path` for parameter search."
 
     """Run tune analysis.
     - If no search algorithm is specified, the default search algorighm is BasicVariantGenerator.
