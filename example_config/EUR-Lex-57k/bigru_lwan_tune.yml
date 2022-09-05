@@ -1,7 +1,7 @@
 # data
-train_path: data/EUR-Lex-57k/train.txt
-val_path: data/EUR-Lex-57k/valid.txt
-test_path: data/EUR-Lex-57k/test.txt
+training_file: data/EUR-Lex-57k/train.txt
+val_file: data/EUR-Lex-57k/valid.txt
+test_file: data/EUR-Lex-57k/test.txt
 data_name: EUR-Lex-57k
 min_vocab_freq: 1
 max_seq_length: 500
@@ -67,7 +67,7 @@ metric_threshold: 0.5
 result_dir: runs
 save_k_predictions: 0
 silent: true
-test_path: null
-train_path: null
-val_path: null
+test_file: null
+training_file: null
+val_file: null
 val_size: 0.2

@@ -1,7 +1,7 @@
 # data
-train_path: data/MIMIC-50/train.txt
-val_path: data/MIMIC-50/valid.txt
-test_path: data/MIMIC-50/test.txt
+training_file: data/MIMIC-50/train.txt
+val_file: data/MIMIC-50/valid.txt
+test_file: data/MIMIC-50/test.txt
 data_name: MIMIC-50
 min_vocab_freq: 3
 max_seq_length: 2500
@@ -66,7 +66,7 @@ metric_threshold: 0.5
 result_dir: runs
 save_k_predictions: 0
 silent: true
-test_path: data/MIMIC-50/test.txt
-train_path: data/MIMIC-50/train.txt
-val_path: data/MIMIC-50/valid.txt
+test_file: data/MIMIC-50/test.txt
+training_file: data/MIMIC-50/train.txt
+val_file: data/MIMIC-50/valid.txt
 val_size: 0.2
