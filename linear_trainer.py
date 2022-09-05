@@ -55,12 +55,12 @@ def linear_run(config):
     if config.eval:
         preprocessor, model = linear.load_pipeline(config.checkpoint_path)
         datasets = preprocessor.load_data(
-            config.train_path, config.test_path, config.eval)
+            config.training_file, config.test_file, config.eval)
     else:
         preprocessor = linear.Preprocessor(data_format=config.data_format)
         datasets = preprocessor.load_data(
-            config.train_path,
-            config.test_path,
+            config.training_file,
+            config.test_file,
             config.eval,
             config.label_file,
             config.include_test_labels,
@@ -68,7 +68,7 @@ def linear_run(config):
         model = linear_train(datasets, config)
         linear.save_pipeline(config.checkpoint_dir, preprocessor, model)
 
-    if os.path.exists(config.test_path):
+    if os.path.exists(config.test_file):
         metric_dict, top_k_idx, top_k_scores = linear_test(
             config, model, datasets)
 

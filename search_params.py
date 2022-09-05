@@ -162,9 +162,9 @@ def load_static_data(config, merge_train_val=False):
     Returns:
         dict: A dict of static data containing datasets, classes, and word_dict.
     """
-    datasets = data_utils.load_datasets(train_path=config.train_path,
-                                        test_path=config.test_path,
-                                        val_path=config.val_path,
+    datasets = data_utils.load_datasets(training_file=config.training_file,
+                                        test_file=config.test_file,
+                                        val_file=config.val_file,
                                         val_size=config.val_size,
                                         merge_train_val=merge_train_val,
                                         tokenize_text='lm_weight' not in config['network_config'],
@@ -245,9 +245,9 @@ def main():
     config.merge_train_val = False  # no need to include validation during parameter search
 
     # Check if the validation set is provided.
-    val_path = config.val_path
-    assert config.val_size > 0 or os.path.exists(val_path), \
-        "You should specify either a positive `val_size` or a `val_path` for parameter search."
+    val_file = config.val_file
+    assert config.val_size > 0 or os.path.exists(val_file), \
+        "You should specify either a positive `val_size` or a `val_file` for parameter search."
 
     """Run tune analysis.
     - If no search algorithm is specified, the default search algorighm is BasicVariantGenerator.

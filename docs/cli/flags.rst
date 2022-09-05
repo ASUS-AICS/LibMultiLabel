@@ -13,7 +13,7 @@ in the config file
 
 .. code-block:: yaml
 
-    train_path: path/to/data
+    training_file: path/to/data
 
 For an option with multiple values, it can be specified as a list
 

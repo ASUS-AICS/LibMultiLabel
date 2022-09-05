@@ -17,11 +17,11 @@ def add_all_arguments(parser):
     # data
     parser.add_argument('--data_name', default='rcv1',
                         help='Dataset name (default: %(default)s)')
-    parser.add_argument('--train_path',
+    parser.add_argument('--training_file',
                         help='Path to training data (default: %(default)s)')
-    parser.add_argument('--val_path',
+    parser.add_argument('--val_file',
                         help='Path to validation data (default: %(default)s)')
-    parser.add_argument('--test_path',
+    parser.add_argument('--test_file',
                         help='Path to test data (default: %(default)s')
     parser.add_argument('--val_size', type=float, default=0.2,
                         help='Training-validation split: a ratio in [0, 1] or an integer for the size of the validation set (default: %(default)s).')
@@ -170,37 +170,12 @@ def check_config(config):
         raise ValueError("nn.AdaptiveMaxPool1d doesn't have a deterministic implementation but seed is"
                          "specified. Please do not specify seed.")
 
-    for data_path in ['train_path', 'val_path', 'test_path']:
-        if not eval('config.{}'.format(data_path)):
-            exec('config.{} = \'\''.format(data_path))
-            print('Warning: {} is not found'.format(data_path))
+    for data_file in ['training_file', 'val_file', 'test_file']:
+        if config[data_file] == None:
+            config[data_file] = ''
 
-        if os.path.exists( eval('config.{}'.format(data_path)) ):
-            basename = os.path.basename(eval('config.{}'.format(data_path)))
-            file_ext = basename.split('.')[-1]
-            if file_ext != config.data_format:
-                print('Warning: The data format of {data_path}=\'{path}\' is different to config.data_format={txt_or_svm}'.format(
-                    data_path = data_path,
-                    path = eval('config.{}'.format(data_path)),
-                    txt_or_svm = config.data_format
-                    )
-                )
-        else:
-            print('Warning: {data_path}=\'{path}\' does not exist'.format(
-                data_path = data_path,
-                path = eval('config.{}'.format(data_path))
-                )
-            )
-
-    if config.eval and not os.path.exists(config.test_path):
+    if config.eval and not os.path.exists(config.test_file):
         raise ValueError('--eval is specified but there is no test data set')
-
-    try:
-        err_msg = 'data_dir is NOT supported anymore. Please use train_path, valid_path and test_path to assign the data sets.'
-        if config.data_dir:
-            raise NameError(err_msg)
-    except NameError: raise
-    except: pass
 
     return None
 
