@@ -66,7 +66,4 @@ metric_threshold: 0.5
 result_dir: runs
 save_k_predictions: 0
 silent: true
-test_file: null
-training_file: null
-val_file: null
 val_size: 0.2
