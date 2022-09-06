@@ -170,11 +170,7 @@ def check_config(config):
         raise ValueError("nn.AdaptiveMaxPool1d doesn't have a deterministic implementation but seed is"
                          "specified. Please do not specify seed.")
 
-    for data_file in ['training_file', 'val_file', 'test_file']:
-        if config[data_file] == None:
-            config[data_file] = ''
-
-    if config.eval and not os.path.exists(config.test_file):
+    if config.eval and config.test_file is None:
         raise ValueError('--eval is specified but there is no test data set')
 
     return None

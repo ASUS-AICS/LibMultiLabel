@@ -176,19 +176,19 @@ def load_datasets(
     assert training_file or test_file, "At least one of `training_file` and `test_file` must be specified."
 
     datasets = {}
-    if training_file is not None and os.path.exists(training_file):
-        datasets['train'] = _load_raw_data(training_file, tokenize_text=tokenize_text, 
+    if training_file is not None:
+        datasets['train'] = _load_raw_data(training_file, tokenize_text=tokenize_text,
                                            remove_no_label_data=remove_no_label_data)
 
-    if val_file is not None and os.path.exists(val_file):
-        datasets['val'] = _load_raw_data(val_file, tokenize_text=tokenize_text, 
+    if val_file is not None:
+        datasets['val'] = _load_raw_data(val_file, tokenize_text=tokenize_text,
                                          remove_no_label_data=remove_no_label_data)
     elif val_size > 0:
         datasets['train'], datasets['val'] = train_test_split(
             datasets['train'], test_size=val_size, random_state=42)
 
-    if test_file is not None and os.path.exists(test_file):
-        datasets['test'] = _load_raw_data(test_file, is_test=True, tokenize_text=tokenize_text, 
+    if test_file is not None:
+        datasets['test'] = _load_raw_data(test_file, is_test=True, tokenize_text=tokenize_text,
                                           remove_no_label_data=remove_no_label_data)
 
     if merge_train_val:
@@ -308,7 +308,7 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, cache=N
         torch.Tensor: Embedding weights (vocab_size, embed_size)
     """
     # Load pretrained word embedding
-    load_embedding_from_file = os.path.exists(embed_file)
+    load_embedding_from_file = embed_file is not None
     if load_embedding_from_file:
         logging.info(f'Load pretrained embedding from file: {embed_file}.')
         with open(embed_file) as f:

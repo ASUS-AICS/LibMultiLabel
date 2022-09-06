@@ -58,7 +58,7 @@ class Preprocessor:
             with open(label_file, 'r') as fp:
                 self.classes = sorted([s.strip() for s in fp.readlines()])
         else:
-            if not os.path.exists(test_file) and include_test_labels:
+            if test_file is None and include_test_labels:
                 raise ValueError(
                     f'Specified the inclusion of test labels but test file does not exist')
             self.classes = None
@@ -84,7 +84,7 @@ class Preprocessor:
 
     def _load_txt(self, training_file, test_file, eval) -> 'dict[str, dict]':
         datasets = defaultdict(dict)
-        if os.path.exists(test_file):
+        if test_file is not None:
             test = read_libmultilabel_format(test_file)
 
         if not eval:
@@ -99,7 +99,7 @@ class Preprocessor:
             datasets['train']['y'] = self.binarizer.transform(
                 train['label']).astype('d')
 
-        if os.path.exists(test_file):
+        if test_file is not None:
             datasets['test']['x'] = self.vectorizer.transform(test['text'])
             datasets['test']['y'] = self.binarizer.transform(
                 test['label']).astype('d')
@@ -108,7 +108,7 @@ class Preprocessor:
 
     def _load_svm(self, training_file, test_file, eval) -> 'dict[str, dict]':
         datasets = defaultdict(dict)
-        if os.path.exists(test_file):
+        if test_file is not None:
             ty, tx = read_libsvm_format(test_file)
 
         if not eval:
@@ -120,7 +120,7 @@ class Preprocessor:
             datasets['train']['x'] = x
             datasets['train']['y'] = self.binarizer.transform(y).astype('d')
 
-        if os.path.exists(test_file):
+        if test_file is not None:
             datasets['test']['x'] = tx
             datasets['test']['y'] = self.binarizer.transform(ty).astype('d')
         return dict(datasets)

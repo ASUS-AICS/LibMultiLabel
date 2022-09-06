@@ -68,7 +68,7 @@ def linear_run(config):
         model = linear_train(datasets, config)
         linear.save_pipeline(config.checkpoint_dir, preprocessor, model)
 
-    if os.path.exists(config.test_file):
+    if config.test_file is not None:
         metric_dict, top_k_idx, top_k_scores = linear_test(
             config, model, datasets)
 
