@@ -33,8 +33,8 @@ class Preprocessor:
 
         self.data_format = data_format
 
-    def load_data(self, training_file: str = '',
-                  test_file: str = '',
+    def load_data(self, training_file: str = None,
+                  test_file: str = None,
                   eval: bool = False,
                   label_file: str = None,
                   include_test_labels: bool = False,
@@ -42,8 +42,8 @@ class Preprocessor:
         """Loads and preprocesses data.
 
         Args:
-            training_file (str): Training data file. Ignored if eval is True. Defaults to ''.
-            test_file (str): Test data file. Ignored if test_file doesn't exist. Defaults to ''.
+            training_file (str): Training data file. Ignored if eval is True. Defaults to None.
+            test_file (str): Test data file. Ignored if test_file doesn't exist. Defaults to None.
             eval (bool): If True, ignores training data and uses previously loaded state to preprocess test data.
             label_file (str, optional): Path to a file holding all labels.
             include_test_labels (bool, optional): Whether to include labels in the test dataset. Defaults to False.
