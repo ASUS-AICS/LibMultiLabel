@@ -11,20 +11,18 @@ from libmultilabel.common_utils import Timer, AttributeDict
 
 def add_all_arguments(parser):
     # path / directory
-    parser.add_argument('--data_dir', default='./data/rcv1',
-                        help='The directory to load data (default: %(default)s)')
     parser.add_argument('--result_dir', default='./runs',
                         help='The directory to save checkpoints and logs (default: %(default)s)')
 
     # data
-    parser.add_argument('--data_name', default='rcv1',
+    parser.add_argument('--data_name', default='unnamed',
                         help='Dataset name (default: %(default)s)')
-    parser.add_argument('--train_path',
-                        help='Path to training data (default: [data_dir]/train.txt)')
-    parser.add_argument('--val_path',
-                        help='Path to validation data (default: [data_dir]/valid.txt)')
-    parser.add_argument('--test_path',
-                        help='Path to test data (default: [data_dir]/test.txt)')
+    parser.add_argument('--training_file',
+                        help='Path to training data (default: %(default)s)')
+    parser.add_argument('--val_file',
+                        help='Path to validation data (default: %(default)s)')
+    parser.add_argument('--test_file',
+                        help='Path to test data (default: %(default)s')
     parser.add_argument('--val_size', type=float, default=0.2,
                         help='Training-validation split: a ratio in [0, 1] or an integer for the size of the validation set (default: %(default)s).')
     parser.add_argument('--min_vocab_freq', type=int, default=1,
@@ -159,13 +157,6 @@ def get_config():
     config.predict_out_path = config.predict_out_path or os.path.join(
         config.checkpoint_dir, 'predictions.txt')
 
-    config.train_path = config.train_path or os.path.join(
-        config.data_dir, 'train.txt')
-    config.val_path = config.val_path or os.path.join(
-        config.data_dir, 'valid.txt')
-    config.test_path = config.test_path or os.path.join(
-        config.data_dir, 'test.txt')
-
     return config
 
 
@@ -179,9 +170,10 @@ def check_config(config):
         raise ValueError("nn.AdaptiveMaxPool1d doesn't have a deterministic implementation but seed is"
                          "specified. Please do not specify seed.")
 
-    if config.eval and not os.path.exists(config.test_path):
+    if config.eval and config.test_file is None:
         raise ValueError('--eval is specified but there is no test data set')
 
+    return None
 
 def main():
     # Get config

@@ -147,21 +147,21 @@ def _load_raw_data(path, is_test=False, tokenize_text=True, remove_no_label_data
 
 
 def load_datasets(
-    train_path=None,
-    test_path=None,
-    val_path=None,
+    training_file=None,
+    test_file=None,
+    val_file=None,
     val_size=0.2,
     merge_train_val=False,
     tokenize_text=True,
     remove_no_label_data=False
 ):
-    """Load data from the specified data paths (i.e., `train_path`, `test_path`, and `val_path`).
+    """Load data from the specified data paths (i.e., `training_file`, `test_file`, and `val_file`).
     If `valid.txt` does not exist but `val_size` > 0, the validation set will be split from the training dataset.
 
     Args:
-        train_path (str, optional): Path to training data.
-        test_path (str, optional): Path to test data.
-        val_path (str, optional): Path to validation data.
+        training_file (str, optional): Path to training data.
+        test_file (str, optional): Path to test data.
+        val_file (str, optional): Path to validation data.
         val_size (float, optional): Training-validation split: a ratio in [0, 1] or an integer for the size of the validation set.
             Defaults to 0.2.
         merge_train_val (bool, optional): Whether to merge the training and validation data.
@@ -173,22 +173,22 @@ def load_datasets(
     Returns:
         dict: A dictionary of datasets.
     """
-    assert train_path or test_path, "At least one of `train_path` and `test_path` must be specified."
+    assert training_file or test_file, "At least one of `training_file` and `test_file` must be specified."
 
     datasets = {}
-    if train_path is not None and os.path.exists(train_path):
-        datasets['train'] = _load_raw_data(train_path, tokenize_text=tokenize_text, 
+    if training_file is not None:
+        datasets['train'] = _load_raw_data(training_file, tokenize_text=tokenize_text,
                                            remove_no_label_data=remove_no_label_data)
 
-    if val_path is not None and os.path.exists(val_path):
-        datasets['val'] = _load_raw_data(val_path, tokenize_text=tokenize_text, 
+    if val_file is not None:
+        datasets['val'] = _load_raw_data(val_file, tokenize_text=tokenize_text,
                                          remove_no_label_data=remove_no_label_data)
     elif val_size > 0:
         datasets['train'], datasets['val'] = train_test_split(
             datasets['train'], test_size=val_size, random_state=42)
 
-    if test_path is not None and os.path.exists(test_path):
-        datasets['test'] = _load_raw_data(test_path, is_test=True, tokenize_text=tokenize_text, 
+    if test_file is not None:
+        datasets['test'] = _load_raw_data(test_file, is_test=True, tokenize_text=tokenize_text,
                                           remove_no_label_data=remove_no_label_data)
 
     if merge_train_val:
@@ -308,7 +308,7 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, cache=N
         torch.Tensor: Embedding weights (vocab_size, embed_size)
     """
     # Load pretrained word embedding
-    load_embedding_from_file = os.path.exists(embed_file)
+    load_embedding_from_file = embed_file is not None
     if load_embedding_from_file:
         logging.info(f'Load pretrained embedding from file: {embed_file}.')
         with open(embed_file) as f:

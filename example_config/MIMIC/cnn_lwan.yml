@@ -1,5 +1,7 @@
 # data
-data_dir: data/MIMIC
+training_file: data/MIMIC/train.txt
+val_file: data/MIMIC/valid.txt
+test_file: data/MIMIC/test.txt
 data_name: MIMIC
 min_vocab_freq: 3
 max_seq_length: 2500

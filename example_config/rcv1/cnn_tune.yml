@@ -1,5 +1,7 @@
 # data
-data_dir: data/rcv1
+training_file: data/rcv1/train.txt
+val_file: data/rcv1/valid.txt
+test_file: data/rcv1/test.txt
 data_name: rcv1
 min_vocab_freq: 1
 max_seq_length: 500
@@ -56,7 +58,4 @@ metric_threshold: 0.5
 result_dir: runs
 save_k_predictions: 0
 silent: true
-test_path: data/rcv1/test.txt
-train_path: data/rcv1/train.txt
-val_path: null
 val_size: 0.2

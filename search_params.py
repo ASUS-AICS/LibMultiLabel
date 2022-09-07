@@ -64,13 +64,8 @@ def load_config_from_file(config_path):
 
     # set relative path to absolute path (_path, _file, _dir)
     for k, v in config.items():
-        if isinstance(v, str) and os.path.exists(v):
+        if isinstance(v, str) and v is not None:
             config[k] = os.path.abspath(v)
-
-    # find `train.txt`, `val.txt`, and `test.txt` from the data directory if not specified.
-    config['train_path'] = config['train_path'] or os.path.join(config['data_dir'], 'train.txt')
-    config['val_path'] = config['val_path'] or os.path.join(config['data_dir'], 'valid.txt')
-    config['test_path'] = config['test_path'] or os.path.join(config['data_dir'], 'test.txt')
 
     return config
 
@@ -167,9 +162,9 @@ def load_static_data(config, merge_train_val=False):
     Returns:
         dict: A dict of static data containing datasets, classes, and word_dict.
     """
-    datasets = data_utils.load_datasets(train_path=config.train_path,
-                                        test_path=config.test_path,
-                                        val_path=config.val_path,
+    datasets = data_utils.load_datasets(training_file=config.training_file,
+                                        test_file=config.test_file,
+                                        val_file=config.val_file,
                                         val_size=config.val_size,
                                         merge_train_val=merge_train_val,
                                         tokenize_text='lm_weight' not in config['network_config'],
@@ -250,9 +245,9 @@ def main():
     config.merge_train_val = False  # no need to include validation during parameter search
 
     # Check if the validation set is provided.
-    val_path = config.val_path or os.path.join(config.data_dir, 'valid.txt')
-    assert config.val_size > 0 or os.path.exists(val_path), \
-        "You should specify either a positive `val_size` or a `val_path` defaults to `data_dir/valid.txt` for parameter search."
+    val_file = config.val_file
+    assert config.val_size > 0 or val_file is not None, \
+        "You should specify either a positive `val_size` or a `val_file` for parameter search."
 
     """Run tune analysis.
     - If no search algorithm is specified, the default search algorighm is BasicVariantGenerator.
