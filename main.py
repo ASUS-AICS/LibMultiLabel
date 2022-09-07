@@ -15,7 +15,7 @@ def add_all_arguments(parser):
                         help='The directory to save checkpoints and logs (default: %(default)s)')
 
     # data
-    parser.add_argument('--data_name', default='rcv1',
+    parser.add_argument('--data_name', default='unnamed',
                         help='Dataset name (default: %(default)s)')
     parser.add_argument('--training_file',
                         help='Path to training data (default: %(default)s)')
