@@ -170,7 +170,8 @@ class TorchTrainer:
             batch_size=self.config.batch_size if split == 'train' else self.config.eval_batch_size,
             shuffle=shuffle,
             data_workers=self.config.data_workers,
-            tokenizer=self.tokenizer
+            tokenizer=self.tokenizer,
+            add_special_tokens=self.config.add_special_tokens
         )
 
     def train(self):
