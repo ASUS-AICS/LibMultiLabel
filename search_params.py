@@ -45,31 +45,6 @@ def train_libmultilabel_tune(config, datasets, classes, word_dict):
     trainer.train()
 
 
-def load_config_from_file(config_path):
-    """Initialize the model config.
-
-    Args:
-        config_path (str): Path to the config file.
-
-    Returns:
-        AttributeDict: Config of the experiment.
-    """
-    with open(config_path) as fp:
-        config = yaml.safe_load(fp)
-
-    # create directories that hold the shared data
-    os.makedirs(config['result_dir'], exist_ok=True)
-    if config['embed_cache_dir']:
-        os.makedirs(config['embed_cache_dir'], exist_ok=True)
-
-    # set relative path to absolute path (_path, _file, _dir)
-    for k, v in config.items():
-        if isinstance(v, str) and os.path.exists(v):
-            config[k] = os.path.abspath(v)
-
-    return config
-
-
 def init_search_params_spaces(config, parameter_columns, prefix):
     """Initialize the sample space defined in ray tune.
     See the random distributions API listed here: https://docs.ray.io/en/master/tune/api_docs/search_space.html#random-distributions-api
@@ -351,14 +326,21 @@ def main():
 
     add_all_arguments(parser)
 
-    # Load config from the config file and overwrite values specified in CLI.
     parameter_columns = dict()  # parameters to include in progress table of CLIReporter
-    config = load_config_from_file(args.config)
     config = init_search_params_spaces(config, parameter_columns, prefix='')
     args = parser.parse_args()
     parser.set_defaults(**config)
     config = AttributeDict(vars(parser.parse_args()))
     config.merge_train_val = False  # no need to include validation during parameter search
+
+    os.makedirs(config['result_dir'], exist_ok=True)
+    if config['embed_cache_dir']:
+        os.makedirs(config['embed_cache_dir'], exist_ok=True)
+
+    # set relative path to absolute path (_path, _file, _dir)
+    for k, v in config.items():
+        if isinstance(v, str) and os.path.exists(v):
+            config[k] = os.path.abspath(v)
 
     # Check if the validation set is provided.
     val_file = config.val_file
