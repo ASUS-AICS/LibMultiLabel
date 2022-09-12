@@ -1,6 +1,5 @@
 # data
 training_file: data/rcv1/train.txt
-val_file: data/rcv1/valid.txt
 test_file: data/rcv1/test.txt
 data_name: rcv1
 
