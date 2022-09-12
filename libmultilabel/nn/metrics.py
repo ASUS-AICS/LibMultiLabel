@@ -173,7 +173,7 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes):
             top_k = int(match_top_k.group(2))
             if top_k >= num_classes:
                 raise ValueError(
-                    f'Invalid metric: {metric}. {top_k} is greater than {num_classes}.')
+                    f'Invalid metric: {metric}. top_k ({top_k}) is greater than num_classes({num_classes}).')
             if metric_abbr == 'P':
                 metrics[metric] = Precision(num_classes, average='samples', top_k=top_k)
             elif metric_abbr == 'R':

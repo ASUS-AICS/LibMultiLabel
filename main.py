@@ -29,8 +29,6 @@ def add_all_arguments(parser):
                         help='The minimum frequency needed to include a token in the vocabulary (default: %(default)s)')
     parser.add_argument('--max_seq_length', type=int, default=500,
                         help='The maximum number of tokens of a sample (default: %(default)s)')
-    parser.add_argument('--lm_weight', type=str,
-                        help='Pretrained model name or path (default: %(default)s)')
     parser.add_argument('--shuffle', type=bool, default=True,
                         help='Whether to shuffle training data before each epoch (default: %(default)s)')
     parser.add_argument('--merge_train_val', action='store_true',
