@@ -304,7 +304,7 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, cache=N
 
     Args:
         word_dict (torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
-        embed_file (str): Path to a file holding pre-trained embeddings.
+        embed_file (str): Path to a file holding pre-trained embeddings or a pretrained alias name from pytorch.
         silent (bool, optional): Enable silent mode. Defaults to False.
         cache (str, optional): Path to a directory for storing cached embeddings. Defaults to None.
 
@@ -312,7 +312,7 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, cache=N
         torch.Tensor: Embedding weights (vocab_size, embed_size)
     """
     # Load pretrained word embedding
-    load_embedding_from_file = embed_file is not None
+    load_embedding_from_file = os.path.exists(embed_file)
     if load_embedding_from_file:
         logging.info(f'Load pretrained embedding from file: {embed_file}.')
         with open(embed_file) as f:
