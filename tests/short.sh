@@ -73,7 +73,7 @@ find example_config -name "*.yml" -type f -print0 |
     while IFS= read -r -d '' config; do
         if [[ $config == *tune.yml ]]; then
             script=search_params.py
-            continue
+            continue # ray is buggy and hangs for some reason
         else
             script=main.py
         fi

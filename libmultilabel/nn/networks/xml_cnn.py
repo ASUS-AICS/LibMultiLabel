@@ -12,7 +12,7 @@ class XMLCNN(nn.Module):
         embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
         num_classes (int): Total number of classes.
         embed_dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
-        hidden_dropout (float): The dropout rate of the hidden layer output. Defaults to 0.
+        encoder_dropout (float): The dropout rate of the hidden layer output. Defaults to 0.
         filter_sizes (list): Size of convolutional filters.
         hidden_dim (int): Dimension of the hidden layer. Defaults to 512.
         num_filter_per_size (int): The number of filters in convolutional layers in each size. Defaults to 256.
@@ -24,7 +24,7 @@ class XMLCNN(nn.Module):
         embed_vecs,
         num_classes,
         embed_dropout=0.2,
-        hidden_dropout=0,
+        encoder_dropout=0,
         filter_sizes=None,
         hidden_dim=512,
         num_filter_per_size=256,
@@ -37,7 +37,7 @@ class XMLCNN(nn.Module):
                                   num_filter_per_size, activation,
                                   num_pool=num_pool)
         total_output_size = len(filter_sizes) * num_filter_per_size * num_pool
-        self.dropout = nn.Dropout(hidden_dropout)
+        self.dropout = nn.Dropout(encoder_dropout)
         self.linear1 = nn.Linear(total_output_size, hidden_dim)
         self.linear2 = nn.Linear(hidden_dim, num_classes)
         self.activation = getattr(torch, activation, getattr(F, activation))
