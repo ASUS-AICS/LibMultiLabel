@@ -312,7 +312,7 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, cache=N
         torch.Tensor: Embedding weights (vocab_size, embed_size)
     """
     # Load pretrained word embedding
-    load_embedding_from_file = embed_file is not None
+    load_embedding_from_file = os.path.exists(embed_file)
     if load_embedding_from_file:
         logging.info(f'Load pretrained embedding from file: {embed_file}.')
         with open(embed_file) as f:
