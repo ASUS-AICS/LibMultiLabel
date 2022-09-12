@@ -64,7 +64,7 @@ def load_config_from_file(config_path):
 
     # set relative path to absolute path (_path, _file, _dir)
     for k, v in config.items():
-        if isinstance(v, str) and v is not None:
+        if isinstance(v, str) and os.path.exists(v):
             config[k] = os.path.abspath(v)
 
     return config
