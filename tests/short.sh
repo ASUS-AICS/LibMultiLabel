@@ -37,6 +37,21 @@ datasets_with_vocab=(
     MIMIC
     MIMIC-50
 )
+pretrained_embed=(
+    charngram.100d
+    fasttext.en.300d
+    fasttext.simple.300d
+    glove.42B.300d
+    glove.840B.300d
+    glove.twitter.27B.25d
+    glove.twitter.27B.50d
+    glove.twitter.27B.100d
+    glove.twitter.27B.200d
+    glove.6B.50d
+    glove.6B.100d
+    glove.6B.200d
+    glove.6B.300d
+)
 
 if [[ -d data ]]; then
     echo "Please move the directory data, $0 overwrites it"
@@ -84,6 +99,10 @@ for d in ${datasets_with_vocab[@]}; do
     echo 'lorem' > "data/$d/vocab.csv"
 done
 
+for e in ${pretrained_embed[@]}; do
+    echo lorem $(seq -f '0.%g' 300) > "data/$e.txt"
+done
+
 tmp=("${@/#/-regex .*}")
 filters=${tmp[@]/%/.*}
 find example_config -name "*.yml" ${filters[@]} -type f -print0 |
@@ -96,7 +115,8 @@ find example_config -name "*.yml" ${filters[@]} -type f -print0 |
         fi
         echo "Running $config"
         stderr=$(python $script --config "$config" --epochs 1 \
-            --result_dir "$result_dir" 2>&1 > /dev/null)
+            --result_dir "$result_dir" --embed_cache_dir data \
+            2>&1 > /dev/null)
         if [[ $? -ne 0 ]]; then
             echo "$stderr" >&2
             exit 1
