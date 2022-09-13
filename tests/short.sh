@@ -1,5 +1,20 @@
 #! /bin/bash
 
+#######################################
+# This is a short test testing example configs on fake data.
+# The test stops at the first error and exits with non-zero status.
+# Please run this script in the LibMultilabel directory.
+# Usage:
+#   bash tests/short.sh [filters...]
+# filters restricts the tested configs that have paths containing all values.
+#
+# Examples:
+#   Test all configs:
+#       bash tests/short.sh
+#   Test kimcnn:
+#       bash tests/short.sh kim
+#######################################
+
 result_dir="/tmp/libmultilabel-test-$(whoami)/runs"
 datasets=(
     MIMIC-50
@@ -69,7 +84,9 @@ for d in ${datasets_with_vocab[@]}; do
     echo 'lorem' > "data/$d/vocab.csv"
 done
 
-find example_config -name "*.yml" -type f -print0 |
+tmp=("${@/#/-regex .*}")
+filters=${tmp[@]/%/.*}
+find example_config -name "*.yml" ${filters[@]} -type f -print0 |
     while IFS= read -r -d '' config; do
         if [[ $config == *tune.yml ]]; then
             script=search_params.py
@@ -81,7 +98,7 @@ find example_config -name "*.yml" -type f -print0 |
         stderr=$(python $script --config "$config" --epochs 1 \
             --result_dir "$result_dir" 2>&1 > /dev/null)
         if [[ $? -ne 0 ]]; then
-            echo "$stderr"
+            echo "$stderr" >&2
             exit 1
         fi
     done
