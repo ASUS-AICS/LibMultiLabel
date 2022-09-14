@@ -1,18 +1,18 @@
 #! /bin/bash
 
 #######################################
-# This is a short test testing example configs on fake data.
+# This is a basic test running example configs on fake data.
 # The test stops at the first error and exits with non-zero status.
 # Please run this script in the LibMultilabel directory.
 # Usage:
-#   bash tests/short.sh [filters...]
+#   bash tests/basic.sh [filters...]
 # filters restricts the tested configs that have paths containing all values.
 #
 # Examples:
 #   Test all configs:
-#       bash tests/short.sh
+#       bash tests/basic.sh
 #   Test kimcnn:
-#       bash tests/short.sh kim
+#       bash tests/basic.sh kim
 #######################################
 
 result_dir="/tmp/libmultilabel-test-$(whoami)/runs"
@@ -109,7 +109,7 @@ find example_config -name "*.yml" ${filters[@]} -type f -print0 |
     while IFS= read -r -d '' config; do
         if [[ $config == *tune.yml ]]; then
             script=search_params.py
-            continue # ray is buggy and hangs for some reason
+            continue # parameter search is not ready for testing
         else
             script=main.py
         fi
