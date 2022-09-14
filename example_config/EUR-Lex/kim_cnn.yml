@@ -1,6 +1,5 @@
 # data
 training_file: data/EUR-Lex/train.txt
-val_file: data/EUR-Lex/valid.txt
 test_file: data/EUR-Lex/test.txt
 data_name: EUR-Lex
 min_vocab_freq: 1

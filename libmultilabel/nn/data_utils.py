@@ -312,7 +312,7 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, cache=N
         torch.Tensor: Embedding weights (vocab_size, embed_size)
     """
     # Load pretrained word embedding
-    load_embedding_from_file = os.path.exists(embed_file)
+    load_embedding_from_file = not embed_file in pretrained_aliases
     if load_embedding_from_file:
         logging.info(f'Load pretrained embedding from file: {embed_file}.')
         with open(embed_file) as f:
@@ -328,9 +328,9 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, cache=N
         # Adapted from https://pytorch.org/text/0.9.0/_modules/torchtext/vocab.html#Vocab.load_vectors.
         if embed_file not in pretrained_aliases:
             raise ValueError(
-                "Got string input vector {}, but allowed pretrained "
+                "Got embed_file {}, but allowed pretrained "
                 "vectors are {}".format(
-                    vector, list(pretrained_aliases.keys())))
+                    embed_file, list(pretrained_aliases.keys())))
         vector_dict = pretrained_aliases[embed_file](cache=cache)
         embed_size = vector_dict.dim
 

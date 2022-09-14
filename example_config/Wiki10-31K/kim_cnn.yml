@@ -1,6 +1,5 @@
 # data
 training_file: data/Wiki10-31K/train.txt
-val_file: data/Wiki10-31K/valid.txt
 test_file: data/Wiki10-31K/test.txt
 data_name: Wiki10-31K
 min_vocab_freq: 1
