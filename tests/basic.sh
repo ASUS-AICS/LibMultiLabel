@@ -5,14 +5,16 @@
 # The test stops at the first error and exits with non-zero status.
 # Please run this script in the LibMultilabel directory.
 # Usage:
-#   bash tests/basic.sh [filters...]
+#   tests/basic.sh [filters...]
 # filters restricts the tested configs that have paths containing all values.
 #
 # Examples:
 #   Test all configs:
-#       bash tests/basic.sh
-#   Test kimcnn:
-#       bash tests/basic.sh kim
+#       tests/basic.sh
+#   Test KimCNN on all datasets:
+#       tests/basic.sh kim
+#   Test all models on rcv1:
+#       tests/basic.sh rcv1
 #######################################
 
 result_dir="/tmp/libmultilabel-test-$(whoami)/runs"
