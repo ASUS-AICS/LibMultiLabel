@@ -9,6 +9,7 @@ max_seq_length: 500
 # which handles zero-shots and reports Micro-F1.
 include_test_labels: true
 remove_no_label_data: false
+add_special_tokens: false
 
 # train
 seed: 1337
