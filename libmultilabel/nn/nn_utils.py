@@ -154,7 +154,7 @@ def init_trainer(checkpoint_dir,
                          limit_train_batches=limit_train_batches,
                          limit_val_batches=limit_val_batches,
                          limit_test_batches=limit_test_batches,
-                         deterministic=True)
+                         deterministic='warn')
     return trainer
 
 

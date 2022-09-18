@@ -245,8 +245,9 @@ def main():
     config.merge_train_val = False  # no need to include validation during parameter search
 
     # Check if the validation set is provided.
-    val_file = config.val_file
-    assert config.val_size > 0 or val_file is not None, \
+    if 'val_file' not in config:
+        config.val_file = None
+    assert config.val_size > 0 or config.val_file is not None, \
         "You should specify either a positive `val_size` or a `val_file` for parameter search."
 
     """Run tune analysis.
