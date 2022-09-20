@@ -33,7 +33,8 @@ These tutorials shows how the library API may be used in
 end-to-end examples. After these tutorials, more in-depth
 explanations can be found in the `user guides <placeholder>`_.
 
-* `Neural Network <nn_tutorial.html>`_
 * `Linear Classification <linear_tutorial.html>`_
+* `Neural Network <nn_tutorial.html>`_
+* `Bert <bert_tutorial.html>`_
 
 
