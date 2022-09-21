@@ -44,42 +44,51 @@ to assign the hardware device that you want to use.
 
 
 Step 1. Load LibMultiLabel format data set
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-
-
-
-Now we're going to process the rcv1 data.
-First, create the training, test, and validation (optional) datasets from text files.
-
-    * Put ``train.txt`` and ``test.txt`` in your data directory (i.e., ``data/rcv1``).
-      Please refer to `here <linear_tutorial.html#getting-the-dataset>`__ for more details.
-    * Load and preprocess raw data with ``data_utils.load_datasets``.
-      Other arguments can be found `here <../api/nn.html#libmultilabel.nn.data_utils.load_datasets>`__.
-      For example, the function performs a training-validation split based on the ``val_size``.
-      You can also provide your own validation set by adding ``valid.txt`` in the data directory.
-
-Then, build labels and word dictionary with datasets generated above.
-You can either choose one of the pretrained embeddings defined in torchtext or specify the path
-to your word embeddings with each line containing a word followed by its vectors.
+We assume that the ``EUR-Lex-57k`` data is located at the directory ``./data/EUR-Lex-57k``, 
+and there exists the files ``train.txt``, ``valid.txt`` and ``test.txt``.
+You can utilize
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 11-17
+    :lines: 11-16
+
+to load the data set.
+Other arguments of ``data_utils.load_datasets`` can be found `here <../api/nn.html#libmultilabel.nn.data_utils.load_datasets>`__.
+
+For the labels of the data, we apply
+
+.. literalinclude:: ../examples/bert_quickstart.py
+    :language: python3
+    :lines: 17
+
+to generate the label set.
 
 Step 2. Initialize a model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Here we show how to create a model.
+Let us introduce the variables as the inputs of ``init_model`` function on the following.
 
-    * Configure the network with `model_name <nn_networks.html>`_ and ``network_config``.
-    * Define labels and text dictionary (i.e., ``classes`` and ``word_dict``) of this model.
-    * Find `more here <../api/nn.html#libmultilabel.nn.nn_utils.init_model>`_ if you are interested in other settings.
-      For example, a ``moniter_metrics`` is used to define the metrics you'd like to keep track with during the training procedure.
+    * ``model_name`` leads ``init_model`` function to find a network model. More details are in `here <nn_networks.html>`_.
+    * ``network_config`` contains the configurations of a network model. In this example, we set it as
 
-.. literalinclude:: ../examples/nn_quickstart.py
+     .. literalinclude:: ../examples/bert_quickstart.py
+         :language: python3
+         :lines: 20-25
+
+    * ``classes`` is the label set of the data.
+    * ``init_weight``, ``word_dict`` and ``embed_vecs`` are not used on a bert-base model, so we can ignore them.
+    * You can check more information from `here <../api/nn.html#libmultilabel.nn.nn_utils.init_model>`_ if you are interested in other settings.
+      For example, ``moniter_metrics`` is used to define the metrics you would like to track during the training procedure.
+    
+Overall, we use
+
+.. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 16-27
+    :lines: 26-36
+
+to initialize a model.
 
 Step 3. Initialize a trainer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
