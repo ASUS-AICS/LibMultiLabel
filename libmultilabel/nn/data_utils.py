@@ -39,11 +39,7 @@ class TextDataset(Dataset):
         data = self.data[index]
 
         if self.tokenizer is not None: # transformers tokenizer
-            input_ids = self.tokenizer.encode(data['text'],
-                                              add_special_tokens=self.add_special_tokens,
-                                              padding='max_length',
-                                              max_length=self.max_seq_length,
-                                              truncation=True)
+            input_ids = self.tokenizer.encode(data['text'], add_special_tokens=self.add_special_tokens)
         else:
             input_ids = [self.word_dict[word] for word in data['text']]
         return {
