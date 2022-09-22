@@ -55,7 +55,7 @@ You can utilize
     :lines: 11-16
 
 to load the data set.
-Other arguments of ``data_utils.load_datasets`` can be found `here <../api/nn.html#libmultilabel.nn.data_utils.load_datasets>`__.
+Other arguments of ``data_utils.load_datasets`` can be found `here <../api/nn.html#libmultilabel.nn.data_utils.load_datasets>`_.
 
 For the labels of the data, we apply
 
@@ -93,39 +93,53 @@ to initialize a model.
 Step 3. Initialize a trainer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To train the model, we need a trainer to control processes like training loop or validation.
+We use the function ``init_trainer`` to initialize a trainer, which controls processes such as the number of training loops. 
+The example is shown as the follows.
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 30-32
+    :lines: 39-41
+
+In this example, we set the number of training loops as ``epochs=15``, and further focus the metric ``P@5`` on validation data. 
+For the other variables of ``init_trainer``, please check in `here <../api/nn.html#libmultilabel.nn.nn_utils.init_trainer>`_.
 
 Step 4. Create data loaders
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Create pytorch data loaders for datasets we created in
-`Step 1 <nn_tutorial.html#step-1-load-data-from-text-files>`_.
+In most cases, we do not load full data set for training/validating/testing a bert model due to the limitation of hardware, 
+which usually comes from the insufficient memory storage issue. 
+Therefore, data loader can load the data set as many random sampling subsets, which is usually denoted by ``batch``, 
+and the hardware can then handle one batch of the data in one time.
+
+Let us show an example that creates pytorch data loaders form the datasets we created in
+`Step 1 <bert_tutorial.html#step-1-load-libmultilabel-format-data-set>`_.
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 35-41
+    :lines: 44-54
 
-Step 5. Train and test the model
+This example loads three loaders, and the batch size is set by ``batch_size=8``. Other variables can be checked in `here <../api/nn.html#libmultilabel.nn.data_utils.get_dataset_loader>`_.
+
+Step 5. Train and test a model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Everything's ready. Let's start training with ``trainer.train``.
+Note that we have initialize the ``model`` in `Step 2 <bert_tutorial.html#step-2-initialize-a-model>`_, 
+and the ``trainer`` in `Step 3 <bert_tutorial.html#step-3-initialize-a-trainer>`_.
+With the ``train`` and ``val`` data loaders which are created in `Step 4 <bert_tutorial.html#step-4-create-data-loaders>`_, 
+the bert model training process can be started via 
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 44
+    :lines: 57
 
-When training is finished, test the model with ``trainer.test``.
+When the training process is finished, we can then run the testing process by
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 47
+    :lines: 60
 
-The results will look similar to::
+After the testing process, the results are looked similar to::
 
-    {'Macro-F1': 0.4615944665965527, 'Micro-F1': 0.7823446989059448, 'P@1': 0.9514147043228149, 'P@3': 0.783452033996582, 'P@5': 0.549974799156189}
+  {'Macro-F1': 0.24686789646612792, 'Micro-F1': 0.7266660332679749, 'P@1': 0.9016666412353516, 'P@3': 0.8070555925369263, 'P@5': 0.6758000254631042}
 
-Get the full source code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/bert_quickstart.py>`_.
+Please get the full example code in `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/bert_quickstart.py>`_.
