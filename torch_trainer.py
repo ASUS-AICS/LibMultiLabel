@@ -17,8 +17,6 @@ class TorchTrainer:
     Args:
         config (AttributeDict): Config of the experiment.
         datasets (dict, optional): Datasets for training, validation, and test. Defaults to None.
-        classes(list, optional): List of class names.
-        word_dict(torchtext.vocab.Vocab, optional): A vocab object which maps tokens to indices.
         embed_vecs (torch.Tensor, optional): The pre-trained word vectors of shape (vocab_size, embed_dim).
         search_params (bool, optional): Enable pytorch-lightning trainer to report the results to ray tune
             on validation end during hyperparameter search. Defaults to False.
@@ -29,8 +27,6 @@ class TorchTrainer:
         self,
         config: dict,
         datasets: dict = None,
-        classes: list = None,
-        word_dict: dict = None,
         embed_vecs = None,
         search_params: bool = False,
         save_checkpoints: bool = True
@@ -64,9 +60,7 @@ class TorchTrainer:
         else:
             self.datasets = datasets
 
-        self._setup_model(classes=classes,
-                          word_dict=word_dict,
-                          embed_vecs=embed_vecs,
+        self._setup_model(embed_vecs=embed_vecs,
                           log_path=self.log_path,
                           checkpoint_path=config.checkpoint_path)
         self.trainer = init_trainer(checkpoint_dir=self.checkpoint_dir,
@@ -88,8 +82,6 @@ class TorchTrainer:
 
     def _setup_model(
         self,
-        classes: list = None,
-        word_dict: dict = None,
         embed_vecs = None,
         log_path: str = None,
         checkpoint_path: str = None
@@ -98,8 +90,6 @@ class TorchTrainer:
         Otherwise, initialize model from scratch.
 
         Args:
-            classes(list): List of class names.
-            word_dict(torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
             embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
             log_path (str): Path to the log file. The log file contains the validation
                 results for each epoch and the test results. If the `log_path` is None, no performance
@@ -125,9 +115,8 @@ class TorchTrainer:
                     normalize_embed=self.config.normalize_embed,
                     embed_cache_dir=self.config.embed_cache_dir
                 )
-            if not classes:
-                classes = data_utils.load_or_build_label(
-                    self.datasets, self.config.label_file, self.config.include_test_labels)
+            classes = data_utils.load_or_build_label(
+                self.datasets, self.config.label_file, self.config.include_test_labels)
 
             if self.config.val_metric not in self.config.monitor_metrics:
                 logging.warn(

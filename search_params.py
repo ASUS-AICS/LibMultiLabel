@@ -21,14 +21,12 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s:%(message)s')
 
 
-def train_libmultilabel_tune(config, datasets, classes, word_dict):
+def train_libmultilabel_tune(config, datasets):
     """The training function for ray tune.
 
     Args:
         config (AttributeDict): Config of the experiment.
         datasets (dict): A dictionary of datasets.
-        classes(list): List of class names.
-        word_dict(torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
     """
     set_seed(seed=config.seed)
     config.run_name = tune.get_trial_dir()
@@ -38,8 +36,6 @@ def train_libmultilabel_tune(config, datasets, classes, word_dict):
 
     trainer = TorchTrainer(config=config,
                            datasets=datasets,
-                           classes=classes,
-                           word_dict=word_dict,
                            search_params=True,
                            save_checkpoints=False)
     trainer.train()
@@ -160,7 +156,7 @@ def load_static_data(config, merge_train_val=False):
             Defaults to False.
 
     Returns:
-        dict: A dict of static data containing datasets, classes, and word_dict.
+        dict: A dict of static data containing datasets.
     """
     datasets = data_utils.load_datasets(training_file=config.training_file,
                                         test_file=config.test_file,
@@ -172,16 +168,6 @@ def load_static_data(config, merge_train_val=False):
                                         )
     return {
         "datasets": datasets,
-        "word_dict": None if config.embed_file is None else data_utils.load_or_build_text_dict(
-            dataset=datasets['train'],
-            vocab_file=config.vocab_file,
-            min_vocab_freq=config.min_vocab_freq,
-            embed_file=config.embed_file,
-            embed_cache_dir=config.embed_cache_dir,
-            silent=config.silent,
-            normalize_embed=config.normalize_embed
-        ),
-        "classes": data_utils.load_or_build_label(datasets, config.label_file, config.include_test_labels)
     }
 
 
