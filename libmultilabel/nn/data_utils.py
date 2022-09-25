@@ -4,6 +4,8 @@ import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 import torch
+import transformers
+transformers.logging.set_verbosity_error()
 import pandas as pd
 from nltk.tokenize import RegexpTokenizer
 from sklearn.model_selection import train_test_split
@@ -80,7 +82,7 @@ def get_dataset_loader(
     shuffle=False,
     data_workers=4,
     tokenizer=None,
-    add_special_tokens=False # ??
+    add_special_tokens=False # PR203
 ):
     """Create a pytorch DataLoader.
 
