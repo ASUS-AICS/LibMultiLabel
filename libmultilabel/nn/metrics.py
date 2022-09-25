@@ -137,7 +137,7 @@ class MacroF1(Metric):
             return torch.mean(label_f1)
 
 
-def get_metrics(metric_threshold, monitor_metrics, num_classes):
+def get_metrics(metric_threshold, monitor_metrics, num_classes, top_k=None):
     """Map monitor metrics to the corresponding classes defined in `torchmetrics.Metric`
     (https://torchmetrics.readthedocs.io/en/latest/references/modules.html).
 
@@ -194,7 +194,7 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes):
             metric_type = match_metric.group(2) # Precision, Recall, or F1
             metric_type = metric_type.replace('F1', 'F1Score') # to be determined
             metrics[metric] = getattr(torchmetrics.classification, metric_type)(
-                num_classes, metric_threshold, average=average_type)
+                num_classes, metric_threshold, average=average_type, top_k=top_k)
         else:
             raise ValueError(
                 f'Invalid metric: {metric}. Make sure the metric is in the right format: Macro/Micro-Precision/Recall/F1 (ex. Micro-F1)')

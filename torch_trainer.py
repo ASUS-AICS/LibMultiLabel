@@ -147,8 +147,9 @@ class TorchTrainer:
                                     weight_decay=self.config.weight_decay,
                                     metric_threshold=self.config.metric_threshold,
                                     monitor_metrics=self.config.monitor_metrics,
+                                    multiclass=self.config.multiclass,
                                     silent=self.config.silent,
-                                    save_k_predictions=self.config.save_k_predictions
+                                    save_k_predictions=self.config.save_k_predictions,
                                    )
 
     def _get_dataset_loader(self, split, shuffle=False):

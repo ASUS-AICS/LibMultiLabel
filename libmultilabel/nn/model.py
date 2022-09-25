@@ -22,6 +22,7 @@ class MultiLabelModel(pl.LightningModule):
         metric_threshold (float, optional): Threshold to monitor for metrics. Defaults to 0.5.
         monitor_metrics (list, optional): Metrics to monitor while validating. Defaults to None.
         log_path (str): Path to a directory holding the log files and models.
+        multiclass (bool, optional): Enable multiclass mode. Defaults to False.
         silent (bool, optional): Enable silent mode. Defaults to False.
         save_k_predictions (int, optional): Save top k predictions on test set. Defaults to 0.
     """
@@ -36,6 +37,7 @@ class MultiLabelModel(pl.LightningModule):
         metric_threshold=0.5,
         monitor_metrics=None,
         log_path=None,
+        multiclass=False,
         silent=False,
         save_k_predictions=0,
         **kwargs
@@ -54,7 +56,8 @@ class MultiLabelModel(pl.LightningModule):
         self.save_k_predictions = save_k_predictions
 
         # metrics for evaluation
-        self.eval_metric = get_metrics(metric_threshold, monitor_metrics, num_classes)
+        top_k = 1 if multiclass else None
+        self.eval_metric = get_metrics(metric_threshold, monitor_metrics, num_classes, top_k=top_k)
 
     @abstractmethod
     def shared_step(self, batch):
