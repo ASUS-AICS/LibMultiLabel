@@ -56,7 +56,8 @@ class MultiLabelModel(pl.LightningModule):
         self.save_k_predictions = save_k_predictions
 
         # metrics for evaluation
-        top_k = 1 if multiclass else None
+        self.multiclass = multiclass
+        top_k = 1 if self.multiclass else None
         self.eval_metric = get_metrics(metric_threshold, monitor_metrics, num_classes, top_k=top_k)
 
     @abstractmethod
@@ -225,5 +226,9 @@ class Model(MultiLabelModel):
         target_labels = batch['label']
         outputs = self.network(batch)
         pred_logits = outputs['logits']
-        loss = F.binary_cross_entropy_with_logits(pred_logits, target_labels.float())
+
+        if self.multiclass:
+            loss = F.cross_entropy(pred_logits, target_labels.float())
+        else:
+            loss = F.binary_cross_entropy_with_logits(pred_logits, target_labels.float())
         return loss, pred_logits
