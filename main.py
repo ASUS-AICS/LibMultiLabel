@@ -66,7 +66,7 @@ def add_all_arguments(parser):
     parser.add_argument('--init_weight', default='kaiming_uniform',
                         help='Weight initialization to be used (default: %(default)s)')
     parser.add_argument('--multiclass', action='store_true', help='Enable multiclass')
-    parser.add_argument('--loss_function', default='binary_cross_entropy_with_logits', help='Optimizer (default: %(default)s)')
+    parser.add_argument('--loss_function', default='binary_cross_entropy_with_logits', help='Loss function (default: %(default)s)')
 
     # eval
     parser.add_argument('--eval_batch_size', type=int, default=256,
