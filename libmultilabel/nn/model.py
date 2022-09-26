@@ -58,7 +58,8 @@ class MultiLabelModel(pl.LightningModule):
         # metrics for evaluation
         self.multiclass = multiclass
         top_k = 1 if self.multiclass else None
-        self.eval_metric = get_metrics(metric_threshold, monitor_metrics, num_classes, top_k=top_k)
+        self.eval_metric = get_metrics(
+            metric_threshold, monitor_metrics, num_classes, top_k=top_k)
 
     @abstractmethod
     def shared_step(self, batch):
@@ -203,6 +204,7 @@ class Model(MultiLabelModel):
         word_dict,
         embed_vecs,
         network,
+        loss_function='binary_cross_entropy_with_logits',
         log_path=None,
         **kwargs
     ):
@@ -212,6 +214,13 @@ class Model(MultiLabelModel):
         self.embed_vecs = embed_vecs
         self.classes = classes
         self.network = network
+        self.configure_loss_function(loss_function)
+
+    def configure_loss_function(self, loss_function):
+        assert hasattr(F, loss_function), """
+            Invalid `loss_function`. Make sure the loss function is defined here:
+            https://pytorch.org/docs/stable/nn.functional.html#loss-functions"""
+        self.loss_function = getattr(F, loss_function)
 
     def shared_step(self, batch):
         """Return loss and predicted logits of the network.
@@ -220,15 +229,12 @@ class Model(MultiLabelModel):
             batch (dict): A batch of text and label.
 
         Returns:
-            loss (torch.Tensor): Binary cross-entropy between target and predict logits.
+            loss (torch.Tensor): Loss between target and predict logits.
             pred_logits (torch.Tensor): The predict logits (batch_size, num_classes).
         """
         target_labels = batch['label']
         outputs = self.network(batch)
         pred_logits = outputs['logits']
+        loss = self.loss_function(pred_logits, target_labels.float())
 
-        if self.multiclass:
-            loss = F.cross_entropy(pred_logits, target_labels.float())
-        else:
-            loss = F.binary_cross_entropy_with_logits(pred_logits, target_labels.float())
         return loss, pred_logits

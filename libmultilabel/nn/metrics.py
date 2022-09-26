@@ -126,7 +126,8 @@ class MacroF1(Metric):
         assert preds.shape == target.shape
         if self.top_k:
             preds = select_topk(preds, self.top_k)
-        preds = torch.where(preds > self.metric_threshold, 1, 0)
+        else:
+            preds = torch.where(preds > self.metric_threshold, 1, 0)
 
         self.preds_sum = torch.add(self.preds_sum, preds.sum(dim=0))
         self.target_sum = torch.add(self.target_sum, target.sum(dim=0))

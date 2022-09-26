@@ -48,6 +48,7 @@ def init_model(model_name,
                metric_threshold=0.5,
                monitor_metrics=None,
                multiclass=False,
+               loss_function='binary_cross_entropy_with_logits',
                silent=False,
                save_k_predictions=0):
     """Initialize a `Model` class for initializing and training a neural network.
@@ -100,6 +101,7 @@ def init_model(model_name,
         metric_threshold=metric_threshold,
         monitor_metrics=monitor_metrics,
         multiclass=multiclass,
+        loss_function=loss_function,
         silent=silent,
         save_k_predictions=save_k_predictions
     )
