@@ -38,8 +38,14 @@ class TextDataset(Dataset):
     def __getitem__(self, index):
         data = self.data[index]
 
-        if self.tokenizer is not None: # transformers tokenizer
-            input_ids = self.tokenizer.encode(data['text'], add_special_tokens=self.add_special_tokens)
+        if self.tokenizer is not None:  # transformers tokenizer
+            if self.add_special_tokens:  # tentatively hard code
+                input_ids = self.tokenizer.encode(data['text'],
+                                                  padding='max_length',
+                                                  max_length=self.max_seq_length,
+                                                  truncation=True)
+            else:
+                input_ids = self.tokenizer.encode(data['text'], add_special_tokens=False)
         else:
             input_ids = [self.word_dict[word] for word in data['text']]
         return {
@@ -101,7 +107,8 @@ def get_dataset_loader(
     Returns:
         torch.utils.data.DataLoader: A pytorch DataLoader.
     """
-    dataset = TextDataset(data, word_dict, classes, max_seq_length, tokenizer=tokenizer)
+    dataset = TextDataset(data, word_dict, classes, max_seq_length, tokenizer=tokenizer,
+                          add_special_tokens=add_special_tokens)
     dataset_loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=batch_size,
