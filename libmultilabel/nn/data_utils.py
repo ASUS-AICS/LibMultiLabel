@@ -88,7 +88,7 @@ def get_dataset_loader(
     shuffle=False,
     data_workers=4,
     tokenizer=None,
-    add_special_tokens=False # PR203
+    add_special_tokens=False
 ):
     """Create a pytorch DataLoader.
 
