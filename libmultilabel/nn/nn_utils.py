@@ -71,6 +71,8 @@ def init_model(model_name,
         monitor_metrics (list, optional): Metrics to monitor while validating. Defaults to None.
         multiclass (bool, optional): Enable multiclass mode. Defaults to False.
         silent (bool, optional): Enable silent mode. Defaults to False.
+        loss_function (str, optional): Loss function name (i.e., binary_cross_entropy_with_logits,
+            cross_entropy). Defaults to 'binary_cross_entropy_with_logits'.
         save_k_predictions (int, optional): Save top k predictions on test set. Defaults to 0.
 
     Returns:

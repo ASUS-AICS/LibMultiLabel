@@ -196,6 +196,8 @@ class Model(MultiLabelModel):
         word_dict (torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
         embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
         network (nn.Module): Network (i.e., CAML, KimCNN, or XMLCNN).
+        loss_function (str, optional): Loss function name (i.e., binary_cross_entropy_with_logits,
+            cross_entropy). Defaults to 'binary_cross_entropy_with_logits'.
         log_path (str): Path to a directory holding the log files and models.
     """
     def __init__(
