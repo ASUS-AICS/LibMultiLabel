@@ -47,6 +47,8 @@ def init_model(model_name,
                weight_decay=0,
                metric_threshold=0.5,
                monitor_metrics=None,
+               multiclass=False,
+               loss_function='binary_cross_entropy_with_logits',
                silent=False,
                save_k_predictions=0):
     """Initialize a `Model` class for initializing and training a neural network.
@@ -67,7 +69,10 @@ def init_model(model_name,
         weight_decay (int, optional): Weight decay factor. Defaults to 0.
         metric_threshold (float, optional): Threshold to monitor for metrics. Defaults to 0.5.
         monitor_metrics (list, optional): Metrics to monitor while validating. Defaults to None.
+        multiclass (bool, optional): Enable multiclass mode. Defaults to False.
         silent (bool, optional): Enable silent mode. Defaults to False.
+        loss_function (str, optional): Loss function name (i.e., binary_cross_entropy_with_logits,
+            cross_entropy). Defaults to 'binary_cross_entropy_with_logits'.
         save_k_predictions (int, optional): Save top k predictions on test set. Defaults to 0.
 
     Returns:
@@ -97,6 +102,8 @@ def init_model(model_name,
         weight_decay=weight_decay,
         metric_threshold=metric_threshold,
         monitor_metrics=monitor_metrics,
+        multiclass=multiclass,
+        loss_function=loss_function,
         silent=silent,
         save_k_predictions=save_k_predictions
     )

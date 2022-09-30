@@ -3,7 +3,7 @@ import re
 import numpy as np
 import torch
 import torchmetrics.classification
-from torchmetrics import Metric, MetricCollection, Precision, Recall, RetrievalNormalizedDCG
+from torchmetrics import Metric, MetricCollection, Precision, Recall
 from torchmetrics.functional.retrieval.ndcg import retrieval_normalized_dcg
 from torchmetrics.utilities.data import select_topk
 
@@ -111,18 +111,24 @@ class MacroF1(Metric):
         self,
         num_classes,
         metric_threshold,
-        another_macro_f1=False
+        another_macro_f1=False,
+        top_k=None
     ):
         super().__init__()
         self.metric_threshold = metric_threshold
         self.another_macro_f1 = another_macro_f1
+        self.top_k = top_k
         self.add_state("preds_sum", default=torch.zeros(num_classes, dtype=torch.double))
         self.add_state("target_sum", default=torch.zeros(num_classes, dtype=torch.double))
         self.add_state("tp_sum", default=torch.zeros(num_classes, dtype=torch.double))
 
     def update(self, preds, target):
         assert preds.shape == target.shape
-        preds = torch.where(preds > self.metric_threshold, 1, 0)
+        if self.top_k:
+            preds = select_topk(preds, self.top_k)
+        else:
+            preds = torch.where(preds > self.metric_threshold, 1, 0)
+
         self.preds_sum = torch.add(self.preds_sum, preds.sum(dim=0))
         self.target_sum = torch.add(self.target_sum, target.sum(dim=0))
         self.tp_sum = torch.add(self.tp_sum, (preds & target).sum(dim=0))
@@ -137,7 +143,7 @@ class MacroF1(Metric):
             return torch.mean(label_f1)
 
 
-def get_metrics(metric_threshold, monitor_metrics, num_classes):
+def get_metrics(metric_threshold, monitor_metrics, num_classes, top_k=None):
     """Map monitor metrics to the corresponding classes defined in `torchmetrics.Metric`
     (https://torchmetrics.readthedocs.io/en/latest/references/modules.html).
 
@@ -186,15 +192,15 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes):
                 # which can lead to CUDA out of memory.
                 # metrics[metric] = RetrievalNormalizedDCG(k=top_k)
         elif metric == 'Another-Macro-F1':
-            metrics[metric] = MacroF1(num_classes, metric_threshold, another_macro_f1=True)
+            metrics[metric] = MacroF1(num_classes, metric_threshold, another_macro_f1=True, top_k=top_k)
         elif metric == 'Macro-F1':
-            metrics[metric] = MacroF1(num_classes, metric_threshold)
+            metrics[metric] = MacroF1(num_classes, metric_threshold, top_k=top_k)
         elif match_metric:
             average_type = match_metric.group(1).lower() # Micro
             metric_type = match_metric.group(2) # Precision, Recall, or F1
             metric_type = metric_type.replace('F1', 'F1Score') # to be determined
             metrics[metric] = getattr(torchmetrics.classification, metric_type)(
-                num_classes, metric_threshold, average=average_type)
+                num_classes, metric_threshold, average=average_type, top_k=top_k)
         else:
             raise ValueError(
                 f'Invalid metric: {metric}. Make sure the metric is in the right format: Macro/Micro-Precision/Recall/F1 (ex. Micro-F1)')

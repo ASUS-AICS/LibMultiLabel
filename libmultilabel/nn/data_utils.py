@@ -1,11 +1,11 @@
 import gc
 import logging
-import os
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 import torch
-import numpy as np
+import transformers
+transformers.logging.set_verbosity_error()
 import pandas as pd
 from nltk.tokenize import RegexpTokenizer
 from sklearn.model_selection import train_test_split
@@ -142,7 +142,7 @@ def _load_raw_data(path, is_test=False, tokenize_text=True, remove_no_label_data
     else:
         raise ValueError(f'Expected 2 or 3 columns, got {data.shape[1]}.')
 
-    data['label'] = data['label'].map(lambda s: s.split())
+    data['label'] = data['label'].astype(str).map(lambda s: s.split())
     if tokenize_text:
         data['text'] = data['text'].map(tokenize)
     data = data.to_dict('records')
