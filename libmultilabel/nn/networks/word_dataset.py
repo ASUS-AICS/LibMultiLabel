@@ -1,5 +1,5 @@
 from tqdm import tqdm
-from torchtext.vocab import build_vocab_from_iterator, pretrained_aliases
+from torchtext.vocab import build_vocab_from_iterator, pretrained_aliases, Vocab
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import Dataset
 from sklearn.preprocessing import MultiLabelBinarizer
@@ -10,6 +10,8 @@ import torch
 import gc
 import logging
 import warnings
+
+# TODO: why this?
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
@@ -17,18 +19,16 @@ UNK = '<unk>'
 PAD = '<pad>'
 
 
-class WordDataset(Dataset):
+class TokenDataset(Dataset):
     """Amazing docstring about this class"""
 
-    def __init__(self, data, word_dict, classes, max_seq_length, tokenizer=None, add_special_tokens=False):
+    def __init__(self, data, word_dict, classes, max_seq_length):
         self.data = {
             **data,
             'text': data['text'].map(tokenize),
         }
         self.word_dict = word_dict
-        self.classes = classes
         self.max_seq_length = max_seq_length
-        self.num_classes = len(self.classes)
         self.label_binarizer = MultiLabelBinarizer().fit([classes])
 
     def __len__(self):
@@ -57,6 +57,79 @@ def tokenize(text):
     return [t.lower() for t in tokenizer.tokenize(text) if not t.isnumeric()]
 
 
+def build_vocabulary(dataset: 'dict[str, any]', min_vocab_freq: int = 1) -> Vocab:
+    vocab_list = [set(data['text']) for data in dataset]
+    vocab = build_vocab_from_iterator(vocab_list, min_freq=min_vocab_freq,
+                                     specials=[PAD, UNK])
+
+    vocab.set_default_index(vocab[UNK])
+    return vocab
+
+
+def load_vocabulary(vocab_file: str) -> Vocab:
+    logging.info(f'Load vocab from {vocab_file}')
+    with open(vocab_file, 'r') as fp:
+        vocab_list = [[vocab.strip() for vocab in fp.readlines()]]
+
+    # TODO: the following comment is indecipherable
+    # Keep PAD index 0 to align `padding_idx` of
+    # class Embedding in libmultilabel.nn.networks.modules.
+    vocab = build_vocab_from_iterator(vocab_list, min_freq=1,
+                                     specials=[PAD, UNK])
+
+    vocab.set_default_index(vocab[UNK])
+    return vocab
+
+
+def load_embedding_weights(vocab: Vocab, name: str, cache_dir: str, normalize: bool):
+    # TODO: what progress/info should be printed here (if any)?
+    use_torchtext = name in pretrained_aliases
+    if use_torchtext:
+        vector_dict = pretrained_aliases[name](cache=cache_dir)
+        embed_size = vector_dict.dim
+    else:
+        vector_dict = {}
+        with open(name) as word_vectors:
+            for word_vector in word_vectors:
+                word, vector = word_vector.rstrip().split(' ', 1)
+                vector = torch.Tensor(list(map(float, vector.split())))
+                vector_dict[word] = vector
+        embed_size = next(iter(vector_dict.values())).shape[0]
+
+    embedding_weights = torch.zeros(len(vocab), embed_size)
+
+    if not use_torchtext:
+        # Add UNK embedding
+        # AttentionXML: np.random.uniform(-1.0, 1.0, embed_size)
+        # CAML: np.random.randn(embed_size)
+        unk_vector = torch.randn(embed_size)
+        embedding_weights[vocab[UNK]] = unk_vector
+
+    # drop embeddings not in vocabulary
+    vec_counts = 0
+    for word in vocab.get_itos():
+        # torchtext Vectors returns zero vectors on unknown words
+        # TODO: why do we have differing behaviour here??
+        if use_torchtext or word in vector_dict:
+            embedding_weights[vocab[word]] = vector_dict[word]
+            vec_counts += 1
+
+    if normalize:
+        # To have better precision for calculating the normalization, we convert the original
+        # embedding_weights from a torch.FloatTensor to a torch.DoubleTensor.
+        # After the normalization, we will convert the embedding_weights back to a torch.FloatTensor.
+        embedding_weights = embedding_weights.double()
+        for i, vector in enumerate(embedding_weights):
+            # We use the constant 1e-6 by following https://github.com/jamesmullenbach/caml-mimic/blob/44a47455070d3d5c6ee69fb5305e32caec104960/dataproc/extract_wvs.py#L60
+            # for an internal experiment of reproducing their results.
+            # TODO: should we be using a constant to reproduce caml for all our use cases?
+            embedding_weights[i] = vector / \
+                float(torch.linalg.norm(vector) + 1e-6)
+        embedding_weights = embedding_weights.float()
+
+    return embedding_weights
+
+
 def load_or_build_text_dict(
     dataset,
     vocab_file=None,
@@ -83,37 +156,15 @@ def load_or_build_text_dict(
     Returns:
         tuple[torchtext.vocab.Vocab, torch.Tensor]: A vocab object which maps tokens to indices and the pre-trained word vectors of shape (vocab_size, embed_dim).
     """
+    # TODO: remove this function, all callers should use load/build_vocabulary and load_embedding_weights instead
     if vocab_file:
-        logging.info(f'Load vocab from {vocab_file}')
-        with open(vocab_file, 'r') as fp:
-            vocab_list = [[vocab.strip() for vocab in fp.readlines()]]
-        # Keep PAD index 0 to align `padding_idx` of
-        # class Embedding in libmultilabel.nn.networks.modules.
-        vocabs = build_vocab_from_iterator(vocab_list, min_freq=1,
-                                           specials=[PAD, UNK])
+        vocab = load_vocabulary(vocab_file)
     else:
-        vocab_list = [set(data['text']) for data in dataset]
-        vocabs = build_vocab_from_iterator(vocab_list, min_freq=min_vocab_freq,
-                                           specials=[PAD, UNK])
-    vocabs.set_default_index(vocabs[UNK])
-    logging.info(f'Read {len(vocabs)} vocabularies.')
+        vocab = build_vocabulary(dataset, min_vocab_freq)
 
-    embedding_weights = get_embedding_weights_from_file(
-        vocabs, embed_file, silent, embed_cache_dir)
+    embedding_weights = load_embedding_weights(vocab, embed_file, embed_cache_dir, normalize_embed)
 
-    if normalize_embed:
-        # To have better precision for calculating the normalization, we convert the original
-        # embedding_weights from a torch.FloatTensor to a torch.DoubleTensor.
-        # After the normalization, we will convert the embedding_weights back to a torch.FloatTensor.
-        embedding_weights = embedding_weights.double()
-        for i, vector in enumerate(embedding_weights):
-            # We use the constant 1e-6 by following https://github.com/jamesmullenbach/caml-mimic/blob/44a47455070d3d5c6ee69fb5305e32caec104960/dataproc/extract_wvs.py#L60
-            # for an internal experiment of reproducing their results.
-            embedding_weights[i] = vector / \
-                float(torch.linalg.norm(vector) + 1e-6)
-        embedding_weights = embedding_weights.float()
-
-    return vocabs, embedding_weights
+    return vocab, embedding_weights
 
 
 def get_embedding_weights_from_file(word_dict, embed_file, silent=False, cache=None):
