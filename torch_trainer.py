@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 import torch
+import transformers
 
 from libmultilabel.nn import data_utils
 from libmultilabel.nn import networks
@@ -138,9 +139,43 @@ class TorchTrainer:
             )
 
     def _initialize_transformer(self):
-        pass
+        """Initializes self.network and self.dataloaders for transformers.
+        """
+        tokenizer = transformers.AutoTokenizer.from_pretrained(self.config.network_config['lm_weight'], use_fase=True)
+        def make_dataloader(split):
+            dataset = bert_dataset.BertDataset(
+                self.datasets[split],
+                self.classes,
+                tokenizer,
+                self.config.max_seq_length,
+                self.config.add_special_tokens,
+            )
+
+            shuffle = split == 'train' and self.config.shuffle
+            return torch.utils.data.DataLoader(
+                dataset,
+                batch_size=self.config.batch_size,
+                shuffle=shuffle,
+                num_workers=self.config.data_workers,
+                collate_fn=bert_dataset.collate_fn,
+                pin_memory='cuda' in self.device.type,
+            )
+
+        self.dataloaders = {
+            'train': make_dataloader('train'),
+            'val': make_dataloader('val'),
+            'test': make_dataloader('testin'),
+        }
+
+        # TODO: write explicit list
+        self.network = getattr(networks, self.network.model_name)(
+            num_classes=len(self.classes),
+            **self.config.network_config,
+        )
 
     def _initialize_rnn(self):
+        """Initializes self.network and self.dataloaders for RNNs. Modifies self.datasets.
+        """
         self.datasets['train']['text'] = self.datasets['train']['text'].map(token_dataset.tokenize)
         self.datasets['val']['text'] = self.datasets['val']['text'].map(token_dataset.tokenize)
         self.datasets['test']['text'] = self.datasets['test']['text'].map(token_dataset.tokenize)
