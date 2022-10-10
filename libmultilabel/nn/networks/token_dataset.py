@@ -1,10 +1,14 @@
-from torchtext.vocab import build_vocab_from_iterator, pretrained_aliases, Vocab
-from torch.utils.data import Dataset
-from sklearn.preprocessing import MultiLabelBinarizer
-from nltk.tokenize import RegexpTokenizer
-import torch
-import logging
 import warnings
+from typing import Any
+import pandas as pd
+
+import torch
+from nltk.tokenize import RegexpTokenizer
+from sklearn.preprocessing import MultiLabelBinarizer
+from torch.nn.utils.rnn import pad_sequence
+from torch.utils.data import Dataset
+from torchtext.vocab import build_vocab_from_iterator, Vocab, pretrained_aliases
+
 
 # TODO: why this?
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -16,14 +20,11 @@ PAD = '<pad>'
 class TokenDataset(Dataset):
     """Amazing docstring about this class"""
 
-    def __init__(self, data: 'list[dict[str, any]]',
+    def __init__(self, data: pd.DataFrame,
                  vocab: Vocab,
                  classes: 'list[str]',
                  max_seq_length: int):
-        self.data = {
-            **data,
-            'text': data['text'].map(tokenize),
-        }
+        self.data = data
         self.vocab = vocab
         self.max_seq_length = max_seq_length
         self.label_binarizer = MultiLabelBinarizer().fit([classes])
@@ -32,7 +33,7 @@ class TokenDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, index):
-        data = self.data[index]
+        data = self.data.iloc[index]
         input_ids = [self.vocab[word]
                      for word in data['text'][:self.max_seq_length]]
         # TODO: why long and int tensor?
@@ -56,8 +57,19 @@ def tokenize(text):
     return [t.lower() for t in tokenizer.tokenize(text) if not t.isnumeric()]
 
 
-def build_vocabulary(dataset: 'dict[str, any]', min_freq: int = 1) -> Vocab:
-    vocab_list = [set(data['text']) for data in dataset]
+def collate_fn(data_batch):
+    text_list = [data['text'] for data in data_batch]
+    label_list = [data['label'] for data in data_batch]
+    length_list = [len(data['text']) for data in data_batch]
+    return {
+        'text': pad_sequence(text_list, batch_first=True),
+        'label': torch.stack(label_list),
+        'length': torch.IntTensor(length_list)
+    }
+
+
+def build_vocabulary(dataset: pd.DataFrame, min_freq: int = 1) -> Vocab:
+    vocab_list = [set(text) for text in dataset['text']]
     vocab = build_vocab_from_iterator(vocab_list, min_freq=min_freq,
                                       specials=[PAD, UNK])
 
@@ -66,7 +78,6 @@ def build_vocabulary(dataset: 'dict[str, any]', min_freq: int = 1) -> Vocab:
 
 
 def load_vocabulary(vocab_file: str) -> Vocab:
-    logging.info(f'Load vocab from {vocab_file}')
     with open(vocab_file, 'r') as fp:
         vocab_list = [[vocab.strip() for vocab in fp.readlines()]]
 
@@ -127,41 +138,3 @@ def load_embedding_weights(vocab: Vocab, name: str, cache_dir: str, normalize: b
         embedding_weights = embedding_weights.float()
 
     return embedding_weights
-
-
-def load_or_build_text_dict(
-    dataset,
-    vocab_file=None,
-    min_vocab_freq=1,
-    embed_file=None,
-    embed_cache_dir=None,
-    silent=False,
-    normalize_embed=False
-):
-    """Build or load the vocabulary from the training dataset or the predefined `vocab_file`.
-    The pretrained embedding can be either from a self-defined `embed_file` or from one of
-    the vectors defined in torchtext.vocab.pretrained_aliases
-    (https://github.com/pytorch/text/blob/main/torchtext/vocab/vectors.py).
-
-    Args:
-        dataset (list): List of training instances with index, label, and tokenized text.
-        vocab_file (str, optional): Path to a file holding vocabuaries. Defaults to None.
-        min_vocab_freq (int, optional): The minimum frequency needed to include a token in the vocabulary. Defaults to 1.
-        embed_file (str): Path to a file holding pre-trained embeddings.
-        embed_cache_dir (str, optional): Path to a directory for storing cached embeddings. Defaults to None.
-        silent (bool, optional): Enable silent mode. Defaults to False.
-        normalize_embed (bool, optional): Whether the embeddings of each word is normalized to a unit vector. Defaults to False.
-
-    Returns:
-        tuple[torchtext.vocab.Vocab, torch.Tensor]: A vocab object which maps tokens to indices and the pre-trained word vectors of shape (vocab_size, embed_dim).
-    """
-    # TODO: remove this function, all callers should use load/build_vocabulary and load_embedding_weights instead
-    if vocab_file:
-        vocab = load_vocabulary(vocab_file)
-    else:
-        vocab = build_vocabulary(dataset, min_vocab_freq)
-
-    embedding_weights = load_embedding_weights(
-        vocab, embed_file, embed_cache_dir, normalize_embed)
-
-    return vocab, embedding_weights

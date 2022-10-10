@@ -1,12 +1,10 @@
-from tqdm import tqdm
-from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import Dataset
 from sklearn.preprocessing import MultiLabelBinarizer
 import transformers
 import torch
-import logging
 import warnings
 from torchtext.vocab import Vocab
+from typing import Any
 
 # TODO: why this?
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -16,14 +14,12 @@ transformers.logging.set_verbosity_error()
 class BertDataset(Dataset):
     """Amazing docstring about this class"""
 
-    def __init__(self, data: 'list[dict[str, any]]',
-                 vocab: Vocab,
+    def __init__(self, data: 'list[dict[str, Any]]',
                  classes: 'list[str]',
                  tokenizer: str,
                  max_seq_length: int,
                  add_special_tokens: bool):
         self.data = data
-        self.vocab = vocab
         self.classes = classes
         self.max_seq_length = max_seq_length
         self.label_binarizer = MultiLabelBinarizer().fit([classes])

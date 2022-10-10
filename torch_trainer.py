@@ -1,14 +1,18 @@
 import logging
 import os
+from typing import Optional
 
 import numpy as np
+import pandas as pd
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
-from transformers import AutoTokenizer
+import torch
 
 from libmultilabel.nn import data_utils
+from libmultilabel.nn import networks
 from libmultilabel.nn.model import Model
+from libmultilabel.nn.networks import bert_dataset, token_dataset
 from libmultilabel.nn.nn_utils import init_device, init_model, init_trainer, set_seed
-from libmultilabel.common_utils import dump_log
+from libmultilabel.common_utils import AttributeDict, dump_log
 
 
 class TorchTrainer:
@@ -23,13 +27,12 @@ class TorchTrainer:
         save_checkpoints (bool, optional): Whether to save the last and the best checkpoint or not.
             Defaults to True.
     """
+
     def __init__(
         self,
-        config: dict,
-        datasets: dict = None,
-        embed_vecs = None,
+        config: AttributeDict,
+        datasets: 'Optional[dict[str, pd.DataFrame]]' = None,
         search_params: bool = False,
-        save_checkpoints: bool = True
     ):
         self.run_name = config.run_name
         self.checkpoint_dir = config.checkpoint_dir
@@ -41,12 +44,6 @@ class TorchTrainer:
         self.device = init_device(use_cpu=config.cpu)
         self.config = config
 
-        # Load pretrained tokenizer for dataset loader
-        self.tokenizer = None
-        tokenize_text = 'lm_weight' not in config.network_config
-        if not tokenize_text:
-            self.tokenizer = AutoTokenizer.from_pretrained(config.network_config['lm_weight'], use_fast=True)
-        # Load dataset
         if datasets is None:
             self.datasets = data_utils.load_datasets(
                 training_file=config.training_file,
@@ -54,27 +51,30 @@ class TorchTrainer:
                 val_file=config.val_file,
                 val_size=config.val_size,
                 merge_train_val=config.merge_train_val,
-                tokenize_text=tokenize_text,
                 remove_no_label_data=config.remove_no_label_data
             )
         else:
             self.datasets = datasets
 
-        self._setup_model(embed_vecs=embed_vecs,
-                          log_path=self.log_path,
-                          checkpoint_path=config.checkpoint_path)
-        self.trainer = init_trainer(checkpoint_dir=self.checkpoint_dir,
-                                    epochs=config.epochs,
-                                    patience=config.patience,
-                                    val_metric=config.val_metric,
-                                    silent=config.silent,
-                                    use_cpu=config.cpu,
-                                    limit_train_batches=config.limit_train_batches,
-                                    limit_val_batches=config.limit_val_batches,
-                                    limit_test_batches=config.limit_test_batches,
-                                    search_params=search_params,
-                                    save_checkpoints=save_checkpoints)
-        callbacks = [callback for callback in self.trainer.callbacks if isinstance(callback, ModelCheckpoint)]
+        self._setup_model(
+            log_path=self.log_path,
+            checkpoint_path=config.checkpoint_path
+        )
+        self.trainer = init_trainer(
+            checkpoint_dir=self.checkpoint_dir,
+            epochs=config.epochs,
+            patience=config.patience,
+            val_metric=config.val_metric,
+            silent=config.silent,
+            use_cpu=config.cpu,
+            limit_train_batches=config.limit_train_batches,
+            limit_val_batches=config.limit_val_batches,
+            limit_test_batches=config.limit_test_batches,
+            search_params=search_params,
+            save_checkpoints=True
+        )
+        callbacks = [callback for callback in self.trainer.callbacks if isinstance(
+            callback, ModelCheckpoint)]
         self.checkpoint_callback = callbacks[0] if callbacks else None
 
         # Dump config to log
@@ -82,9 +82,8 @@ class TorchTrainer:
 
     def _setup_model(
         self,
-        embed_vecs = None,
-        log_path: str = None,
-        checkpoint_path: str = None
+        log_path: Optional[str] = None,
+        checkpoint_path: Optional[str] = None
     ):
         """Setup model from checkpoint if a checkpoint path is passed in or specified in the config.
         Otherwise, initialize model from scratch.
@@ -104,65 +103,85 @@ class TorchTrainer:
             self.model = Model.load_from_checkpoint(checkpoint_path)
         else:
             logging.info('Initialize model from scratch.')
-            if self.config.embed_file is not None:
-                logging.info('Load word dictionary ')
-                word_dict, embed_vecs = data_utils.load_or_build_text_dict(
-                    dataset=self.datasets['train'],
-                    vocab_file=self.config.vocab_file,
-                    min_vocab_freq=self.config.min_vocab_freq,
-                    embed_file=self.config.embed_file,
-                    silent=self.config.silent,
-                    normalize_embed=self.config.normalize_embed,
-                    embed_cache_dir=self.config.embed_cache_dir
-                )
             classes = data_utils.load_or_build_label(
                 self.datasets, self.config.label_file, self.config.include_test_labels)
+            self.classes = classes
+
+            if self.config.model_name in {'BERT', 'BERTAttention'}:
+                self._initialize_transformer()
+            else: # TODO: write explicit list
+                self._initialize_rnn()
 
             if self.config.val_metric not in self.config.monitor_metrics:
                 logging.warn(
                     f'{self.config.val_metric} is not in `monitor_metrics`. Add {self.config.val_metric} to `monitor_metrics`.')
                 self.config.monitor_metrics += [self.config.val_metric]
 
-            self.model = init_model(model_name=self.config.model_name,
-                                    network_config=dict(self.config.network_config),
-                                    classes=classes,
-                                    word_dict=word_dict,
-                                    embed_vecs=embed_vecs,
-                                    init_weight=self.config.init_weight,
-                                    log_path=log_path,
-                                    learning_rate=self.config.learning_rate,
-                                    optimizer=self.config.optimizer,
-                                    momentum=self.config.momentum,
-                                    weight_decay=self.config.weight_decay,
-                                    metric_threshold=self.config.metric_threshold,
-                                    monitor_metrics=self.config.monitor_metrics,
-                                    multiclass=self.config.multiclass,
-                                    loss_function=self.config.loss_function,
-                                    silent=self.config.silent,
-                                    save_k_predictions=self.config.save_k_predictions
-                                   )
+            self.model = init_model(
+                model_name=self.config.model_name,
+                network_config=dict(self.config.network_config),
+                classes=classes,
+                word_dict=vocab,
+                embed_vecs=embed_vecs,
+                init_weight=self.config.init_weight,
+                log_path=log_path,
+                learning_rate=self.config.learning_rate,
+                optimizer=self.config.optimizer,
+                momentum=self.config.momentum,
+                weight_decay=self.config.weight_decay,
+                metric_threshold=self.config.metric_threshold,
+                monitor_metrics=self.config.monitor_metrics,
+                multiclass=self.config.multiclass,
+                loss_function=self.config.loss_function,
+                silent=self.config.silent,
+                save_k_predictions=self.config.save_k_predictions
+            )
 
-    def _get_dataset_loader(self, split, shuffle=False):
-        """Get dataset loader.
+    def _initialize_transformer(self):
+        pass
 
-        Args:
-            split (str): One of 'train', 'test', or 'val'.
-            shuffle (bool): Whether to shuffle training data before each epoch. Defaults to False.
+    def _initialize_rnn(self):
+        self.datasets['train']['text'] = self.datasets['train']['text'].map(token_dataset.tokenize)
+        self.datasets['val']['text'] = self.datasets['val']['text'].map(token_dataset.tokenize)
+        self.datasets['test']['text'] = self.datasets['test']['text'].map(token_dataset.tokenize)
 
-        Returns:
-            torch.utils.data.DataLoader: Dataloader for the train, test, or valid dataset.
-        """
-        return data_utils.get_dataset_loader(
-            data=self.datasets[split],
-            word_dict=self.model.word_dict,
-            classes=self.model.classes,
-            device=self.device,
-            max_seq_length=self.config.max_seq_length,
-            batch_size=self.config.batch_size if split == 'train' else self.config.eval_batch_size,
-            shuffle=shuffle,
-            data_workers=self.config.data_workers,
-            tokenizer=self.tokenizer,
-            add_special_tokens=self.config.add_special_tokens
+        if self.config.vocab_file:
+            vocab = token_dataset.load_vocabulary(self.config.vocab_file)
+        else:
+            vocab = token_dataset.build_vocabulary(
+                self.datasets['train'], self.config.min_vocab_freq)
+        embed_vecs = token_dataset.load_embedding_weights(
+            vocab, self.config.embed_file, self.config.embed_cache_dir, self.config.normalize)
+
+        def make_dataloader(split):
+            dataset = token_dataset.TokenDataset(
+                self.datasets[split],
+                vocab,
+                self.classes,
+                self.config.max_seq_length,
+            )
+
+            shuffle = split == 'train' and self.config.shuffle
+            return torch.utils.data.DataLoader(
+                dataset,
+                batch_size=self.config.batch_size,
+                shuffle=shuffle,
+                num_workers=self.config.data_workers,
+                collate_fn=token_dataset.collate_fn,
+                pin_memory='cuda' in self.device.type,
+            )
+
+        self.dataloaders = {
+            'train': make_dataloader('train'),
+            'val': make_dataloader('val'),
+            'test': make_dataloader('testin'),
+        }
+
+        # TODO: write explicit list
+        self.network = getattr(networks, self.config.model_name)(
+            embed_vecs=embed_vecs,
+            num_classes=len(self.classes),
+            **self.config.network_config,
         )
 
     def train(self):
@@ -170,20 +189,21 @@ class TorchTrainer:
         process is finished.
         """
         assert self.trainer is not None, "Please make sure the trainer is successfully initialized by `self._setup_trainer()`."
-        train_loader = self._get_dataset_loader(split='train', shuffle=self.config.shuffle)
 
         if 'val' not in self.datasets:
-            logging.info('No validation dataset is provided. Train without vaildation.')
-            self.trainer.fit(self.model, train_loader)
+            logging.info(
+                'No validation dataset is provided. Train without vaildation.')
+            self.trainer.fit(self.model, self.dataloaders['train'])
         else:
-            val_loader = self._get_dataset_loader(split='val')
-            self.trainer.fit(self.model, train_loader, val_loader)
+            self.trainer.fit(
+                self.model, self.dataloaders['train'], self.dataloaders['val'])
 
         # Set model to the best model. If the validation process is skipped during
         # training (i.e., val_size=0), the model is set to the last model.
         model_path = self.checkpoint_callback.best_model_path or self.checkpoint_callback.last_model_path
         if model_path:
-            logging.info(f'Finished training. Load best model from {model_path}.')
+            logging.info(
+                f'Finished training. Load best model from {model_path}.')
             self._setup_model(checkpoint_path=model_path)
         else:
             logging.info('No model is saved during training. \
@@ -202,11 +222,12 @@ class TorchTrainer:
         assert 'test' in self.datasets and self.trainer is not None
 
         logging.info(f'Testing on {split} set.')
-        test_loader = self._get_dataset_loader(split=split)
-        metric_dict = self.trainer.test(self.model, dataloaders=test_loader)[0]
+        metric_dict = self.trainer.test(
+            self.model, dataloaders=self.dataloaders[split])[0]
 
         if self.config.save_k_predictions > 0:
-            self._save_predictions(test_loader, self.config.predict_out_path)
+            self._save_predictions(
+                self.dataloaders[split], self.config.predict_out_path)
 
         return metric_dict
 
@@ -217,7 +238,8 @@ class TorchTrainer:
             dataloader (torch.utils.data.DataLoader): Dataloader for the test or valid dataset.
             predict_out_path (str): Path to the an output file holding top k label results.
         """
-        batch_predictions = self.trainer.predict(self.model, dataloaders=dataloader)
+        batch_predictions = self.trainer.predict(
+            self.model, dataloaders=dataloader)
         pred_labels = np.vstack([batch['top_k_pred']
                                 for batch in batch_predictions])
         pred_scores = np.vstack([batch['top_k_pred_scores']
