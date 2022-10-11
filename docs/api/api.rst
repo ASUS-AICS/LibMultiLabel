@@ -35,6 +35,5 @@ explanations can be found in the `user guides <placeholder>`_.
 
 * `Linear Classification <linear_tutorial.html>`_
 * `Neural Network <nn_tutorial.html>`_
-* `Bert <bert_tutorial.html>`_
 
 

@@ -31,7 +31,6 @@ For practical tips, please see the `User Guide <https://www.csie.ntu.edu.tw/~cjl
    api/api
    api/linear_tutorial
    api/nn_tutorial
-   api/bert_tutorial
    api/linear
    api/nn
 

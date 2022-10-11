@@ -9,9 +9,8 @@ device = init_device()  # use gpu by default
 
 # Step 1. Load data from text files.
 datasets = load_datasets(
-        'data/EUR-Lex-57k/train.txt',
-        'data/EUR-Lex-57k/test.txt',
-        'data/EUR-Lex-57k/valid.txt',
+        'data/Eur-Lex/train.txt',
+        'data/Eur-Lex/test.txt',
         tokenize_text=False,
         )
 classes = load_or_build_label(datasets, include_test_labels=True)
@@ -36,25 +35,25 @@ model = init_model(model_name='BERTAttention',
                    )
 
 # Step 3. Initialize a trainer.
-trainer = init_trainer(checkpoint_dir='runs/EUR-Lex-57k-BERTAttention-example',
-                       epochs=15,
-                       val_metric='P@5')
+trainer = init_trainer(checkpoint_dir='runs/EUR-Lex-BERTAttention-example',
+                       epochs=15)
+
 
 # Step 4. Create data loaders.
 loaders = dict()
 tokenizer = AutoTokenizer.from_pretrained(network_config['lm_weight'], use_fast=True)
-for split in ['train', 'val', 'test']:
+for split in ['train', 'test']:
     loaders[split] = get_dataset_loader(data=datasets[split],
                                         word_dict=None,
                                         classes=classes,
                                         device=device,
                                         max_seq_length=512,
-                                        batch_size=8,
+                                        batch_size=8 if split == 'train' else 64,
                                         shuffle=True if split == 'train' else False,
                                         tokenizer=tokenizer)
 
 # Step 5-1. Train a model from scratch.
-trainer.fit(model, loaders['train'], loaders['val'])
+trainer.fit(model, loaders['train'])
 
 # Step 5-2. Test the model.
-trainer.test(model, test_dataloaders=loaders['test'])
+trainer.test(model, dataloaders=loaders['test'])
