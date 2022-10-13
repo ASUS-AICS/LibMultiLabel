@@ -2,12 +2,12 @@
 Neural Network Quickstart Tutorial
 ==================================
 
-We will go through two popular neural network examples
+We go through two popular neural network examples
 
-    * BERT 
-    * KimCNN
+    * `BERT <nn_tutorial.html#bert-example>`_ 
+    * `KimCNN <nn_tutorial.html#kimcnn-example>`_ 
 
-in this tutorial. Before we started, please download and decompress the data ``EUR-Lex`` via the following commands::
+in this tutorial. Before started, please download and decompress the data ``EUR-Lex`` via the following commands::
 
     mkdir -p data/EUR-Lex
     wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/eurlex_raw_texts_train.txt.bz2 -O data/EUR-Lex/train.txt.bz2
@@ -20,8 +20,9 @@ See `data formats <../cli/ov_data_format.html#dataset-formats>`_ for a complete 
 BERT Example
 ============
 
-You will learn how to train and predict a BERT model via LibMultiLabel step-by-step in this example. 
-Note that this example requires 8.5 GB GPU memory. 
+This example shows how to train and test a BERT model via LibMultiLabel step-by-step.
+ 
+Note that this example requires around 9 GB GPU memory. 
 If your GPU device is not satisfied this requirement, please reduce the ``batch_size`` in `Step 6 <nn_tutorial.html#step-6-create-data-loaders>`_.
 
 
@@ -33,7 +34,7 @@ Please add the following code to your python3 script.
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 1-4
+    :lines: 1-3
 
 Step 2. Setup device
 --------------------
@@ -42,7 +43,7 @@ If you need to reproduce the results, please use the function ``set_seed``. For 
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 7
+    :lines: 6
 
 fixes the random seed on ``1337``. You will get the same result as you always use the seed ``1337``.
 
@@ -50,7 +51,7 @@ For initial a hardware device, please use
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 8
+    :lines: 7
 
 to assign the hardware device that you want to use.
 
@@ -64,16 +65,17 @@ You can utilize
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 11-15
+    :lines: 10
 
-to load the data set.
-Other arguments of ``data_utils.load_datasets`` can be found `here <../api/nn.html#libmultilabel.nn.data_utils.load_datasets>`_.
+to load the data sets. Note that ``datasets`` contains three sets: ``datasets[train]``, ``datasets[val]`` and ``datasets[test]``, 
+where ``datasets[train]`` and ``datasets[val]`` are randomly splitted from ``train.txt`` with the ratio ``8:2``.
+The details can be found in `here <../api/nn.html#libmultilabel.nn.data_utils.load_datasets>`_, and you can also check out other arguments.
 
 For the labels of the data, we apply
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 16
+    :lines: 11
 
 to generate the label set.
 
@@ -87,7 +89,7 @@ Let us introduce the variables as the inputs of ``init_model`` function on the f
 
      .. literalinclude:: ../examples/bert_quickstart.py
          :language: python3
-         :lines: 19-24
+         :lines: 14-19
 
     * ``classes`` is the label set of the data.
     * ``init_weight``, ``word_dict`` and ``embed_vecs`` are not used on a bert-base model, so we can ignore them.
@@ -98,7 +100,7 @@ Overall, we use
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 25-35
+    :lines: 20-31
 
 to initialize a model.
 
@@ -110,49 +112,55 @@ The example is shown as the follows.
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 38-40
+    :lines: 34
 
-In this example, we set the number of training loops as ``epochs=15``.
+In this example, we set the number of training loops as ``epochs=15``, and focus on the metric ``P@5`` over validation set.
 For the other variables of ``init_trainer``, please check in `here <../api/nn.html#libmultilabel.nn.nn_utils.init_trainer>`_.
 
 Step 6. Create data loaders
 ---------------------------
 
-In most cases, we do not load full data set for training/testing a bert model due to the limitation of hardware, 
+In most cases, we do not load full data set for training/validating/testing a bert model due to the limitation of hardware, 
 which usually comes from the insufficient memory storage issue. 
 Therefore, data loader can load the data set as many random sampling subsets, which is usually denoted by ``batch``, 
-and the hardware can then handle one batch of the data in one time.
+and the hardware can then handle a batch of the data in one time.
 
 Let us show an example that creates pytorch data loaders form the datasets we created in
 `Step 3 <nn_tutorial.html#step-3-load-libmultilabel-format-data-set>`_.
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 43-53
+    :lines: 38-50
 
-This example loads two loaders, and the batch size is set by ``batch_size=8``. Other variables can be checked in `here <../api/nn.html#libmultilabel.nn.data_utils.get_dataset_loader>`_.
+This example loads three loaders, and the batch size is set by ``batch_size=8``. Other variables can be checked in `here <../api/nn.html#libmultilabel.nn.data_utils.get_dataset_loader>`_.
 
 Step 7. Train and test a model
 ------------------------------
 
-Note that we have initialize the ``model`` in `Step 4 <nn_tutorial.html#step-4-initialize-a-model>`_, 
+Note that we have initialized the ``model`` in `Step 4 <nn_tutorial.html#step-4-initialize-a-model>`_, 
 and the ``trainer`` in `Step 5 <nn_tutorial.html#step-5-initialize-a-trainer>`_.
-With the ``train`` data loader which is created in `Step 6 <nn_tutorial.html#step-6-create-data-loaders>`_, 
+With the ``train`` and ``val`` data loaders which are created in `Step 6 <nn_tutorial.html#step-6-create-data-loaders>`_, 
 the bert model training process can be started via 
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 56
+    :lines: 53
 
 When the training process is finished, we can then run the testing process by
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 59
+    :lines: 56
 
 After the testing process, the results are looked similar to::
 
-  {'Macro-F1': 0.24686789646612792, 'Micro-F1': 0.7266660332679749, 'P@1': 0.9016666412353516, 'P@3': 0.8070555925369263, 'P@5': 0.6758000254631042}
+  {
+      'Macro-F1': 0.24686789646612792, 
+      'Micro-F1': 0.7266660332679749, 
+      'P@1': 0.9016666412353516, 
+      'P@3': 0.8070555925369263, 
+      'P@5': 0.6758000254631042
+  }
 
 Please get the full example code in `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/bert_quickstart.py>`_.
 
