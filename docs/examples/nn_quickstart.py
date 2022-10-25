@@ -9,7 +9,7 @@ device = init_device()  # use gpu by default
 
 # Step 3. Load data from text files.
 datasets = load_datasets('data/EUR-Lex/train.txt', 'data/EUR-Lex/test.txt', tokenize_text=True)
-classes = load_or_build_label(datasets, include_test_labels=False)
+classes = load_or_build_label(datasets, include_test_labels=True)
 
 # Step 4. setup data preprocessing function
 word_dict, embed_vecs = load_or_build_text_dict(dataset=datasets['train'], embed_file='glove.6B.300d')
@@ -23,15 +23,14 @@ network_config = {
     'filter_sizes': [2, 4, 8],
     'num_filter_per_size': 128
 }
+learning_rate = 0.0005
 model = init_model(
     model_name=model_name,
     network_config=network_config,
     classes=classes,
     word_dict=word_dict,
     embed_vecs=embed_vecs,
-    learning_rate=0.00005,
-    optimizer='adamw',
-    weight_decay=0.001,
+    learning_rate=learning_rate,
     monitor_metrics=['Micro-F1', 'Macro-F1', 'P@1', 'P@3', 'P@5']
 )
 

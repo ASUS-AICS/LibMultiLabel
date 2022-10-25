@@ -13,7 +13,7 @@ classes = load_or_build_label(datasets, include_test_labels=True)
 
 # Step 4. setup data preprocessing function
 word_dict, embed_vecs = None, None 
-tokenizer = AutoTokenizer.from_pretrained(network_config['lm_weight'], use_fast=True)
+tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased', use_fast=True)
 
 # Step 5. Initialize a model.
 model_name='BERTAttention'
@@ -23,15 +23,14 @@ network_config = {
     'lm_window': 512,
     'attention_type': 'singlehead'
 }
+learning_rate = 0.00005
 model = init_model(
     model_name=model_name,
     network_config=network_config,
     classes=classes,
     word_dict=word_dict,
     embed_vecs=embed_vecs,
-    learning_rate=0.00005,
-    optimizer='adamw',
-    weight_decay=0.001,
+    learning_rate=learning_rate,
     monitor_metrics=['Micro-F1', 'Macro-F1', 'P@1', 'P@3', 'P@5']
 )
 

@@ -23,7 +23,7 @@ BERT Example
 This example shows how to train and test a BERT model via LibMultiLabel step-by-step.
  
 Note that this example requires around 9 GB GPU memory. 
-If your GPU device is not satisfied this requirement, please reduce the ``batch_size`` in `Step 6 <nn_tutorial.html#step-6-create-data-loaders>`_.
+If your GPU device is not satisfied this requirement, please reduce the ``batch_size`` in `Step 7 <nn_tutorial.html#step-7-create-data-loaders>`_.
 
 
 
@@ -120,9 +120,9 @@ Overall, we use
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 26-36
+    :lines: 26-35
 
-to initialize a model.
+to initialize a model with a suitable learning rate setting.
 
 Step 6. Initialize a trainer
 ----------------------------
@@ -132,7 +132,7 @@ The example is shown as the follows.
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 39
+    :lines: 38
 
 In this example, we set the number of training loops as ``epochs=15``, and focus on the metric ``P@5`` over validation set.
 For the other variables of ``init_trainer``, please check in `here <../api/nn.html#libmultilabel.nn.nn_utils.init_trainer>`_.
@@ -150,7 +150,7 @@ Let us show an example that creates pytorch data loaders form the datasets we cr
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 42-53
+    :lines: 41-52
 
 This example loads three loaders, and the batch size is set by ``batch_size=8``. Other variables can be checked in `here <../api/nn.html#libmultilabel.nn.data_utils.get_dataset_loader>`_.
 
@@ -164,22 +164,22 @@ the bert model training process can be started via
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 56
+    :lines: 55
 
 When the training process is finished, we can then run the testing process by
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 59
+    :lines: 58
 
 After the testing process, the results are looked similar to::
 
   {
-      'Macro-F1': 0.17958260227514117, 
-      'Micro-F1': 0.5568256378173828, 
-      'P@1':      0.8069857358932495, 
-      'P@3':      0.6812418699264526, 
-      'P@5':      0.5603104829788208 
+      'Macro-F1': 0.1828878672314435, 
+      'Micro-F1': 0.5573605895042419,
+      'P@1':      0.8023285865783691,
+      'P@3':      0.6796895265579224,
+      'P@5':      0.5613453984260559
   }
 
 Please get the full example code in `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/bert_quickstart.py>`_.
@@ -261,7 +261,13 @@ Furthermore, since KimCNN's network structure is different to BERT's, the settin
     :language: python3
     :lines: 20-25
 
-The usage of ``init_model`` in KimCNN is as same as the usage in BERT, so please consider `BERT example's Step 5 <nn_tutorial.html#step-5-initialize-a-model>`_.
+The usage of ``init_model`` in KimCNN is as same as the usage in BERT, except the learning setting.
+
+.. literalinclude:: ../examples/nn_quickstart.py
+    :language: python3
+    :lines: 26
+
+For the other parts, please consider `BERT example's Step 5 <nn_tutorial.html#step-5-initialize-a-model>`_.
 
 Step 6. Initialize a trainer
 ----------------------------
