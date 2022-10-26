@@ -363,3 +363,19 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, cache=N
     logging.info(f'loaded {vec_counts}/{len(word_dict)} word embeddings')
 
     return embedding_weights
+
+
+def is_multiclass_dataset(dataset):
+    """Determine whether the dataset is multi-class.
+
+    Args:
+        dataset (dict): A dictionary includes training, validation, or test datasets.
+
+    Returns:
+        bool: Whether the dataset is mulit-class or not.
+    """
+    for _, data in dataset.items():
+        for d in data:
+            if len(d['label']) != 1:
+                return False
+    return True

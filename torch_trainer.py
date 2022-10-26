@@ -64,6 +64,7 @@ class TorchTrainer:
         else:
             self.datasets = datasets
 
+        self.config.multiclass = data_utils.is_multiclass_dataset(self.datasets)
         self._setup_model(classes=classes,
                           word_dict=word_dict,
                           embed_vecs=embed_vecs,

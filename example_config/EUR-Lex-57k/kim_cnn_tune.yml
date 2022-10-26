@@ -29,7 +29,6 @@ val_metric: RP@5
 
 # model
 model_name: KimCNN
-multiclass: false
 loss_function: binary_cross_entropy_with_logits
 init_weight: kaiming_uniform
 network_config:
