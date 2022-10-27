@@ -250,7 +250,7 @@ This step is as same as `BERT example's Step 6 <nn_tutorial.html#step-6-initiali
 Step 7. Create data loaders
 ---------------------------
 
-This step is as same as `BERT example's Step 7 <nn_tutorial.html#step-7-initialize-a-trainer>`_.
+This step is as same as `BERT example's Step 7 <nn_tutorial.html#step-7-create-data-loaders>`_.
 
 Step 8. Train and test a model
 --------------------------------
