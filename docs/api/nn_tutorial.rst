@@ -7,7 +7,7 @@ We go through two popular neural network examples
     * `BERT <nn_tutorial.html#bert-example>`_ 
     * `KimCNN <nn_tutorial.html#kimcnn-example>`_ 
 
-in this tutorial. Before started, please download and decompress the data ``EUR-Lex`` via the following commands::
+in this tutorial. Before we start, please download and decompress the data ``EUR-Lex`` via the following commands::
 
     mkdir -p data/EUR-Lex
     wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/eurlex_raw_texts_train.txt.bz2 -O data/EUR-Lex/train.txt.bz2
@@ -20,10 +20,10 @@ See `data formats <../cli/ov_data_format.html#dataset-formats>`_ for a complete 
 BERT Example
 ============
 
-This example shows how to train and test a BERT model via LibMultiLabel step-by-step.
+This step-by-step example shows how to train and test a BERT model via LibMultiLabel.
  
 Note that this example requires around 9 GB GPU memory. 
-If your GPU device is not satisfied this requirement, please reduce the ``batch_size`` in `Step 7 <nn_tutorial.html#step-7-create-data-loaders>`_.
+If your GPU device does not meet this requirement, please reduce the ``batch_size`` in `Step 7 <nn_tutorial.html#step-7-create-data-loaders>`_.
 
 
 
@@ -56,18 +56,21 @@ For initial a hardware device, please use
 to assign the hardware device that you want to use.
 
 
-Step 3. Load LibMultiLabel format data set
+Step 3. Load data
 ------------------------------------------
 
 We assume that the ``EUR-Lex`` data is located at the directory ``./data/EUR-Lex``, 
-and there exists the files ``train.txt`` and ``test.txt``.
+and there exist the files ``train.txt`` and ``test.txt``.
 You can utilize
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
     :lines: 11
 
-to load the data sets. Note that ``datasets`` contains three sets: ``datasets[train]``, ``datasets[val]`` and ``datasets[test]``, 
+to load the data sets. 
+By default, LibMultiLabel tokenizes documents, but the BERT model uses its own tokenizer. 
+Thus, we must set ``tokenize_text=False``.
+Note that ``datasets`` contains three sets: ``datasets[train]``, ``datasets[val]`` and ``datasets[test]``, 
 where ``datasets[train]`` and ``datasets[val]`` are randomly splitted from ``train.txt`` with the ratio ``8:2``.
 The details can be found in `here <../api/nn.html#libmultilabel.nn.data_utils.load_datasets>`_, and you can also check out other arguments.
 
@@ -80,7 +83,7 @@ For the labels of the data, we apply
 to generate the label set.
 
 
-Step 4. Setup word preprocessing setting
+Step 4. Tokenization 
 -----------------------------------------
 
 There are two methods to mapping a word to a vector in LibMultiLabel, and we need to decide which one is required by the model.
@@ -128,25 +131,19 @@ Step 6. Initialize a trainer
 ----------------------------
 
 We use the function ``init_trainer`` to initialize a trainer, which controls processes such as the number of training loops. 
-The example is shown as the follows.
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
     :lines: 38
 
-In this example, we set the number of training loops as ``epochs=15``, and focus on the metric ``P@5`` over validation set.
+In this example, we set the number of training loops by ``epochs=15``, and the validation metric by ``val_metric = 'P@5'``.
 For the other variables of ``init_trainer``, please check in `here <../api/nn.html#libmultilabel.nn.nn_utils.init_trainer>`_.
 
 Step 7. Create data loaders
 ---------------------------
 
-In most cases, we do not load full data set for training/validating/testing a bert model due to the limitation of hardware, 
-which usually comes from the insufficient memory storage issue. 
-Therefore, data loader can load the data set as many random sampling subsets, which is usually denoted by ``batch``, 
-and the hardware can then handle a batch of the data in one time.
-
-Let us show an example that creates pytorch data loaders form the datasets we created in
-`Step 3 <nn_tutorial.html#step-3-load-libmultilabel-format-data-set>`_.
+In most cases, we do not load a full set due to the hardware limitation.
+Therefore, a data loader can load a batch of samples each time.
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
@@ -157,22 +154,19 @@ This example loads three loaders, and the batch size is set by ``batch_size=8``.
 Step 8. Train and test a model
 ------------------------------
 
-Note that we have initialized the ``model`` in `Step 5 <nn_tutorial.html#step-5-initialize-a-model>`_, 
-and the ``trainer`` in `Step 6 <nn_tutorial.html#step-6-initialize-a-trainer>`_.
-With the ``train`` and ``val`` data loaders which are created in `Step 7 <nn_tutorial.html#step-7-create-data-loaders>`_, 
-the bert model training process can be started via 
+The bert model training process can be started via 
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
     :lines: 55
 
-When the training process is finished, we can then run the testing process by
+After the training process is finished, we can then run the testing process by
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
     :lines: 58
 
-After the testing process, the results are looked similar to::
+the results should be similar to::
 
   {
       'Macro-F1': 0.1828878672314435, 
@@ -215,59 +209,38 @@ Step 2. Setup device
 This step is as same as `BERT example's Step 2 <nn_tutorial.html#step-2-setup-device>`_.
 
 
-Step 3. Load LibMultiLabel format data set
+Step 3. Load data
 ------------------------------------------
 
-KimCNN's data preprocessing is similar to BERT's, but there still exists one difference. 
+To run KimCNN, LibMultiLabel tokenizes documents and for each word uses an embedding vector. 
+Thus, ``tokenize_text = True`` is set.
 
-* KimCNN applies another preprocess function for mapping a word to a vector, so we use a different setting for loading the data sets.
 
 .. literalinclude:: ../examples/nn_quickstart.py
     :language: python3
-    :lines: 11 
+    :lines: 11-12 
 
-The usage of ``load_or_build_label`` in KimCNN is as same as the usage in BERT, so please consider `BERT example's Step 3 <nn_tutorial.html#step-3-load-libmultilabel-format-data-set>`_.
 
-Step 4. Setup word preprocessing setting
+Step 4. Tokenization 
 -----------------------------------------
 
-KimCNN required another word preprocessing function that is different to the one used by BERT in LibMultiLabel.
-In this example, we choose torchtext's ``glove.6B.300d`` as the embedding of the mapping information, 
-which requires to download a ``862 MB`` file at the first time usage.
-  
+We mentioned in `Step 3 <nn_tutorial.html#step-3-load-data>`_ that each word needs an embedding vector.
+Here we choose ``glove.6B.300d`` from torchtext. 
+
 .. literalinclude:: ../examples/nn_quickstart.py
     :language: python3
     :lines: 15-16
  
-Note that you can either
-
-* choose one of the pretrained embeddings defined in torchtext,
-* or specify the path of your word embeddings, in which each line contains a word followed by its representational vector.
-
 
 Step 5. Initialize a model
 --------------------------
 
-Of course, we have to determine the model name
+We consider the following settings for the KimCNN model.
 
 .. literalinclude:: ../examples/nn_quickstart.py
     :language: python3
-    :lines: 19
+    :lines: 19-35
 
-to let LibMultiLabel know which model is used. 
-Furthermore, since KimCNN's network structure is different to BERT's, the setting of ``network_config`` needs to be modified as follows. 
-
-.. literalinclude:: ../examples/nn_quickstart.py
-    :language: python3
-    :lines: 20-25
-
-The usage of ``init_model`` in KimCNN is as same as the usage in BERT, except the learning setting.
-
-.. literalinclude:: ../examples/nn_quickstart.py
-    :language: python3
-    :lines: 26
-
-For the other parts, please consider `BERT example's Step 5 <nn_tutorial.html#step-5-initialize-a-model>`_.
 
 Step 6. Initialize a trainer
 ----------------------------
