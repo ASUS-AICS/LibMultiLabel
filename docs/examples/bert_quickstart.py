@@ -1,6 +1,6 @@
 # Step 1. Import the libraries
-from libmultilabel.nn.data_utils import load_datasets, load_or_build_label, get_dataset_loader
-from libmultilabel.nn.nn_utils import init_device, init_model, init_trainer, set_seed
+from libmultilabel.nn.data_utils import *
+from libmultilabel.nn.nn_utils import *
 from transformers import AutoTokenizer
 
 # Step 2. Setup device.
@@ -9,14 +9,14 @@ device = init_device()  # use gpu by default
 
 # Step 3. Load data from text files.
 datasets = load_datasets('data/EUR-Lex/train.txt', 'data/EUR-Lex/test.txt', tokenize_text=False)
-classes = load_or_build_label(datasets, include_test_labels=True)
+classes = load_or_build_label(datasets)
 
 # Step 4. setup data preprocessing function
 word_dict, embed_vecs = None, None 
 tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased', use_fast=True)
 
 # Step 5. Initialize a model.
-model_name='BERTAttention'
+model_name='BERT'
 network_config = {
     'dropout': 0.1,
     'lm_weight': 'bert-base-uncased',

@@ -1,7 +1,7 @@
 # Step 1. Import the libraries
-from libmultilabel.nn.data_utils import load_datasets, load_or_build_label, get_dataset_loader, \
-                                        load_or_build_text_dict
-from libmultilabel.nn.nn_utils import init_device, init_model, init_trainer, set_seed
+from libmultilabel.nn.data_utils import *
+from libmultilabel.nn.nn_utils import *
+from transformers import AutoTokenizer
 
 # Step 2. Setup device.
 set_seed(1337)
@@ -9,7 +9,7 @@ device = init_device()  # use gpu by default
 
 # Step 3. Load data from text files.
 datasets = load_datasets('data/EUR-Lex/train.txt', 'data/EUR-Lex/test.txt', tokenize_text=True)
-classes = load_or_build_label(datasets, include_test_labels=True)
+classes = load_or_build_label(datasets)
 
 # Step 4. setup data preprocessing function
 word_dict, embed_vecs = load_or_build_text_dict(dataset=datasets['train'], embed_file='glove.6B.300d')

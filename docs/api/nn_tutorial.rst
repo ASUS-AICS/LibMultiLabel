@@ -39,56 +39,39 @@ Please add the following code to your python3 script.
 Step 2. Setup device
 --------------------
 
-If you need to reproduce the results, please use the function ``set_seed``. For example,
+If you need to reproduce the results, please use the function ``set_seed``. 
+For example, you will get the same result as you always use the seed ``1337``.
+
+For initial a hardware device, please use ``init_device`` to assign the hardware device that you want to use.
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 7
-
-fixes the random seed on ``1337``. You will get the same result as you always use the seed ``1337``.
-
-For initial a hardware device, please use 
-
-.. literalinclude:: ../examples/bert_quickstart.py
-    :language: python3
-    :lines: 8
-
-to assign the hardware device that you want to use.
-
+    :lines: 7-8
 
 Step 3. Load data
 ------------------------------------------
 
 We assume that the ``EUR-Lex`` data is located at the directory ``./data/EUR-Lex``, 
 and there exist the files ``train.txt`` and ``test.txt``.
-You can utilize
-
-.. literalinclude:: ../examples/bert_quickstart.py
-    :language: python3
-    :lines: 11
-
-to load the data sets. 
+You can utilize the function ``load_datasets()`` to load the data sets. 
 By default, LibMultiLabel tokenizes documents, but the BERT model uses its own tokenizer. 
 Thus, we must set ``tokenize_text=False``.
-Note that ``datasets`` contains three sets: ``datasets[train]``, ``datasets[val]`` and ``datasets[test]``, 
-where ``datasets[train]`` and ``datasets[val]`` are randomly splitted from ``train.txt`` with the ratio ``8:2``.
+Note that ``datasets`` contains three sets: ``datasets['train']``, ``datasets['val']`` and ``datasets['test']``, 
+where ``datasets['train']`` and ``datasets['val']`` are randomly splitted from ``train.txt`` with the ratio ``8:2``.
 The details can be found in `here <../api/nn.html#libmultilabel.nn.data_utils.load_datasets>`_, and you can also check out other arguments.
 
-For the labels of the data, we apply
+For the labels of the data, we apply the function ``load_or_build_label()`` to generate the label set.
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 12
-
-to generate the label set.
+    :lines: 11-12
 
 
 Step 4. Tokenization 
 -----------------------------------------
 
-There are two methods to mapping a word to a vector in LibMultiLabel, and we need to decide which one is required by the model.
 For BERT, we utilize the API ``AutoTokenizer``, which is supported by ``Hugging Face``, to get the word preprocessing setting of BERT.
-Thus, we set the other variables for word preprocessing as ``None``.
+Thus, we set the other variables for word preprocessing as ``None``, for which are utilized by other models such as ``KimCNN``.
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
@@ -101,31 +84,18 @@ Step 5. Initialize a model
 Let us introduce the variables as the inputs of ``init_model`` function on the following.
 
     * ``model_name`` leads ``init_model`` function to find a network model.
-
-     .. literalinclude:: ../examples/bert_quickstart.py
-         :language: python3
-         :lines: 19
-
-     More details are in `here <nn_networks.html>`_.
-
-    * ``network_config`` contains the configurations of a network model. In this example, we set it as
-
-     .. literalinclude:: ../examples/bert_quickstart.py
-         :language: python3
-         :lines: 20-25
-
+      More details are in `here <nn_networks.html>`_.
+    * ``network_config`` contains the configurations of a network model.
     * ``classes`` is the label set of the data.
     * ``init_weight``, ``word_dict`` and ``embed_vecs`` are not used on a bert-base model, so we can ignore them.
     * You can check more information from `here <../api/nn.html#libmultilabel.nn.nn_utils.init_model>`_ if you are interested in other settings.
       For example, ``moniter_metrics`` is used to define the metrics you would like to track during the training procedure.
     
-Overall, we use
+Overall, we use the following code to initialize a model with a suitable learning rate setting.
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 26-35
-
-to initialize a model with a suitable learning rate setting.
+    :lines: 19-35
 
 Step 6. Initialize a trainer
 ----------------------------
@@ -190,25 +160,6 @@ Note that this example requires around 2.2 GB GPU memory.
 If your GPU device is not satisfied this requirement, please reduce the ``batch_size``.
 
 
-Step 1. Import the libraries
-----------------------------
-
-There is only one different part we need to take care between KimCNN and BERT:
-
-    * The preprocess function that maps a word to a vector.
-
-Therefore, we import the function ``load_or_build_text_dict`` to replace the function ``AutoTokenizer``. Please consider the following code.
-
-.. literalinclude:: ../examples/nn_quickstart.py
-    :language: python3
-    :lines: 2-4
-
-Step 2. Setup device
---------------------
-
-This step is as same as `BERT example's Step 2 <nn_tutorial.html#step-2-setup-device>`_.
-
-
 Step 3. Load data
 ------------------------------------------
 
@@ -241,16 +192,6 @@ We consider the following settings for the KimCNN model.
     :language: python3
     :lines: 19-35
 
-
-Step 6. Initialize a trainer
-----------------------------
-
-This step is as same as `BERT example's Step 6 <nn_tutorial.html#step-6-initialize-a-trainer>`_.
-
-Step 7. Create data loaders
----------------------------
-
-This step is as same as `BERT example's Step 7 <nn_tutorial.html#step-7-create-data-loaders>`_.
 
 Step 8. Train and test a model
 --------------------------------
