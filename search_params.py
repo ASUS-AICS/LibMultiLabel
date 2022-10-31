@@ -252,7 +252,7 @@ def main():
             train_libmultilabel_tune,
             **data),
         search_alg=init_search_algorithm(
-            config.search_alg, metric=config.val_metric, mode=args.mode),
+            config.search_alg, metric=f'val_{config.val_metric}', mode=args.mode),
         scheduler=scheduler,
         local_dir=config.result_dir,
         num_samples=config.num_samples,

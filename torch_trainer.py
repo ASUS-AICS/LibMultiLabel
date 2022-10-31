@@ -7,6 +7,7 @@ from transformers import AutoTokenizer
 
 from libmultilabel.nn import data_utils
 from libmultilabel.nn.model import Model
+from libmultilabel.nn.metrics import get_metrics
 from libmultilabel.nn.nn_utils import init_device, init_model, init_trainer, set_seed
 from libmultilabel.common_utils import dump_log
 
@@ -105,6 +106,13 @@ class TorchTrainer:
         if checkpoint_path is not None:
             logging.info(f'Loading model from `{checkpoint_path}`...')
             self.model = Model.load_from_checkpoint(checkpoint_path)
+            self.label_desc_idx = None
+            if self.config.label_file:
+                classes, _, _ = data_utils.load_or_build_label(
+                    self.datasets, self.config.label_file, self.config.include_test_labels, self.config.fewshot_threshold)
+                # TBD: for zero-shot model
+                self.model.classes = classes
+                self.label_desc_idx = data_utils.load_label_description(self.config.label_file, self.model.classes, self.model.word_dict, embedding=False)
         else:
             logging.info('Initialize model from scratch.')
             if self.config.embed_file is not None:
@@ -119,12 +127,12 @@ class TorchTrainer:
                     embed_cache_dir=self.config.embed_cache_dir
                 )
             if not classes:
-                classes = data_utils.load_or_build_label(
-                    self.datasets, self.config.label_file, self.config.include_test_labels)
+                classes, _, _ = data_utils.load_or_build_label(
+                    self.datasets, self.config.label_file, self.config.include_test_labels, self.config.fewshot_threshold)
 
-            label_embedding = None
+            self.label_desc_idx = None
             if self.config.label_file:
-                label_embedding = data_utils.load_label_embedding(self.config.label_file, classes, word_dict)
+                self.label_desc_idx = data_utils.load_label_description(self.config.label_file, classes, word_dict, embedding=False)
 
             if self.config.val_metric not in self.config.monitor_metrics:
                 logging.warn(
@@ -135,7 +143,6 @@ class TorchTrainer:
                                     network_config=dict(self.config.network_config),
                                     classes=classes,
                                     word_dict=word_dict,
-                                    label_embedding=label_embedding,
                                     init_weight=self.config.init_weight,
                                     log_path=log_path,
                                     learning_rate=self.config.learning_rate,
@@ -167,7 +174,8 @@ class TorchTrainer:
             batch_size=self.config.batch_size if split == 'train' else self.config.eval_batch_size,
             shuffle=shuffle,
             data_workers=self.config.data_workers,
-            tokenizer=self.tokenizer
+            tokenizer=self.tokenizer,
+            label_desc_idx=self.label_desc_idx
         )
 
     def train(self):
@@ -208,12 +216,44 @@ class TorchTrainer:
 
         logging.info(f'Testing on {split} set.')
         test_loader = self._get_dataset_loader(split=split)
+        ###############################
+        # from set_value import set_value
+        # self.model = set_value(self.model)
+        ###############################
         metric_dict = self.trainer.test(self.model, test_dataloaders=test_loader)[0]
 
+
         if self.config.save_k_predictions > 0:
+            self.model.predict_top_k = self.config.save_k_predictions
             self._save_predictions(test_loader, self.config.predict_out_path)
 
+        if self.config.fewshot_threshold > 0:
+            classes, fewshot_start, zeroshot_start = data_utils.load_or_build_label(
+                self.datasets, self.config.label_file, self.config.include_test_labels, self.config.fewshot_threshold)
+            self.eval_zero_few(test_loader, classes, fewshot_start, zeroshot_start)
+
         return metric_dict
+
+    def eval_zero_few(self, dataloader, classes, fewshot_start, zeroshot_start):
+        model_eval_metric = self.model.eval_metric
+
+        # Evaluate few-shot labels
+        logging.info(f'=== Few-shot Labels ===')
+        self.model.eval_label_set = (fewshot_start, zeroshot_start)
+        n_eval_classes = zeroshot_start - fewshot_start
+        self.model.eval_metric = get_metrics(self.config.metric_threshold, self.config.fewshot_monitor_metrics, n_eval_classes)
+        metric_dict = self.trainer.test(self.model, test_dataloaders=dataloader)
+
+        # Evaluate zero-shot labels
+        logging.info(f'=== Zero-shot Labels ===')
+        self.model.eval_label_set = (zeroshot_start, len(classes))
+        n_eval_classes = len(classes) - zeroshot_start
+        self.model.eval_metric = get_metrics(self.config.metric_threshold, self.config.fewshot_monitor_metrics, n_eval_classes)
+        metric_dict = self.trainer.test(self.model, test_dataloaders=dataloader)
+
+        self.model.eval_label_set = None
+        self.model.eval_metric = model_eval_metric
+        return
 
     def _save_predictions(self, dataloader, predict_out_path):
         """Save top k label results.
@@ -223,6 +263,13 @@ class TorchTrainer:
             predict_out_path (str): Path to the an output file holding top k label results.
         """
         batch_predictions = self.trainer.predict(self.model, dataloaders=dataloader)
+        ####################
+        # pred_scores = np.vstack([batch['pred_scores']
+                                # for batch in batch_predictions])
+        # np.save(predict_out_path, pred_scores)
+        # logging.info(f'Saved predictions to: {predict_out_path}')
+        # return
+        ############################
         pred_labels = np.vstack([batch['top_k_pred']
                                 for batch in batch_predictions])
         pred_scores = np.vstack([batch['top_k_pred_scores']
@@ -232,4 +279,6 @@ class TorchTrainer:
                 out_str = ' '.join([f'{self.model.classes[label]}:{score:.4}' for label, score in zip(
                     pred_label, pred_score)])
                 fp.write(out_str+'\n')
+        pred_labels = np.vectorize(lambda x: self.model.classes[x])(pred_labels)
+        np.savez(predict_out_path.replace('.txt', '.npz'), pred_labels=pred_labels, pred_scores=pred_scores)
         logging.info(f'Saved predictions to: {predict_out_path}')

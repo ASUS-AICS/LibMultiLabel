@@ -38,7 +38,6 @@ def init_model(model_name,
                network_config,
                classes,
                word_dict,
-               label_embedding=None,
                init_weight=None,
                log_path=None,
                learning_rate=0.0001,
@@ -56,7 +55,6 @@ def init_model(model_name,
         network_config (dict): Configuration for defining the network.
         classes (list): List of class names.
         word_dict (torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
-        label_embedding (np.float): An embedding matrix where each row is the feature of a label.
         init_weight (str): Weight initialization method from `torch.nn.init`.
             For example, the `init_weight` of `torch.nn.init.kaiming_uniform_`
             is `kaiming_uniform`. Defaults to None.
@@ -74,12 +72,10 @@ def init_model(model_name,
         Model: A class that implements `MultiLabelModel` for initializing and training a neural network.
     """
 
-    label_embedding = dict() if label_embedding is None else {'label_embedding': label_embedding}
     network = getattr(networks, model_name)(
         embed_vecs=word_dict.vectors if word_dict is not None else None,
         num_classes=len(classes),
         **dict(network_config),
-        **label_embedding
     )
 
     if init_weight is not None:

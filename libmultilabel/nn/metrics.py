@@ -28,6 +28,10 @@ class NDCG(Metric):
 
     def update(self, preds, target):
         assert preds.shape == target.shape
+        mask = target.any(dim=-1)
+        if not mask.any():
+            return
+        preds, target = preds[mask], target[mask]
         self.ndcg += [self._metric(p, t) for p, t in zip(preds, target)]
 
     def compute(self):
@@ -56,6 +60,11 @@ class RPrecision(Metric):
 
     def update(self, preds, target):
         assert preds.shape == target.shape
+        mask = target.any(dim=-1)
+        if not mask.any():
+            return
+        preds, target = preds[mask], target[mask]
+
         binary_topk_preds = select_topk(preds, self.top_k)
         target = target.to(dtype=torch.int)
         num_relevant = torch.sum(binary_topk_preds & target, dim=-1)

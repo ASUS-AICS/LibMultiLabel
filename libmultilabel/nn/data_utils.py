@@ -8,6 +8,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 import torch
 import numpy as np
 import pandas as pd
+import torch.nn.functional as F
 from nltk.tokenize import RegexpTokenizer
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer
@@ -29,7 +30,7 @@ class TextDataset(Dataset):
         self.classes = classes
         self.max_seq_length = max_seq_length
         self.num_classes = len(self.classes)
-        self.label_binarizer = MultiLabelBinarizer().fit([classes])
+        self.label_binarizer = MultiLabelBinarizer(classes=classes).fit([classes])
         self.tokenizer = tokenizer
 
     def __len__(self):
@@ -81,7 +82,8 @@ def get_dataset_loader(
     batch_size=1,
     shuffle=False,
     data_workers=4,
-    tokenizer=None
+    tokenizer=None,
+    label_desc_idx=None,
 ):
     """Create a pytorch DataLoader.
 
@@ -99,12 +101,19 @@ def get_dataset_loader(
         torch.utils.data.DataLoader: A pytorch DataLoader.
     """
     dataset = TextDataset(data, word_dict, classes, max_seq_length, tokenizer=tokenizer)
+    if label_desc_idx is not None:
+        def collate_fn(data_batch):
+            batch = generate_batch(data_batch)
+            batch['label_desc'] = label_desc_idx
+            return batch
+    else:
+        collate_fn = generate_batch
     dataset_loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=batch_size,
         shuffle=shuffle,
         num_workers=data_workers,
-        collate_fn=generate_batch,
+        collate_fn=collate_fn,
         pin_memory='cuda' in device.type,
     )
     return dataset_loader
@@ -172,6 +181,7 @@ def load_datasets(
     if val_path is not None and os.path.exists(val_path):
         datasets['val'] = _load_raw_data(val_path, tokenize_text=tokenize_text)
     elif val_size > 0:
+
         datasets['train'], datasets['val'] = train_test_split(
             datasets['train'], test_size=val_size, random_state=42)
 
@@ -239,6 +249,9 @@ def load_or_build_text_dict(
     else:
         logging.info(f'Load pretrained embedding from torchtext.')
         vocabs.load_vectors(embed_file, cache=embed_cache_dir)
+        for i, vec in enumerate(vocabs.vectors):
+            if i > 1 and not vec.any():
+                vocabs.vectors[i].normal_() # random initialize unknown tokens
 
     if normalize_embed:
         # vocabs.vectors is a torch.FloatTensor from the result of vocabs.set_vectors earlier.
@@ -255,7 +268,7 @@ def load_or_build_text_dict(
     return vocabs
 
 
-def load_or_build_label(datasets, label_file=None, include_test_labels=False):
+def load_or_build_label(datasets, label_file=None, include_test_labels=False, fewshot_threshold=0):
     """Generate label set either by the given datasets or a predefined label file.
 
     Args:
@@ -273,24 +286,41 @@ def load_or_build_label(datasets, label_file=None, include_test_labels=False):
             f'Specified the inclusion of test labels but test file does not exist')
 
     classes = set()
+    for instance in datasets['train']:
+        classes.update(instance['label'])
 
-    for split, data in datasets.items():
-        if split == 'test' and not include_test_labels:
-            continue
-        for instance in data:
-            classes.update(instance['label'])
-    classes = sorted(classes)
-    logging.info(f'Read {len(classes)} labels.')
-    return classes
+    from collections import Counter
+    from itertools import chain
+    train_label_cnt = Counter(chain.from_iterable(data['label'] for data in datasets['train']))
+
+    classes, freqs =  map(list, zip(*train_label_cnt.most_common()))
+
+    test_label_set = set(chain.from_iterable(data['label'] for data in datasets['test']))
+    if 'val' in datasets:
+        test_label_set.update(chain.from_iterable(data['label'] for data in datasets['val']))
+    zero_shot_labels = sorted(test_label_set- set(classes))
+    all_classes = classes + zero_shot_labels
+
+    from bisect import bisect_right
+    fewshot_start = len(freqs) - bisect_right(freqs[::-1], fewshot_threshold)
+    zeroshot_start = len(freqs)
+
+    logging.info('#Labels:         {}'.format(len(all_classes)))
+    logging.info('Frequent labels: {}'.format(fewshot_start))
+    logging.info('Few labels:      {}'.format(zeroshot_start - fewshot_start))
+    logging.info('Zero labels:     {}'.format(len(all_classes) - zeroshot_start))
+
+    return all_classes, fewshot_start, zeroshot_start
 
 
-def load_label_embedding(label_file, classes, word_dict):
+def load_label_description(label_file, classes, word_dict, embedding=True):
     """Generate label embeddings from predefined label descriptions.
 
     Args:
         label_file (str): Path to a file holding all labels.
         classes (list): List of labels.
         word_dict (torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
+        embedding (bool): Whether to transform the label descriptions to embeddings.
 
     Returns:
         torch.Tensor: Label embedding weights (num_classes, embed_size)
@@ -300,13 +330,20 @@ def load_label_embedding(label_file, classes, word_dict):
     label_desc = df.set_index(0)[1]
     logging.info(f'Loaded {len(label_desc)} label descriptions from {label_file}.')
 
-    def desc2vec(s):
-        return word_dict.vectors[word_dict.lookup_indices(tokenize(s))].mean(dim=0)
+    if embedding:
+        def desc2vec(s):
+            return word_dict.vectors[word_dict.lookup_indices(tokenize(s))].mean(dim=0)
 
-    embeddings = label_desc[classes].map(desc2vec)
-    embeddings = torch.stack(list(embeddings.values))
-    logging.info(f'Generated label embeddings: {embeddings.shape}.')
-    return embeddings
+        embeddings = label_desc[classes].map(desc2vec)
+        embeddings = torch.stack(list(embeddings.values))
+        logging.info(f'Generated label embeddings: {embeddings.shape}.')
+        return embeddings
+    else:
+        def desc2idx(s):
+            return torch.LongTensor(word_dict.lookup_indices(tokenize(s)))
+        label_desc_idx = label_desc[classes].map(desc2idx)
+        label_desc_idx = pad_sequence(label_desc_idx.tolist(), batch_first=True)
+        return label_desc_idx
 
 
 def get_embedding_weights_from_file(word_dict, embed_file, silent=False):

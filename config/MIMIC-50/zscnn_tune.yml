@@ -1,0 +1,70 @@
+# data
+data_dir: data/MIMIC-50
+data_name: MIMIC-50
+min_vocab_freq: 3
+max_seq_length: 2500
+include_test_labels: true
+
+# train
+seed: 1337
+epochs: 200
+batch_size: 16
+optimizer: adam
+learning_rate: ['grid_search', [0.003, 0.001, 0.0003, 0.0001, 0.00003]]
+momentum: 0.
+weight_decay: 0
+patience: 10
+shuffle: true
+
+# eval
+eval_batch_size: 1
+monitor_metrics: ['Micro-F1', 'Macro-F1', 'Another-Macro-F1', 'P@1', 'P@3', 'P@5', 'RP@5', 'nDCG@5']
+val_metric: P@5
+
+# model
+model_name: ZeroSCNN
+init_weight: xavier_uniform
+network_config:
+  embed_dropout: ['grid_search', [0, 0.2, 0.4]]
+  encoder_dropout: ['grid_search', [0, 0.2, 0.4]]
+  filter_sizes: [4]
+  num_filter_per_size: ['grid_search', [1024, 2048]]
+  activation: tanh
+
+# pretrained vocab / embeddings
+vocab_file: data/MIMIC-50/vocab.csv
+embed_file: data/MIMIC-50/processed_full.embed
+normalize_embed: true
+label_file: data/MIMIC-50/ICD9_descriptions.txt
+load_label_text: true
+
+# hyperparamter search
+search_alg: basic_variant
+embed_cache_dir: null
+num_samples: 1
+scheduler: null
+# Uncomment the following lines to enable the ASHAScheduler.
+# See the documentation here: https://docs.ray.io/en/latest/tune/api_docs/schedulers.html#asha-tune-schedulers-ashascheduler
+# scheduler:
+#   time_attr: training_iteration
+#   max_t: 100  # the maximum epochs to run for each config (parameter R in the ASHA paper)
+#   grace_period: 10  # the minimum epochs to run for each config (parameter r in the ASHA paper)
+#   reduction_factor: 3  # reduce the number of configuration to floor(1/reduction_factor) each round of successive halving (called rung in ASHA paper)
+#   brackets: 1  # number of brackets. A smaller bracket index (parameter s in the ASHA paper) means earlier stopping (i.e., less total resources used)
+
+# other parameters specified in main.py::get_args
+checkpoint_path: null
+cpu: false
+data_workers: 4
+eval: false
+limit_train_batches: 1.0
+limit_val_batches: 1.0
+limit_test_batches: 1.0
+metric_threshold: 0.5
+result_dir: runs
+save_k_predictions: 0
+silent: true
+test_path: data/MIMIC-50/test.txt
+train_path: data/MIMIC-50/train.txt
+val_path: data/MIMIC-50/valid.txt
+val_size: 0.2

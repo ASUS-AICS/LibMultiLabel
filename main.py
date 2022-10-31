@@ -86,6 +86,8 @@ def get_config():
                         help='Metrics to monitor while validating (default: %(default)s)')
     parser.add_argument('--val_metric', default='P@1',
                         help='The metric to monitor for early stopping (default: %(default)s)')
+    parser.add_argument('--fewshot_threshold', type=int, default=0,
+                        help='The threshold to distinguish few-shot and zero-shot labels. Enable few/zero shot evaluation when the value is not zero (default: %(default)s)')
 
     # pretrained vocab / embeddings
     parser.add_argument('--vocab_file', type=str,
@@ -94,6 +96,8 @@ def get_config():
                         help='Path to a file holding pre-trained embeddings (default: %(default)s)')
     parser.add_argument('--label_file', type=str,
                         help='Path to a file holding all labels (default: %(default)s)')
+    parser.add_argument('--load_label_text', action='store_true',
+                        help='Load label description as raw text, otherwise load as embeddings (default: %(default)s)')
 
     # log
     parser.add_argument('--save_k_predictions', type=int, nargs='?', const=100, default=0,

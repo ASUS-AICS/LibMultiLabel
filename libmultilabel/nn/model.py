@@ -23,7 +23,7 @@ class MultiLabelModel(pl.LightningModule):
         monitor_metrics (list, optional): Metrics to monitor while validating. Defaults to None.
         log_path (str): Path to a directory holding the log files and models.
         silent (bool, optional): Enable silent mode. Defaults to False.
-        save_k_predictions (int, optional): Save top k predictions on test set. Defaults to 0.
+        predict_top_k (int, optional): Predict top k labels on test set. Predict all labels if k=0. Defaults to 0.
     """
 
     def __init__(
@@ -37,7 +37,7 @@ class MultiLabelModel(pl.LightningModule):
         monitor_metrics=None,
         log_path=None,
         silent=False,
-        save_k_predictions=0,
+        predict_top_k=0,
         **kwargs
     ):
         super().__init__()
@@ -51,10 +51,11 @@ class MultiLabelModel(pl.LightningModule):
         # dump log
         self.log_path = log_path
         self.silent = silent
-        self.save_k_predictions = save_k_predictions
+        self.predict_top_k = predict_top_k
 
         # metrics for evaluation
         self.eval_metric = get_metrics(metric_threshold, monitor_metrics, num_classes)
+        self.eval_label_set = None
 
     @abstractmethod
     def shared_step(self, batch):
@@ -126,9 +127,13 @@ class MultiLabelModel(pl.LightningModule):
         indexes = torch.arange(
             batch_size*batch_parts['batch_idx'], batch_size*(batch_parts['batch_idx']+1))
         indexes = indexes.unsqueeze(1).repeat(1, num_classes)
+        if self.eval_label_set is None:
+            st, ed = 0, num_classes
+        else:
+            st, ed = self.eval_label_set
         return self.eval_metric.update(
-            preds=batch_parts['pred_scores'],
-            target=batch_parts['target'],
+            preds=batch_parts['pred_scores'][:,st:ed],
+            target=batch_parts['target'][:,st:ed],
             indexes=indexes
         )
 
@@ -153,7 +158,7 @@ class MultiLabelModel(pl.LightningModule):
         self.eval_metric.reset()
         return metric_dict
 
-    def predict_step(self, batch, batch_idx, dataloader_idx):
+    def predict_step(self, batch, batch_idx, dataloader_idx=0):
         """`predict_step` is triggered when calling `trainer.predict()`.
         This function is used to get the top-k labels and their prediction scores.
 
@@ -167,7 +172,8 @@ class MultiLabelModel(pl.LightningModule):
         """
         _, pred_logits = self.shared_step(batch)
         pred_scores = pred_logits.detach().cpu().numpy()
-        k = self.save_k_predictions
+        return {'pred_scores': pred_scores}
+        k = self.predict_top_k
         top_k_idx = argsort_top_k(pred_scores, k, axis=1)
         top_k_scores = np.take_along_axis(pred_scores, top_k_idx, axis=1)
 

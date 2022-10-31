@@ -1,0 +1,36 @@
+# data
+data_dir: data/EUR-Lex-57k
+data_name: EUR-Lex-57k
+min_vocab_freq: 1
+max_seq_length: 500
+
+# train
+seed: 1337
+epochs: 100
+batch_size: 16
+optimizer: adam
+learning_rate: 0.001
+weight_decay: 0
+patience: 10
+shuffle: true
+
+# eval
+eval_batch_size: 16
+monitor_metrics: ['Micro-F1', 'Macro-F1', 'Another-Macro-F1', 'P@1', 'P@5', 'RP@5', 'nDCG@5']
+val_metric: RP@5
+
+# model
+model_name: CBiGRULWAN
+init_weight: xavier_uniform
+network_config:
+  embed_dropout: 0.02
+  encoder_dropout: 0.1
+  rnn_dim: 200
+  rnn_layers: 1
+
+# pretrained vocab / embeddings
+embed_file: glove.6B.200d
+label_file: data/EUR-Lex-57k/EURLEX57K_label_descriptions.txt
+
+fewshot_threshold: 50
+fewshot_monitor_metrics: ['RP@5', 'nDCG@5']
