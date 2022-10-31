@@ -18,15 +18,14 @@ class BertDataset(Dataset):
 
     def __init__(self, data: pd.DataFrame,
                  classes: 'list[str]',
-                 tokenizer: str,
+                 tokenizer: 'transformers.BertTokenizer',
                  max_seq_length: int,
                  add_special_tokens: bool):
         self.data = data
         self.classes = classes
         self.max_seq_length = max_seq_length
         self.label_binarizer = MultiLabelBinarizer().fit([classes])
-        self.tokenizer = transformers.AutoTokenizer.from_pretrained(
-            tokenizer, use_fast=True)
+        self.tokenizer = tokenizer
         self.add_special_tokens = add_special_tokens
 
     def __len__(self):

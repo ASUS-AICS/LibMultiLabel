@@ -122,8 +122,8 @@ class TorchTrainer:
                 model_name=self.config.model_name,
                 network_config=dict(self.config.network_config),
                 classes=classes,
-                word_dict=vocab,
-                embed_vecs=embed_vecs,
+                word_dict=self.vocab,
+                embed_vecs=self.embed_vecs,
                 init_weight=self.config.init_weight,
                 log_path=log_path,
                 learning_rate=self.config.learning_rate,
@@ -141,7 +141,7 @@ class TorchTrainer:
     def _initialize_transformer(self):
         """Initializes self.network and self.dataloaders for transformers.
         """
-        tokenizer = transformers.AutoTokenizer.from_pretrained(self.config.network_config['lm_weight'], use_fase=True)
+        tokenizer = transformers.AutoTokenizer.from_pretrained(self.config.network_config['lm_weight'], use_fast=True)
         def make_dataloader(split):
             dataset = bert_dataset.BertDataset(
                 self.datasets[split],
@@ -164,14 +164,18 @@ class TorchTrainer:
         self.dataloaders = {
             'train': make_dataloader('train'),
             'val': make_dataloader('val'),
-            'test': make_dataloader('testin'),
+            'test': make_dataloader('test'),
         }
 
         # TODO: write explicit list
-        self.network = getattr(networks, self.network.model_name)(
+        self.network = getattr(networks, self.config.model_name)(
             num_classes=len(self.classes),
             **self.config.network_config,
         )
+
+        # TODO: remove after refactoring libmultilabel.nn.Model
+        self.vocab = None
+        self.embed_vecs = None
 
     def _initialize_rnn(self):
         """Initializes self.network and self.dataloaders for RNNs. Modifies self.datasets.
@@ -186,7 +190,7 @@ class TorchTrainer:
             vocab = token_dataset.build_vocabulary(
                 self.datasets['train'], self.config.min_vocab_freq)
         embed_vecs = token_dataset.load_embedding_weights(
-            vocab, self.config.embed_file, self.config.embed_cache_dir, self.config.normalize)
+            vocab, self.config.embed_file, self.config.embed_cache_dir, self.config.normalize_embed)
 
         def make_dataloader(split):
             dataset = token_dataset.TokenDataset(
@@ -209,7 +213,7 @@ class TorchTrainer:
         self.dataloaders = {
             'train': make_dataloader('train'),
             'val': make_dataloader('val'),
-            'test': make_dataloader('testin'),
+            'test': make_dataloader('test'),
         }
 
         # TODO: write explicit list
@@ -218,6 +222,10 @@ class TorchTrainer:
             num_classes=len(self.classes),
             **self.config.network_config,
         )
+
+        # TODO: remove after refactoring libmultilabel.nn.Model
+        self.vocab = vocab
+        self.embed_vecs = embed_vecs
 
     def train(self):
         """Train model with pytorch lightning trainer. Set model to the best model after the training

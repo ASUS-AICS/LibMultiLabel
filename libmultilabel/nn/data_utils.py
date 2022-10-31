@@ -103,20 +103,20 @@ def load_datasets(
     return datasets
 
 
-def load_or_build_label(datasets: dict,
+def load_or_build_label(datasets: 'dict[str, pd.DataFrame]',
                         label_file: Optional[str] = None,
                         include_test_labels: bool = False) -> 'list[str]':
     """Generate label set either by the given datasets or a predefined label file.
 
     Args:
-        datasets (dict): A dictionary of datasets. Each dataset contains list of instances
-            with index, label, and tokenized text.
+        datasets (dict[str, pd.DataFrame]): A dictionary of dataframes, one for each data split.
+            Every dataframe must contain a 'label' column.
         label_file (str, optional): Path to a file holding all labels.
         include_test_labels (bool, optional): Whether to include labels in the test dataset.
             Defaults to False.
 
     Returns:
-        list: A list of labels sorted in alphabetical order.
+        list[str]: A list of labels sorted in alphabetical order.
     """
     if label_file is not None:
         logging.info(f'Load labels from {label_file}.')
@@ -132,8 +132,8 @@ def load_or_build_label(datasets: dict,
         for split, data in datasets.items():
             if split == 'test' and not include_test_labels:
                 continue
-            for instance in data:
-                classes.update(instance['label'])
+            for l in data['label']:
+                classes.update(l)
         classes = sorted(classes)
     logging.info(f'Read {len(classes)} labels.')
     return classes

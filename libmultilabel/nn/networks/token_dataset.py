@@ -60,6 +60,7 @@ def tokenize(text):
 def collate_fn(data_batch):
     text_list = [data['text'] for data in data_batch]
     label_list = [data['label'] for data in data_batch]
+    # TODO: where is length_list used?
     length_list = [len(data['text']) for data in data_batch]
     return {
         'text': pad_sequence(text_list, batch_first=True),
