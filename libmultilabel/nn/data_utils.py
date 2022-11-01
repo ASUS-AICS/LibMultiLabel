@@ -91,7 +91,7 @@ def load_datasets(
                                           remove_no_label_data=remove_no_label_data)
 
     if merge_train_val:
-        datasets['train'] = pd.concat(datasets['train'], datasets['val'])
+        datasets['train'] = pd.concat([datasets['train'], datasets['val']])
         # TODO: re-indexing behaviour should be documented
         datasets['train']['index'] = datasets['train'].index
         del datasets['val']
