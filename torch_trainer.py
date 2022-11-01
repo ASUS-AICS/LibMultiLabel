@@ -181,9 +181,8 @@ class TorchTrainer:
     def _initialize_rnn(self):
         """Initializes self.network and self.dataloaders for RNNs. Modifies self.datasets.
         """
-        self.datasets['train']['text'] = self.datasets['train']['text'].map(token_dataset.tokenize)
-        self.datasets['val']['text'] = self.datasets['val']['text'].map(token_dataset.tokenize)
-        self.datasets['test']['text'] = self.datasets['test']['text'].map(token_dataset.tokenize)
+        for split in self.datasets:
+            self.datasets[split]['text'] = self.datasets[split]['text'].map(token_dataset.tokenize)
 
         if self.config.vocab_file:
             vocab = token_dataset.load_vocabulary(self.config.vocab_file)
