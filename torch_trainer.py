@@ -34,6 +34,7 @@ class TorchTrainer:
         config: AttributeDict,
         datasets: 'Optional[dict[str, pd.DataFrame]]' = None,
         search_params: bool = False,
+        save_checkpoints: bool = True,
     ):
         self.run_name = config.run_name
         self.checkpoint_dir = config.checkpoint_dir
@@ -72,7 +73,7 @@ class TorchTrainer:
             limit_val_batches=config.limit_val_batches,
             limit_test_batches=config.limit_test_batches,
             search_params=search_params,
-            save_checkpoints=True
+            save_checkpoints=save_checkpoints,
         )
         callbacks = [callback for callback in self.trainer.callbacks if isinstance(
             callback, ModelCheckpoint)]
