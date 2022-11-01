@@ -162,11 +162,9 @@ class TorchTrainer:
                 pin_memory='cuda' in self.device.type,
             )
 
-        self.dataloaders = {
-            'train': make_dataloader('train'),
-            'val': make_dataloader('val'),
-            'test': make_dataloader('test'),
-        }
+        self.dataloaders = {}
+        for split in self.datasets:
+            self.dataloaders[split] = make_dataloader(split)
 
         # TODO: write explicit list
         self.network = getattr(networks, self.config.model_name)(
@@ -210,11 +208,9 @@ class TorchTrainer:
                 pin_memory='cuda' in self.device.type,
             )
 
-        self.dataloaders = {
-            'train': make_dataloader('train'),
-            'val': make_dataloader('val'),
-            'test': make_dataloader('test'),
-        }
+        self.dataloaders = {}
+        for split in self.datasets:
+            self.dataloaders[split] = make_dataloader(split)
 
         # TODO: write explicit list
         self.network = getattr(networks, self.config.model_name)(
