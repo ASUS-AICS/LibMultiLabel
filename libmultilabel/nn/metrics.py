@@ -8,6 +8,28 @@ from torchmetrics.functional.retrieval.ndcg import retrieval_normalized_dcg
 from torchmetrics.utilities.data import select_topk
 
 
+class Loss(Metric):
+    """Loss records the batch-wise losses
+    and then obtains a mean loss from the recorded losses.
+    """
+    # If the metric state of one batch is independent of the state of other batches,
+    # full_state_update can be set to False,
+    # which leads to more efficient computation with calling update() only once.
+    # Please find the detailed explanation here:
+    # https://torchmetrics.readthedocs.io/en/stable/pages/implement.html
+    full_state_update = False
+
+    def __init__(self):
+        super().__init__()
+        self.add_state("loss", default=[], dist_reduce_fx="cat")
+
+    def update(self, loss):
+        self.loss.append(loss)
+
+    def compute(self):
+        return torch.stack(self.loss).mean()
+
+
 class NDCG(Metric):
     """NDCG (Normalized Discounted Cumulative Gain) sums the true scores
     ranked in the order induced by the predicted scores after applying a logarithmic discount,
@@ -195,6 +217,8 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes, top_k=None):
             metrics[metric] = MacroF1(num_classes, metric_threshold, another_macro_f1=True, top_k=top_k)
         elif metric == 'Macro-F1':
             metrics[metric] = MacroF1(num_classes, metric_threshold, top_k=top_k)
+        elif metric == 'Loss':
+            metrics[metric] = Loss()
         elif match_metric:
             average_type = match_metric.group(1).lower() # Micro
             metric_type = match_metric.group(2) # Precision, Recall, or F1
