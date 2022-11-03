@@ -14,17 +14,11 @@ in this tutorial. Before we start, please download and decompress the data ``EUR
     wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/eurlex_raw_texts_test.txt.bz2 -O data/EUR-Lex/test.txt.bz2
     bzip2 -d data/EUR-Lex/*.bz2
 
-See `data formats <../cli/ov_data_format.html#dataset-formats>`_ for a complete explanation of the format.
-
 
 BERT Example
 ============
 
 This step-by-step example shows how to train and test a BERT model via LibMultiLabel.
- 
-Note that this example requires around 9 GB GPU memory. 
-If your GPU device does not meet this requirement, please reduce the ``batch_size`` in `Step 7 <nn_tutorial.html#step-7-create-data-loaders>`_.
-
 
 
 Step 1. Import the libraries
@@ -48,7 +42,7 @@ For initial a hardware device, please use ``init_device`` to assign the hardware
     :language: python3
     :lines: 7-8
 
-Step 3. Load data
+Step 3. Load and tokenize data
 ------------------------------------------
 
 We assume that the ``EUR-Lex`` data is located at the directory ``./data/EUR-Lex``, 
@@ -58,58 +52,45 @@ By default, LibMultiLabel tokenizes documents, but the BERT model uses its own t
 Thus, we must set ``tokenize_text=False``.
 Note that ``datasets`` contains three sets: ``datasets['train']``, ``datasets['val']`` and ``datasets['test']``, 
 where ``datasets['train']`` and ``datasets['val']`` are randomly splitted from ``train.txt`` with the ratio ``8:2``.
-The details can be found in `here <../api/nn.html#libmultilabel.nn.data_utils.load_datasets>`_, and you can also check out other arguments.
 
 For the labels of the data, we apply the function ``load_or_build_label()`` to generate the label set.
 
-.. literalinclude:: ../examples/bert_quickstart.py
-    :language: python3
-    :lines: 11-12
-
-
-Step 4. Tokenization 
------------------------------------------
-
-For BERT, we utilize the API ``AutoTokenizer``, which is supported by ``Hugging Face``, to get the word preprocessing setting of BERT.
-Thus, we set the other variables for word preprocessing as ``None``, for which are utilized by other models such as ``KimCNN``.
+For BERT, we utilize the API ``AutoTokenizer``, which is supported by ``Hugging Face``, for the word preprocessing setting.
+Thus, we set the other variables for word preprocessing as ``None``.
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 15-16
+    :lines: 11-14
 
 
-Step 5. Initialize a model
+Step 4. Initialize a model
 --------------------------
 
-Let us introduce the variables as the inputs of ``init_model`` function on the following.
-
-    * ``model_name`` leads ``init_model`` function to find a network model.
-      More details are in `here <nn_networks.html>`_.
-    * ``network_config`` contains the configurations of a network model.
-    * ``classes`` is the label set of the data.
-    * ``init_weight``, ``word_dict`` and ``embed_vecs`` are not used on a bert-base model, so we can ignore them.
-    * You can check more information from `here <../api/nn.html#libmultilabel.nn.nn_utils.init_model>`_ if you are interested in other settings.
-      For example, ``moniter_metrics`` is used to define the metrics you would like to track during the training procedure.
-    
-Overall, we use the following code to initialize a model with a suitable learning rate setting.
+We use the following code to initialize a model.
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 19-35
+    :lines: 17-33
 
-Step 6. Initialize a trainer
+* ``model_name`` leads ``init_model`` function to find a network model.
+* ``network_config`` contains the configurations of a network model.
+* ``classes`` is the label set of the data.
+* ``init_weight``, ``word_dict`` and ``embed_vecs`` are not used on a bert-base model, so we can ignore them.
+* ``moniter_metrics`` is used to define the metrics you would like to track during the training procedure.
+    
+
+Step 5. Initialize a trainer
 ----------------------------
 
 We use the function ``init_trainer`` to initialize a trainer, which controls processes such as the number of training loops. 
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 38
+    :lines: 36
 
 In this example, we set the number of training loops by ``epochs=15``, and the validation metric by ``val_metric = 'P@5'``.
-For the other variables of ``init_trainer``, please check in `here <../api/nn.html#libmultilabel.nn.nn_utils.init_trainer>`_.
 
-Step 7. Create data loaders
+Step 6. Create data loaders
 ---------------------------
 
 In most cases, we do not load a full set due to the hardware limitation.
@@ -117,26 +98,26 @@ Therefore, a data loader can load a batch of samples each time.
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 41-52
+    :lines: 39-50
 
 This example loads three loaders, and the batch size is set by ``batch_size=8``. Other variables can be checked in `here <../api/nn.html#libmultilabel.nn.data_utils.get_dataset_loader>`_.
 
-Step 8. Train and test a model
+Step 7. Train and test a model
 ------------------------------
 
 The bert model training process can be started via 
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 55
+    :lines: 53
 
-After the training process is finished, we can then run the testing process by
+After the training process is finished, we can then run the test process by
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 58
+    :lines: 56
 
-the results should be similar to::
+The results should be similar to::
 
   {
       'Macro-F1': 0.1828878672314435, 
@@ -146,59 +127,41 @@ the results should be similar to::
       'P@5':      0.5613453984260559
   }
 
-Please get the full example code in `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/bert_quickstart.py>`_.
+Please get the full example code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/bert_quickstart.py>`_.
 
 
 KimCNN Example
 ==============
 
-This example shows how to train and test a KimCNN model via LibMultiLabel step-by-step. 
-Since many steps are as same as BERT's steps, those steps are skipped here.
-We only list the parts that are different to BERT example.
-
-Note that this example requires around 2.2 GB GPU memory. 
-If your GPU device is not satisfied this requirement, please reduce the ``batch_size``.
+This example shows how to train and test a KimCNN model via LibMultiLabel. 
+We only list the steps that are different from the BERT example.
 
 
-Step 3. Load data
+Step 3. Load and tokenize data
 ------------------------------------------
 
 To run KimCNN, LibMultiLabel tokenizes documents and for each word uses an embedding vector. 
 Thus, ``tokenize_text = True`` is set.
 
+We choose ``glove.6B.300d`` from torchtext as embedding vectors. 
 
-.. literalinclude:: ../examples/nn_quickstart.py
+.. literalinclude:: ../examples/kimcnn_quickstart.py
     :language: python3
-    :lines: 11-12 
-
-
-Step 4. Tokenization 
------------------------------------------
-
-We mentioned in `Step 3 <nn_tutorial.html#step-3-load-data>`_ that each word needs an embedding vector.
-Here we choose ``glove.6B.300d`` from torchtext. 
-
-.. literalinclude:: ../examples/nn_quickstart.py
-    :language: python3
-    :lines: 15-16
+    :lines: 11-14
  
 
-Step 5. Initialize a model
+Step 4. Initialize a model
 --------------------------
 
 We consider the following settings for the KimCNN model.
 
-.. literalinclude:: ../examples/nn_quickstart.py
+.. literalinclude:: ../examples/kimcnn_quickstart.py
     :language: python3
-    :lines: 19-35
+    :lines: 17-33
 
 
-Step 8. Train and test a model
---------------------------------
 
-This step is as same as `BERT example's Step 8 <nn_tutorial.html#step-8-train-and-test-a-model>`_.
-
-After the testing process, the results are looked similar to::
+The test results should be similar to::
 
   {
       'Macro-F1': 0.14401986047701182,
@@ -208,5 +171,5 @@ After the testing process, the results are looked similar to::
       'P@5':      0.4993014633655548  
   }
 
-Please get the full example code in `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/nn_quickstart.py>`_.
+Please get the full example code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/kimcnn_quickstart.py>`_.
 
