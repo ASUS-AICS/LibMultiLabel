@@ -5,10 +5,11 @@ import numpy as np
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from transformers import AutoTokenizer
 
+from libmultilabel.common_utils import dump_log, is_multiclass_dataset
 from libmultilabel.nn import data_utils
 from libmultilabel.nn.model import Model
-from libmultilabel.nn.nn_utils import init_device, init_model, init_trainer, set_seed
-from libmultilabel.common_utils import dump_log
+from libmultilabel.nn.nn_utils import (init_device, init_model, init_trainer,
+                                       set_seed)
 
 
 class TorchTrainer:
@@ -64,7 +65,7 @@ class TorchTrainer:
         else:
             self.datasets = datasets
 
-        self.config.multiclass = data_utils.is_multiclass_dataset(self.datasets)
+        self.config.multiclass = is_multiclass_dataset(self.datasets['train'])
         self._setup_model(classes=classes,
                           word_dict=word_dict,
                           embed_vecs=embed_vecs,

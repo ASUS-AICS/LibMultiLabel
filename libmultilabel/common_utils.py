@@ -7,6 +7,25 @@ import time
 import numpy as np
 
 
+class AttributeDict(dict):
+    """AttributeDict is an extended dict that can access
+    stored items as attributes.
+
+    >>> ad = AttributeDict({'ans': 42})
+    >>> ad.ans
+    >>> 42
+    """
+
+    def __getattr__(self, key: str) -> any:
+        try:
+            return self[key]
+        except KeyError:
+            raise AttributeError(f'Missing attribute "{key}"')
+
+    def __setattr__(self, key: str, value: any) -> None:
+        self[key] = value
+
+
 class Timer(object):
     """Computes elasped time."""
 
@@ -79,20 +98,20 @@ def argsort_top_k(vals, k, axis=-1):
     return sorted_top_k_idx
 
 
-class AttributeDict(dict):
-    """AttributeDict is an extended dict that can access
-    stored items as attributes.
+def is_multiclass_dataset(dataset, label="label"):
+    """Determine whether the dataset is multi-class.
 
-    >>> ad = AttributeDict({'ans': 42})
-    >>> ad.ans
-    >>> 42
+    Args:
+        dataset (Union[list, scipy.sparse.csr_matrix]): The training dataset
+            in `nn` or `linear` format.
+        label (str, optional): Label key. Defaults to "label".
+
+    Returns:
+        bool: Whether the training dataset is mulit-class or not.
     """
+    if isinstance(dataset, list):
+        label_sizes = np.array([len(d[label]) for d in dataset])
+    else:
+        label_sizes = dataset[label].sum(axis=1)
 
-    def __getattr__(self, key: str) -> any:
-        try:
-            return self[key]
-        except KeyError:
-            raise AttributeError(f'Missing attribute "{key}"')
-
-    def __setattr__(self, key: str, value: any) -> None:
-        self[key] = value
+    return bool((label_sizes == 1).sum() == len(label_sizes))
