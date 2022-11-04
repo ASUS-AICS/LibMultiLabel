@@ -1,8 +1,7 @@
-LibMultiLabel - a Library for Multi-label Text Classification
-=============================================================
+LibMultiLabel - a Library for Multi-class and Multi-label Text Classification
+==============================================================================
 
-LibMultiLabel is a library for multi-label text classification
-and a simple command line tool with the following functionalities
+LibMultiLabel is a library for binary, multi-class, and multi-label classification. It has the following functionalities
 
 - end-to-end services from raw texts to final evaluation/analysis
 - support for common neural network architectures and linear classsifiers

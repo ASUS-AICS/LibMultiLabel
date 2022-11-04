@@ -22,6 +22,7 @@ class MultiLabelModel(pl.LightningModule):
         metric_threshold (float, optional): Threshold to monitor for metrics. Defaults to 0.5.
         monitor_metrics (list, optional): Metrics to monitor while validating. Defaults to None.
         log_path (str): Path to a directory holding the log files and models.
+        multiclass (bool, optional): Enable multiclass mode. Defaults to False.
         silent (bool, optional): Enable silent mode. Defaults to False.
         save_k_predictions (int, optional): Save top k predictions on test set. Defaults to 0.
     """
@@ -36,6 +37,7 @@ class MultiLabelModel(pl.LightningModule):
         metric_threshold=0.5,
         monitor_metrics=None,
         log_path=None,
+        multiclass=False,
         silent=False,
         save_k_predictions=0,
         **kwargs
@@ -54,7 +56,10 @@ class MultiLabelModel(pl.LightningModule):
         self.save_k_predictions = save_k_predictions
 
         # metrics for evaluation
-        self.eval_metric = get_metrics(metric_threshold, monitor_metrics, num_classes)
+        self.multiclass = multiclass
+        top_k = 1 if self.multiclass else None
+        self.eval_metric = get_metrics(
+            metric_threshold, monitor_metrics, num_classes, top_k=top_k)
 
     @abstractmethod
     def shared_step(self, batch):
@@ -191,6 +196,8 @@ class Model(MultiLabelModel):
         word_dict (torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
         embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
         network (nn.Module): Network (i.e., CAML, KimCNN, or XMLCNN).
+        loss_function (str, optional): Loss function name (i.e., binary_cross_entropy_with_logits,
+            cross_entropy). Defaults to 'binary_cross_entropy_with_logits'.
         log_path (str): Path to a directory holding the log files and models.
     """
     def __init__(
@@ -199,6 +206,7 @@ class Model(MultiLabelModel):
         word_dict,
         embed_vecs,
         network,
+        loss_function='binary_cross_entropy_with_logits',
         log_path=None,
         **kwargs
     ):
@@ -208,6 +216,13 @@ class Model(MultiLabelModel):
         self.embed_vecs = embed_vecs
         self.classes = classes
         self.network = network
+        self.configure_loss_function(loss_function)
+
+    def configure_loss_function(self, loss_function):
+        assert hasattr(F, loss_function), """
+            Invalid `loss_function`. Make sure the loss function is defined here:
+            https://pytorch.org/docs/stable/nn.functional.html#loss-functions"""
+        self.loss_function = getattr(F, loss_function)
 
     def shared_step(self, batch):
         """Return loss and predicted logits of the network.
@@ -216,11 +231,12 @@ class Model(MultiLabelModel):
             batch (dict): A batch of text and label.
 
         Returns:
-            loss (torch.Tensor): Binary cross-entropy between target and predict logits.
+            loss (torch.Tensor): Loss between target and predict logits.
             pred_logits (torch.Tensor): The predict logits (batch_size, num_classes).
         """
         target_labels = batch['label']
         outputs = self.network(batch)
         pred_logits = outputs['logits']
-        loss = F.binary_cross_entropy_with_logits(pred_logits, target_labels.float())
+        loss = self.loss_function(pred_logits, target_labels.float())
+
         return loss, pred_logits

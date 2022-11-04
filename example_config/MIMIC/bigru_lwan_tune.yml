@@ -29,6 +29,8 @@ val_metric: RP@15
 
 # model
 model_name: BiGRULWAN
+multiclass: false
+loss_function: binary_cross_entropy_with_logits
 init_weight: kaiming_uniform
 network_config:
   embed_dropout: ['grid_search', [0, 0.2, 0.4, 0.6, 0.8]]

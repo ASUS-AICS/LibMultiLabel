@@ -1,11 +1,11 @@
 import gc
 import logging
-import os
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 import torch
-import numpy as np
+import transformers
+transformers.logging.set_verbosity_error()
 import pandas as pd
 from nltk.tokenize import RegexpTokenizer
 from sklearn.model_selection import train_test_split
@@ -38,8 +38,14 @@ class TextDataset(Dataset):
     def __getitem__(self, index):
         data = self.data[index]
 
-        if self.tokenizer is not None: # transformers tokenizer
-            input_ids = self.tokenizer.encode(data['text'], add_special_tokens=self.add_special_tokens)
+        if self.tokenizer is not None:  # transformers tokenizer
+            if self.add_special_tokens:  # tentatively hard code
+                input_ids = self.tokenizer.encode(data['text'],
+                                                  padding='max_length',
+                                                  max_length=self.max_seq_length,
+                                                  truncation=True)
+            else:
+                input_ids = self.tokenizer.encode(data['text'], add_special_tokens=False)
         else:
             input_ids = [self.word_dict[word] for word in data['text']]
         return {
@@ -101,7 +107,8 @@ def get_dataset_loader(
     Returns:
         torch.utils.data.DataLoader: A pytorch DataLoader.
     """
-    dataset = TextDataset(data, word_dict, classes, max_seq_length, tokenizer=tokenizer)
+    dataset = TextDataset(data, word_dict, classes, max_seq_length, tokenizer=tokenizer,
+                          add_special_tokens=add_special_tokens)
     dataset_loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=batch_size,
@@ -135,7 +142,7 @@ def _load_raw_data(path, is_test=False, tokenize_text=True, remove_no_label_data
     else:
         raise ValueError(f'Expected 2 or 3 columns, got {data.shape[1]}.')
 
-    data['label'] = data['label'].map(lambda s: s.split())
+    data['label'] = data['label'].astype(str).map(lambda s: s.split())
     if tokenize_text:
         data['text'] = data['text'].map(tokenize)
     data = data.to_dict('records')
