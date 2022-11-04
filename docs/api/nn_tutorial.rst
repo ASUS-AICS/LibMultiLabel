@@ -120,11 +120,11 @@ After the training process is finished, we can then run the test process by
 The results should be similar to::
 
   {
-      'Macro-F1': 0.1828878672314435, 
-      'Micro-F1': 0.5573605895042419,
-      'P@1':      0.8023285865783691,
-      'P@3':      0.6796895265579224,
-      'P@5':      0.5613453984260559
+      'Macro-F1': 0.16668776949897712, 
+      'Micro-F1': 0.5491620302200317, 
+      'P@1':      0.8015523552894592, 
+      'P@3':      0.6696851849555969, 
+      'P@5':      0.5537387132644653
   }
 
 Please get the full example code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/bert_quickstart.py>`_.
@@ -164,11 +164,11 @@ We consider the following settings for the KimCNN model.
 The test results should be similar to::
 
   {
-      'Macro-F1': 0.14401986047701182,
-      'Micro-F1': 0.46785199642181396,
-      'P@1':      0.7345407009124756, 
-      'P@3':      0.5999137163162231, 
-      'P@5':      0.4993014633655548  
+      'Macro-F1': 0.1487630964613739,
+      'Micro-F1': 0.4754171073436737,
+      'P@1':      0.7420440316200256,
+      'P@3':      0.6050884127616882,
+      'P@5':      0.4973350763320923,
   }
 
 Please get the full example code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/kimcnn_quickstart.py>`_.

@@ -14,7 +14,7 @@ word_dict, embed_vecs = None, None
 tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased', use_fast=True)
 
 # Step 4. Initialize a model.
-model_name='BERT'
+model_name='BERTAttention'
 network_config = {
     'dropout': 0.1,
     'lm_weight': 'bert-base-uncased',
