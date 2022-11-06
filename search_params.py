@@ -270,6 +270,10 @@ def main():
     else:
         scheduler = None
 
+    # Fix issue: https://github.com/ray-project/ray/issues/28197
+    import ray
+    ray.init(runtime_env={"env_vars": {"PL_DISABLE_FORK": "1"}})
+
     exp_name = '{}_{}_{}'.format(
         config.data_name,
         Path(config.config).stem if config.config else config.model_name,
