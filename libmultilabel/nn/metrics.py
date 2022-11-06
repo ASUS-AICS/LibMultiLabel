@@ -21,13 +21,16 @@ class Loss(Metric):
 
     def __init__(self):
         super().__init__()
-        self.add_state("loss", default=[], dist_reduce_fx="cat")
+        self.add_state("loss", default=torch.tensor(0., dtype=torch.double), dist_reduce_fx="sum")
+        self.add_state("num_sample", default=torch.tensor(0), dist_reduce_fx="sum")
 
-    def update(self, loss):
-        self.loss.append(loss)
+    def update(self, preds, target, loss):
+        assert preds.shape == target.shape
+        self.loss += loss * len(preds)
+        self.num_sample += len(preds)
 
     def compute(self):
-        return torch.stack(self.loss).mean()
+        return self.loss / self.num_sample
 
 
 class NDCG(Metric):
