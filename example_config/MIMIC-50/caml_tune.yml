@@ -9,6 +9,7 @@ include_test_labels: true
 # Follow https://github.com/jamesmullenbach/caml-mimic/blob/master/datasets.py#L45
 # to remove training and validation instances that have no labels.
 remove_no_label_data: true
+add_special_tokens: false
 
 # train
 seed: 1337
@@ -29,6 +30,8 @@ val_metric: P@5
 
 # model
 model_name: CAML
+multiclass: false
+loss_function: binary_cross_entropy_with_logits
 init_weight: null
 network_config:
   num_filter_per_size: ['grid_search', [50, 150, 250, 350, 450, 550]]
