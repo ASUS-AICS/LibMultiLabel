@@ -98,13 +98,13 @@ def argsort_top_k(vals, k, axis=-1):
     return sorted_top_k_idx
 
 
-def is_multiclass_dataset(dataset, label="label"):
+def is_multiclass_dataset(dataset, label='label'):
     """Determine whether the dataset is multi-class.
 
     Args:
         dataset (Union[list, scipy.sparse.csr_matrix]): The training dataset
             in `nn` or `linear` format.
-        label (str, optional): Label key. Defaults to "label".
+        label (str, optional): Label key. Defaults to 'label'.
 
     Returns:
         bool: Whether the training dataset is mulit-class or not.
