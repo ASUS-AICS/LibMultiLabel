@@ -75,6 +75,7 @@ class TorchTrainer:
         self.trainer = init_trainer(checkpoint_dir=self.checkpoint_dir,
                                     epochs=config.epochs,
                                     patience=config.patience,
+                                    early_stopping_metric=config.early_stopping_metric,
                                     val_metric=config.val_metric,
                                     silent=config.silent,
                                     use_cpu=config.cpu,
@@ -132,9 +133,17 @@ class TorchTrainer:
                 classes = data_utils.load_or_build_label(
                     self.datasets, self.config.label_file, self.config.include_test_labels)
 
+            if self.config.early_stopping_metric not in self.config.monitor_metrics:
+                logging.warn(
+                    f'{self.config.early_stopping_metric} is not in `monitor_metrics`. '
+                    f'Add {self.config.early_stopping_metric} to `monitor_metrics`.'
+                )
+                self.config.monitor_metrics += [self.config.early_stopping_metric]
+
             if self.config.val_metric not in self.config.monitor_metrics:
                 logging.warn(
-                    f'{self.config.val_metric} is not in `monitor_metrics`. Add {self.config.val_metric} to `monitor_metrics`.')
+                    f'{self.config.val_metric} is not in `monitor_metrics`. '
+                    f'Add {self.config.val_metric} to `monitor_metrics`.')
                 self.config.monitor_metrics += [self.config.val_metric]
 
             self.model = init_model(model_name=self.config.model_name,

@@ -228,8 +228,6 @@ def main():
                         help='Number of GPU per trial (default: %(default)s)')
     parser.add_argument('--num_samples', type=int, default=50,
                         help='Number of running trials. If the search space is `grid_search`, the same grid will be repeated `num_samples` times. (default: %(default)s)')
-    parser.add_argument('--mode', default='max', choices=['min', 'max'],
-                        help='Determines whether objective is minimizing or maximizing the metric attribute. (default: %(default)s)')
     parser.add_argument('--search_alg', default=None, choices=['basic_variant', 'bayesopt', 'optuna'],
                         help='Search algorithms (default: %(default)s)')
     parser.add_argument('--no_merge_train_val', action='store_true',
@@ -243,6 +241,7 @@ def main():
     parser.set_defaults(**config)
     config = AttributeDict(vars(parser.parse_args()))
     config.merge_train_val = False  # no need to include validation during parameter search
+    config.mode = 'min' if config.val_metric == 'Loss' else 'max'
 
     # Check if the validation set is provided.
     if 'val_file' not in config:
@@ -261,14 +260,18 @@ def main():
     reporter = tune.CLIReporter(metric_columns=[f'val_{metric}' for metric in config.monitor_metrics],
                                 parameter_columns=parameter_columns,
                                 metric=f'val_{config.val_metric}',
-                                mode=args.mode,
+                                mode=config.mode,
                                 sort_by_metric=True)
     if config.scheduler is not None:
         scheduler = ASHAScheduler(metric=f'val_{config.val_metric}',
-                                  mode=args.mode,
+                                  mode=config.mode,
                                   **config.scheduler)
     else:
         scheduler = None
+
+    # Fix issue: https://github.com/ray-project/ray/issues/28197
+    import ray
+    ray.init(runtime_env={"env_vars": {"PL_DISABLE_FORK": "1"}})
 
     exp_name = '{}_{}_{}'.format(
         config.data_name,
@@ -280,7 +283,7 @@ def main():
             train_libmultilabel_tune,
             **data),
         search_alg=init_search_algorithm(
-            config.search_alg, metric=config.val_metric, mode=args.mode),
+            config.search_alg, metric=config.val_metric, mode=config.mode),
         scheduler=scheduler,
         local_dir=config.result_dir,
         num_samples=config.num_samples,
@@ -292,8 +295,8 @@ def main():
     )
 
     # Save best model after parameter search.
-    best_config = analysis.get_best_config(f'val_{config.val_metric}', args.mode, scope='all')
-    best_log_dir = analysis.get_best_logdir(f'val_{config.val_metric}', args.mode, scope='all')
+    best_config = analysis.get_best_config(f'val_{config.val_metric}', config.mode, scope='all')
+    best_log_dir = analysis.get_best_logdir(f'val_{config.val_metric}', config.mode, scope='all')
     retrain_best_model(exp_name, best_config, best_log_dir, merge_train_val=not args.no_merge_train_val)
 
 

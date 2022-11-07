@@ -125,16 +125,10 @@ class MultiLabelModel(pl.LightningModule):
                 'target': batch['label']}
 
     def _shared_eval_step_end(self, batch_parts):
-        batch_size, num_classes = batch_parts['target'].shape
-        # `indexes` indicates which index a prediction belongs. `RetrievalNormalizedDCG`
-        # will compute the mean of nDCG scores over each prediction.
-        indexes = torch.arange(
-            batch_size*batch_parts['batch_idx'], batch_size*(batch_parts['batch_idx']+1))
-        indexes = indexes.unsqueeze(1).repeat(1, num_classes)
         return self.eval_metric.update(
             preds=batch_parts['pred_scores'],
             target=batch_parts['target'],
-            indexes=indexes
+            loss=batch_parts['loss']
         )
 
     def _shared_eval_epoch_end(self, step_outputs, split):

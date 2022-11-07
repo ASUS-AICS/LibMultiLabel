@@ -18,6 +18,7 @@ learning_rate: ['grid_search', [0.0001, 0.00005, 0.00001, 0.000005]]
 momentum: 0
 weight_decay: ['grid_search', [0.001]]
 patience: 5
+early_stopping_metric: RP@5
 shuffle: true
 
 # eval
