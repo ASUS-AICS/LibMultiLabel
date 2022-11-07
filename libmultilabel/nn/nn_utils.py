@@ -113,7 +113,7 @@ def init_model(model_name,
 def init_trainer(checkpoint_dir,
                  epochs=10000,
                  patience=5,
-                 mode='max',
+                 early_stopping_metric='P@1',
                  val_metric='P@1',
                  silent=False,
                  use_cpu=False,
@@ -128,8 +128,8 @@ def init_trainer(checkpoint_dir,
         checkpoint_dir (str): Directory for saving models and log.
         epochs (int): Number of epochs to train. Defaults to 10000.
         patience (int): Number of epochs to wait for improvement before early stopping. Defaults to 5.
-        mode (str): One of [min, max]. Decides whether the val_metric is minimizing or maximizing.
-        val_metric (str): The metric to monitor for early stopping. Defaults to 'P@1'.
+        early_stopping_metric (str): The metric to monitor for early stopping. Defaults to 'P@1'.
+        val_metric (str): The metric to select the best model for testing. Defaults to 'P@1'.
         silent (bool): Enable silent mode. Defaults to False.
         use_cpu (bool): Disable CUDA. Defaults to False.
         limit_train_batches (Union[int, float]): Percentage of training dataset to use. Defaults to 1.0.
@@ -143,12 +143,21 @@ def init_trainer(checkpoint_dir,
         pl.Trainer: A torch lightning trainer.
     """
 
+    # The value of `mode` equals to 'min' only when the metric is 'Loss'
+    # because now for other supported metrics such as F1 or Precision, we maximize them in the training process.
+    # But if in the future, we further support other metrics that need to be minimized,
+    # we may need a dictionary that records a metric-mode mapping for a better practice.
     # Set strict to False to prevent EarlyStopping from crashing the training if no validation data are provided
-    callbacks = [EarlyStopping(patience=patience, monitor=val_metric, mode=mode, strict=False)]
+    early_stopping_callback = EarlyStopping(patience=patience,
+                                            monitor=early_stopping_metric,
+                                            mode='min' if early_stopping_metric == 'Loss' else 'max',
+                                            strict=False)
+    callbacks = [early_stopping_callback]
     if save_checkpoints:
         callbacks += [ModelCheckpoint(dirpath=checkpoint_dir, filename='best_model',
                                       save_last=True, save_top_k=1,
-                                      monitor=val_metric, mode=mode)]
+                                      monitor=val_metric,
+                                      mode='min' if val_metric == 'Loss' else 'max')]
     if search_params:
         from ray.tune.integration.pytorch_lightning import TuneReportCallback
         callbacks += [TuneReportCallback({f'val_{val_metric}': val_metric}, on="validation_end")]

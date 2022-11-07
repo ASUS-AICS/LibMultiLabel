@@ -57,6 +57,8 @@ def add_all_arguments(parser):
                         help='Momentum factor for SGD only (default: %(default)s)')
     parser.add_argument('--patience', type=int, default=5,
                         help='The number of epochs to wait for improvement before early stopping (default: %(default)s)')
+    parser.add_argument('--early_stopping_metric', default=None,
+                        help='The metric to monitor for early stopping. Set to `val_metric` if specified as None. (default: %(default)s)')
     parser.add_argument('--normalize_embed', action='store_true',
                         help='Whether the embeddings of each word is normalized to a unit vector (default: %(default)s)')
 
@@ -76,7 +78,7 @@ def add_all_arguments(parser):
     parser.add_argument('--monitor_metrics', nargs='+', default=['P@1', 'P@3', 'P@5'],
                         help='Metrics to monitor while validating (default: %(default)s)')
     parser.add_argument('--val_metric', default='P@1',
-                        help='The metric to monitor for early stopping (default: %(default)s)')
+                        help='The metric to select the best model for testing (default: %(default)s)')
 
     # pretrained vocab / embeddings
     parser.add_argument('--vocab_file', type=str,
@@ -147,6 +149,9 @@ def get_config():
 
     parser.set_defaults(**config)
     args = parser.parse_args()
+    # set one argument with the value of another argument (not supported in argparse)
+    if args.early_stopping_metric is None:
+        args.early_stopping_metric = args.val_metric
     config = AttributeDict(vars(args))
 
     config.run_name = '{}_{}_{}'.format(
