@@ -17,30 +17,6 @@ class CBiGRULWAN(nn.Module):
         assert rnn_dim % 2 == 0, """`rnn_dim` should be even."""
         self.encoder = GRUEncoder(embed_dim, rnn_dim // 2, rnn_layers, encoder_dropout)
         self.attention = LabelAttention(rnn_dim, embed_dim)
-        self.output = SharedLinearLabelProduct(rnn_dim, embed_dim)
-
-    def forward(self, input):
-        x = self.embedding(input['text'])  # (batch_size, sequence_length, embed_dim)
-        Q = self.embedding(input['label_desc']) # (num_classes, sequence_length, embed_dim)
-        # Q = Q.mean(dim=1) # (num_classes, embed_dim)
-        Q = Q.sum(dim=1) # (num_classes, embed_dim)
-        Q /= torch.unsqueeze(torch.count_nonzero(input['label_desc'], dim=1), dim=-1) # (num_classes, embed_dim)
-        x = self.encoder(x, input['length'])  # (batch_size, sequence_length, num_filter)
-        x = self.attention(x, Q) # (batch_size, num_classes, hidden_dim)
-        x = self.output(x, Q)
-        return {'logits': x}
-
-
-class CBiGRULWANp(nn.Module):
-
-    def __init__(self, embed_vecs, num_classes, embed_dropout, encoder_dropout,
-                 rnn_dim, rnn_layers):
-        super().__init__()
-        embed_dim = embed_vecs.shape[1]
-        self.embedding = Embedding(embed_vecs, embed_dropout)
-        assert rnn_dim % 2 == 0, """`rnn_dim` should be even."""
-        self.encoder = GRUEncoder(embed_dim, rnn_dim // 2, rnn_layers, encoder_dropout)
-        self.attention = LabelAttention(rnn_dim, embed_dim)
         self.linear = nn.Linear(embed_dim, embed_dim)
         self.output = SharedLinearLabelProduct(rnn_dim, embed_dim)
 
@@ -56,31 +32,6 @@ class CBiGRULWANp(nn.Module):
 
 
 class CCNNLWAN(nn.Module):
-
-    def __init__(self, embed_vecs, num_classes, embed_dropout, encoder_dropout,
-                 filter_sizes, num_filter_per_size, activation):
-        super().__init__()
-        embed_dim = embed_vecs.shape[1]
-        self.embedding = Embedding(embed_vecs, embed_dropout)
-        conv_output_size = num_filter_per_size * len(filter_sizes)
-        self.encoder = CNNEncoder(embed_dim, filter_sizes,
-                                  num_filter_per_size, activation,
-                                  encoder_dropout, channel_last=True)
-        self.attention = LabelAttention(conv_output_size, embed_dim)
-
-        self.output = SharedLinearLabelProduct(conv_output_size, embed_dim)
-
-    def forward(self, input):
-        x = self.embedding(input['text'])  # (batch_size, sequence_length, embed_dim)
-        Q = self.embedding(input['label_desc']) # (num_classes, sequence_length, embed_dim)
-        Q = Q.mean(dim=1) # (num_classes, embed_dim)
-        x = self.encoder(x)  # (batch_size, sequence_length, num_filter)
-        x = self.attention(x, Q) # (batch_size, num_classes, hidden_dim)
-        x = self.output(x, Q)
-        return {'logits': x}
-
-
-class CCNNLWANp(nn.Module):
 
     def __init__(self, embed_vecs, num_classes, embed_dropout, encoder_dropout,
                  filter_sizes, num_filter_per_size, activation):
