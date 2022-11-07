@@ -252,14 +252,14 @@ class TorchTrainer:
         self.model.eval_label_set = (fewshot_start, zeroshot_start)
         n_eval_classes = zeroshot_start - fewshot_start
         self.model.eval_metric = get_metrics(self.config.metric_threshold, self.config.fewshot_monitor_metrics, n_eval_classes)
-        metric_dict = self.trainer.test(self.model, test_dataloaders=dataloader)
+        metric_dict = self.trainer.test(self.model, dataloaders=dataloader)
 
         # Evaluate zero-shot labels
         logging.info(f'=== Zero-shot Labels ===')
         self.model.eval_label_set = (zeroshot_start, len(classes))
         n_eval_classes = len(classes) - zeroshot_start
         self.model.eval_metric = get_metrics(self.config.metric_threshold, self.config.fewshot_monitor_metrics, n_eval_classes)
-        metric_dict = self.trainer.test(self.model, test_dataloaders=dataloader)
+        metric_dict = self.trainer.test(self.model, dataloaders=dataloader)
 
         self.model.eval_label_set = None
         self.model.eval_metric = model_eval_metric
