@@ -1,6 +1,6 @@
 # data
-train_path: data/rcv1/train.svm
-test_path: data/rcv1/test.svm
+training_file: data/rcv1/train.txt
+test_file: data/rcv1/test.txt
 data_name: rcv1
 
 # train
@@ -11,7 +11,7 @@ linear_technique: 1vsrest
 
 # eval
 eval_batch_size: 256
-monitor_metrics: [Another-Macro-F1, Macro-F1, Micro-F1, P@1, P@3, P@5]
+monitor_metrics: [Macro-F1, Micro-F1, P@1, P@3, P@5]
 metric_threshold: 0
 
-data_format: svm
+data_format: txt

@@ -1,9 +1,15 @@
 # data
-data_dir: data/MIMIC
+training_file: data/MIMIC/train.txt
+val_file: data/MIMIC/valid.txt
+test_file: data/MIMIC/test.txt
 data_name: MIMIC
 min_vocab_freq: 3
 max_seq_length: 2500
 include_test_labels: true
+# Follow https://github.com/jamesmullenbach/caml-mimic/blob/master/datasets.py#L45
+# to remove training and validation instances that have no labels.
+remove_no_label_data: true
+add_special_tokens: false
 
 # train
 seed: 1337
@@ -18,11 +24,13 @@ shuffle: true
 
 # eval
 eval_batch_size: 1
-monitor_metrics: ['Micro-F1', 'Macro-F1', 'Another-Macro-F1', 'P@8', 'P@15', 'RP@8', 'RP@15']
+monitor_metrics: ['Macro-F1', 'Micro-F1', 'P@8', 'P@15', 'RP@8', 'RP@15', 'nDCG@15']
 val_metric: RP@15
 
 # model
 model_name: BiGRULWAN
+multiclass: false
+loss_function: binary_cross_entropy_with_logits
 init_weight: kaiming_uniform
 network_config:
   embed_dropout: ['grid_search', [0, 0.2, 0.4, 0.6, 0.8]]
@@ -62,7 +70,4 @@ metric_threshold: 0.5
 result_dir: runs
 save_k_predictions: 0
 silent: true
-test_path: data/MIMIC/test.txt
-train_path: data/MIMIC/train.txt
-val_path: data/MIMIC/valid.txt
 val_size: 0.2

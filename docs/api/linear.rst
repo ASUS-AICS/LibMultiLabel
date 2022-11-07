@@ -18,6 +18,8 @@ The simplest usage is::
 
 .. autofunction:: train_cost_sensitive
 
+.. autofunction:: train_cost_sensitive_micro
+
 .. autofunction:: predict_values
 
 .. autoclass:: Preprocessor

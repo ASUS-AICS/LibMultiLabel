@@ -1,9 +1,8 @@
 import re
 
 import numpy as np
-import scipy.sparse as sparse
 
-__all__ = ['RPRecision',
+__all__ = ['RPrecision',
            'Precision',
            'F1',
            'MetricCollection',
@@ -18,12 +17,12 @@ class RPrecision:
         self.num_sample = 0
 
     def update(self, preds: np.ndarray, target: np.ndarray) -> None:
-        assert preds.shape == target.shape
+        assert preds.shape == target.shape  # (batch_size, num_classes)
         top_k_ind = np.argpartition(preds, -self.top_k)[:, -self.top_k:]
-        num_relevant = target[top_k_ind].sum(axis=-1)
-        top_ks = np.full_like(preds, self.top_k)
+        num_relevant = np.take_along_axis(
+            target, top_k_ind, axis=-1).sum(axis=-1)  # (batch_size, top_k)
         self.score += np.nan_to_num(
-            num_relevant / np.min(top_ks, target.sum(axis=-1)),
+            num_relevant / np.minimum(self.top_k, target.sum(axis=-1)),
             posinf=0.
         ).sum()
         self.num_sample += preds.shape[0]
@@ -39,7 +38,7 @@ class Precision:
         self.num_sample = 0
 
     def update(self, preds: np.ndarray, target: np.ndarray) -> None:
-        assert preds.shape == target.shape
+        assert preds.shape == target.shape  # (batch_size, num_classes)
         top_k_ind = np.argpartition(preds, -self.top_k)[:, -self.top_k:]
         num_relevant = np.take_along_axis(target, top_k_ind, -1).sum()
         self.score += num_relevant / self.top_k
@@ -59,7 +58,7 @@ class F1:
         self.tp = self.fp = self.fn = 0
 
     def update(self, preds: np.ndarray, target: np.ndarray) -> None:
-        assert preds.shape == target.shape
+        assert preds.shape == target.shape  # (batch_size, num_classes)
         preds = preds > self.metric_threshold
         self.tp += np.logical_and(target == 1, preds == 1).sum(axis=0)
         self.fn += np.logical_and(target == 1, preds == 0).sum(axis=0)
@@ -91,7 +90,7 @@ class MetricCollection(dict):
         self.metrics = metrics
 
     def update(self, preds: np.ndarray, target: np.ndarray) -> None:
-        assert preds.shape == target.shape
+        assert preds.shape == target.shape  # (batch_size, num_classes)
         for metric in self.metrics.values():
             metric.update(preds, target)
 

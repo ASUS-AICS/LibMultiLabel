@@ -24,7 +24,7 @@ text, all seperated by tabs. For example::
 
     2286    E11 ECAT M11 M12 MCAT   recov recov recov recov excit excit bring mexic ...
 
-See `data formats <placeholder>`_ for a complete explanation of the format.
+See `data formats <../cli/ov_data_format.html#dataset-formats>`_ for a complete explanation of the format.
 
 The Python Script
 ^^^^^^^^^^^^^^^^^
@@ -102,6 +102,6 @@ Finally, we compute and print the metrics:
 
 The results will look similar to::
 
-    {'Micro-F1': 0.8007651838722984, 'Macro-F1': 0.5171356568703283, 'P@1': 0.9573166595201372, 'P@3': 0.7991526562689997, 'P@5': 0.5580654451434532}
+    {'Macro-F1': 0.5171960144875225, 'Micro-F1': 0.8008124243391698, 'P@1': 0.9573153795447128, 'P@3': 0.799074151109632, 'P@5': 0.5579924865442584}
 
 Get the full source code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/linear_quickstart.py>`_.

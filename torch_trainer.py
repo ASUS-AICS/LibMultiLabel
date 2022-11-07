@@ -20,9 +20,11 @@ class TorchTrainer:
         datasets (dict, optional): Datasets for training, validation, and test. Defaults to None.
         classes(list, optional): List of class names.
         word_dict(torchtext.vocab.Vocab, optional): A vocab object which maps tokens to indices.
-        search_params (bool): Enable pytorch-lightning trainer to report the results to ray tune
+        embed_vecs (torch.Tensor, optional): The pre-trained word vectors of shape (vocab_size, embed_dim).
+        search_params (bool, optional): Enable pytorch-lightning trainer to report the results to ray tune
             on validation end during hyperparameter search. Defaults to False.
-        save_checkpoints (bool): Whether to save the last and the best checkpoint or not. Defaults to True.
+        save_checkpoints (bool, optional): Whether to save the last and the best checkpoint or not.
+            Defaults to True.
     """
     def __init__(
         self,
@@ -30,6 +32,7 @@ class TorchTrainer:
         datasets: dict = None,
         classes: list = None,
         word_dict: dict = None,
+        embed_vecs = None,
         search_params: bool = False,
         save_checkpoints: bool = True
     ):
@@ -51,18 +54,20 @@ class TorchTrainer:
         # Load dataset
         if datasets is None:
             self.datasets = data_utils.load_datasets(
-                train_path=config.train_path,
-                test_path=config.test_path,
-                val_path=config.val_path,
+                training_file=config.training_file,
+                test_file=config.test_file,
+                val_file=config.val_file,
                 val_size=config.val_size,
                 merge_train_val=config.merge_train_val,
-                tokenize_text=tokenize_text
+                tokenize_text=tokenize_text,
+                remove_no_label_data=config.remove_no_label_data
             )
         else:
             self.datasets = datasets
 
         self._setup_model(classes=classes,
                           word_dict=word_dict,
+                          embed_vecs=embed_vecs,
                           log_path=self.log_path,
                           checkpoint_path=config.checkpoint_path)
         self.trainer = init_trainer(checkpoint_dir=self.checkpoint_dir,
@@ -86,6 +91,7 @@ class TorchTrainer:
         self,
         classes: list = None,
         word_dict: dict = None,
+        embed_vecs = None,
         log_path: str = None,
         checkpoint_path: str = None
     ):
@@ -95,6 +101,7 @@ class TorchTrainer:
         Args:
             classes(list): List of class names.
             word_dict(torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
+            embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
             log_path (str): Path to the log file. The log file contains the validation
                 results for each epoch and the test results. If the `log_path` is None, no performance
                 results will be logged.
@@ -117,7 +124,7 @@ class TorchTrainer:
             logging.info('Initialize model from scratch.')
             if self.config.embed_file is not None:
                 logging.info('Load word dictionary ')
-                word_dict = data_utils.load_or_build_text_dict(
+                word_dict, embed_vecs = data_utils.load_or_build_text_dict(
                     dataset=self.datasets['train'],
                     vocab_file=self.config.vocab_file,
                     min_vocab_freq=self.config.min_vocab_freq,
@@ -143,6 +150,7 @@ class TorchTrainer:
                                     network_config=dict(self.config.network_config),
                                     classes=classes,
                                     word_dict=word_dict,
+                                    embed_vecs=embed_vecs,
                                     init_weight=self.config.init_weight,
                                     log_path=log_path,
                                     learning_rate=self.config.learning_rate,
@@ -151,6 +159,8 @@ class TorchTrainer:
                                     weight_decay=self.config.weight_decay,
                                     metric_threshold=self.config.metric_threshold,
                                     monitor_metrics=self.config.monitor_metrics,
+                                    multiclass=self.config.multiclass,
+                                    loss_function=self.config.loss_function,
                                     silent=self.config.silent,
                                     save_k_predictions=self.config.save_k_predictions
                                    )
@@ -175,7 +185,8 @@ class TorchTrainer:
             shuffle=shuffle,
             data_workers=self.config.data_workers,
             tokenizer=self.tokenizer,
-            label_desc_idx=self.label_desc_idx
+            label_desc_idx=self.label_desc_idx,
+            add_special_tokens=self.config.add_special_tokens
         )
 
     def train(self):
@@ -220,8 +231,7 @@ class TorchTrainer:
         # from set_value import set_value
         # self.model = set_value(self.model)
         ###############################
-        metric_dict = self.trainer.test(self.model, test_dataloaders=test_loader)[0]
-
+        metric_dict = self.trainer.test(self.model, dataloaders=test_loader)[0]
 
         if self.config.save_k_predictions > 0:
             self.model.predict_top_k = self.config.save_k_predictions

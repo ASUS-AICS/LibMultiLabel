@@ -1,0 +1,37 @@
+# data
+training_file: data/EUR-Lex-57k/train.txt
+val_file: data/EUR-Lex-57k/valid.txt
+test_file: data/EUR-Lex-57k/test.txt
+data_name: EUR-Lex-57k
+min_vocab_freq: 1
+max_seq_length: 500
+# We set include_test_labels to true for comparison with Chalkidis et al. (2019),
+# which handles zero-shots and reports Micro-F1.
+include_test_labels: true
+
+# train
+seed: 1337
+epochs: 50
+batch_size: 16
+optimizer: adam
+learning_rate: 0.0003
+weight_decay: 0
+patience: 10
+shuffle: true
+
+# eval
+eval_batch_size: 16
+monitor_metrics: ['Macro-F1', 'Micro-F1', 'P@1', 'P@5', 'RP@5', 'nDCG@5']
+val_metric: RP@5
+
+# model
+model_name: KimCNN
+init_weight: kaiming_uniform
+network_config:
+  embed_dropout: 0
+  encoder_dropout: 0.4
+  filter_sizes: [8]
+  num_filter_per_size: 1024
+
+# pretrained vocab / embeddings
+embed_file: glove.6B.200d

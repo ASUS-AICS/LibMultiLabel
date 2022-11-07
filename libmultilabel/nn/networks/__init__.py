@@ -1,5 +1,6 @@
 import torch.nn as nn
 
+from .bert import BERT
 from .bert_attention import BERTAttention
 from .caml import CAML
 from .kim_cnn import KimCNN

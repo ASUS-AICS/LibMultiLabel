@@ -1,10 +1,14 @@
 # data
-data_dir: data/EUR-Lex-57k
+training_file: data/EUR-Lex-57k/train.txt
+val_file: data/EUR-Lex-57k/valid.txt
+test_file: data/EUR-Lex-57k/test.txt
 data_name: EUR-Lex-57k
 min_vocab_freq: 1
 max_seq_length: 500
-include_test_labels: true # to compare Micro-F1 on zero-shots
-
+# We set include_test_labels to true for comparison with Chalkidis et al. (2019),
+# which handles zero-shots and reports Micro-F1.
+include_test_labels: true
+ 
 # train
 seed: 1337
 epochs: 50
@@ -17,7 +21,7 @@ shuffle: true
 
 # eval
 eval_batch_size: 16
-monitor_metrics: ['Micro-F1', 'Macro-F1', 'Another-Macro-F1', 'P@1', 'P@5', 'RP@5', 'nDCG@5']
+monitor_metrics: ['Macro-F1', 'Micro-F1', 'P@1', 'P@5', 'RP@5', 'nDCG@5']
 val_metric: RP@5
 
 # model

@@ -1,0 +1,74 @@
+# data
+training_file: data/EUR-Lex-57k/train.txt
+val_file: data/EUR-Lex-57k/valid.txt
+test_file: data/EUR-Lex-57k/test.txt
+data_name: EUR-Lex-57k
+min_vocab_freq: 1
+max_seq_length: 500
+# We set include_test_labels to true for comparison with Chalkidis et al. (2019),
+# which handles zero-shots and reports Micro-F1.
+include_test_labels: true
+remove_no_label_data: false
+add_special_tokens: false
+
+# train
+seed: 1337
+epochs: 50
+batch_size: 16
+optimizer: adam
+learning_rate: ['grid_search', [0.003, 0.001, 0.0003]]
+momentum: 0
+weight_decay: 0
+patience: 10
+shuffle: true
+
+# eval
+eval_batch_size: 16
+monitor_metrics: ['Macro-F1', 'Micro-F1', 'P@1', 'P@5', 'RP@5', 'nDCG@5']
+val_metric: RP@5
+
+# model
+model_name: KimCNN
+multiclass: false
+loss_function: binary_cross_entropy_with_logits
+init_weight: kaiming_uniform
+network_config:
+  activation: relu
+  embed_dropout: ['grid_search', [0, 0.2, 0.4]]
+  encoder_dropout: ['grid_search', [0, 0.2, 0.4]]
+  filter_sizes: [8]
+  num_filter_per_size: ['grid_search', [128, 256, 384, 512, 768, 1024]]
+
+# pretrained vocab / embeddings
+vocab_file: null
+embed_file: glove.6B.200d
+normalize_embed: false
+
+# hyperparamter search
+search_alg: basic_variant
+embed_cache_dir: .vector_cache
+num_samples: 1
+scheduler: null
+# Uncomment the following lines to enable the ASHAScheduler.
+# See the documentation here: https://docs.ray.io/en/latest/tune/api_docs/schedulers.html#asha-tune-schedulers-ashascheduler
+#scheduler:
+  #time_attr: training_iteration
+  #max_t: 50 # the maximum epochs to run for each config (parameter R in the ASHA paper)
+  #grace_period: 10 # the minimum epochs to run for each config (parameter r in the ASHA paper)
+  #reduction_factor: 3 # reduce the number of configuration to floor(1/reduction_factor) each round of successive halving (called rung in ASHA paper)
+  #brackets: 1 # number of brackets. A smaller bracket index (parameter s in the ASHA paper) means earlier stopping (i.e., less total resources used)
+
+# other parameters specified in main.py::get_args
+checkpoint_path: null
+cpu: false
+data_workers: 4
+eval: false
+label_file: null
+limit_train_batches: 1.0
+limit_val_batches: 1.0
+limit_test_batches: 1.0
+metric_threshold: 0.5
+result_dir: runs
+save_k_predictions: 0
+silent: true
+val_size: 0.2

@@ -1,0 +1,33 @@
+# data
+training_file: data/Wiki10-31K/train.txt
+test_file: data/Wiki10-31K/test.txt
+data_name: Wiki10-31K
+min_vocab_freq: 1
+max_seq_length: 500
+
+# train
+seed: 1337
+epochs: 50
+batch_size: 16
+optimizer: adam
+learning_rate: 0.0003
+weight_decay: 0
+patience: 15 # This setting needs more patience to converge.
+shuffle: true
+
+# eval
+eval_batch_size: 16
+monitor_metrics: ['P@1', 'P@3', 'P@5', 'P@15', 'RP@8', 'RP@15', 'nDCG@15']
+val_metric: RP@15
+
+# model
+model_name: CNNLWAN
+init_weight: kaiming_uniform
+network_config:
+  embed_dropout: 0
+  encoder_dropout: 0.2
+  filter_sizes: [8]
+  num_filter_per_size: 128
+
+# pretrained vocab / embeddings
+embed_file: glove.6B.200d

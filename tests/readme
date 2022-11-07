@@ -1,0 +1,4 @@
+This code compares results of a branch with those of the master. To run the tests
+    # Change to the LibMultilabel directory
+    # Git checkout to the branch to be tested
+    bash tests/autotest.sh

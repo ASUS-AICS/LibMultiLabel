@@ -3,7 +3,7 @@ import re
 import numpy as np
 import torch
 import torchmetrics.classification
-from torchmetrics import Metric, MetricCollection, Precision, Recall, RetrievalNormalizedDCG
+from torchmetrics import Metric, MetricCollection, Precision, Recall
 from torchmetrics.functional.retrieval.ndcg import retrieval_normalized_dcg
 from torchmetrics.utilities.data import select_topk
 
@@ -12,12 +12,22 @@ class NDCG(Metric):
     """NDCG (Normalized Discounted Cumulative Gain) sums the true scores
     ranked in the order induced by the predicted scores after applying a logarithmic discount,
     and then divides by the best possible score (Ideal DCG, obtained for a perfect ranking)
-    to obtain a score between 0 and 1. Please find the definition here:
+    to obtain a score between 0 and 1.
+    The definition is quoted from:
+    https://scikit-learn.org/stable/modules/generated/sklearn.metrics.ndcg_score.html
+    Please find the formal definition here:
     https://nlp.stanford.edu/IR-book/html/htmledition/evaluation-of-ranked-retrieval-results-1.html
 
     Args:
         top_k (int): the top k relevant labels to evaluate.
     """
+    # If the metric state of one batch is independent of the state of other batches,
+    # full_state_update can be set to False,
+    # which leads to more efficient computation with calling update() only once.
+    # Please find the detailed explanation here:
+    # https://torchmetrics.readthedocs.io/en/stable/pages/implement.html
+    full_state_update = False
+
     def __init__(
         self,
         top_k
@@ -32,6 +42,8 @@ class NDCG(Metric):
         if not mask.any():
             return
         preds, target = preds[mask], target[mask]
+
+        # implement batch-wise calculations instead of storing results of all batches
         self.ndcg += [self._metric(p, t) for p, t in zip(preds, target)]
 
     def compute(self):
@@ -43,12 +55,19 @@ class NDCG(Metric):
 
 class RPrecision(Metric):
     """R-precision calculates precision at k by adjusting k to the minimum value of the number of
-    relevant labels and k. Please find the definition here:
-    https://nlp.stanford.edu/IR-book/html/htmledition/evaluation-of-ranked-retrieval-results-1.html
+    relevant labels and k. The definition is given at Appendix C equation (3) of
+    https://aclanthology.org/P19-1636.pdf
 
     Args:
         top_k (int): the top k relevant labels to evaluate.
     """
+    # If the metric state of one batch is independent of the state of other batches,
+    # full_state_update can be set to False,
+    # which leads to more efficient computation with calling update() only once.
+    # Please find the detailed explanation here:
+    # https://torchmetrics.readthedocs.io/en/stable/pages/implement.html
+    full_state_update = False
+
     def __init__(
         self,
         top_k
@@ -91,22 +110,35 @@ class MacroF1(Metric):
             Please refer to Opitz et al. 2019 [https://arxiv.org/pdf/1911.03347.pdf].
             Defaults to False.
     """
+    # If the metric state of one batch is independent of the state of other batches,
+    # full_state_update can be set to False,
+    # which leads to more efficient computation with calling update() only once.
+    # Please find the detailed explanation here:
+    # https://torchmetrics.readthedocs.io/en/stable/pages/implement.html
+    full_state_update = False
+
     def __init__(
         self,
         num_classes,
         metric_threshold,
-        another_macro_f1=False
+        another_macro_f1=False,
+        top_k=None
     ):
         super().__init__()
         self.metric_threshold = metric_threshold
         self.another_macro_f1 = another_macro_f1
+        self.top_k = top_k
         self.add_state("preds_sum", default=torch.zeros(num_classes, dtype=torch.double))
         self.add_state("target_sum", default=torch.zeros(num_classes, dtype=torch.double))
         self.add_state("tp_sum", default=torch.zeros(num_classes, dtype=torch.double))
 
     def update(self, preds, target):
         assert preds.shape == target.shape
-        preds = torch.where(preds > self.metric_threshold, 1, 0)
+        if self.top_k:
+            preds = select_topk(preds, self.top_k)
+        else:
+            preds = torch.where(preds > self.metric_threshold, 1, 0)
+
         self.preds_sum = torch.add(self.preds_sum, preds.sum(dim=0))
         self.target_sum = torch.add(self.target_sum, target.sum(dim=0))
         self.tp_sum = torch.add(self.tp_sum, (preds & target).sum(dim=0))
@@ -121,7 +153,7 @@ class MacroF1(Metric):
             return torch.mean(label_f1)
 
 
-def get_metrics(metric_threshold, monitor_metrics, num_classes):
+def get_metrics(metric_threshold, monitor_metrics, num_classes, top_k=None):
     """Map monitor metrics to the corresponding classes defined in `torchmetrics.Metric`
     (https://torchmetrics.readthedocs.io/en/latest/references/modules.html).
 
@@ -157,7 +189,7 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes):
             top_k = int(match_top_k.group(2))
             if top_k >= num_classes:
                 raise ValueError(
-                    f'Invalid metric: {metric}. {top_k} is greater than {num_classes}.')
+                    f'Invalid metric: {metric}. top_k ({top_k}) is greater than num_classes({num_classes}).')
             if metric_abbr == 'P':
                 metrics[metric] = Precision(num_classes, average='samples', top_k=top_k)
             elif metric_abbr == 'R':
@@ -166,21 +198,26 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes):
                 metrics[metric] = RPrecision(top_k=top_k)
             elif metric_abbr == 'nDCG':
                 metrics[metric] = NDCG(top_k=top_k)
-                # metrics[metric] = RetrievalNormalizedDCG(k=top_k) # CUDA out of memory
+                # The implementation in torchmetrics stores the prediction/target of all batches,
+                # which can lead to CUDA out of memory.
+                # metrics[metric] = RetrievalNormalizedDCG(k=top_k)
         elif metric == 'Another-Macro-F1':
-            metrics[metric] = MacroF1(num_classes, metric_threshold, another_macro_f1=True)
+            metrics[metric] = MacroF1(num_classes, metric_threshold, another_macro_f1=True, top_k=top_k)
         elif metric == 'Macro-F1':
-            metrics[metric] = MacroF1(num_classes, metric_threshold)
+            metrics[metric] = MacroF1(num_classes, metric_threshold, top_k=top_k)
         elif match_metric:
             average_type = match_metric.group(1).lower() # Micro
             metric_type = match_metric.group(2) # Precision, Recall, or F1
+            metric_type = metric_type.replace('F1', 'F1Score') # to be determined
             metrics[metric] = getattr(torchmetrics.classification, metric_type)(
-                num_classes, metric_threshold, average=average_type)
+                num_classes, metric_threshold, average=average_type, top_k=top_k)
         else:
             raise ValueError(
                 f'Invalid metric: {metric}. Make sure the metric is in the right format: Macro/Micro-Precision/Recall/F1 (ex. Micro-F1)')
 
-    return MetricCollection(metrics)
+    # If compute_groups is set to True (default), incorrect results may be calculated.
+    # Please refer to https://github.com/Lightning-AI/metrics/issues/746 for more details.
+    return MetricCollection(metrics, compute_groups=False)
 
 
 def tabulate_metrics(metric_dict, split):

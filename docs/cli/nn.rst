@@ -1,5 +1,5 @@
-Training, Prediction, and Hyperparameter Search for Neural Networks
-===================================================================
+Training, Prediction, and Hyper-parameter Search for Neural Networks
+====================================================================
 
 For users who are just getting started, see:
 
@@ -97,7 +97,7 @@ For validation, you can evaluate the model with a set of evaluation metrics.
 Set ``monitor_metrics`` to define what you want to print on the screen.
 The argument ``val_metric`` is the metric for selecting the best model.
 Namely, the model occurred at the epoch with the best validation metric is returned after training.
-If you do not specify a validation set in the configuration file via ``val_path`` or a training-validation split ratio via ``val_size``,
+If you do not specify a validation set in the configuration file via ``val_file`` or a training-validation split ratio via ``val_size``,
 we will split the training data into training and validation set with an 80-20 split.
 Example lines in a configuration file:
 
@@ -107,7 +107,7 @@ Example lines in a configuration file:
     val_metric: P@1
 
 
-If ``test_path`` is specified or ``DATA_DIR/test.txt`` exists, the model with the highest ``val_metric`` will be used to predict the test set.
+If ``test_file`` is specified, the model with the highest ``val_metric`` will be used to predict the test set.
 
 .. _nn_predict:
 
@@ -121,7 +121,7 @@ To deploy/evaluate a model (i.e., a pre-obtained checkpoint), you can predict a 
     python3 main.py --eval \
                     --config CONFIG_PATH \
                     --checkpoint_path CHECKPOINT_PATH \
-                    --test_path TEST_DATA_PATH \
+                    --test_file TEST_DATA_PATH \
                     --save_k_predictions K \
                     --predict_out_path PREDICT_OUT_PATH
 
@@ -130,10 +130,10 @@ To deploy/evaluate a model (i.e., a pre-obtained checkpoint), you can predict a 
 
 .. _nn_hs:
 
-Hyperparameter Search
-^^^^^^^^^^^^^^^^^^^^^
+Hyper-parameter Search
+^^^^^^^^^^^^^^^^^^^^^^
 
-Parameter selection is known to be extremely important in machine learning practice; see a powerful reminder in "`this paper <https://www.csie.ntu.edu.tw/~cjlin/papers/parameter_selection/acl2021_parameter_selection.pdf>`_". Here we leverage `Ray Tune <https://docs.ray.io/en/master/tune/index.html>`_, which is a python library for hyperparameter tuning, to select parameters. Due to the dependency of Ray Tune, first make sure your python version is not greater than 3.8. Then, install the related packages with::
+Parameter selection is known to be extremely important in machine learning practice; see a powerful reminder in "`this paper <https://www.csie.ntu.edu.tw/~cjlin/papers/parameter_selection/acl2021_parameter_selection.pdf>`_". Here we leverage `Ray Tune <https://docs.ray.io/en/master/tune/index.html>`__, which is a python library for hyper-parameter tuning, to select parameters. Due to the dependency of Ray Tune, first make sure your python version is not greater than 3.8. Then, install the related packages with::
 
     pip3 install -Ur requirements_parameter_search.txt
 
@@ -149,11 +149,17 @@ We provide a program ``search_params.py`` to demonstrate how to run LibMultiLabe
     dropout: ['grid_search', [0.2, 0.4, 0.6, 0.8]] # grid search
     num_filter_per_size: ['choice', [350, 450, 550]] # discrete
     learning_rate: ['uniform', 0.2, 0.8] # continuous
-    activation: tanh # not for hyperparameter search
+    activation: tanh # not for hyper-parameter search
 
-- **search_alg**: specify a search algorithm considered in `Ray Tune <https://docs.ray.io/en/master/tune/api_docs/suggestion.html>`_. We support basic_variant (e.g., grid/random), bayesopt, and optuna. You can also define ``search_alg`` in the config file. For example, if you want to run grid search over ``learning_rate``, the config is like this:
+- **search_alg**: specify a search algorithm considered in `Ray Tune <https://docs.ray.io/en/master/tune/api_docs/suggestion.html>`__. We support basic_variant (e.g., grid/random), bayesopt, and optuna. You can also define ``search_alg`` in the config file. For example, if you want to run grid search over ``learning_rate``, the config is like this:
 
 .. code-block:: yaml
 
     search_alg: basic_variant
     learning_rate: ['grid_search', [0.2, 0.4, 0.6, 0.8]]
+
+After the search process, the program applies the best hyper-parameters to obtain the final model.
+The re-training process by default adds the validation set for training.
+Our empirical analysis shows that this setting improves test results.
+If you do not want to incorporate the validation data for training, you can specify the option ``no_merge_train_val``.
+In either case, the optimization starts from scratch and runs for the number of epochs that leads to the best validation results in the hyper-parameter search.
