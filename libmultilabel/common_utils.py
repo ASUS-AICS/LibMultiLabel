@@ -117,5 +117,7 @@ def is_multiclass_dataset(dataset, label="label"):
     ratio = float((label_sizes == 1).sum()) / len(label_sizes)
     if ratio > 0.999 and ratio != 1.0:
         logging.info(
-            f"{Only (1-ratio)*100:.4f}% of training instances are multi-label. You may double check if your application should be a multi-label or a multi-class problem.")
+            f"""Only {(1-ratio)*100:.4f}% of training instances are multi-label.
+            You may double check if your application should be a multi-label or
+            a multi-class problem.""")
     return ratio == 1.0
