@@ -1,0 +1,41 @@
+# data
+training_file: data/EUR-Lex-57k/train.txt
+val_file: data/EUR-Lex-57k/valid.txt
+test_file: data/EUR-Lex-57k/test.txt
+data_name: EUR-Lex-57k
+min_vocab_freq: 1
+max_seq_length: 500
+# We set include_test_labels to true for comparison with Chalkidis et al. (2019),
+# which handles zero-shots and reports Micro-F1.
+include_test_labels: true
+
+# train
+seed: 1337
+epochs: 100
+batch_size: 16
+optimizer: adam
+learning_rate: 0.0003
+weight_decay: 0
+patience: 10
+shuffle: true
+
+# eval
+eval_batch_size: 16
+monitor_metrics: ['Micro-F1', 'Macro-F1', 'Another-Macro-F1', 'P@1', 'P@5', 'RP@5', 'nDCG@5']
+val_metric: RP@5
+
+# model
+model_name: ZeroMetaBiGRU
+init_weight: xavier_uniform
+network_config:
+  embed_dropout: 0.4
+  encoder_dropout: 0.2
+  rnn_dim: 256
+  rnn_layers: 1
+
+# pretrained vocab / embeddings
+embed_file: glove.6B.200d
+label_file: data/EUR-Lex-57k/EURLEX57K_label_descriptions.txt
+
+fewshot_threshold: 50
+fewshot_monitor_metrics: ['RP@5', 'nDCG@5']
