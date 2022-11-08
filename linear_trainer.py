@@ -1,11 +1,11 @@
-import os
 import logging
 from math import ceil
 
 import numpy as np
 
 import libmultilabel.linear as linear
-from libmultilabel.common_utils import dump_log, argsort_top_k
+from libmultilabel.common_utils import (argsort_top_k, dump_log,
+                                        is_multiclass_dataset)
 
 
 def linear_test(config, model, datasets):
@@ -65,6 +65,7 @@ def linear_run(config):
             config.label_file,
             config.include_test_labels,
             config.remove_no_label_data)
+        config.multiclass = is_multiclass_dataset(datasets['train'], label='y')
         model = linear_train(datasets, config)
         linear.save_pipeline(config.checkpoint_dir, preprocessor, model)
 
