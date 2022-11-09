@@ -272,7 +272,9 @@ def load_or_build_text_dict(
 
 
 def load_or_build_label(datasets, label_file=None, include_test_labels=False):
-    """Generate label set either by the given datasets or a predefined label file.
+    """Obtain the label set from loading a label file or from the given data sets. The label set contains
+    labels in the training and validation sets. Labels in the test set are included only when
+    `include_test_labels` is True.
 
     Args:
         datasets (dict): A dictionary of datasets. Each dataset contains list of instances
