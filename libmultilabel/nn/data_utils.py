@@ -273,7 +273,7 @@ def load_or_build_text_dict(
 
 def load_or_build_label(datasets, label_file=None, include_test_labels=False):
     """Obtain the label set from loading a label file or from the given data sets. The label set contains
-    labels in the training and validation data. The test labels are included only when
+    labels in the training and validation sets. Labels in the test set are included only when
     `include_test_labels` is True.
 
     Args:
