@@ -6,15 +6,14 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+import numpy as np
 import yaml
 from ray import tune
 from ray.tune.schedulers import ASHAScheduler
 
-import numpy as np
-
+from libmultilabel.common_utils import AttributeDict, Timer
 from libmultilabel.nn import data_utils
 from libmultilabel.nn.nn_utils import set_seed
-from libmultilabel.common_utils import AttributeDict, Timer
 from torch_trainer import TorchTrainer
 
 logging.basicConfig(level=logging.INFO,
@@ -160,9 +159,10 @@ def load_static_data(config, merge_train_val=False):
             Defaults to False.
 
     Returns:
-        dict: A dict of static data containing datasets, classes, and word_dict.
+        dict: A dict of static data containing datasets, classes, embed_vecs, and word_dict.
     """
-    datasets = data_utils.load_datasets(training_file=config.training_file,
+    static_data = dict()
+    static_data['datasets'] = data_utils.load_datasets(training_file=config.training_file,
                                         test_file=config.test_file,
                                         val_file=config.val_file,
                                         val_size=config.val_size,
@@ -170,19 +170,18 @@ def load_static_data(config, merge_train_val=False):
                                         tokenize_text='lm_weight' not in config['network_config'],
                                         remove_no_label_data=config.remove_no_label_data
                                         )
-    return {
-        "datasets": datasets,
-        "word_dict": None if config.embed_file is None else data_utils.load_or_build_text_dict(
-            dataset=datasets['train'],
+    if config.embed_file is not None:
+        static_data['word_dict'], static_data['embed_vecs'] = data_utils.load_or_build_text_dict(
+            dataset=static_data['datasets']['train'],
             vocab_file=config.vocab_file,
             min_vocab_freq=config.min_vocab_freq,
             embed_file=config.embed_file,
-            embed_cache_dir=config.embed_cache_dir,
             silent=config.silent,
-            normalize_embed=config.normalize_embed
-        ),
-        "classes": data_utils.get_labels(datasets, config.include_test_labels)
-    }
+            normalize_embed=config.normalize_embed,
+            embed_cache_dir=config.embed_cache_dir
+        )
+    static_data['classes'] = data_utils.get_labels(static_data['datasets'], config.include_test_labels)
+    return static_data
 
 
 def retrain_best_model(exp_name, best_config, best_log_dir, merge_train_val):

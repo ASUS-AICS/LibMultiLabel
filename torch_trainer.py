@@ -29,10 +29,10 @@ class TorchTrainer:
     def __init__(
         self,
         config: dict,
-        datasets: dict = None,
-        classes: list = None,
-        word_dict: dict = None,
-        embed_vecs = None,
+        datasets: dict = None,  # preload static data from search params
+        classes: list = None,  # preload static data from search params
+        word_dict: dict = None,  # preload static data from search params
+        embed_vecs=None,  # preload static data from search params
         search_params: bool = False,
         save_checkpoints: bool = True
     ):
@@ -67,9 +67,13 @@ class TorchTrainer:
 
         self.config.multiclass = is_multiclass_dataset(
             self.datasets['train']+self.datasets.get('val', list()))
-        self._setup_model(classes=classes,
-                          word_dict=word_dict,
-                          embed_vecs=embed_vecs,
+
+        ## TBD: can this be included in the datasets?
+        self.classes = classes or data_utils.get_labels(self.datasets, config.include_test_labels)
+        if not (word_dict and embed_vecs) and self.config.embed_file is not None:
+            self.word_dict, self.embed_vecs = self._load_word_embedding()
+
+        self._setup_model(num_classes=len(self.classes),
                           log_path=self.log_path,
                           checkpoint_path=config.checkpoint_path)
         self.trainer = init_trainer(checkpoint_dir=self.checkpoint_dir,
@@ -90,11 +94,23 @@ class TorchTrainer:
         # Dump config to log
         dump_log(self.log_path, config=config)
 
+    def _load_word_embedding(self):
+        logging.info('Load word dictionary ')
+        # Discuss with Yu-Chen: if the word_dict is not in model now
+        word_dict, embed_vecs = data_utils.load_or_build_text_dict(
+            dataset=self.datasets['train'],
+            vocab_file=self.config.vocab_file, # CAML legacy
+            min_vocab_freq=self.config.min_vocab_freq,
+            embed_file=self.config.embed_file,
+            silent=self.config.silent,
+            normalize_embed=self.config.normalize_embed,
+            embed_cache_dir=self.config.embed_cache_dir
+        )
+        return word_dict, embed_vecs
+
     def _setup_model(
         self,
-        classes: list = None,
-        word_dict: dict = None,
-        embed_vecs = None,
+        num_classes: int = None,
         log_path: str = None,
         checkpoint_path: str = None
     ):
@@ -102,9 +118,7 @@ class TorchTrainer:
         Otherwise, initialize model from scratch.
 
         Args:
-            classes(list): List of class names.
-            word_dict(torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
-            embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
+            num_classes (int): Total number of classes.
             log_path (str): Path to the log file. The log file contains the validation
                 results for each epoch and the test results. If the `log_path` is None, no performance
                 results will be logged.
@@ -118,20 +132,6 @@ class TorchTrainer:
             self.model = Model.load_from_checkpoint(checkpoint_path)
         else:
             logging.info('Initialize model from scratch.')
-            if self.config.embed_file is not None:
-                logging.info('Load word dictionary ')
-                word_dict, embed_vecs = data_utils.load_or_build_text_dict(
-                    dataset=self.datasets['train'],
-                    vocab_file=self.config.vocab_file,
-                    min_vocab_freq=self.config.min_vocab_freq,
-                    embed_file=self.config.embed_file,
-                    silent=self.config.silent,
-                    normalize_embed=self.config.normalize_embed,
-                    embed_cache_dir=self.config.embed_cache_dir
-                )
-            if not classes:
-                classes = data_utils.get_labels(
-                    self.datasets, self.config.include_test_labels)
 
             if self.config.early_stopping_metric not in self.config.monitor_metrics:
                 logging.warn(
@@ -148,9 +148,8 @@ class TorchTrainer:
 
             self.model = init_model(model_name=self.config.model_name,
                                     network_config=dict(self.config.network_config),
-                                    classes=classes,
-                                    word_dict=word_dict,
-                                    embed_vecs=embed_vecs,
+                                    num_classes=num_classes,
+                                    embed_vecs=self.embed_vecs,
                                     init_weight=self.config.init_weight,
                                     log_path=log_path,
                                     learning_rate=self.config.learning_rate,
@@ -177,8 +176,8 @@ class TorchTrainer:
         """
         return data_utils.get_dataset_loader(
             data=self.datasets[split],
-            word_dict=self.model.word_dict,
-            classes=self.model.classes,
+            word_dict=self.word_dict,
+            classes=self.classes,
             device=self.device,
             max_seq_length=self.config.max_seq_length,
             batch_size=self.config.batch_size if split == 'train' else self.config.eval_batch_size,
