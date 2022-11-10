@@ -161,7 +161,7 @@ class TorchTrainer:
         return data_utils.get_dataset_loader(
             data=self.datasets[split],
             word_dict=self.data.get("word_dict", None),
-            classes=self.data.get("classes", None),
+            classes=self.data["classes"],
             device=self.device,
             max_seq_length=self.config.max_seq_length,
             batch_size=self.config.batch_size if split == 'train' else self.config.eval_batch_size,

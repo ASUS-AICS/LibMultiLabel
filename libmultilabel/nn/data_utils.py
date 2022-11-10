@@ -146,7 +146,7 @@ def load_data(
     if embed_file is not None:
         data["word_dict"], data["embed_vecs"] = load_or_build_text_dict(
             dataset=data["datasets"]['train'],
-            vocab_file=vocab_file,  # CAML legacy
+            vocab_file=vocab_file,
             min_vocab_freq=min_vocab_freq,
             embed_file=embed_file,
             silent=silent,

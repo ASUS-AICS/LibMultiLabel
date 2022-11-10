@@ -37,7 +37,7 @@ def init_device(use_cpu=False):
 def init_model(model_name,
                network_config,
                num_classes,
-               embed_vecs,  # use in configure networks
+               embed_vecs,
                init_weight=None,
                log_path=None,
                learning_rate=0.0001,
