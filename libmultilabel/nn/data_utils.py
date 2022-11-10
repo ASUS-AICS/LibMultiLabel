@@ -271,38 +271,31 @@ def load_or_build_text_dict(
     return vocabs, embedding_weights
 
 
-def load_or_build_label(datasets, label_file=None, include_test_labels=False):
-    """Obtain the label set from loading a label file or from the given data sets. The label set contains
-    labels in the training and validation sets. Labels in the test set are included only when
+def get_labels(datasets, include_test_labels=False):
+    """Obtain the label set from the given data sets. The label set contains labels in
+    the training and validation sets. Labels in the test set are included only when
     `include_test_labels` is True.
 
     Args:
         datasets (dict): A dictionary of datasets. Each dataset contains list of instances
             with index, label, and tokenized text.
-        label_file (str, optional): Path to a file holding all labels.
         include_test_labels (bool, optional): Whether to include labels in the test dataset.
             Defaults to False.
 
     Returns:
         list: A list of labels sorted in alphabetical order.
     """
-    if label_file is not None:
-        logging.info(f'Load labels from {label_file}.')
-        with open(label_file, 'r') as fp:
-            classes = sorted([s.strip() for s in fp.readlines()])
-    else:
-        if 'test' not in datasets and include_test_labels:
-            raise ValueError(
-                f'Specified the inclusion of test labels but test file does not exist')
+    if 'test' not in datasets and include_test_labels:
+        raise ValueError(
+            f'Specified the inclusion of test labels but test file does not exist')
 
-        classes = set()
-
-        for split, data in datasets.items():
-            if split == 'test' and not include_test_labels:
-                continue
-            for instance in data:
-                classes.update(instance['label'])
-        classes = sorted(classes)
+    classes = set()
+    for split, data in datasets.items():
+        if split == 'test' and not include_test_labels:
+            continue
+        for instance in data:
+            classes.update(instance['label'])
+    classes = sorted(classes)
     logging.info(f'Read {len(classes)} labels.')
     return classes
 

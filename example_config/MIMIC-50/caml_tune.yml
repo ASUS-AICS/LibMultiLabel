@@ -61,7 +61,6 @@ checkpoint_path: null
 cpu: false
 data_workers: 4
 eval: false
-label_file: null
 limit_train_batches: 1.0
 limit_val_batches: 1.0
 limit_test_batches: 1.0

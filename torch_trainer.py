@@ -130,8 +130,8 @@ class TorchTrainer:
                     embed_cache_dir=self.config.embed_cache_dir
                 )
             if not classes:
-                classes = data_utils.load_or_build_label(
-                    self.datasets, self.config.label_file, self.config.include_test_labels)
+                classes = data_utils.get_labels(
+                    self.datasets, self.config.include_test_labels)
 
             if self.config.early_stopping_metric not in self.config.monitor_metrics:
                 logging.warn(

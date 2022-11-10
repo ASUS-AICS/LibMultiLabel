@@ -84,8 +84,6 @@ def add_all_arguments(parser):
                         help='Path to a file holding vocabuaries (default: %(default)s)')
     parser.add_argument('--embed_file', type=str,
                         help='Path to a file holding pre-trained embeddings (default: %(default)s)')
-    parser.add_argument('--label_file', type=str,
-                        help='Path to a file holding all labels (default: %(default)s)')
 
     # log
     parser.add_argument('--save_k_predictions', type=int, nargs='?', const=100, default=0,
