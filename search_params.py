@@ -2,7 +2,6 @@ import argparse
 import json
 import logging
 import os
-import time
 from datetime import datetime
 from pathlib import Path
 
@@ -159,29 +158,24 @@ def load_static_data(config, merge_train_val=False):
             Defaults to False.
 
     Returns:
-        dict: A dict of static data containing datasets, classes, embed_vecs, and word_dict.
+        dict: A dict of static data containing datasets, classes, embed_vecs, or word_dict.
     """
-    static_data = dict()
-    static_data['datasets'] = data_utils.load_datasets(training_file=config.training_file,
-                                        test_file=config.test_file,
-                                        val_file=config.val_file,
-                                        val_size=config.val_size,
-                                        merge_train_val=merge_train_val,
-                                        tokenize_text='lm_weight' not in config['network_config'],
-                                        remove_no_label_data=config.remove_no_label_data
-                                        )
-    if config.embed_file is not None:
-        static_data['word_dict'], static_data['embed_vecs'] = data_utils.load_or_build_text_dict(
-            dataset=static_data['datasets']['train'],
-            vocab_file=config.vocab_file,
-            min_vocab_freq=config.min_vocab_freq,
-            embed_file=config.embed_file,
-            silent=config.silent,
-            normalize_embed=config.normalize_embed,
-            embed_cache_dir=config.embed_cache_dir
-        )
-    static_data['classes'] = data_utils.get_labels(static_data['datasets'], config.include_test_labels)
-    return static_data
+    return data_utils.load_data(
+        training_file=config.training_file,
+        test_file=config.test_file,
+        val_file=config.val_file,
+        val_size=config.val_size,
+        merge_train_val=merge_train_val,
+        tokenize_text='lm_weight' not in config['network_config'],
+        remove_no_label_data=config.remove_no_label_data,
+        vocab_file=config.vocab_file,
+        min_vocab_freq=config.min_vocab_freq,
+        embed_file=config.embed_file,
+        silent=config.silent,
+        normalize_embed=config.normalize_embed,
+        embed_cache_dir=config.embed_cache_dir,
+        include_test_labels=config.include_test_labels,
+    )
 
 
 def retrain_best_model(exp_name, best_config, best_log_dir, merge_train_val):

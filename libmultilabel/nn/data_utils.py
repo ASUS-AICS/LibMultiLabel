@@ -118,6 +118,44 @@ def get_dataset_loader(
     return dataset_loader
 
 
+def load_data(
+    training_file=None,
+    test_file=None,
+    val_file=None,
+    val_size=0.2,
+    merge_train_val=False,
+    tokenize_text=True,
+    remove_no_label_data=False,
+    vocab_file=None,
+    min_vocab_freq=1,
+    embed_file=None,
+    embed_cache_dir=None,
+    silent=False,
+    normalize_embed=False,
+    include_test_labels=False):
+
+    data = dict()
+    data["datasets"] = load_datasets(training_file=training_file,
+                             test_file=test_file,
+                             val_file=val_file,
+                             val_size=val_size,
+                             merge_train_val=merge_train_val,
+                             tokenize_text=tokenize_text,
+                             remove_no_label_data=remove_no_label_data)
+    data["classes"] = get_labels( data["datasets"], include_test_labels)
+    if embed_file is not None:
+        data["word_dict"], data["embed_vecs"] = load_or_build_text_dict(
+            dataset=data["datasets"]['train'],
+            vocab_file=vocab_file,  # CAML legacy
+            min_vocab_freq=min_vocab_freq,
+            embed_file=embed_file,
+            silent=silent,
+            normalize_embed=normalize_embed,
+            embed_cache_dir=embed_cache_dir
+        )
+    return data
+
+
 def _load_raw_data(path, is_test=False, tokenize_text=True, remove_no_label_data=False):
     """Load and tokenize raw data.
 

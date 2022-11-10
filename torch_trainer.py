@@ -17,10 +17,8 @@ class TorchTrainer:
 
     Args:
         config (AttributeDict): Config of the experiment.
+        preload_data(dict, optional): A dict of preloaded data containing datasets, classes, embed_vecs, or word_dict.
         datasets (dict, optional): Datasets for training, validation, and test. Defaults to None.
-        classes(list, optional): List of class names.
-        word_dict(torchtext.vocab.Vocab, optional): A vocab object which maps tokens to indices.
-        embed_vecs (torch.Tensor, optional): The pre-trained word vectors of shape (vocab_size, embed_dim).
         search_params (bool, optional): Enable pytorch-lightning trainer to report the results to ray tune
             on validation end during hyperparameter search. Defaults to False.
         save_checkpoints (bool, optional): Whether to save the last and the best checkpoint or not.
@@ -29,10 +27,7 @@ class TorchTrainer:
     def __init__(
         self,
         config: dict,
-        datasets: dict = None,  # preload static data from search params
-        classes: list = None,  # preload static data from search params
-        word_dict: dict = None,  # preload static data from search params
-        embed_vecs = None,  # preload static data from search params
+        preload_data: dict = None,
         search_params: bool = False,
         save_checkpoints: bool = True
     ):
@@ -52,30 +47,31 @@ class TorchTrainer:
         if not tokenize_text:
             self.tokenizer = AutoTokenizer.from_pretrained(config.network_config['lm_weight'], use_fast=True)
         # Load dataset
-        if datasets is None:
-            self.datasets = data_utils.load_datasets(
+        if preload_data is None:
+            self.data = data_utils.load_data(
                 training_file=config.training_file,
                 test_file=config.test_file,
                 val_file=config.val_file,
                 val_size=config.val_size,
                 merge_train_val=config.merge_train_val,
                 tokenize_text=tokenize_text,
-                remove_no_label_data=config.remove_no_label_data
+                remove_no_label_data=config.remove_no_label_data,
+                vocab_file=config.vocab_file,
+                min_vocab_freq=config.min_vocab_freq,
+                embed_file=config.embed_file,
+                silent=config.silent,
+                normalize_embed=config.normalize_embed,
+                embed_cache_dir=config.embed_cache_dir,
+                include_test_labels=config.include_test_labels,
             )
         else:
-            self.datasets = datasets
+            self.data = preload_data
 
+        self.datasets = self.data["datasets"]
         self.config.multiclass = is_multiclass_dataset(
             self.datasets['train']+self.datasets.get('val', list()))
 
-        ## TBD: can this be included in the datasets?
-        self.classes = classes or data_utils.get_labels(self.datasets, config.include_test_labels)
-        self.word_dict = word_dict
-        self.embed_vecs = embed_vecs
-        if not (word_dict and embed_vecs) and self.config.embed_file is not None:
-            self.word_dict, self.embed_vecs = self._load_word_embedding()
-
-        self._setup_model(num_classes=len(self.classes),
+        self._setup_model(num_classes=len(self.data["classes"]),
                           log_path=self.log_path,
                           checkpoint_path=config.checkpoint_path)
         self.trainer = init_trainer(checkpoint_dir=self.checkpoint_dir,
@@ -95,20 +91,6 @@ class TorchTrainer:
 
         # Dump config to log
         dump_log(self.log_path, config=config)
-
-    def _load_word_embedding(self):
-        logging.info('Load word dictionary ')
-        # Discuss with Yu-Chen: if the word_dict is not in model now
-        word_dict, embed_vecs = data_utils.load_or_build_text_dict(
-            dataset=self.datasets['train'],
-            vocab_file=self.config.vocab_file, # CAML legacy
-            min_vocab_freq=self.config.min_vocab_freq,
-            embed_file=self.config.embed_file,
-            silent=self.config.silent,
-            normalize_embed=self.config.normalize_embed,
-            embed_cache_dir=self.config.embed_cache_dir
-        )
-        return word_dict, embed_vecs
 
     def _setup_model(
         self,
@@ -151,7 +133,7 @@ class TorchTrainer:
             self.model = init_model(model_name=self.config.model_name,
                                     network_config=dict(self.config.network_config),
                                     num_classes=num_classes,
-                                    embed_vecs=self.embed_vecs,
+                                    embed_vecs=self.data.get("embed_vecs", None),
                                     init_weight=self.config.init_weight,
                                     log_path=log_path,
                                     learning_rate=self.config.learning_rate,
@@ -178,8 +160,8 @@ class TorchTrainer:
         """
         return data_utils.get_dataset_loader(
             data=self.datasets[split],
-            word_dict=self.word_dict,
-            classes=self.classes,
+            word_dict=self.data.get("word_dict", None),
+            classes=self.data.get("classes", None),
             device=self.device,
             max_seq_length=self.config.max_seq_length,
             batch_size=self.config.batch_size if split == 'train' else self.config.eval_batch_size,
