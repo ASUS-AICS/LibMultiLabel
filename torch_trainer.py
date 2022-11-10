@@ -32,7 +32,7 @@ class TorchTrainer:
         datasets: dict = None,  # preload static data from search params
         classes: list = None,  # preload static data from search params
         word_dict: dict = None,  # preload static data from search params
-        embed_vecs=None,  # preload static data from search params
+        embed_vecs = None,  # preload static data from search params
         search_params: bool = False,
         save_checkpoints: bool = True
     ):
