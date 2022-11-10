@@ -19,14 +19,12 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s:%(message)s')
 
 
-def train_libmultilabel_tune(config, datasets, classes, word_dict):
+def train_libmultilabel_tune(config, data):
     """The training function for ray tune.
 
     Args:
         config (AttributeDict): Config of the experiment.
-        datasets (dict): A dictionary of datasets.
-        classes(list): List of class names.
-        word_dict(torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
+        data(dict, optional): A dict of preloaded data containing datasets, classes, embed_vecs, or word_dict.
     """
     set_seed(seed=config.seed)
     config.run_name = tune.get_trial_dir()
@@ -35,9 +33,7 @@ def train_libmultilabel_tune(config, datasets, classes, word_dict):
     config.log_path = os.path.join(config.checkpoint_dir, 'logs.json')
 
     trainer = TorchTrainer(config=config,
-                           datasets=datasets,
-                           classes=classes,
-                           word_dict=word_dict,
+                           preload_data=data,
                            search_params=True,
                            save_checkpoints=False)
     trainer.train()
@@ -272,9 +268,7 @@ def main():
         datetime.now().strftime('%Y%m%d%H%M%S'),
     )
     analysis = tune.run(
-        tune.with_parameters(
-            train_libmultilabel_tune,
-            **data),
+        tune.with_parameters(train_libmultilabel_tune, data=data),
         search_alg=init_search_algorithm(
             config.search_alg, metric=config.val_metric, mode=config.mode),
         scheduler=scheduler,
