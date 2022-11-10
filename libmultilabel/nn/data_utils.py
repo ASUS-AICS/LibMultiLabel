@@ -25,9 +25,7 @@ class TextDataset(Dataset):
     def __init__(self, data, word_dict, classes, max_seq_length, tokenizer=None, add_special_tokens=False):
         self.data = data
         self.word_dict = word_dict
-        self.classes = classes
         self.max_seq_length = max_seq_length
-        self.num_classes = len(self.classes)
         self.label_binarizer = MultiLabelBinarizer().fit([classes])
         self.tokenizer = tokenizer
         self.add_special_tokens = add_special_tokens
