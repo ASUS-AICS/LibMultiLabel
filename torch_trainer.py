@@ -70,6 +70,8 @@ class TorchTrainer:
 
         ## TBD: can this be included in the datasets?
         self.classes = classes or data_utils.get_labels(self.datasets, config.include_test_labels)
+        self.word_dict = word_dict
+        self.embed_vecs = embed_vecs
         if not (word_dict and embed_vecs) and self.config.embed_file is not None:
             self.word_dict, self.embed_vecs = self._load_word_embedding()
 
