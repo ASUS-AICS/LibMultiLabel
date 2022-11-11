@@ -56,7 +56,7 @@ where ``datasets['train']`` and ``datasets['val']`` are randomly splitted from `
 For the labels of the data, we apply the function ``load_or_build_label()`` to generate the label set.
 
 For BERT, we utilize the API ``AutoTokenizer``, which is supported by ``Hugging Face``, for the word preprocessing setting.
-Thus, we set the other variables for word preprocessing as ``None``.
+Thus, we set other variables for word preprocessing as ``None``.
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
@@ -70,25 +70,25 @@ We use the following code to initialize a model.
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 17-33
+    :lines: 17-31
 
 * ``model_name`` leads ``init_model`` function to find a network model.
 * ``network_config`` contains the configurations of a network model.
 * ``classes`` is the label set of the data.
 * ``init_weight``, ``word_dict`` and ``embed_vecs`` are not used on a bert-base model, so we can ignore them.
-* ``moniter_metrics`` is used to define the metrics you would like to track during the training procedure.
+* ``moniter_metrics`` includes metrics you would like to track.
     
 
 Step 5. Initialize a trainer
 ----------------------------
 
-We use the function ``init_trainer`` to initialize a trainer, which controls processes such as the number of training loops. 
+We use the function ``init_trainer`` to initialize a trainer. 
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 36
+    :lines: 34
 
-In this example, we set the number of training loops by ``epochs=15``, and the validation metric by ``val_metric = 'P@5'``.
+In this example, ``checkpoint_dir`` is the place we save the best and the last models during the training. Furthermore, we set the number of training loops by ``epochs=15``, and the validation metric by ``val_metric = 'P@5'``.
 
 Step 6. Create data loaders
 ---------------------------
@@ -98,7 +98,7 @@ Therefore, a data loader can load a batch of samples each time.
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 39-50
+    :lines: 37-48
 
 This example loads three loaders, and the batch size is set by ``batch_size=8``. Other variables can be checked in `here <../api/nn.html#libmultilabel.nn.data_utils.get_dataset_loader>`_.
 
@@ -109,13 +109,13 @@ The bert model training process can be started via
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 53
+    :lines: 51
 
 After the training process is finished, we can then run the test process by
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 56
+    :lines: 54
 
 The results should be similar to::
 
@@ -140,7 +140,7 @@ We only list the steps that are different from the BERT example.
 Step 3. Load and tokenize data
 ------------------------------------------
 
-To run KimCNN, LibMultiLabel tokenizes documents and for each word uses an embedding vector. 
+To run KimCNN, LibMultiLabel tokenizes documents and uses an embedding vector for each word. 
 Thus, ``tokenize_text = True`` is set.
 
 We choose ``glove.6B.300d`` from torchtext as embedding vectors. 

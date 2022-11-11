@@ -11,15 +11,13 @@ device = init_device()  # use gpu by default
 datasets = load_datasets('data/EUR-Lex/train.txt', 'data/EUR-Lex/test.txt', tokenize_text=False)
 classes = load_or_build_label(datasets)
 word_dict, embed_vecs = None, None 
-tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased', use_fast=True)
+tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
 
 # Step 4. Initialize a model.
-model_name='BERTAttention'
+model_name='BERT'
 network_config = {
     'dropout': 0.1,
     'lm_weight': 'bert-base-uncased',
-    'lm_window': 512,
-    'attention_type': 'singlehead'
 }
 learning_rate = 0.00005
 model = init_model(
