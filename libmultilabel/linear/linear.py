@@ -66,23 +66,29 @@ def prepare_options(x: sparse.csr_matrix, options: str) -> 'tuple[sparse.csr_mat
     if any(o in options for o in ['-R', '-C', '-v']):
         raise ValueError('-R, -C and -v are not supported')
 
+    options_split = options.split()
+    if '-s' in options_split:
+        i = options_split.index('-s')
+        solver_type = int(options_split[i+1])
+        if solver_type >= 11:
+            raise ValueError("Only multi-class classification solvers are available. " \
+                "Please see LIBLINEAR README (https://github.com/cjlin1/liblinear) for details.")
+
     bias = -1.
-    if options.find('-B') != -1:
-        options_split = options.split()
+    if '-B' in options_split:
         i = options_split.index('-B')
         bias = float(options_split[i+1])
-        options = ' '.join(options_split[:i] + options_split[i+2:])
+        options_split = options_split[:i] + options_split[i+2:]
         x = sparse.hstack([
             x,
             np.full((x.shape[0], 1), bias),
         ], 'csr')
-
-    if not '-q' in options:
-        options += ' -q'
-
+    if not '-q' in options_split:
+        options_split.append('-q')
     if not '-m' in options:
-        options += f' -m {int(os.cpu_count() / 2)}'
+        options_split.append(f'-m {int(os.cpu_count() / 2)}')
 
+    options = ' '.join(options_split)
     return x, options, bias
 
 
