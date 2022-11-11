@@ -198,7 +198,7 @@ def retrain_best_model(exp_name, best_config, best_log_dir, merge_train_val):
 
     data = load_static_data(best_config, merge_train_val=best_config.merge_train_val)
     logging.info(f'Re-training with best config: \n{best_config}')
-    trainer = TorchTrainer(config=best_config, **data)
+    trainer = TorchTrainer(config=best_config, preload_data=data)
     trainer.train()
 
     if 'test' in data['datasets']:
