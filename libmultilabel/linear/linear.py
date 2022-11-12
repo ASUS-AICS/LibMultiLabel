@@ -510,7 +510,7 @@ def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
         np.ndarray: A matrix with dimension number of instances * number of classes.
     """
     if isinstance(model, liblinear_model):
-        pred_labels, acc, pred_values = predict([], x, model)
+        pred_labels, _, _ = predict([], x, model)
         num_class = len(model.get_labels())
         preds = np.zeros((x.shape[0], num_class))
         ind = np.array(pred_labels, dtype='int')[..., np.newaxis]
