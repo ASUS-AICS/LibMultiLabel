@@ -74,12 +74,14 @@ class Preprocessor:
             if num_no_label_data > 0:
                 if remove_no_label_data:
                     logging.info(
-                        f'Remove {num_no_label_data} instances that have no labels from {training_file}.')
+                        f'Remove {num_no_label_data} instances that have no labels from {training_file}.',
+                        extra={'collect': True})
                     data['train']['x'] = data['train']['x'][num_labels > 0]
                     data['train']['y'] = data['train']['y'][num_labels > 0]
                 else:
                     logging.info(
-                        f'Keep {num_no_label_data} instances that have no labels from {training_file}.')
+                        f'Keep {num_no_label_data} instances that have no labels from {training_file}.',
+                        extra={'collect': True})
 
         return data
 
