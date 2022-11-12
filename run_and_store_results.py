@@ -4,6 +4,7 @@ import pickle
 
 from main import get_config, check_config
 from libmultilabel.common_utils import Timer, AttributeDict
+from libmultilabel.logging import add_stream_handler
 from tests.nn.utils import get_names, get_components_from_trainer
 
 
@@ -32,8 +33,7 @@ def main():
 
     # Set up logger
     log_level = logging.WARNING if config.silent else logging.INFO
-    logging.basicConfig(
-        level=log_level, format='%(asctime)s %(levelname)s:%(message)s')
+    add_stream_handler(log_level)
 
     logging.info(f'Run name: {config.run_name}')
 
