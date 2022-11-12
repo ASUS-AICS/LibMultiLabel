@@ -3,13 +3,15 @@ import os
 
 import numpy as np
 import scipy.sparse as sparse
-from liblinear.liblinearutil import train
+from liblinear.liblinear import model as liblinear_model
+from liblinear.liblinearutil import predict, train
 from tqdm import tqdm
 
 __all__ = ['train_1vsrest',
            'train_thresholding',
            'train_cost_sensitive',
            'train_cost_sensitive_micro',
+           'train_binary_and_multiclass',
            'predict_values']
 
 
@@ -481,6 +483,22 @@ def train_cost_sensitive_micro(y: sparse.csr_matrix, x: sparse.csr_matrix, optio
     return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': 0}
 
 
+def train_binary_and_multiclass(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
+    """Trains a linear model for binary and multiclass data. See user guide for more details.
+
+    Args:
+        y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
+        x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
+        options (str): The option string passed to liblinear.
+
+    Returns:
+        liblinear.liblinear.model: A multiclass model which can be used in predict_values.
+    """
+    x, options, bias = prepare_options(x, options)
+    y = np.squeeze(y.nonzero()[1])
+    return train(y, x, options)
+
+
 def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
     """Calculates the decision values associated with x.
 
@@ -491,20 +509,28 @@ def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
     Returns:
         np.ndarray: A matrix with dimension number of instances * number of classes.
     """
-    bias = model['-B']
-    bias_col = np.full((x.shape[0], 1 if bias > 0 else 0), bias)
-    num_feature = model['weights'].shape[0]
-    num_feature -= 1 if bias > 0 else 0
-    if x.shape[1] < num_feature:
-        x = sparse.hstack([
-            x,
-            np.zeros((x.shape[0], num_feature - x.shape[1])),
-            bias_col,
-        ], 'csr')
+    if isinstance(model, liblinear_model):
+        pred_labels, acc, pred_values = predict([], x, model)
+        num_class = len(model.get_labels())
+        preds = np.zeros((x.shape[0], num_class))
+        ind = np.array(pred_labels, dtype='int')[..., np.newaxis]
+        np.put_along_axis(preds, ind, 1, axis=1)
+        return preds
     else:
-        x = sparse.hstack([
-            x[:, :num_feature],
-            bias_col,
-        ], 'csr')
+        bias = model['-B']
+        bias_col = np.full((x.shape[0], 1 if bias > 0 else 0), bias)
+        num_feature = model['weights'].shape[0]
+        num_feature -= 1 if bias > 0 else 0
+        if x.shape[1] < num_feature:
+            x = sparse.hstack([
+                x,
+                np.zeros((x.shape[0], num_feature - x.shape[1])),
+                bias_col,
+            ], 'csr')
+        else:
+            x = sparse.hstack([
+                x[:, :num_feature],
+                bias_col,
+            ], 'csr')
 
     return (x * model['weights']).A + model['threshold']

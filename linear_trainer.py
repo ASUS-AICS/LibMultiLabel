@@ -39,7 +39,8 @@ def linear_train(datasets, config):
     techniques = {'1vsrest': linear.train_1vsrest,
                   'thresholding': linear.train_thresholding,
                   'cost_sensitive': linear.train_cost_sensitive,
-                  'cost_sensitive_micro': linear.train_cost_sensitive_micro}
+                  'cost_sensitive_micro': linear.train_cost_sensitive_micro,
+                  'binary_and_multiclass': linear.train_binary_and_multiclass}
     model = techniques[config.linear_technique](
         datasets['train']['y'],
         datasets['train']['x'],
@@ -67,7 +68,7 @@ def linear_run(config):
             config.remove_no_label_data)
         config.multiclass = is_multiclass_dataset(datasets['train'], label='y')
         model = linear_train(datasets, config)
-        linear.save_pipeline(config.checkpoint_dir, preprocessor, model)
+        # linear.save_pipeline(config.checkpoint_dir, preprocessor, model)
 
     if config.test_file is not None:
         metric_dict, top_k_idx, top_k_scores = linear_test(
