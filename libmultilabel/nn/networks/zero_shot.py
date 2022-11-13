@@ -17,8 +17,7 @@ class CBiGRULWAN(nn.Module):
         assert rnn_dim % 2 == 0, """`rnn_dim` should be even."""
         self.encoder = GRUEncoder(embed_dim, rnn_dim // 2, rnn_layers, encoder_dropout)
         self.attention = LabelAttention(rnn_dim, embed_dim)
-        self.linear = nn.Linear(embed_dim, embed_dim)
-        self.output = SharedLinearLabelProduct(rnn_dim, embed_dim)
+        self.linear = nn.Linear(embed_dim, rnn_dim)
 
     def forward(self, input):
         x = self.embedding(input['text'])  # (batch_size, sequence_length, embed_dim)
@@ -27,7 +26,7 @@ class CBiGRULWAN(nn.Module):
         Q = self.linear(Q)
         x = self.encoder(x, input['length'])  # (batch_size, sequence_length, num_filter)
         x = self.attention(x, Q) # (batch_size, num_classes, hidden_dim)
-        x = self.output(x, Q)
+        x = (Q * x).sum(-1)
         return {'logits': x}
 
 
