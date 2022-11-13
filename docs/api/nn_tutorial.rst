@@ -9,10 +9,10 @@ We go through two popular neural network examples
 
 in this tutorial. Before we start, please download and decompress the data ``EUR-Lex`` via the following commands::
 
-    mkdir -p data/EUR-Lex
-    wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/eurlex_raw_texts_train.txt.bz2 -O data/EUR-Lex/train.txt.bz2
-    wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/eurlex_raw_texts_test.txt.bz2 -O data/EUR-Lex/test.txt.bz2
-    bzip2 -d data/EUR-Lex/*.bz2
+    mkdir -p data/rcv1
+    wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/rcv1_topics_train.txt.bz2 -O data/rcv1/train.txt.bz2
+    wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/rcv1_topics_test.txt.bz2 -O data/rcv1/test.txt.bz2
+    bzip2 -d data/rcv1/*.bz2
 
 
 BERT Example
@@ -60,7 +60,7 @@ Thus, we set other variables for word preprocessing as ``None``.
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 11-14
+    :lines: 11-15
 
 
 Step 4. Initialize a model
@@ -70,7 +70,7 @@ We use the following code to initialize a model.
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 17-31
+    :lines: 18-32
 
 * ``model_name`` leads ``init_model`` function to find a network model.
 * ``network_config`` contains the configurations of a network model.
@@ -86,7 +86,7 @@ We use the function ``init_trainer`` to initialize a trainer.
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 34
+    :lines: 35
 
 In this example, ``checkpoint_dir`` is the place we save the best and the last models during the training. Furthermore, we set the number of training loops by ``epochs=15``, and the validation metric by ``val_metric = 'P@5'``.
 
@@ -98,7 +98,7 @@ Therefore, a data loader can load a batch of samples each time.
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 37-48
+    :lines: 38-50
 
 This example loads three loaders, and the batch size is set by ``batch_size=8``. Other variables can be checked in `here <../api/nn.html#libmultilabel.nn.data_utils.get_dataset_loader>`_.
 
@@ -109,13 +109,13 @@ The bert model training process can be started via
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 51
+    :lines: 53
 
 After the training process is finished, we can then run the test process by
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 54
+    :lines: 56
 
 The results should be similar to::
 
@@ -147,7 +147,7 @@ We choose ``glove.6B.300d`` from torchtext as embedding vectors.
 
 .. literalinclude:: ../examples/kimcnn_quickstart.py
     :language: python3
-    :lines: 11-14
+    :lines: 11-15
  
 
 Step 4. Initialize a model
@@ -157,7 +157,7 @@ We consider the following settings for the KimCNN model.
 
 .. literalinclude:: ../examples/kimcnn_quickstart.py
     :language: python3
-    :lines: 17-33
+    :lines: 18-34
 
 
 

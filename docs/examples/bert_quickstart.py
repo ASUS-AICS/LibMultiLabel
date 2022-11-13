@@ -8,10 +8,11 @@ set_seed(1337)
 device = init_device()  # use gpu by default
 
 # Step 3. Load data from text files.
-datasets = load_datasets('data/EUR-Lex/train.txt', 'data/EUR-Lex/test.txt', tokenize_text=False)
+datasets = load_datasets('data/rcv1/train.txt', 'data/rcv1/test.txt', tokenize_text=False)
 classes = load_or_build_label(datasets)
 word_dict, embed_vecs = None, None 
 tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
+add_special_tokens = True
 
 # Step 4. Initialize a model.
 model_name='BERT'
@@ -19,7 +20,7 @@ network_config = {
     'dropout': 0.1,
     'lm_weight': 'bert-base-uncased',
 }
-learning_rate = 0.00005
+learning_rate = 0.00003
 model = init_model(
     model_name=model_name,
     network_config=network_config,
@@ -44,7 +45,8 @@ for split in ['train', 'val', 'test']:
         max_seq_length=512,
         batch_size=8,
         shuffle=True if split == 'train' else False,
-        tokenizer=tokenizer
+        tokenizer=tokenizer,
+        add_special_tokens=add_special_tokens
     )
 
 # Step 7-1. Train a model from scratch.
