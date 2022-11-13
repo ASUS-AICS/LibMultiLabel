@@ -142,7 +142,7 @@ def load_data(
                              merge_train_val=merge_train_val,
                              tokenize_text=tokenize_text,
                              remove_no_label_data=remove_no_label_data)
-    data["classes"] = get_labels( data["datasets"], include_test_labels)
+    data["classes"] = get_labels(data["datasets"], include_test_labels)
     if embed_file is not None:
         data["word_dict"], data["embed_vecs"] = load_or_build_text_dict(
             dataset=data["datasets"]['train'],
