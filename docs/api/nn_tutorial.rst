@@ -7,7 +7,7 @@ We go through two popular neural network examples
     * `BERT <nn_tutorial.html#bert-example>`_ 
     * `KimCNN <nn_tutorial.html#kimcnn-example>`_ 
 
-in this tutorial. Before we start, please download and decompress the data ``EUR-Lex`` via the following commands::
+in this tutorial. Before we start, please download and decompress the data ``rcv1`` via the following commands::
 
     mkdir -p data/rcv1
     wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/rcv1_topics_train.txt.bz2 -O data/rcv1/train.txt.bz2
@@ -45,7 +45,7 @@ For initial a hardware device, please use ``init_device`` to assign the hardware
 Step 3. Load and tokenize data
 ------------------------------------------
 
-We assume that the ``EUR-Lex`` data is located at the directory ``./data/EUR-Lex``, 
+We assume that the ``rcv1`` data is located at the directory ``./data/rcv1``, 
 and there exist the files ``train.txt`` and ``test.txt``.
 You can utilize the function ``load_datasets()`` to load the data sets. 
 By default, LibMultiLabel tokenizes documents, but the BERT model uses its own tokenizer. 
@@ -56,7 +56,8 @@ where ``datasets['train']`` and ``datasets['val']`` are randomly splitted from `
 For the labels of the data, we apply the function ``load_or_build_label()`` to generate the label set.
 
 For BERT, we utilize the API ``AutoTokenizer``, which is supported by ``Hugging Face``, for the word preprocessing setting.
-Thus, we set other variables for word preprocessing as ``None``.
+Furthermore, BERT applies some special tokens such as ``<CLS>``, so that we take ``add_special_tokens=True``.
+Therefore, we set other variables for word preprocessing as ``None``.
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
@@ -120,11 +121,11 @@ After the training process is finished, we can then run the test process by
 The results should be similar to::
 
   {
-      'Macro-F1': 0.16668776949897712, 
-      'Micro-F1': 0.5491620302200317, 
-      'P@1':      0.8015523552894592, 
-      'P@3':      0.6696851849555969, 
-      'P@5':      0.5537387132644653
+      'Macro-F1': 0.569891024909958, 
+      'Micro-F1': 0.8142925500869751, 
+      'P@1':      0.9552904367446899, 
+      'P@3':      0.7907078266143799, 
+      'P@5':      0.5505486726760864
   }
 
 Please get the full example code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/bert_quickstart.py>`_.
@@ -164,11 +165,11 @@ We consider the following settings for the KimCNN model.
 The test results should be similar to::
 
   {
-      'Macro-F1': 0.1487630964613739,
-      'Micro-F1': 0.4754171073436737,
-      'P@1':      0.7420440316200256,
-      'P@3':      0.6050884127616882,
-      'P@5':      0.4973350763320923,
+      'Macro-F1': 0.48948464335831743,
+      'Micro-F1': 0.7769773602485657,
+      'P@1':      0.9471677541732788,
+      'P@3':      0.7772253751754761,
+      'P@5':      0.5449321269989014,
   }
 
 Please get the full example code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/kimcnn_quickstart.py>`_.

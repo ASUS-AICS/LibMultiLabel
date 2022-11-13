@@ -22,7 +22,7 @@ network_config = {
     'filter_sizes': [2, 4, 8],
     'num_filter_per_size': 128
 }
-learning_rate = 0.0005
+learning_rate = 0.0003
 model = init_model(
     model_name=model_name,
     network_config=network_config,
