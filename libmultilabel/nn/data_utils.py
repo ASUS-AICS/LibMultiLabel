@@ -135,17 +135,17 @@ def load_data(
     include_test_labels=False):
 
     data = dict()
-    data["datasets"] = load_datasets(training_file=training_file,
+    data['datasets'] = load_datasets(training_file=training_file,
                              test_file=test_file,
                              val_file=val_file,
                              val_size=val_size,
                              merge_train_val=merge_train_val,
                              tokenize_text=tokenize_text,
                              remove_no_label_data=remove_no_label_data)
-    data["classes"] = get_labels(data["datasets"], include_test_labels)
+    data['classes'] = get_labels(data['datasets'], include_test_labels)
     if embed_file is not None:
-        data["word_dict"], data["embed_vecs"] = load_or_build_text_dict(
-            dataset=data["datasets"]['train'],
+        data['word_dict'], data['embed_vecs'] = load_or_build_text_dict(
+            dataset=data['datasets']['train'],
             vocab_file=vocab_file,
             min_vocab_freq=min_vocab_freq,
             embed_file=embed_file,

@@ -67,11 +67,11 @@ class TorchTrainer:
         else:
             self.data = preload_data
 
-        self.datasets = self.data["datasets"]
+        self.datasets = self.data['datasets']
         self.config.multiclass = is_multiclass_dataset(
             self.datasets['train']+self.datasets.get('val', list()))
 
-        self._setup_model(num_classes=len(self.data["classes"]),
+        self._setup_model(num_classes=len(self.data['classes']),
                           log_path=self.log_path,
                           checkpoint_path=config.checkpoint_path)
         self.trainer = init_trainer(checkpoint_dir=self.checkpoint_dir,
@@ -133,7 +133,7 @@ class TorchTrainer:
             self.model = init_model(model_name=self.config.model_name,
                                     network_config=dict(self.config.network_config),
                                     num_classes=num_classes,
-                                    embed_vecs=self.data.get("embed_vecs", None),
+                                    embed_vecs=self.data.get('embed_vecs', None),
                                     init_weight=self.config.init_weight,
                                     log_path=log_path,
                                     learning_rate=self.config.learning_rate,
@@ -160,8 +160,8 @@ class TorchTrainer:
         """
         return data_utils.get_dataset_loader(
             data=self.datasets[split],
-            word_dict=self.data.get("word_dict", None),
-            classes=self.data["classes"],
+            word_dict=self.data.get('word_dict', None),
+            classes=self.data['classes'],
             device=self.device,
             max_seq_length=self.config.max_seq_length,
             batch_size=self.config.batch_size if split == 'train' else self.config.eval_batch_size,
