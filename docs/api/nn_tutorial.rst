@@ -57,7 +57,7 @@ For the labels of the data, we apply the function ``load_or_build_label()`` to g
 
 For BERT, we utilize the API ``AutoTokenizer``, which is supported by ``Hugging Face``, for the word preprocessing setting.
 Furthermore, BERT applies some special tokens such as ``<CLS>``, so that we take ``add_special_tokens=True``.
-Therefore, we set other variables for word preprocessing as ``None``.
+We set other variables for word preprocessing as ``None``.
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
