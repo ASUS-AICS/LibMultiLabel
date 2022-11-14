@@ -73,7 +73,7 @@ def prepare_options(x: sparse.csr_matrix, options: str) -> 'tuple[sparse.csr_mat
         i = options_split.index('-s')
         solver_type = int(options_split[i+1])
         if solver_type >= 11:
-            raise ValueError("Only multi-class classification solvers are available. " \
+            raise ValueError("You should use only classification solvers in LIBLINEAR. " \
                 "Please see LIBLINEAR README (https://github.com/cjlin1/liblinear) for details.")
 
     bias = -1.
