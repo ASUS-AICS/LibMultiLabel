@@ -484,7 +484,7 @@ def train_cost_sensitive_micro(y: sparse.csr_matrix, x: sparse.csr_matrix, optio
 
 
 def train_binary_and_multiclass(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
-    """Trains a linear model for binary and multiclass data. See user guide for more details.
+    """Trains a linear model for binary and multi-class data.
 
     Args:
         y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
