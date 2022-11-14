@@ -73,8 +73,7 @@ def prepare_options(x: sparse.csr_matrix, options: str) -> 'tuple[sparse.csr_mat
         i = options_split.index('-s')
         solver_type = int(options_split[i+1])
         if solver_type >= 11:
-            raise ValueError("You should use only classification solvers in LIBLINEAR. " \
-                "Please see LIBLINEAR README (https://github.com/cjlin1/liblinear) for details.")
+            raise ValueError("You should use only classification solvers in LIBLINEAR.")
 
     bias = -1.
     if '-B' in options_split:
@@ -510,11 +509,11 @@ def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
         np.ndarray: A matrix with dimension number of instances * number of classes.
     """
     if isinstance(model, liblinear_model):
-        pred_labels, _, _ = predict([], x, model)
-        num_class = len(model.get_labels())
-        preds = np.zeros((x.shape[0], num_class))
-        ind = np.array(pred_labels, dtype='int')[..., np.newaxis]
-        np.put_along_axis(preds, ind, 1, axis=1)
+        _, _, pred_values = predict([], x, model)
+        label_map = model.get_labels()
+        ind = np.array(label_map, dtype='int')
+        preds = np.zeros((x.shape[0], len(label_map))) # num_instances * num_classes
+        preds[:, ind] = pred_values
         return preds
     else:
         bias = model['-B']
