@@ -194,6 +194,7 @@ class Model(MultiLabelModel):
             cross_entropy). Defaults to 'binary_cross_entropy_with_logits'.
         log_path (str): Path to a directory holding the log files and models.
     """
+
     def __init__(
         self,
         classes,

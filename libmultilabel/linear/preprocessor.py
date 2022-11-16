@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import re
 from array import array
 from collections import defaultdict
@@ -74,11 +73,13 @@ class Preprocessor:
             num_no_label_data = np.count_nonzero(num_labels == 0)
             if num_no_label_data > 0:
                 if remove_no_label_data:
-                    logging.info(f'Remove {num_no_label_data} instances that have no labels from {training_file}.')
+                    logging.info(
+                        f'Remove {num_no_label_data} instances that have no labels from {training_file}.')
                     data['train']['x'] = data['train']['x'][num_labels > 0]
                     data['train']['y'] = data['train']['y'][num_labels > 0]
                 else:
-                    logging.info(f'Keep {num_no_label_data} instances that have no labels from {training_file}.')
+                    logging.info(
+                        f'Keep {num_no_label_data} instances that have no labels from {training_file}.')
 
         return data
 
@@ -179,7 +180,8 @@ def read_libsvm_format(file_path: str) -> 'tuple[list[list[int]], sparse.csr_mat
                 ind, val = e.split(':')
                 ind, val = int(ind), float(val)
                 if ind < 1:
-                    raise IndexError(f'invalid svm format at line {i+1} of the file \'{file_path}\' --> Indices should start from one.')
+                    raise IndexError(
+                        f'invalid svm format at line {i+1} of the file \'{file_path}\' --> Indices should start from one.')
                 if val != 0:
                     col_idx.append(ind - 1)
                     prob_x.append(val)
@@ -188,7 +190,8 @@ def read_libsvm_format(file_path: str) -> 'tuple[list[list[int]], sparse.csr_mat
         except IndexError:
             raise
         except:
-            raise ValueError(f'invalid svm format at line {i+1} of the file \'{file_path}\'')
+            raise ValueError(
+                f'invalid svm format at line {i+1} of the file \'{file_path}\'')
 
     prob_x = scipy.frombuffer(prob_x, dtype='d')
     col_idx = scipy.frombuffer(col_idx, dtype='l')
