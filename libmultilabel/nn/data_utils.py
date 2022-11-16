@@ -1,19 +1,20 @@
 import gc
 import logging
 import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
 
+import pandas as pd
 import torch
 import transformers
-transformers.logging.set_verbosity_error()
-import pandas as pd
 from nltk.tokenize import RegexpTokenizer
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer
-from torch.utils.data import Dataset
 from torch.nn.utils.rnn import pad_sequence
+from torch.utils.data import Dataset
 from torchtext.vocab import build_vocab_from_iterator, pretrained_aliases
 from tqdm import tqdm
+
+transformers.logging.set_verbosity_error()
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 UNK = '<unk>'
 PAD = '<pad>'
@@ -45,7 +46,8 @@ class TextDataset(Dataset):
                                                   max_length=self.max_seq_length,
                                                   truncation=True)
             else:
-                input_ids = self.tokenizer.encode(data['text'], add_special_tokens=False)
+                input_ids = self.tokenizer.encode(
+                    data['text'], add_special_tokens=False)
         else:
             input_ids = [self.word_dict[word] for word in data['text']]
         return {
@@ -133,7 +135,8 @@ def _load_raw_data(path, is_test=False, tokenize_text=True, remove_no_label_data
         pandas.DataFrame: Data composed of index, label, and tokenized text.
     """
     logging.info(f'Load data from {path}.')
-    data = pd.read_csv(path, sep='\t', header=None, error_bad_lines=False, warn_bad_lines=True).fillna('')
+    data = pd.read_csv(path, sep='\t', header=None,
+                       error_bad_lines=False, warn_bad_lines=True).fillna('')
     if data.shape[1] == 2:
         data.columns = ['label', 'text']
         data = data.reset_index()
@@ -150,10 +153,12 @@ def _load_raw_data(path, is_test=False, tokenize_text=True, remove_no_label_data
         num_no_label_data = sum(1 for d in data if len(d['label']) == 0)
         if num_no_label_data > 0:
             if remove_no_label_data:
-                logging.info(f'Remove {num_no_label_data} instances that have no labels from {path}.')
+                logging.info(
+                    f'Remove {num_no_label_data} instances that have no labels from {path}.')
                 data = [d for d in data if len(d['label']) > 0]
             else:
-                logging.info(f'Keep {num_no_label_data} instances that have no labels from {path}.')
+                logging.info(
+                    f'Keep {num_no_label_data} instances that have no labels from {path}.')
     return data
 
 
@@ -255,7 +260,8 @@ def load_or_build_text_dict(
     vocabs.set_default_index(vocabs[UNK])
     logging.info(f'Read {len(vocabs)} vocabularies.')
 
-    embedding_weights = get_embedding_weights_from_file(vocabs, embed_file, silent, embed_cache_dir)
+    embedding_weights = get_embedding_weights_from_file(
+        vocabs, embed_file, silent, embed_cache_dir)
 
     if normalize_embed:
         # To have better precision for calculating the normalization, we convert the original
@@ -265,7 +271,8 @@ def load_or_build_text_dict(
         for i, vector in enumerate(embedding_weights):
             # We use the constant 1e-6 by following https://github.com/jamesmullenbach/caml-mimic/blob/44a47455070d3d5c6ee69fb5305e32caec104960/dataproc/extract_wvs.py#L60
             # for an internal experiment of reproducing their results.
-            embedding_weights[i] = vector / float(torch.linalg.norm(vector) + 1e-6)
+            embedding_weights[i] = vector / \
+                float(torch.linalg.norm(vector) + 1e-6)
         embedding_weights = embedding_weights.float()
 
     return vocabs, embedding_weights
@@ -321,7 +328,7 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, cache=N
         torch.Tensor: Embedding weights (vocab_size, embed_size)
     """
     # Load pretrained word embedding
-    load_embedding_from_file = not embed_file in pretrained_aliases
+    load_embedding_from_file = embed_file not in pretrained_aliases
     if load_embedding_from_file:
         logging.info(f'Load pretrained embedding from file: {embed_file}.')
         with open(embed_file) as f:

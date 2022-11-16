@@ -67,7 +67,8 @@ def add_all_arguments(parser):
                         help='Model to be used (default: %(default)s)')
     parser.add_argument('--init_weight', default='kaiming_uniform',
                         help='Weight initialization to be used (default: %(default)s)')
-    parser.add_argument('--loss_function', default='binary_cross_entropy_with_logits', help='Loss function (default: %(default)s)')
+    parser.add_argument('--loss_function', default='binary_cross_entropy_with_logits',
+                        help='Loss function (default: %(default)s)')
 
     # eval
     parser.add_argument('--eval_batch_size', type=int, default=256,
@@ -123,7 +124,8 @@ def add_all_arguments(parser):
     parser.add_argument('--liblinear_options', type=str,
                         help='Options passed to liblinear (default: %(default)s)')
     parser.add_argument('--linear_technique', type=str, default='1vsrest',
-                        choices=['1vsrest', 'thresholding', 'cost_sensitive', 'cost_sensitive_micro'],
+                        choices=['1vsrest', 'thresholding',
+                                 'cost_sensitive', 'cost_sensitive_micro'],
                         help='Technique for linear classification (default: %(default)s)')
 
     parser.add_argument('-h', '--help', action='help',
@@ -180,6 +182,7 @@ def check_config(config):
         raise ValueError('--eval is specified but there is no test data set')
 
     return None
+
 
 def main():
     # Get config

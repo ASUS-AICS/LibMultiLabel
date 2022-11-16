@@ -160,7 +160,8 @@ def init_trainer(checkpoint_dir,
                                       mode='min' if val_metric == 'Loss' else 'max')]
     if search_params:
         from ray.tune.integration.pytorch_lightning import TuneReportCallback
-        callbacks += [TuneReportCallback({f'val_{val_metric}': val_metric}, on="validation_end")]
+        callbacks += [TuneReportCallback(
+            {f'val_{val_metric}': val_metric}, on="validation_end")]
 
     trainer = pl.Trainer(logger=False, num_sanity_val_steps=0,
                          gpus=0 if use_cpu else 1,

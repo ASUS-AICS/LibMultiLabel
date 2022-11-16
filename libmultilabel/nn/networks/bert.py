@@ -12,6 +12,7 @@ class BERT(nn.Module):
         lm_window (int): Length of the subsequences to be split before feeding them to
             the language model. Defaults to 512.
     """
+
     def __init__(
         self,
         num_classes,
@@ -29,7 +30,7 @@ class BERT(nn.Module):
                                                                      torchscript=True)
 
     def forward(self, input):
-        input_ids = input['text'] # (batch_size, sequence_length)
+        input_ids = input['text']  # (batch_size, sequence_length)
         if input_ids.size(-1) > self.lm.config.max_position_embeddings:
             # Support for sequence length greater than 512 is not available yet
             raise ValueError(
@@ -38,5 +39,5 @@ class BERT(nn.Module):
                 f"{self.lm.config.max_position_embeddings}"
             )
         x = self.lm(
-            input_ids, attention_mask=input_ids != self.lm.config.pad_token_id)[0] # (batch_size, num_classes)
+            input_ids, attention_mask=input_ids != self.lm.config.pad_token_id)[0]  # (batch_size, num_classes)
         return {'logits': x}
