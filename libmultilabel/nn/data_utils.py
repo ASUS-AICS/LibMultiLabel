@@ -23,7 +23,7 @@ PAD = '<pad>'
 class TextDataset(Dataset):
     """Class for text dataset"""
 
-    def __init__(self, data, word_dict, classes, max_seq_length, tokenizer=None, add_special_tokens=False):
+    def __init__(self, data, word_dict, classes, max_seq_length, tokenizer=None, add_special_tokens=True):
         self.data = data
         self.word_dict = word_dict
         self.classes = classes
@@ -90,7 +90,7 @@ def get_dataset_loader(
     shuffle=False,
     data_workers=4,
     tokenizer=None,
-    add_special_tokens=False
+    add_special_tokens=True
 ):
     """Create a pytorch DataLoader.
 
@@ -104,7 +104,7 @@ def get_dataset_loader(
         shuffle (bool, optional): Whether to shuffle training data before each epoch. Defaults to False.
         data_workers (int, optional): Use multi-cpu core for data pre-processing. Defaults to 4.
         tokenizer (optional): Tokenizer of the transformer-based language model. Defaults to None.
-        add_special_tokens (bool, optional): Whether to add the special tokens. Defaults to False.
+        add_special_tokens (bool, optional): Whether to add the special tokens. Defaults to True.
 
     Returns:
         torch.utils.data.DataLoader: A pytorch DataLoader.
