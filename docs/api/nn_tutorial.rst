@@ -1,99 +1,176 @@
+==================================
 Neural Network Quickstart Tutorial
 ==================================
 
-In this section, we will introduce the neural network methods via a simple example.
-You will learn how to:
+We go through two popular neural network examples
 
-    * Preprocess datasets.
-    * Initialize a model.
-    * Train and test a ``KimCNN`` model on the rcv1 dataset.
+    * `BERT <nn_tutorial.html#bert-example>`_ 
+    * `KimCNN <nn_tutorial.html#kimcnn-example>`_ 
 
-Before we started, make sure you import methods below:
+in this tutorial. Before we start, please download and decompress the data ``rcv1`` via the following commands::
 
-.. literalinclude:: ../examples/nn_quickstart.py
+    mkdir -p data/rcv1
+    wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/rcv1_topics_train.txt.bz2 -O data/rcv1/train.txt.bz2
+    wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/rcv1_topics_test.txt.bz2 -O data/rcv1/test.txt.bz2
+    bzip2 -d data/rcv1/*.bz2
+
+
+BERT Example
+============
+
+This step-by-step example shows how to train and test a BERT model via LibMultiLabel.
+
+
+Step 1. Import the libraries
+----------------------------
+
+Please add the following code to your python3 script.
+
+.. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 1-3
+    :lines: 2-4
 
-Step 0. Setup device
-^^^^^^^^^^^^^^^^^^^^
+Step 2. Setup device
+--------------------
 
-Let's start by setting up the device.
+If you need to reproduce the results, please use the function ``set_seed``. 
+For example, you will get the same result as you always use the seed ``1337``.
 
-.. literalinclude:: ../examples/nn_quickstart.py
+For initial a hardware device, please use ``init_device`` to assign the hardware device that you want to use.
+
+.. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 6
+    :lines: 7-8
 
-Step 1. Load data from text files
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Step 3. Load and tokenize data
+------------------------------------------
 
-Now we're going to process the rcv1 data.
-First, create the training, test, and validation (optional) datasets from text files.
+We assume that the ``rcv1`` data is located at the directory ``./data/rcv1``, 
+and there exist the files ``train.txt`` and ``test.txt``.
+You can utilize the function ``load_datasets()`` to load the data sets. 
+By default, LibMultiLabel tokenizes documents, but the BERT model uses its own tokenizer. 
+Thus, we must set ``tokenize_text=False``.
+Note that ``datasets`` contains three sets: ``datasets['train']``, ``datasets['val']`` and ``datasets['test']``, 
+where ``datasets['train']`` and ``datasets['val']`` are randomly splitted from ``train.txt`` with the ratio ``8:2``.
 
-    * Put ``train.txt`` and ``test.txt`` in your data directory (i.e., ``data/rcv1``).
-      Please refer to `here <linear_tutorial.html#getting-the-dataset>`__ for more details.
-    * Load and preprocess raw data with ``data_utils.load_datasets``.
-      Other arguments can be found `here <../api/nn.html#libmultilabel.nn.data_utils.load_datasets>`__.
-      For example, the function performs a training-validation split based on the ``val_size``.
-      You can also provide your own validation set by adding ``valid.txt`` in the data directory.
+For the labels of the data, we apply the function ``load_or_build_label()`` to generate the label set.
 
-Then, build labels and word dictionary with datasets generated above.
-You can either choose one of the pretrained embeddings defined in torchtext or specify the path
-to your word embeddings with each line containing a word followed by its vectors.
+For BERT, we utilize the API ``AutoTokenizer``, which is supported by ``Hugging Face``, for the word preprocessing setting.
+Furthermore, BERT applies some special tokens such as ``<CLS>``, so that we take ``add_special_tokens=True``.
+We set other variables for word preprocessing as ``None``.
 
-.. literalinclude:: ../examples/nn_quickstart.py
+.. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 9-13
+    :lines: 11-15
 
-Step 2. Initialize a model
-^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Here we show how to create a model.
+Step 4. Initialize a model
+--------------------------
 
-    * Configure the network with `model_name <nn_networks.html>`_ and ``network_config``.
-    * Define labels and text dictionary (i.e., ``classes`` and ``word_dict``) of this model.
-    * Find `more here <../api/nn.html#libmultilabel.nn.nn_utils.init_model>`_ if you are interested in other settings.
-      For example, a ``moniter_metrics`` is used to define the metrics you'd like to keep track with during the training procedure.
+We use the following code to initialize a model.
 
-.. literalinclude:: ../examples/nn_quickstart.py
+.. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 16-27
+    :lines: 18-32
 
-Step 3. Initialize a trainer
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* ``model_name`` leads ``init_model`` function to find a network model.
+* ``network_config`` contains the configurations of a network model.
+* ``classes`` is the label set of the data.
+* ``init_weight``, ``word_dict`` and ``embed_vecs`` are not used on a bert-base model, so we can ignore them.
+* ``moniter_metrics`` includes metrics you would like to track.
+    
 
-To train the model, we need a trainer to control processes like training loop or validation.
+Step 5. Initialize a trainer
+----------------------------
 
-.. literalinclude:: ../examples/nn_quickstart.py
+We use the function ``init_trainer`` to initialize a trainer. 
+
+.. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 30-32
+    :lines: 35
 
-Step 4. Create data loaders
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+In this example, ``checkpoint_dir`` is the place we save the best and the last models during the training. Furthermore, we set the number of training loops by ``epochs=15``, and the validation metric by ``val_metric = 'P@5'``.
 
-Create pytorch data loaders for datasets we created in
-`Step 1 <nn_tutorial.html#step-1-load-data-from-text-files>`_.
+Step 6. Create data loaders
+---------------------------
 
-.. literalinclude:: ../examples/nn_quickstart.py
+In most cases, we do not load a full set due to the hardware limitation.
+Therefore, a data loader can load a batch of samples each time.
+
+.. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 35-41
+    :lines: 38-50
 
-Step 5. Train and test the model
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+This example loads three loaders, and the batch size is set by ``batch_size=8``. Other variables can be checked in `here <../api/nn.html#libmultilabel.nn.data_utils.get_dataset_loader>`_.
 
-Everything's ready. Let's start training with ``trainer.train``.
+Step 7. Train and test a model
+------------------------------
 
-.. literalinclude:: ../examples/nn_quickstart.py
+The bert model training process can be started via 
+
+.. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 44
+    :lines: 53
 
-When training is finished, test the model with ``trainer.test``.
+After the training process is finished, we can then run the test process by
 
-.. literalinclude:: ../examples/nn_quickstart.py
+.. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 47
+    :lines: 56
 
-The results will look similar to::
+The results should be similar to::
 
-    {'Macro-F1': 0.4615944665965527, 'Micro-F1': 0.7823446989059448, 'P@1': 0.9514147043228149, 'P@3': 0.783452033996582, 'P@5': 0.549974799156189}
+  {
+      'Macro-F1': 0.569891024909958, 
+      'Micro-F1': 0.8142925500869751, 
+      'P@1':      0.9552904367446899, 
+      'P@3':      0.7907078266143799, 
+      'P@5':      0.5505486726760864
+  }
 
-Get the full source code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/nn_quickstart.py>`_.
+Please get the full example code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/bert_quickstart.py>`_.
+
+
+KimCNN Example
+==============
+
+This example shows how to train and test a KimCNN model via LibMultiLabel. 
+We only list the steps that are different from the BERT example.
+
+
+Step 3. Load and tokenize data
+------------------------------------------
+
+To run KimCNN, LibMultiLabel tokenizes documents and uses an embedding vector for each word. 
+Thus, ``tokenize_text = True`` is set.
+
+We choose ``glove.6B.300d`` from torchtext as embedding vectors. 
+
+.. literalinclude:: ../examples/kimcnn_quickstart.py
+    :language: python3
+    :lines: 11-15
+ 
+
+Step 4. Initialize a model
+--------------------------
+
+We consider the following settings for the KimCNN model.
+
+.. literalinclude:: ../examples/kimcnn_quickstart.py
+    :language: python3
+    :lines: 18-34
+
+
+
+The test results should be similar to::
+
+  {
+      'Macro-F1': 0.48948464335831743,
+      'Micro-F1': 0.7769773602485657,
+      'P@1':      0.9471677541732788,
+      'P@3':      0.7772253751754761,
+      'P@5':      0.5449321269989014,
+  }
+
+Please get the full example code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/kimcnn_quickstart.py>`_.
+

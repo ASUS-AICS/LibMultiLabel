@@ -98,7 +98,8 @@ def init_search_params_spaces(config, parameter_columns, prefix):
                 config[key] = getattr(tune, search_space)(*search_args)
                 parameter_columns[prefix+key] = key
         elif isinstance(value, dict):
-            config[key] = init_search_params_spaces(value, parameter_columns, f'{prefix}{key}/')
+            config[key] = init_search_params_spaces(
+                value, parameter_columns, f'{prefix}{key}/')
 
     return config
 
@@ -140,7 +141,8 @@ def prepare_retrain_config(best_config, best_log_dir, merge_train_val):
             with open(log_path) as fp:
                 log = json.load(fp)
         else:
-            raise FileNotFoundError("The log directory does not contain a log.")
+            raise FileNotFoundError(
+                "The log directory does not contain a log.")
 
         # For re-training with validation data,
         # we use the number of epochs at the point of optimal validation performance.
@@ -197,17 +199,20 @@ def retrain_best_model(exp_name, best_config, best_log_dir, merge_train_val):
         merge_train_val (bool): Whether to merge the training and validation data.
     """
     best_config.silent = False
-    checkpoint_dir = os.path.join(best_config.result_dir, exp_name, 'trial_best_params')
+    checkpoint_dir = os.path.join(
+        best_config.result_dir, exp_name, 'trial_best_params')
     os.makedirs(checkpoint_dir, exist_ok=True)
     with open(os.path.join(checkpoint_dir, 'params.yml'), 'w') as fp:
         yaml.dump(dict(best_config), fp)
     best_config.run_name = '_'.join(exp_name.split('_')[:-1]) + '_best'
     best_config.checkpoint_dir = checkpoint_dir
-    best_config.log_path = os.path.join(best_config.checkpoint_dir, 'logs.json')
+    best_config.log_path = os.path.join(
+        best_config.checkpoint_dir, 'logs.json')
     prepare_retrain_config(best_config, best_log_dir, merge_train_val)
     set_seed(seed=best_config.seed)
 
-    data = load_static_data(best_config, merge_train_val=best_config.merge_train_val)
+    data = load_static_data(
+        best_config, merge_train_val=best_config.merge_train_val)
     logging.info(f'Re-training with best config: \n{best_config}')
     trainer = TorchTrainer(config=best_config, **data)
     trainer.train()
@@ -215,7 +220,8 @@ def retrain_best_model(exp_name, best_config, best_log_dir, merge_train_val):
     if 'test' in data['datasets']:
         test_results = trainer.test()
         logging.info(f'Test results after re-training: {test_results}')
-    logging.info(f'Best model saved to {trainer.checkpoint_callback.best_model_path or trainer.checkpoint_callback.last_model_path}.')
+    logging.info(
+        f'Best model saved to {trainer.checkpoint_callback.best_model_path or trainer.checkpoint_callback.last_model_path}.')
 
 
 def main():
@@ -240,7 +246,8 @@ def main():
     config = init_search_params_spaces(config, parameter_columns, prefix='')
     parser.set_defaults(**config)
     config = AttributeDict(vars(parser.parse_args()))
-    config.merge_train_val = False  # no need to include validation during parameter search
+    # no need to include validation during parameter search
+    config.merge_train_val = False
     config.mode = 'min' if config.val_metric == 'Loss' else 'max'
 
     # Check if the validation set is provided.
@@ -295,9 +302,12 @@ def main():
     )
 
     # Save best model after parameter search.
-    best_config = analysis.get_best_config(f'val_{config.val_metric}', config.mode, scope='all')
-    best_log_dir = analysis.get_best_logdir(f'val_{config.val_metric}', config.mode, scope='all')
-    retrain_best_model(exp_name, best_config, best_log_dir, merge_train_val=not args.no_merge_train_val)
+    best_config = analysis.get_best_config(
+        f'val_{config.val_metric}', config.mode, scope='all')
+    best_log_dir = analysis.get_best_logdir(
+        f'val_{config.val_metric}', config.mode, scope='all')
+    retrain_best_model(exp_name, best_config, best_log_dir,
+                       merge_train_val=not args.no_merge_train_val)
 
 
 if __name__ == '__main__':

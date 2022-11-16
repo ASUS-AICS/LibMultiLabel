@@ -19,6 +19,7 @@ class XMLCNN(nn.Module):
         num_pool (int): The number of pool for dynamic max-pooling. Defaults to 2.
         activation (str): Activation function to be used. Defaults to 'relu'.
     """
+
     def __init__(
         self,
         embed_vecs,

@@ -26,13 +26,14 @@ class TorchTrainer:
         save_checkpoints (bool, optional): Whether to save the last and the best checkpoint or not.
             Defaults to True.
     """
+
     def __init__(
         self,
         config: dict,
         datasets: dict = None,
         classes: list = None,
         word_dict: dict = None,
-        embed_vecs = None,
+        embed_vecs=None,
         search_params: bool = False,
         save_checkpoints: bool = True
     ):
@@ -50,7 +51,8 @@ class TorchTrainer:
         self.tokenizer = None
         tokenize_text = 'lm_weight' not in config.network_config
         if not tokenize_text:
-            self.tokenizer = AutoTokenizer.from_pretrained(config.network_config['lm_weight'], use_fast=True)
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                config.network_config['lm_weight'], use_fast=True)
         # Load dataset
         if datasets is None:
             self.datasets = data_utils.load_datasets(
@@ -84,7 +86,8 @@ class TorchTrainer:
                                     limit_test_batches=config.limit_test_batches,
                                     search_params=search_params,
                                     save_checkpoints=save_checkpoints)
-        callbacks = [callback for callback in self.trainer.callbacks if isinstance(callback, ModelCheckpoint)]
+        callbacks = [callback for callback in self.trainer.callbacks if isinstance(
+            callback, ModelCheckpoint)]
         self.checkpoint_callback = callbacks[0] if callbacks else None
 
         # Dump config to log
@@ -94,7 +97,7 @@ class TorchTrainer:
         self,
         classes: list = None,
         word_dict: dict = None,
-        embed_vecs = None,
+        embed_vecs=None,
         log_path: str = None,
         checkpoint_path: str = None
     ):
@@ -138,7 +141,8 @@ class TorchTrainer:
                     f'{self.config.early_stopping_metric} is not in `monitor_metrics`. '
                     f'Add {self.config.early_stopping_metric} to `monitor_metrics`.'
                 )
-                self.config.monitor_metrics += [self.config.early_stopping_metric]
+                self.config.monitor_metrics += [
+                    self.config.early_stopping_metric]
 
             if self.config.val_metric not in self.config.monitor_metrics:
                 logging.warn(
@@ -147,7 +151,8 @@ class TorchTrainer:
                 self.config.monitor_metrics += [self.config.val_metric]
 
             self.model = init_model(model_name=self.config.model_name,
-                                    network_config=dict(self.config.network_config),
+                                    network_config=dict(
+                                        self.config.network_config),
                                     classes=classes,
                                     word_dict=word_dict,
                                     embed_vecs=embed_vecs,
@@ -163,7 +168,7 @@ class TorchTrainer:
                                     loss_function=self.config.loss_function,
                                     silent=self.config.silent,
                                     save_k_predictions=self.config.save_k_predictions
-                                   )
+                                    )
 
     def _get_dataset_loader(self, split, shuffle=False):
         """Get dataset loader.
@@ -193,10 +198,12 @@ class TorchTrainer:
         process is finished.
         """
         assert self.trainer is not None, "Please make sure the trainer is successfully initialized by `self._setup_trainer()`."
-        train_loader = self._get_dataset_loader(split='train', shuffle=self.config.shuffle)
+        train_loader = self._get_dataset_loader(
+            split='train', shuffle=self.config.shuffle)
 
         if 'val' not in self.datasets:
-            logging.info('No validation dataset is provided. Train without vaildation.')
+            logging.info(
+                'No validation dataset is provided. Train without vaildation.')
             self.trainer.fit(self.model, train_loader)
         else:
             val_loader = self._get_dataset_loader(split='val')
@@ -206,7 +213,8 @@ class TorchTrainer:
         # training (i.e., val_size=0), the model is set to the last model.
         model_path = self.checkpoint_callback.best_model_path or self.checkpoint_callback.last_model_path
         if model_path:
-            logging.info(f'Finished training. Load best model from {model_path}.')
+            logging.info(
+                f'Finished training. Load best model from {model_path}.')
             self._setup_model(checkpoint_path=model_path)
         else:
             logging.info('No model is saved during training. \
@@ -240,7 +248,8 @@ class TorchTrainer:
             dataloader (torch.utils.data.DataLoader): Dataloader for the test or valid dataset.
             predict_out_path (str): Path to the an output file holding top k label results.
         """
-        batch_predictions = self.trainer.predict(self.model, dataloaders=dataloader)
+        batch_predictions = self.trainer.predict(
+            self.model, dataloaders=dataloader)
         pred_labels = np.vstack([batch['top_k_pred']
                                 for batch in batch_predictions])
         pred_scores = np.vstack([batch['top_k_pred_scores']
