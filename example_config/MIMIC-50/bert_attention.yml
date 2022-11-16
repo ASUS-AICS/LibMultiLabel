@@ -11,6 +11,7 @@ include_test_labels: true
 # Follow https://github.com/jamesmullenbach/caml-mimic/blob/master/datasets.py#L45
 # to remove training and validation instances that have no labels.
 remove_no_label_data: true
+add_special_tokens: false
 
 # train
 seed: 1337

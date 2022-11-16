@@ -6,6 +6,7 @@ data_name: EUR-Lex-57k
 min_vocab_freq: 1
 max_seq_length: 512
 include_test_labels: true
+add_special_tokens: false
 
 # train
 seed: 1337
