@@ -56,7 +56,6 @@ where ``datasets['train']`` and ``datasets['val']`` are randomly splitted from `
 For the labels of the data, we apply the function ``load_or_build_label()`` to generate the label set.
 
 For BERT, we utilize the API ``AutoTokenizer``, which is supported by ``Hugging Face``, for the word preprocessing setting.
-Furthermore, BERT applies some special tokens such as ``<CLS>``, so that we take ``add_special_tokens=True``.
 We set other variables for word preprocessing as ``None``.
 
 .. literalinclude:: ../examples/bert_quickstart.py
