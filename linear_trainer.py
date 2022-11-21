@@ -13,7 +13,7 @@ def linear_test(config, model, datasets):
         config.metric_threshold,
         config.monitor_metrics,
         datasets['test']['y'].shape[1],
-        top_k=1 if config.multiclass else None
+        multiclass=config.multiclass
     )
     num_instance = datasets['test']['x'].shape[0]
 
