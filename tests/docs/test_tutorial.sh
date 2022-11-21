@@ -7,7 +7,6 @@ update_libmultilabel() {
 }
 
 main() {
-  # Initialize the report file
   rm $REPORT_PATH
 
   TEST_COMMANDS=(
@@ -23,7 +22,6 @@ main() {
     else
       is_passed="FAILED"
     fi
-    # is_passed=$(echo $command | grep -q "0" && echo "PASSED" || echo "FAILED")
     echo "${is_passed}    $command " >> $REPORT_PATH &
   done
 }
