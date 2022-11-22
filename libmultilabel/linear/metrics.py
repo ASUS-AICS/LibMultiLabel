@@ -61,7 +61,6 @@ class F1:
     def update(self, preds: np.ndarray, target: np.ndarray) -> None:
         assert preds.shape == target.shape  # (batch_size, num_classes)
         if self.multiclass:
-            # https://github.com/cjlin1/liblinear/blob/master/linear.cpp#L3333
             max_idx = np.argmax(preds, axis=1).reshape(preds.shape[0], 1)
             preds = np.zeros(preds.shape)
             np.put_along_axis(preds, max_idx, 1, axis=1)
