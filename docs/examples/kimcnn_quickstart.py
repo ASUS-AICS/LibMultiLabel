@@ -44,7 +44,7 @@ for split in ['train', 'val', 'test']:
         classes=classes,
         device=device,
         max_seq_length=512,
-        batch_size=64,
+        batch_size=8,
         shuffle=True if split == 'train' else False,
         tokenizer=tokenizer
     )
