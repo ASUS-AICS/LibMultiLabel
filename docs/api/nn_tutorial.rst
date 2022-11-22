@@ -56,12 +56,11 @@ where ``datasets['train']`` and ``datasets['val']`` are randomly splitted from `
 For the labels of the data, we apply the function ``load_or_build_label()`` to generate the label set.
 
 For BERT, we utilize the API ``AutoTokenizer``, which is supported by ``Hugging Face``, for the word preprocessing setting.
-Furthermore, BERT applies some special tokens such as ``<CLS>``, so that we take ``add_special_tokens=True``.
 We set other variables for word preprocessing as ``None``.
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 11-15
+    :lines: 11-14
 
 
 Step 4. Initialize a model
@@ -71,7 +70,7 @@ We use the following code to initialize a model.
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 18-32
+    :lines: 17-31
 
 * ``model_name`` leads ``init_model`` function to find a network model.
 * ``network_config`` contains the configurations of a network model.
@@ -87,7 +86,7 @@ We use the function ``init_trainer`` to initialize a trainer.
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 35
+    :lines: 34
 
 In this example, ``checkpoint_dir`` is the place we save the best and the last models during the training. Furthermore, we set the number of training loops by ``epochs=15``, and the validation metric by ``val_metric = 'P@5'``.
 
@@ -99,7 +98,7 @@ Therefore, a data loader can load a batch of samples each time.
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 38-50
+    :lines: 37-48
 
 This example loads three loaders, and the batch size is set by ``batch_size=8``. Other variables can be checked in `here <../api/nn.html#libmultilabel.nn.data_utils.get_dataset_loader>`_.
 
@@ -110,13 +109,13 @@ The bert model training process can be started via
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 53
+    :lines: 51
 
 After the training process is finished, we can then run the test process by
 
 .. literalinclude:: ../examples/bert_quickstart.py
     :language: python3
-    :lines: 56
+    :lines: 54
 
 The results should be similar to::
 
@@ -148,7 +147,7 @@ We choose ``glove.6B.300d`` from torchtext as embedding vectors.
 
 .. literalinclude:: ../examples/kimcnn_quickstart.py
     :language: python3
-    :lines: 11-15
+    :lines: 11-14
  
 
 Step 4. Initialize a model
@@ -158,7 +157,7 @@ We consider the following settings for the KimCNN model.
 
 .. literalinclude:: ../examples/kimcnn_quickstart.py
     :language: python3
-    :lines: 18-34
+    :lines: 17-33
 
 
 
