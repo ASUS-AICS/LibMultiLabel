@@ -30,7 +30,7 @@ For practical tips, please see the `User Guide <https://www.csie.ntu.edu.tw/~cjl
    api/api
    api/linear_tutorial
    api/nn_tutorial
-   api/load_dataset_example
+   api/dataset_example
    api/linear
    api/nn
 
