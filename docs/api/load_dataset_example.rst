@@ -30,7 +30,7 @@ The training and test set can be loaded by the following code.
 
 .. literalinclude:: ../examples/dataset_example.py
     :language: python3
-    :lines: 6-7
+    :lines: 6-9
 
 
 Step 3. Transform to LibMultiLabel data set
@@ -42,7 +42,7 @@ by the functions of ``DataFrame``.
 
 .. literalinclude:: ../examples/dataset_example.py
     :language: python3
-    :lines: 10-17
+    :lines: 12-16
 
 
 Step 4. Remove the data with no labels
@@ -53,5 +53,5 @@ which is implemented by the following code.
 
 .. literalinclude:: ../examples/dataset_example.py
     :language: python3
-    :lines: 20-22
+    :lines: 19-22
 
