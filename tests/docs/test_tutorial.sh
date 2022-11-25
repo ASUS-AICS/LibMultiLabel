@@ -15,17 +15,22 @@ update_libmultilabel() {
 run_and_compare_logs() {
   command=$1
   echo "Testing command: $command"
-  echo "$command > out_${BRANCH_TO_TEST}.log &"
+  eval "$command > out_${BRANCH_TO_TEST}.log &"
   git checkout master
-  echo "$command > out_master.log &"
+  eval "$command > out_master.log &"
   git checkout $BRANCH_TO_TEST # back to current branch
 
-  n=$(tail -10 out_master.log | grep -n "Test metric" | cut -c1)
-  n=$((10-$n))
+  # Compare log results
+  n=$(tail -${tail_n} out_master.log | grep -n "Test metric" | cut -c1)
+  if [ -z $n ]; then n=1; else n=$((10-$n)); fi
   branch_test_result=$(tail -$n out_${BRANCH_TO_TEST}.log)
   master_test_result=$(tail -$n out_master.log)
   is_passed=$([ "$branch_test_result" = "$master_test_result" ] && echo "PASSED" || echo "FAILED")
   echo "Test $is_passed!" & echo "results $is_passed" >> $REPORT_PATH &
+
+  # remove logs
+  rm out_${BRANCH_TO_TEST}.log
+  rm out_master.log
 }
 
 main() {
