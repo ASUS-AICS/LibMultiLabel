@@ -3,8 +3,7 @@ import os
 
 import numpy as np
 import scipy.sparse as sparse
-from liblinear.liblinear import model as liblinear_model
-from liblinear.liblinearutil import predict, train
+from liblinear.liblinearutil import train
 from tqdm import tqdm
 
 __all__ = ['train_1vsrest',
@@ -491,11 +490,27 @@ def train_binary_and_multiclass(y: sparse.csr_matrix, x: sparse.csr_matrix, opti
         options (str): The option string passed to liblinear.
 
     Returns:
-        liblinear.liblinear.model: A multiclass model which can be used in predict_values.
+        A model which can be used in predict_values.
     """
     x, options, bias = prepare_options(x, options)
     y = np.squeeze(y.nonzero()[1])
-    return train(y, x, options)
+
+    # Same as do_train + label mapping (to be discussed)
+    model = train(y, x, options)
+    labels = model.get_labels()
+    w = np.ctypeslib.as_array(model.w, (x.shape[1], len(labels)))
+    if model.get_labels()[0] == -1:
+        weights = -w
+    else:
+        # The memory is freed on model deletion so we make a copy.
+        weights = w.copy()
+
+    # Map label to the original index.
+    ind = np.array(labels, dtype='int')
+    reordered_weights = np.zeros((x.shape[1], len(labels)))
+    reordered_weights[:, ind] = weights
+
+    return {'weights': np.asmatrix(reordered_weights), '-B': bias, 'threshold': 0}
 
 
 def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
@@ -508,28 +523,20 @@ def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
     Returns:
         np.ndarray: A matrix with dimension number of instances * number of classes.
     """
-    if isinstance(model, liblinear_model):
-        _, _, pred_values = predict([], x, model)
-        label_map = model.get_labels()
-        ind = np.array(label_map, dtype='int')
-        preds = np.zeros((x.shape[0], len(label_map))) # num_instances * num_classes
-        preds[:, ind] = pred_values
-        return preds
+    bias = model['-B']
+    bias_col = np.full((x.shape[0], 1 if bias > 0 else 0), bias)
+    num_feature = model['weights'].shape[0]
+    num_feature -= 1 if bias > 0 else 0
+    if x.shape[1] < num_feature:
+        x = sparse.hstack([
+            x,
+            np.zeros((x.shape[0], num_feature - x.shape[1])),
+            bias_col,
+        ], 'csr')
     else:
-        bias = model['-B']
-        bias_col = np.full((x.shape[0], 1 if bias > 0 else 0), bias)
-        num_feature = model['weights'].shape[0]
-        num_feature -= 1 if bias > 0 else 0
-        if x.shape[1] < num_feature:
-            x = sparse.hstack([
-                x,
-                np.zeros((x.shape[0], num_feature - x.shape[1])),
-                bias_col,
-            ], 'csr')
-        else:
-            x = sparse.hstack([
-                x[:, :num_feature],
-                bias_col,
-            ], 'csr')
+        x = sparse.hstack([
+            x[:, :num_feature],
+            bias_col,
+        ], 'csr')
 
     return (x * model['weights']).A + model['threshold']

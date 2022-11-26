@@ -69,7 +69,7 @@ def linear_run(config):
             config.remove_no_label_data)
         config.multiclass = is_multiclass_dataset(datasets['train'], label='y')
         model = linear_train(datasets, config)
-        # linear.save_pipeline(config.checkpoint_dir, preprocessor, model)
+        linear.save_pipeline(config.checkpoint_dir, preprocessor, model)
 
     if config.test_file is not None:
         metric_dict, top_k_idx, top_k_scores = linear_test(
