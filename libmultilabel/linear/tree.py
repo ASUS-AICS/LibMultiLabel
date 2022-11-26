@@ -84,7 +84,23 @@ class Tree:
         return np.vstack([self._beam_search(x[i]) for i in range(x.shape[0])])
 
     def _beam_search(self, x: sparse.csr_matrix) -> np.ndarray:
-        cur_level = [(self.root, 0.)]
+        """
+        A path is a sequence of nodes where the first is the root and every
+        node except the root is a child of the previous node.
+        A partial path is a path where the final node is an internal node.
+        A complete path is a path where the final node is a leaf node.
+
+        Beam search is a greedy algorithm looking for paths with the highest scores.
+        At each level, beam search keeps track of beam_width paths
+        with the highest scores in cur_level.
+        For each partial path in cur_level, concatenate the children of the
+        final node to create a set of paths and add them to next_level.
+        Their scores are the score of the partial path + the score of the child.
+        For each complete path in cur_level, add them to next_level.
+        Set cur_level to the beam_width highest scored paths in next_level and repeat
+        until all paths in cur_level is complete.
+        """
+        cur_level = [(self.root, 0.)]   # pairs of (node, score)
         next_level = []
         while len(list(filter(lambda pair: not pair[0].isLeaf(), cur_level))) > 0:
             for node, score in cur_level:
