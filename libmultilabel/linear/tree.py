@@ -1,6 +1,3 @@
-from collections import deque
-from itertools import chain
-
 import numpy as np
 import scipy.sparse as sparse
 from sklearn.cluster import KMeans, MiniBatchKMeans
@@ -30,8 +27,8 @@ class Node:
 class Tree:
     def __init__(self, K=100, dmax=10, beam_width=10) -> None:
         self.K = K
-        self.dmax = dmax   # no mention of value?
-        self.beam_width = beam_width    # no mention of value?
+        self.dmax = dmax
+        self.beam_width = beam_width
 
     def train(self,
               y: sparse.csr_matrix,
@@ -40,10 +37,7 @@ class Tree:
               ) -> None:
         rep = (y.T * x).tocsr()
 
-        import time
-        start = time.time()
         self.root = self._build(rep, np.arange(y.shape[1]), 0)
-        print(f'building in {time.time() - start:.2f}s')
 
         def visit(node):
             idx = y[:, node.labelmap].getnnz(axis=1) > 0
@@ -60,7 +54,6 @@ class Tree:
         if d >= self.dmax or rep.shape[0] <= self.K:
             return Node(labelmap, [], np.arange(len(labelmap)))
 
-        # metalabels = KMeans(self.K).fit(rep).labels_
         metalabels = MiniBatchKMeans(
             self.K, random_state=np.random.randint(2**32)).fit(rep).labels_
         maps = [labelmap[metalabels == i] for i in range(self.K)]
