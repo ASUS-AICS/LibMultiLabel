@@ -26,7 +26,7 @@ run_and_compare_logs() {
   branch_res=$(tail -$n "${LOG_PREFIX}_${BRANCH_TO_TEST}.log")
   master_res=$(tail -$n "${LOG_PREFIX}_master.log")
   is_passed=$([ "$branch_res" = "$master_res" ] && echo "PASSED" || echo "FAILED")
-  echo "Test $is_passed!" & echo "results $is_passed" >> $REPORT_PATH &
+  echo "$is_passed  $command" >> $REPORT_PATH &
 
   # Remove temporary files.
   rm out_${BRANCH_TO_TEST}.log
