@@ -8,7 +8,11 @@ We show you how to use our library with other data set formats.
 An Example from Hugging Face Data set
 =====================================
 
-bla
+Let us use a data set from Hugging Face to train a KimCNN model in this example.
+Please install Hugging Face's library ``datasets`` by the following command::
+
+  pip3 install datasets --user
+
 
 Step 1. Import the libraries
 ----------------------------
@@ -55,3 +59,22 @@ which is implemented by the following code.
     :language: python3
     :lines: 19-22
 
+
+Step 5. Training and test a KimCNN model with the data sets we made
+-------------------------------------------------------------------
+
+The following code is almost the same as our `KimCNN example <nn_tutorial.html#kimcnn-example>`_.
+
+.. literalinclude:: ../examples/dataset_example.py
+    :language: python3
+    :lines: 25-79
+
+The test results should be similar to::
+
+  {
+      'Macro-F1': 0.740196337755889,
+      'Micro-F1': 0.7404974102973938,
+      'P@1':      0.7420262694358826,
+  }
+
+Please get the full example code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/dataset_example.py>`_.

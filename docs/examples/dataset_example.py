@@ -21,7 +21,7 @@ for tag in ['train', 'val']:
     if num_no_label_data > 0:
         data[tag] = [d for d in data[tag] if len(d['label']) > 0]
 
-# Using LibMultiLabel with the datasets
+# Step 5. Training and test a KimCNN model with the data sets we made
 from libmultilabel.nn.data_utils import *
 from libmultilabel.nn.nn_utils import *
 
@@ -29,7 +29,7 @@ from libmultilabel.nn.nn_utils import *
 set_seed(1337)
 device = init_device()  # use gpu by default
 
-# Preprocessing the datasets.
+# Preprocessing the data sets.
 classes = load_or_build_label(data)
 word_dict, embed_vecs = load_or_build_text_dict(dataset=data['train'], embed_file='glove.6B.300d')
 tokenizer = None
