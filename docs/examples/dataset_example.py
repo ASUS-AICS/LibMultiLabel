@@ -4,9 +4,9 @@ from datasets import load_dataset
 
 # Step 2. Load data set from Hugging Face
 data = dict()
-data['train'] = load_dataset('rotten_tomatoes', split='train')
-data['val'] = load_dataset('rotten_tomatoes', split='validation')
-data['test'] = load_dataset('rotten_tomatoes', split='test')
+data['train'] = load_dataset('tweet_eval', 'emoji', split='train')
+data['val'] = load_dataset('tweet_eval', 'emoji', split='validation')
+data['test'] = load_dataset('tweet_eval', 'emoji', split='test')
 
 # Step 3. Transform to LibMultiLabel data set
 for tag in ['train', 'val', 'test']:
@@ -43,7 +43,7 @@ network_config = {
     'filter_sizes': [2, 4, 8],
     'num_filter_per_size': 128
 }
-learning_rate = 0.0001
+learning_rate = 0.0003
 model = init_model(
     model_name=model_name,
     network_config=network_config,
@@ -51,11 +51,11 @@ model = init_model(
     word_dict=word_dict,
     embed_vecs=embed_vecs,
     learning_rate=learning_rate,
-    monitor_metrics=['Micro-F1', 'Macro-F1', 'P@1']
+    monitor_metrics=['Micro-F1', 'Macro-F1', 'P@1', 'P@3', 'P@5']
 )
 
 # Initialize a trainer.
-trainer = init_trainer(checkpoint_dir='runs/NN-example', epochs=15, val_metric='P@1')
+trainer = init_trainer(checkpoint_dir='runs/NN-example', epochs=15, val_metric='P@5')
 
 # Create data loaders.
 loaders = dict()
