@@ -38,7 +38,7 @@ main() {
   TEST_FILES=(
     "linear_quickstart.py"
     "kimcnn_quickstart.py"
-    # "bert_quickstart.py"
+    "bert_quickstart.py"
   )
   for file_name in "${TEST_FILES[@]}"; do
     command="python3 docs/examples/${file_name}"
