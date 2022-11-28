@@ -20,7 +20,7 @@ run_and_compare_logs() {
   $command >> ${LOG_PREFIX}_master.log
   git checkout $BRANCH_TO_TEST # back to current branch
 
-  # Compare the test results in logs.
+  # Compare the test results in logs. We grep the last 10 lines to ignore tqdm above.
   n=$(tail -10 ${LOG_PREFIX}_master.log | grep -n "Test metric" | cut -c1)
   if [ -z $n ]; then n=1; else n=$((10-$n)); fi
   branch_res=$(tail -$n "${LOG_PREFIX}_${BRANCH_TO_TEST}.log")
@@ -38,12 +38,18 @@ main() {
   TEST_FILES=(
     "linear_quickstart.py"
     "kimcnn_quickstart.py"
-    "bert_quickstart.py"
+    # "bert_quickstart.py"
   )
   for file_name in "${TEST_FILES[@]}"; do
     command="python3 docs/examples/${file_name}"
     run_and_compare_logs "$command"
   done
+
+  # Print the test results and remove the intermediate files.
+  all_tests=$(grep 'PASSED\|FAILED' $REPORT_PATH | wc -l)
+  passed_tests=$(grep "PASSED" $REPORT_PATH | wc -l)
+  echo "All tests finished ($passed_tests/$all_tests) on $BRANCH_TO_TEST. See $REPORT_PATH for details."
+  rm -r $RESULT_DIR
 }
 
 #######################################
