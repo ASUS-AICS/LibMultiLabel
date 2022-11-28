@@ -510,7 +510,7 @@ def train_binary_and_multiclass(y: sparse.csr_matrix, x: sparse.csr_matrix, opti
     reordered_weights = np.zeros((x.shape[1], len(labels)))
     reordered_weights[:, ind] = weights
 
-    return {'weights': np.asmatrix(reordered_weights[:-1, :]), '-B': bias, 'threshold': 0}
+    return {'weights': np.asmatrix(reordered_weights), '-B': bias, 'threshold': 0}
 
 
 def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
