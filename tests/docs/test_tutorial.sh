@@ -49,7 +49,6 @@ main() {
   all_tests=$(grep 'PASSED\|FAILED' $REPORT_PATH | wc -l)
   passed_tests=$(grep "PASSED" $REPORT_PATH | wc -l)
   echo "All tests finished ($passed_tests/$all_tests) on $BRANCH_TO_TEST. See $REPORT_PATH for details."
-  rm -r $RESULT_DIR
 }
 
 #######################################
