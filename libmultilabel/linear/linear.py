@@ -36,16 +36,7 @@ def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
     logging.info(f'Training one-vs-rest model on {num_class} labels')
     for i in tqdm(range(num_class)):
         yi = y[:, i].toarray().reshape(-1)
-        modeli = train(2*yi - 1, x, options)
-        w = np.ctypeslib.as_array(modeli.w, (num_feature,))
-        # Liblinear flips +1/-1 labels so +1 is always the first label,
-        # but not if all labels are -1.
-        # For our usage, we need +1 to always be the first label,
-        # so the check is necessary.
-        if modeli.get_labels()[0] == -1:
-            weights[:, i] = -w
-        else:
-            weights[:, i] = w
+        weights[:, i] = do_train(2*yi - 1, x, options)
 
     return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': 0}
 
@@ -144,7 +135,7 @@ def thresholding_one_label(y: np.ndarray,
 
     nr_fold = 3
 
-    l = y.shape[0]
+    l = y.shape[0]  # number of instances
 
     perm = np.random.permutation(l)
 
@@ -205,8 +196,8 @@ def scutfbr(y: np.ndarray,
         val_idx = perm[mask]
         train_idx = perm[mask != True]
 
-        w = do_train(y[train_idx], x[train_idx], options)
-
+        w = do_train(y[train_idx], x[train_idx],
+                     options).reshape(x.shape[1], 1)
         wTx = (x[val_idx] * w).A1
         scut_b = 0.
         start_F = fmeasure(y[val_idx], 2*(wTx > -scut_b) - 1)
@@ -256,7 +247,8 @@ def scutfbr(y: np.ndarray,
                 b_list[i] -= np.max(wTx)
 
     b_list = b_list / nr_fold
-    return do_train(y, x, options), b_list
+    weights = do_train(y, x, options).reshape(x.shape[1], 1)
+    return weights, b_list
 
 
 def do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> np.matrix:
@@ -274,7 +266,7 @@ def do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> np.matrix:
     with silent_stderr():
         model = train(y, x, options)
 
-    w = np.ctypeslib.as_array(model.w, (x.shape[1], 1))
+    w = np.ctypeslib.as_array(model.w, (x.shape[1],))
     w = np.asmatrix(w)
     # Liblinear flips +1/-1 labels so +1 is always the first label,
     # but not if all labels are -1.
@@ -391,7 +383,8 @@ def cost_sensitive_one_label(y: np.ndarray,
             bestA = a
 
     final_options = f'{options} -w1 {bestA}'
-    return do_train(y, x, final_options)
+    weights = do_train(y, x, final_options).reshape(x.shape[1], 1)
+    return weights
 
 
 def cross_validate(y: np.ndarray,
@@ -418,7 +411,8 @@ def cross_validate(y: np.ndarray,
         val_idx = perm[mask]
         train_idx = perm[mask != True]
 
-        w = do_train(y[train_idx], x[train_idx], options)
+        w = do_train(y[train_idx], x[train_idx],
+                     options).reshape(x.shape[1], 1)
         pred[val_idx] = (x[val_idx] * w).A1 > 0
 
     return 2*pred - 1
@@ -475,7 +469,7 @@ def train_cost_sensitive_micro(y: sparse.csr_matrix, x: sparse.csr_matrix, optio
     final_options = f'{options} -w1 {bestA}'
     for i in range(num_class):
         yi = y[:, i].toarray().reshape(-1)
-        w = do_train(2*yi - 1, x, final_options)
+        w = do_train(2*yi - 1, x, final_options).reshape(x.shape[1], 1)
         weights[:, i] = w.ravel()
 
     return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': 0}
@@ -494,16 +488,9 @@ def train_binary_and_multiclass(y: sparse.csr_matrix, x: sparse.csr_matrix, opti
     """
     x, options, bias = prepare_options(x, options)
     y = np.squeeze(y.nonzero()[1])
-
-    # Same as do_train + label mapping (to be discussed)
-    model = train(y, x, options)
     labels = model.get_labels()
-    w = np.ctypeslib.as_array(model.w, (x.shape[1], len(labels)))
-    if model.get_labels()[0] == -1:
-        weights = -w
-    else:
-        # The memory is freed on model deletion so we make a copy.
-        weights = w.copy()
+
+    weights = do_train(y, x, options).reshape(x.shape[1], len(labels))
 
     # Map label to the original index.
     ind = np.array(labels, dtype='int')
