@@ -36,7 +36,7 @@ def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
     logging.info(f'Training one-vs-rest model on {num_class} labels')
     for i in tqdm(range(num_class)):
         yi = y[:, i].toarray().reshape(-1)
-        weights[:, i] = do_train(2*yi - 1, x, options)['weights']
+        weights[:, i] = do_train(2*yi - 1, x, options)['weights'].reshape(-1)
 
     return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': 0}
 
@@ -196,7 +196,7 @@ def scutfbr(y: np.ndarray,
         val_idx = perm[mask]
         train_idx = perm[mask != True]
 
-        w = do_train(y[train_idx], x[train_idx], options)['weights'].reshape(x.shape[1], 1)
+        w = do_train(y[train_idx], x[train_idx], options)['weights']
         wTx = (x[val_idx] * w).A1
         scut_b = 0.
         start_F = fmeasure(y[val_idx], 2*(wTx > -scut_b) - 1)
@@ -246,7 +246,7 @@ def scutfbr(y: np.ndarray,
                 b_list[i] -= np.max(wTx)
 
     b_list = b_list / nr_fold
-    weights = do_train(y, x, options)['weights'].reshape(x.shape[1], 1)
+    weights = do_train(y, x, options)['weights']
     return weights, b_list
 
 
@@ -255,7 +255,8 @@ def do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> dict:
     Forcibly suppresses all IO regardless of options.
 
     Args:
-        y (np.ndarray): A +1/-1 array with dimensions number of instances * 1.
+        y (np.ndarray): An array with dimensions number of instances * 1.
+            For binary, yi = {+1, -1}. For multi-class, yi = {1, ..., k}.
         x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
         options (str): The option string passed to liblinear.
 
@@ -265,7 +266,9 @@ def do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> dict:
     with silent_stderr():
         model = train(y, x, options)
 
-    w = np.ctypeslib.as_array(model.w, (x.shape[1],))
+    labels = set(y)
+    w_shape = 1 if labels == {1, -1} else len(labels)
+    w = np.ctypeslib.as_array(model.w, (x.shape[1], w_shape))
     w = np.asmatrix(w)
     # Liblinear flips +1/-1 labels so +1 is always the first label,
     # but not if all labels are -1.
@@ -387,7 +390,7 @@ def cost_sensitive_one_label(y: np.ndarray,
             bestA = a
 
     final_options = f'{options} -w1 {bestA}'
-    weights = do_train(y, x, final_options)['weights'].reshape(x.shape[1], 1)
+    weights = do_train(y, x, final_options)['weights']
     return weights
 
 
@@ -415,7 +418,7 @@ def cross_validate(y: np.ndarray,
         val_idx = perm[mask]
         train_idx = perm[mask != True]
 
-        w = do_train(y[train_idx], x[train_idx], options)['weights'].reshape(x.shape[1], 1)
+        w = do_train(y[train_idx], x[train_idx], options)['weights']
         pred[val_idx] = (x[val_idx] * w).A1 > 0
 
     return 2*pred - 1
@@ -472,7 +475,7 @@ def train_cost_sensitive_micro(y: sparse.csr_matrix, x: sparse.csr_matrix, optio
     final_options = f'{options} -w1 {bestA}'
     for i in range(num_class):
         yi = y[:, i].toarray().reshape(-1)
-        w = do_train(2*yi - 1, x, final_options)['weights'].reshape(x.shape[1], 1)
+        w = do_train(2*yi - 1, x, final_options)['weights']
         weights[:, i] = w.ravel()
 
     return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': 0}
@@ -494,7 +497,7 @@ def train_binary_and_multiclass(y: sparse.csr_matrix, x: sparse.csr_matrix, opti
 
     model = do_train(y, x, options)
     labels = model["labels"]
-    weights = model['weights'].reshape(x.shape[1], len(labels))
+    weights = model['weights']
 
     # Map label to the original index.
     ind = np.array(labels, dtype='int')
