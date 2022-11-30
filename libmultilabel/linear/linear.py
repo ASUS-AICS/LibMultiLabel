@@ -36,7 +36,7 @@ def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
     logging.info(f'Training one-vs-rest model on {num_class} labels')
     for i in tqdm(range(num_class)):
         yi = y[:, i].toarray().reshape(-1)
-        weights[:, i] = do_train(2*yi - 1, x, options)['weights'].reshape(-1)
+        weights[:, i] = do_train(2*yi - 1, x, options).reshape(-1)
 
     return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': 0}
 
@@ -196,7 +196,7 @@ def scutfbr(y: np.ndarray,
         val_idx = perm[mask]
         train_idx = perm[mask != True]
 
-        w = do_train(y[train_idx], x[train_idx], options)['weights']
+        w = do_train(y[train_idx], x[train_idx], options)
         wTx = (x[val_idx] * w).A1
         scut_b = 0.
         start_F = fmeasure(y[val_idx], 2*(wTx > -scut_b) - 1)
@@ -246,8 +246,7 @@ def scutfbr(y: np.ndarray,
                 b_list[i] -= np.max(wTx)
 
     b_list = b_list / nr_fold
-    weights = do_train(y, x, options)['weights']
-    return weights, b_list
+    return do_train(y, x, options), b_list
 
 
 def do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> dict:
@@ -270,20 +269,23 @@ def do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> dict:
     w_shape = 1 if set(labels) == {1, -1} else len(labels)
     w = np.ctypeslib.as_array(model.w, (x.shape[1], w_shape))
     w = np.asmatrix(w)
+
     # Liblinear flips +1/-1 labels so +1 is always the first label,
     # but not if all labels are -1.
     # For our usage, we need +1 to always be the first label,
     # so the check is necessary.
     if labels[0] == -1:
         weights = -w
-    else:
+    elif set(labels) == {1, -1}:
         # The memory is freed on model deletion so we make a copy.
         weights = w.copy()
+    else:
+        # Map label to the original index.
+        ind = np.array(labels, dtype='int')
+        weights = np.zeros((x.shape[1], len(labels)))
+        weights[:, ind] = w
 
-    return {
-        'weights': weights,
-        'labels': labels
-    }
+    return weights
 
 
 class silent_stderr:
@@ -390,8 +392,7 @@ def cost_sensitive_one_label(y: np.ndarray,
             bestA = a
 
     final_options = f'{options} -w1 {bestA}'
-    weights = do_train(y, x, final_options)['weights']
-    return weights
+    return do_train(y, x, final_options)
 
 
 def cross_validate(y: np.ndarray,
@@ -418,7 +419,7 @@ def cross_validate(y: np.ndarray,
         val_idx = perm[mask]
         train_idx = perm[mask != True]
 
-        w = do_train(y[train_idx], x[train_idx], options)['weights']
+        w = do_train(y[train_idx], x[train_idx], options)
         pred[val_idx] = (x[val_idx] * w).A1 > 0
 
     return 2*pred - 1
@@ -475,7 +476,7 @@ def train_cost_sensitive_micro(y: sparse.csr_matrix, x: sparse.csr_matrix, optio
     final_options = f'{options} -w1 {bestA}'
     for i in range(num_class):
         yi = y[:, i].toarray().reshape(-1)
-        w = do_train(2*yi - 1, x, final_options)['weights']
+        w = do_train(2*yi - 1, x, final_options)
         weights[:, i] = w.ravel()
 
     return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': 0}
@@ -494,14 +495,8 @@ def train_binary_and_multiclass(y: sparse.csr_matrix, x: sparse.csr_matrix, opti
     """
     x, options, bias = prepare_options(x, options)
     y = np.squeeze(y.nonzero()[1])
-    model = do_train(y, x, options)
-
-    # Map label to the original index.
-    ind = np.array(model['labels'], dtype='int')
-    reordered_weights = np.zeros((x.shape[1], len(model['labels'])))
-    reordered_weights[:, ind] = model['weights']
-
-    return {'weights': np.asmatrix(reordered_weights), '-B': bias, 'threshold': 0}
+    weights = do_train(y, x, options)
+    return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': 0}
 
 
 def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
