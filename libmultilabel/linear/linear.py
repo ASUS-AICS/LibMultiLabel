@@ -135,7 +135,7 @@ def thresholding_one_label(y: np.ndarray,
 
     nr_fold = 3
 
-    l = y.shape[0]  # number of instances
+    l = y.shape[0]
 
     perm = np.random.permutation(l)
 
@@ -266,15 +266,15 @@ def do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> dict:
     with silent_stderr():
         model = train(y, x, options)
 
-    labels = set(y)
-    w_shape = 1 if labels == {1, -1} else len(labels)
+    labels = model.get_labels()
+    w_shape = 1 if set(labels) == {1, -1} else len(labels)
     w = np.ctypeslib.as_array(model.w, (x.shape[1], w_shape))
     w = np.asmatrix(w)
     # Liblinear flips +1/-1 labels so +1 is always the first label,
     # but not if all labels are -1.
     # For our usage, we need +1 to always be the first label,
     # so the check is necessary.
-    if model.get_labels()[0] == -1:
+    if labels[0] == -1:
         weights = -w
     else:
         # The memory is freed on model deletion so we make a copy.
@@ -282,7 +282,7 @@ def do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> dict:
 
     return {
         'weights': weights,
-        'labels': model.get_labels()
+        'labels': labels
     }
 
 
@@ -494,15 +494,12 @@ def train_binary_and_multiclass(y: sparse.csr_matrix, x: sparse.csr_matrix, opti
     """
     x, options, bias = prepare_options(x, options)
     y = np.squeeze(y.nonzero()[1])
-
     model = do_train(y, x, options)
-    labels = model["labels"]
-    weights = model['weights']
 
     # Map label to the original index.
-    ind = np.array(labels, dtype='int')
-    reordered_weights = np.zeros((x.shape[1], len(labels)))
-    reordered_weights[:, ind] = weights
+    ind = np.array(model['labels'], dtype='int')
+    reordered_weights = np.zeros((x.shape[1], len(model['labels'])))
+    reordered_weights[:, ind] = model['weights']
 
     return {'weights': np.asmatrix(reordered_weights), '-B': bias, 'threshold': 0}
 
