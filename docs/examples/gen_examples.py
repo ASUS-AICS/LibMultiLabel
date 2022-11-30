@@ -1,4 +1,3 @@
-
 NN_quickstart = dict()
 NN_quickstart["HEAD"] = """
 from libmultilabel.nn.data_utils import *
@@ -149,7 +148,6 @@ if num_no_label_data > 0:
         data['train']['y'] = data['train']['y'][num_labels > 0]
 """
 
-
 def gen_HuggingFace_example(model="Linear"):
     code = load_Hugging_Face_data_sets["HEAD"]
     if model == "Linear":
@@ -179,7 +177,23 @@ def gen_NN_quickstart(NN_model="KimCNN", include_load_data=True):
     code += NN_quickstart["TAIL"]
     return code
 
+if __name__ == "__main__":
+    with open("linear_quickstart.py", "w") as F:
+        code = gen_Linear_quickstart()
+        F.write(code)
 
-print(gen_NN_quickstart())
-#print(gen_BERT())
-#print(gen_NN_HuggingFace_example())
+    with open("kimcnn_quickstart.py", "w") as F:
+        code = gen_NN_quickstart(NN_model="KimCNN")
+        F.write(code)
+
+    with open("bert_quickstart.py", "w") as F:
+        code = gen_NN_quickstart(NN_model="BERT")
+        F.write(code)
+
+    with open("dataset_example_nn.py", "w") as F:
+        code = gen_HuggingFace_example(model="NN")
+        F.write(code)
+
+    with open("dataset_example_linear.py", "w") as F:
+        code = gen_HuggingFace_example(model="Linear")
+        F.write(code)
