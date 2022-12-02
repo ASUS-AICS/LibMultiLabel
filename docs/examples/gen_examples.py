@@ -7,8 +7,11 @@ from transformers import AutoTokenizer
 set_seed(1337)
 device = init_device()  # use gpu by default
 """
-NN_quickstart["load_data_set"] = """
+NN_quickstart["load_data_set_KimCNN"] = """
 data_sets = load_datasets('data/rcv1/train.txt', 'data/rcv1/test.txt', tokenize_text=True)
+"""
+NN_quickstart["load_data_set_BERT"] = """
+data_sets = load_datasets('data/rcv1/train.txt', 'data/rcv1/test.txt', tokenize_text=False)
 """
 NN_quickstart["build_label"] = """
 classes = load_or_build_label(data_sets)
@@ -122,30 +125,30 @@ for tag in ['train', 'val']:
 """
 load_Hugging_Face_data_sets["Linear_part"] = """
 for tag in ['train', 'val', 'test']:
-    data[tag]['label'] = data[tag]['label'].map(str)
-    data[tag] = data[tag].to_dict('list')
+    data_sets[tag]['label'] = data_sets[tag]['label'].map(str)
+    data_sets[tag] = data_sets[tag].to_dict('list')
 
-data['train']['label'] += data['val']['label']
-data['train']['text'] += data['val']['text']
-data['train']['index'] += list(map( lambda x: x + data['train']['index'][-1] + 1, data['val']['index'] ))
+data_sets['train']['label'] += data_sets['val']['label']
+data_sets['train']['text'] += data_sets['val']['text']
+data_sets['train']['index'] += list(map( lambda x: x + data_sets['train']['index'][-1] + 1, data_sets['val']['index'] ))
 
-classes = set(data['train']['label'] + data['test']['label'])
+classes = set(data_sets['train']['label'] + data_sets['test']['label'])
 classes = sorted([cls for cls in classes], key=int)
 
 vectorizer = TfidfVectorizer()
 binarizer = MultiLabelBinarizer(sparse_output=True, classes=classes)   
-vectorizer.fit(data['train']['text'])
-binarizer.fit(data['train']['label'])
+vectorizer.fit(data_sets['train']['text'])
+binarizer.fit(data_sets['train']['label'])
 for tag in ['train', 'test']:
-    data[tag]['x'] = vectorizer.transform(data[tag]['text'])
-    data[tag]['y'] = binarizer.transform(data[tag]['label']).astype('d')
+    data_sets[tag]['x'] = vectorizer.transform(data_sets[tag]['text'])
+    data_sets[tag]['y'] = binarizer.transform(data_sets[tag]['label']).astype('d')
 
-num_labels = data['train']['y'].getnnz(axis=1)
+num_labels = data_sets['train']['y'].getnnz(axis=1)
 num_no_label_data = np.count_nonzero(num_labels == 0)
 if num_no_label_data > 0:
     if remove_no_label_data:
-        data['train']['x'] = data['train']['x'][num_labels > 0]
-        data['train']['y'] = data['train']['y'][num_labels > 0]
+        data_sets['train']['x'] = data_sets['train']['x'][num_labels > 0]
+        data_sets['train']['y'] = data_sets['train']['y'][num_labels > 0]
 """
 
 def gen_HuggingFace_example(model="Linear"):
@@ -159,20 +162,23 @@ def gen_HuggingFace_example(model="Linear"):
     return code
 
 def gen_Linear_quickstart(include_load_data=True):
-    code = Linear_HEAD
+    code = Linear_quickstart["HEAD"]
     if include_load_data:
-        code += Linear_load_data_set
-    code += Linear_TAIL
+        code += Linear_quickstart["load_data_set"]
+    code += Linear_quickstart["TAIL"]
     return code
 
 def gen_NN_quickstart(NN_model="KimCNN", include_load_data=True):
     code = NN_quickstart["HEAD"]
-    if include_load_data:
-        code += NN_quickstart["load_data_set"]
-    code += NN_quickstart["build_label"]
     if NN_model == "KimCNN":
+        if include_load_data:
+            code += NN_quickstart["load_data_set_KimCNN"]
+        code += NN_quickstart["build_label"]
         code += NN_quickstart["KimCNN_part"]
     elif NN_model == "BERT":
+        if include_load_data:
+            code += NN_quickstart["load_data_set_BERT"]
+        code += NN_quickstart["build_label"]
         code += NN_quickstart["BERT_part"]
     code += NN_quickstart["TAIL"]
     return code
