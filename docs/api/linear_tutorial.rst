@@ -31,15 +31,15 @@ The Python Script
 
 For this guide, we will only need the linear module:
 
-.. literalinclude:: ../examples/linear_quickstart.py
+.. literalinclude:: ../examples/linear_component.py
     :language: python3
-    :lines: 1
+    :lines: 5
 
 To start, we need to read and preprocess the input data:
 
-.. literalinclude:: ../examples/linear_quickstart.py
+.. literalinclude:: ../examples/linear_component.py
     :language: python3
-    :lines: 3-6
+    :lines: 8-9
 
 The preprocessor handles many issues such as: mapping
 the labels into indices and transforming textual data to
@@ -58,9 +58,9 @@ numerical data. The loaded dataset has the structure::
 
 Next we train the model:
 
-.. literalinclude:: ../examples/linear_quickstart.py
+.. literalinclude:: ../examples/linear_component.py
     :language: python3
-    :lines: 8-10
+    :lines: 12
 
 The third argument is the options string for
 `LibLinear <https://www.csie.ntu.edu.tw/~cjlin/liblinear/>`_.
@@ -68,9 +68,9 @@ We may leave it as the default for now.
 
 Once we have the model, we may predict with it:
 
-.. literalinclude:: ../examples/linear_quickstart.py
+.. literalinclude:: ../examples/linear_component.py
     :language: python3
-    :lines: 12
+    :lines: 14
 
 :py:`preds` holds the decision values, i.e. the raw values
 outputted by the model. To transform it into predictions,
@@ -82,26 +82,32 @@ To see how well we performed, we may want to check various
 metrics with the test set.
 For that we may use:
 
-.. literalinclude:: ../examples/linear_quickstart.py
+.. literalinclude:: ../examples/linear_component.py
     :language: python3
-    :lines: 14-16
+    :lines: 16-18
 
 This creates the set of metrics we wish to see.
 Since the dataset we loaded are stored as :py:`scipy.sparse.csr_matrix`,
 we need to transform them to :py:`np.array` before we can compute the metrics:
 
-.. literalinclude:: ../examples/linear_quickstart.py
+.. literalinclude:: ../examples/linear_component.py
     :language: python3
-    :lines: 18
+    :lines: 20
 
 Finally, we compute and print the metrics:
 
-.. literalinclude:: ../examples/linear_quickstart.py
+.. literalinclude:: ../examples/linear_component.py
     :language: python3
-    :lines: 20-21
+    :lines: 22-23
 
 The results will look similar to::
 
-    {'Macro-F1': 0.5171960144875225, 'Micro-F1': 0.8008124243391698, 'P@1': 0.9573153795447128, 'P@3': 0.799074151109632, 'P@5': 0.5579924865442584}
+  {
+    'Macro-F1': 0.5171960144875225, 
+    'Micro-F1': 0.8008124243391698, 
+    'P@1':      0.9573153795447128, 
+    'P@3':      0.799074151109632, 
+    'P@5':      0.5579924865442584
+  }
 
 Get the full source code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/linear_quickstart.py>`_.

@@ -26,9 +26,9 @@ Step 1. Import the libraries
 
 Please add the following code to your python3 script.
 
-.. literalinclude:: ../examples/bert_quickstart.py
+.. literalinclude:: ../examples/nn_component.py
     :language: python3
-    :lines: 2-4
+    :lines: 26-28
 
 Step 2. Setup device
 --------------------
@@ -38,9 +38,9 @@ For example, you will get the same result as you always use the seed ``1337``.
 
 For initial a hardware device, please use ``init_device`` to assign the hardware device that you want to use.
 
-.. literalinclude:: ../examples/bert_quickstart.py
+.. literalinclude:: ../examples/nn_component.py
     :language: python3
-    :lines: 7-8
+    :lines: 30-31
 
 Step 3. Load and tokenize data
 ------------------------------------------
@@ -59,7 +59,7 @@ For BERT, we utilize the API ``AutoTokenizer``, which is supported by ``Hugging 
 Furthermore, BERT applies some special tokens such as ``<CLS>``, so that we take ``add_special_tokens=True``.
 We set other variables for word preprocessing as ``None``.
 
-.. literalinclude:: ../examples/bert_quickstart.py
+.. literalinclude:: ../examples/nn_component.py
     :language: python3
     :lines: 11-15
 
@@ -69,7 +69,7 @@ Step 4. Initialize a model
 
 We use the following code to initialize a model.
 
-.. literalinclude:: ../examples/bert_quickstart.py
+.. literalinclude:: ../examples/nn_component.py
     :language: python3
     :lines: 18-32
 
@@ -97,7 +97,7 @@ Step 6. Create data loaders
 In most cases, we do not load a full set due to the hardware limitation.
 Therefore, a data loader can load a batch of samples each time.
 
-.. literalinclude:: ../examples/bert_quickstart.py
+.. literalinclude:: ../examples/nn_component.py
     :language: python3
     :lines: 38-50
 
@@ -108,13 +108,13 @@ Step 7. Train and test a model
 
 The bert model training process can be started via 
 
-.. literalinclude:: ../examples/bert_quickstart.py
+.. literalinclude:: ../examples/nn_component.py
     :language: python3
     :lines: 53
 
 After the training process is finished, we can then run the test process by
 
-.. literalinclude:: ../examples/bert_quickstart.py
+.. literalinclude:: ../examples/nn_component.py
     :language: python3
     :lines: 56
 
@@ -146,7 +146,7 @@ Thus, ``tokenize_text = True`` is set.
 
 We choose ``glove.6B.300d`` from torchtext as embedding vectors. 
 
-.. literalinclude:: ../examples/kimcnn_quickstart.py
+.. literalinclude:: ../examples/nn_component.py
     :language: python3
     :lines: 11-15
  
@@ -156,7 +156,7 @@ Step 4. Initialize a model
 
 We consider the following settings for the KimCNN model.
 
-.. literalinclude:: ../examples/kimcnn_quickstart.py
+.. literalinclude:: ../examples/nn_component.py
     :language: python3
     :lines: 18-34
 
