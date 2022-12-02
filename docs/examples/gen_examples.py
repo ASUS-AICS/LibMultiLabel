@@ -41,27 +41,23 @@ def gen_HuggingFace_example(model="Linear"):
         code += gen_NN_quickstart(NN_model="KimCNN", include_load_data=False)
     return code
 
-code = gen_Linear_quickstart()
-print(code)
-"""
 # Generate codes
-with open("linear_quickstart.py", "w") as F:
-    code = gen_Linear_quickstart()
-    F.write(code)
+if __name__ == "__main__":
+    import argparse
 
-with open("kimcnn_quickstart.py", "w") as F:
-    code = gen_NN_quickstart(NN_model="KimCNN")
-    F.write(code)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--target', type=str, choices=['linear_quickstart', 'kimcnn_quickstart', 'bert_quickstart', 'dataset_example-linear', 'dataset_example-nn'])
+    ARGS = parser.parse_args()
 
-with open("bert_quickstart.py", "w") as F:
-    code = gen_NN_quickstart(NN_model="BERT")
-    F.write(code)
+    if ARGS.target == "linear_quickstart":
+        code = gen_Linear_quickstart()
+    elif ARGS.target == "kimcnn_quickstart":
+        code = gen_NN_quickstart(NN_model="KimCNN")
+    elif ARGS.target == "bert_quickstart":
+        code = gen_NN_quickstart(NN_model="BERT")
+    elif ARGS.target == "dataset_example-linear":
+        code = gen_HuggingFace_example(model="NN")
+    elif ARGS.target == "dataset_example-nn":
+        code = gen_HuggingFace_example(model="Linear")
 
-with open("dataset_example_nn.py", "w") as F:
-    code = gen_HuggingFace_example(model="NN")
-    F.write(code)
-
-with open("dataset_example_linear.py", "w") as F:
-    code = gen_HuggingFace_example(model="Linear")
-    F.write(code)
-"""
+    print(code)
