@@ -199,7 +199,7 @@ def scutfbr(y: np.ndarray,
         val_idx = perm[mask]
         train_idx = perm[mask != True]
 
-        w = do_train(y[train_idx], x[train_idx], options)
+        w = do_train(y[train_idx], x[train_idx], options, np.array([1, -1]))
 
         wTx = (x[val_idx] * w).A1
         scut_b = 0.
@@ -250,35 +250,48 @@ def scutfbr(y: np.ndarray,
                 b_list[i] -= np.max(wTx)
 
     b_list = b_list / nr_fold
-    return do_train(y, x, options), b_list
+    return do_train(y, x, options, np.array([1, -1])), b_list
 
 
-def do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> np.matrix:
-    """Wrapper around liblinear.liblinearutil.train.
+def do_train(y: np.ndarray,
+             x: sparse.csr_matrix,
+             options: str,
+             labels: np.ndarray) -> np.matrix:
+    """Trains a liblinear model and returns the weights in the same order as labels.
     Forcibly suppresses all IO regardless of options.
 
     Args:
-        y (np.ndarray): A +1/-1 array with dimensions number of instances * 1.
+        y (np.ndarray): An array of labels with dimensions number of instances * 1.
         x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
         options (str): The option string passed to liblinear.
+        labels (np.ndarray): An array of labels in the desired order.
 
     Returns:
-        np.matrix: the weights.
+        np.matrix: the weight matrix with dimensions number of features * 1 for binary or
+                   unary problems, number of features * number of classes for multiclass
+                   problems.
     """
     with silent_stderr():
         model = train(y, x, options)
 
-    w = np.ctypeslib.as_array(model.w, (x.shape[1], 1))
-    w = np.asmatrix(w)
-    # Liblinear flips +1/-1 labels so +1 is always the first label,
-    # but not if all labels are -1.
-    # For our usage, we need +1 to always be the first label,
-    # so the check is necessary.
-    if model.get_labels()[0] == -1:
-        return -w
+    model_labels = model.get_labels()
+    if not np.all(np.isin(model_labels, labels)):
+        raise ValueError('The given labels does not match the data')
+
+    label_sort = np.argsort(labels)
+    sorted_mapping = np.searchsorted(labels[label_sort], model_labels)
+    mapping = label_sort[sorted_mapping]
+    if labels.shape[0] <= 2:
+        w = np.ctypeslib.as_array(model.w, (x.shape[1], 1))
+        if mapping[0] == 1:
+            w = -w
+        else:
+            w = w.copy()
     else:
-        # The memory is freed on model deletion so we make a copy.
-        return w.copy()
+        w = np.zeros((x.shape[1], labels.shape[0]))
+        w[:, mapping] = np.ctypeslib.as_array(model.w, (x.shape[1], len(model_labels)))
+
+    return np.asmatrix(w)
 
 
 class silent_stderr:
@@ -385,7 +398,7 @@ def cost_sensitive_one_label(y: np.ndarray,
             bestA = a
 
     final_options = f'{options} -w1 {bestA}'
-    return do_train(y, x, final_options)
+    return do_train(y, x, final_options, np.array([1, -1]))
 
 
 def cross_validate(y: np.ndarray,
@@ -412,7 +425,7 @@ def cross_validate(y: np.ndarray,
         val_idx = perm[mask]
         train_idx = perm[mask != True]
 
-        w = do_train(y[train_idx], x[train_idx], options)
+        w = do_train(y[train_idx], x[train_idx], options, np.array([1, -1]))
         pred[val_idx] = (x[val_idx] * w).A1 > 0
 
     return 2*pred - 1
@@ -469,7 +482,7 @@ def train_cost_sensitive_micro(y: sparse.csr_matrix, x: sparse.csr_matrix, optio
     final_options = f'{options} -w1 {bestA}'
     for i in range(num_class):
         yi = y[:, i].toarray().reshape(-1)
-        w = do_train(2*yi - 1, x, final_options)
+        w = do_train(2*yi - 1, x, final_options, np.array([1, -1]))
         weights[:, i] = w.ravel()
 
     return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': 0}
