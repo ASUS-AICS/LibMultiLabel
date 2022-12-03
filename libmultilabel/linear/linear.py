@@ -278,9 +278,9 @@ def do_train(y: np.ndarray,
     if not np.all(np.isin(model_labels, labels)):
         raise ValueError('The given labels does not match the data')
 
-    label_sort = np.argsort(labels)
-    sorted_mapping = np.searchsorted(labels[label_sort], model_labels)
-    mapping = label_sort[sorted_mapping]
+    sorted_to_labels = np.argsort(labels)
+    model_to_sorted = np.searchsorted(labels[sorted_to_labels], model_labels)
+    mapping = sorted_to_labels[model_to_sorted]
     if labels.shape[0] <= 2:
         w = np.ctypeslib.as_array(model.w, (x.shape[1], 1))
         if mapping[0] == 1:
@@ -288,8 +288,12 @@ def do_train(y: np.ndarray,
         else:
             w = w.copy()
     else:
-        w = np.zeros((x.shape[1], labels.shape[0]))
-        w[:, mapping] = np.ctypeslib.as_array(model.w, (x.shape[1], len(model_labels)))
+        w = np.zeros((x.shape[1], labels.shape[0]), order='F')
+        if len(model_labels) == 2:
+            w[:, mapping[0]] = np.ctypeslib.as_array(model.w, (x.shape[1], 1))
+            w[:, mapping[1]] = -np.ctypeslib.as_array(model.w, (x.shape[1], 1))
+        else:
+            w[:, mapping] = np.ctypeslib.as_array(model.w, (x.shape[1], len(model_labels)))
 
     return np.asmatrix(w)
 
