@@ -249,43 +249,30 @@ def scutfbr(y: np.ndarray,
     return do_train(y, x, options), b_list
 
 
-def do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> dict:
+def do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> np.matrix:
     """Wrapper around liblinear.liblinearutil.train.
     Forcibly suppresses all IO regardless of options.
-
     Args:
-        y (np.ndarray): An array with dimensions number of instances * 1.
-            For binary, yi = {+1, -1}. For multi-class, yi = {1, ..., k}.
+        y (np.ndarray): A +1/-1 array with dimensions number of instances * 1.
         x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
         options (str): The option string passed to liblinear.
-
     Returns:
-        dict: A dict of model weights and labels.
+        np.matrix: the weights.
     """
     with silent_stderr():
         model = train(y, x, options)
 
-    labels = model.get_labels()
-    w_shape = 1 if set(labels) == {1, -1} else len(labels)
-    w = np.ctypeslib.as_array(model.w, (x.shape[1], w_shape))
+    w = np.ctypeslib.as_array(model.w, (x.shape[1], 1))
     w = np.asmatrix(w)
-
     # Liblinear flips +1/-1 labels so +1 is always the first label,
     # but not if all labels are -1.
     # For our usage, we need +1 to always be the first label,
     # so the check is necessary.
-    if labels[0] == -1:
-        weights = -w
-    elif set(labels) == {1, -1}:
-        # The memory is freed on model deletion so we make a copy.
-        weights = w.copy()
+    if model.get_labels()[0] == -1:
+        return -w
     else:
-        # Map label to the original index.
-        ind = np.array(labels, dtype='int')
-        weights = np.zeros((x.shape[1], len(labels)))
-        weights[:, ind] = w
-
-    return weights
+        # The memory is freed on model deletion so we make a copy.
+        return w.copy()
 
 
 class silent_stderr:
@@ -495,8 +482,23 @@ def train_binary_and_multiclass(y: sparse.csr_matrix, x: sparse.csr_matrix, opti
     """
     x, options, bias = prepare_options(x, options)
     y = np.squeeze(y.nonzero()[1])
-    weights = do_train(y, x, options)
-    return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': 0}
+
+    with silent_stderr():
+        model = train(y, x, options)
+
+    train_labels = model.get_labels()
+    w = np.ctypeslib.as_array(model.w, (x.shape[1], len(train_labels)))
+    w = np.asmatrix(w)
+
+    # Map label to the original index.
+    # TBD binary
+    ind = np.array(train_labels, dtype='int')
+    weights = np.zeros((x.shape[1], y.shape[1]))
+    weights[:, ind] = w
+
+    threshold = np.full(y.shape[1], np.inf)
+    threshold[ind] = 0
+    return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': threshold}
 
 
 def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
