@@ -252,10 +252,12 @@ def scutfbr(y: np.ndarray,
 def do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> np.matrix:
     """Wrapper around liblinear.liblinearutil.train.
     Forcibly suppresses all IO regardless of options.
+
     Args:
         y (np.ndarray): A +1/-1 array with dimensions number of instances * 1.
         x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
         options (str): The option string passed to liblinear.
+
     Returns:
         np.matrix: the weights.
     """
@@ -481,6 +483,7 @@ def train_binary_and_multiclass(y: sparse.csr_matrix, x: sparse.csr_matrix, opti
         A model which can be used in predict_values.
     """
     x, options, bias = prepare_options(x, options)
+    num_labels = y.shape[1]
     y = np.squeeze(y.nonzero()[1])
 
     with silent_stderr():
@@ -491,12 +494,11 @@ def train_binary_and_multiclass(y: sparse.csr_matrix, x: sparse.csr_matrix, opti
     w = np.asmatrix(w)
 
     # Map label to the original index.
-    # TBD binary
+    weights = np.zeros((x.shape[1], num_labels))
     ind = np.array(train_labels, dtype='int')
-    weights = np.zeros((x.shape[1], y.shape[1]))
     weights[:, ind] = w
 
-    threshold = np.full(y.shape[1], np.inf)
+    threshold = np.full(num_labels, np.inf)
     threshold[ind] = 0
     return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': threshold}
 
