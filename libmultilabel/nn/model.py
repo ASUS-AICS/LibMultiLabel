@@ -152,14 +152,13 @@ class MultiLabelModel(pl.LightningModule):
         self.eval_metric.reset()
         return metric_dict
 
-    def predict_step(self, batch, batch_idx, dataloader_idx):
+    def predict_step(self, batch, batch_idx):
         """`predict_step` is triggered when calling `trainer.predict()`.
         This function is used to get the top-k labels and their prediction scores.
 
         Args:
             batch (dict): A batch of text and label.
             batch_idx (int): Index of current batch.
-            dataloader_idx (int): Index of current dataloader.
 
         Returns:
             dict: Top k label indexes and the prediction scores.

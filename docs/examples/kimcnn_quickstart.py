@@ -12,7 +12,6 @@ datasets = load_datasets('data/rcv1/train.txt', 'data/rcv1/test.txt', tokenize_t
 classes = load_or_build_label(datasets)
 word_dict, embed_vecs = load_or_build_text_dict(dataset=datasets['train'], embed_file='glove.6B.300d')
 tokenizer = None
-add_special_tokens = False
 
 # Step 4. Initialize a model.
 model_name = 'KimCNN'
@@ -47,8 +46,7 @@ for split in ['train', 'val', 'test']:
         max_seq_length=512,
         batch_size=8,
         shuffle=True if split == 'train' else False,
-        tokenizer=tokenizer,
-        add_special_tokens=add_special_tokens
+        tokenizer=tokenizer
     )
 
 # Step 7-1. Train a model from scratch.
