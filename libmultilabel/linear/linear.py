@@ -498,7 +498,7 @@ def train_binary_and_multiclass(y: sparse.csr_matrix, x: sparse.csr_matrix, opti
     ind = np.array(train_labels, dtype='int')
     weights[:, ind] = w
 
-    threshold = np.full(num_labels, np.inf)
+    threshold = np.full(num_labels, -np.inf)
     threshold[ind] = 0
     return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': threshold}
 
