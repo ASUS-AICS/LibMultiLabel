@@ -490,13 +490,18 @@ def train_binary_and_multiclass(y: sparse.csr_matrix, x: sparse.csr_matrix, opti
         model = train(y, x, options)
 
     train_labels = model.get_labels()
-    w = np.ctypeslib.as_array(model.w, (x.shape[1], len(train_labels)))
-    w = np.asmatrix(w)
-
-    # Map label to the original index.
-    weights = np.zeros((x.shape[1], num_labels))
     ind = np.array(train_labels, dtype='int')
-    weights[:, ind] = w
+    weights = np.zeros((x.shape[1], num_labels))
+    if num_labels == 2 and '-s 4' not in options:
+        # For binary classification, liblinear returns weights
+        # with shape (number of instances * 1) except '-s 4'.
+        w = np.ctypeslib.as_array(model.w, (x.shape[1], 1))
+        weights[:, ind[0]] = w[:, 0]
+        weights[:, ind[1]] = -w[:, 0]
+    else:
+        # Map label to the original index
+        w = np.ctypeslib.as_array(model.w, (x.shape[1], num_labels))
+        weights[:, ind] = w
 
     threshold = np.full(num_labels, -np.inf)
     threshold[ind] = 0
