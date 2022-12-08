@@ -118,5 +118,6 @@ class Tree:
         scores = np.empty_like(self.root.labelmap, dtype='d')
         scores[:] = -np.inf
         for node, score in cur_level:
-            scores[node.labelmap] = predict_values(node.model, x) + score
+            pred = predict_values(node.model, x).ravel()
+            scores[node.labelmap] = score - np.log(1 + np.exp(-pred))
         return scores
