@@ -63,7 +63,8 @@ def prepare_options(x: sparse.csr_matrix, options: str) -> 'tuple[sparse.csr_mat
         i = options_split.index('-s')
         solver_type = int(options_split[i+1])
         if solver_type < 0 or solver_type > 7:
-            raise ValueError("You should use only classification solvers in LIBLINEAR.")
+            raise ValueError(
+                "Invalid LIBLINEAR solver type. Only classification solvers are allowed.")
 
     bias = -1.
     if '-B' in options_split:
