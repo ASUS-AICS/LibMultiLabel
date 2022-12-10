@@ -491,7 +491,7 @@ def train_binary_and_multiclass(y: sparse.csr_matrix, x: sparse.csr_matrix, opti
     with silent_stderr():
         model = train(y, x, options)
 
-    # Number of labels appeared in training set; length may be smaller than num_labels
+    # Labels appeared in training set; length may be smaller than num_labels
     train_labels = np.array(model.get_labels(), dtype='int')
     weights = np.zeros((x.shape[1], num_labels))
     if num_labels == 2 and '-s 4' not in options:
