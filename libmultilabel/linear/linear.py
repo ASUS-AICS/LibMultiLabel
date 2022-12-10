@@ -505,7 +505,7 @@ def train_binary_and_multiclass(y: sparse.csr_matrix, x: sparse.csr_matrix, opti
         w = np.ctypeslib.as_array(model.w, (x.shape[1], len(train_labels)))
         weights[:, train_labels] = w
 
-    # For labels not appeared in training, assign thresholds to - inf so they won't be predicted.
+    # For labels not appeared in training, assign thresholds to -inf so they won't be predicted.
     threshold = np.full(num_labels, -np.inf)
     threshold[train_labels] = 0
     return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': threshold}
