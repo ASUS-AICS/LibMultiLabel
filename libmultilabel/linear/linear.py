@@ -36,7 +36,7 @@ def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
     logging.info(f'Training one-vs-rest model on {num_class} labels')
     for i in tqdm(range(num_class)):
         yi = y[:, i].toarray().reshape(-1)
-        weights[:, i] = do_train(2*yi - 1, x, options).reshape(-1)
+        weights[:, i] = do_train(2*yi - 1, x, options).ravel()
 
     return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': 0}
 
@@ -484,28 +484,30 @@ def train_binary_and_multiclass(y: sparse.csr_matrix, x: sparse.csr_matrix, opti
         A model which can be used in predict_values.
     """
     x, options, bias = prepare_options(x, options)
-    num_labels = y.shape[1]
+    num_instances, num_labels = y.shape
     y = np.squeeze(y.nonzero()[1])
+    assert len(y) == num_instances, 'Invalid dataset. Only multi-class dataset is allowed.'
 
     with silent_stderr():
         model = train(y, x, options)
 
-    train_labels = model.get_labels()
-    ind = np.array(train_labels, dtype='int')
+    # Number of labels appeared in training set; length may be smaller than num_labels
+    train_labels = np.array(model.get_labels(), dtype='int')
     weights = np.zeros((x.shape[1], num_labels))
     if num_labels == 2 and '-s 4' not in options:
         # For binary classification, liblinear returns weights
-        # with shape (number of instances * 1) except '-s 4'.
+        # with shape (number of features * 1) except '-s 4'.
         w = np.ctypeslib.as_array(model.w, (x.shape[1], 1))
-        weights[:, ind[0]] = w[:, 0]
-        weights[:, ind[1]] = -w[:, 0]
+        weights[:, train_labels[0]] = w[:, 0]
+        weights[:, train_labels[1]] = -w[:, 0]
     else:
         # Map label to the original index
-        w = np.ctypeslib.as_array(model.w, (x.shape[1], num_labels))
-        weights[:, ind] = w
+        w = np.ctypeslib.as_array(model.w, (x.shape[1], len(train_labels)))
+        weights[:, train_labels] = w
 
+    # For labels not appeared in training, assign thresholds to - inf so they won't be predicted.
     threshold = np.full(num_labels, -np.inf)
-    threshold[ind] = 0
+    threshold[train_labels] = 0
     return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': threshold}
 
 
