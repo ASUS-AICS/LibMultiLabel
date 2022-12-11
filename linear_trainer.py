@@ -12,7 +12,8 @@ def linear_test(config, model, datasets):
     metrics = linear.get_metrics(
         config.metric_threshold,
         config.monitor_metrics,
-        datasets['test']['y'].shape[1]
+        datasets['test']['y'].shape[1],
+        multiclass=config.multiclass
     )
     num_instance = datasets['test']['x'].shape[0]
 
@@ -39,7 +40,8 @@ def linear_train(datasets, config):
     techniques = {'1vsrest': linear.train_1vsrest,
                   'thresholding': linear.train_thresholding,
                   'cost_sensitive': linear.train_cost_sensitive,
-                  'cost_sensitive_micro': linear.train_cost_sensitive_micro}
+                  'cost_sensitive_micro': linear.train_cost_sensitive_micro,
+                  'binary_and_multiclass': linear.train_binary_and_multiclass}
     model = techniques[config.linear_technique](
         datasets['train']['y'],
         datasets['train']['x'],

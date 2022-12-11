@@ -10,6 +10,7 @@ __all__ = ['train_1vsrest',
            'train_thresholding',
            'train_cost_sensitive',
            'train_cost_sensitive_micro',
+           'train_binary_and_multiclass',
            'predict_values']
 
 
@@ -35,16 +36,7 @@ def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
     logging.info(f'Training one-vs-rest model on {num_class} labels')
     for i in tqdm(range(num_class)):
         yi = y[:, i].toarray().reshape(-1)
-        modeli = train(2*yi - 1, x, options)
-        w = np.ctypeslib.as_array(modeli.w, (num_feature,))
-        # Liblinear flips +1/-1 labels so +1 is always the first label,
-        # but not if all labels are -1.
-        # For our usage, we need +1 to always be the first label,
-        # so the check is necessary.
-        if modeli.get_labels()[0] == -1:
-            weights[:, i] = -w
-        else:
-            weights[:, i] = w
+        weights[:, i] = do_train(2*yi - 1, x, options).ravel()
 
     return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': 0}
 
@@ -66,23 +58,29 @@ def prepare_options(x: sparse.csr_matrix, options: str) -> 'tuple[sparse.csr_mat
     if any(o in options for o in ['-R', '-C', '-v']):
         raise ValueError('-R, -C and -v are not supported')
 
+    options_split = options.split()
+    if '-s' in options_split:
+        i = options_split.index('-s')
+        solver_type = int(options_split[i+1])
+        if solver_type < 0 or solver_type > 7:
+            raise ValueError(
+                "Invalid LIBLINEAR solver type. Only classification solvers are allowed.")
+
     bias = -1.
-    if options.find('-B') != -1:
-        options_split = options.split()
+    if '-B' in options_split:
         i = options_split.index('-B')
         bias = float(options_split[i+1])
-        options = ' '.join(options_split[:i] + options_split[i+2:])
+        options_split = options_split[:i] + options_split[i+2:]
         x = sparse.hstack([
             x,
             np.full((x.shape[0], 1), bias),
         ], 'csr')
-
-    if not '-q' in options:
-        options += ' -q'
-
+    if not '-q' in options_split:
+        options_split.append('-q')
     if not '-m' in options:
-        options += f' -m {int(os.cpu_count() / 2)}'
+        options_split.append(f'-m {int(os.cpu_count() / 2)}')
 
+    options = ' '.join(options_split)
     return x, options, bias
 
 
@@ -200,7 +198,6 @@ def scutfbr(y: np.ndarray,
         train_idx = perm[mask != True]
 
         w = do_train(y[train_idx], x[train_idx], options)
-
         wTx = (x[val_idx] * w).A1
         scut_b = 0.
         start_F = fmeasure(y[val_idx], 2*(wTx > -scut_b) - 1)
@@ -473,6 +470,47 @@ def train_cost_sensitive_micro(y: sparse.csr_matrix, x: sparse.csr_matrix, optio
         weights[:, i] = w.ravel()
 
     return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': 0}
+
+
+def train_binary_and_multiclass(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
+    """Trains a linear model for binary and multi-class data.
+
+    Args:
+        y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
+        x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
+        options (str): The option string passed to liblinear.
+
+    Returns:
+        A model which can be used in predict_values.
+    """
+    x, options, bias = prepare_options(x, options)
+    num_instances, num_labels = y.shape
+    nonzero_instance_ids, nonzero_label_ids = y.nonzero()
+    assert len(set(nonzero_instance_ids)) == num_instances, """
+        Invalid dataset. Only multi-class dataset is allowed."""
+    y = np.squeeze(nonzero_label_ids)
+
+    with silent_stderr():
+        model = train(y, x, options)
+
+    # Labels appeared in training set; length may be smaller than num_labels
+    train_labels = np.array(model.get_labels(), dtype='int')
+    weights = np.zeros((x.shape[1], num_labels))
+    if num_labels == 2 and '-s 4' not in options:
+        # For binary classification, liblinear returns weights
+        # with shape (number of features * 1) except '-s 4'.
+        w = np.ctypeslib.as_array(model.w, (x.shape[1], 1))
+        weights[:, train_labels[0]] = w[:, 0]
+        weights[:, train_labels[1]] = -w[:, 0]
+    else:
+        # Map label to the original index
+        w = np.ctypeslib.as_array(model.w, (x.shape[1], len(train_labels)))
+        weights[:, train_labels] = w
+
+    # For labels not appeared in training, assign thresholds to -inf so they won't be predicted.
+    threshold = np.full(num_labels, -np.inf)
+    threshold[train_labels] = 0
+    return {'weights': np.asmatrix(weights), '-B': bias, 'threshold': threshold}
 
 
 def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:

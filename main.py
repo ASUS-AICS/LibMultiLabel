@@ -124,8 +124,8 @@ def add_all_arguments(parser):
     parser.add_argument('--liblinear_options', type=str,
                         help='Options passed to liblinear (default: %(default)s)')
     parser.add_argument('--linear_technique', type=str, default='1vsrest',
-                        choices=['1vsrest', 'thresholding',
-                                 'cost_sensitive', 'cost_sensitive_micro'],
+                        choices=['1vsrest', 'thresholding', 'cost_sensitive',
+                                 'cost_sensitive_micro', 'binary_and_multiclass'],
                         help='Technique for linear classification (default: %(default)s)')
 
     parser.add_argument('-h', '--help', action='help',

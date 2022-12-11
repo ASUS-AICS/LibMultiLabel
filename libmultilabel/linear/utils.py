@@ -1,5 +1,5 @@
-import pickle
 import os
+import pickle
 from pathlib import Path
 
 from .preprocessor import Preprocessor
