@@ -486,8 +486,8 @@ def train_binary_and_multiclass(y: sparse.csr_matrix, x: sparse.csr_matrix, opti
     x, options, bias = prepare_options(x, options)
     num_instances, num_labels = y.shape
     nonzero_instance_ids, nonzero_label_ids = y.nonzero()
-    assert len(set(nonzero_instance_ids)
-               ) == num_instances, 'Invalid dataset. Only multi-class dataset is allowed.'
+    assert len(set(nonzero_instance_ids)) == num_instances, """
+        Invalid dataset. Only multi-class dataset is allowed."""
     y = np.squeeze(nonzero_label_ids)
 
     with silent_stderr():
