@@ -1,8 +1,9 @@
 from sklearn.base import BaseEstimator
-from sklearn.utils.validation import check_is_fitted
 from sklearn.utils.multiclass import unique_labels
+from sklearn.utils.validation import check_is_fitted
 
 import libmultilabel.linear as linear
+from linear_trainer import linear_train
 
 
 class MultiLabelMixin:
@@ -23,7 +24,7 @@ class MultiLabelMixin:
                 y.shape[1],
             )
         preds = self.predict(X)
-        target = y.toarray() # datasets['test']['y'][slice].toarray()
+        target = y.toarray()
         self.metrics.update(preds, target)
         metric_dict = self.metrics.compute()
         return metric_dict[self.val_metric]
@@ -33,14 +34,23 @@ class MultiLabelMixin:
 
 
 class MultiLabelClassifier(MultiLabelMixin, BaseEstimator):
-    def __init__(self, options, metric_threshold=0, val_metric="P@1"):
+    def __init__(self, options, metric_threshold=0, val_metric="P@1", linear_technique="1vsrest"):
         super().__init__(metric_threshold, val_metric)
         self.options = options
+        # Can we reuse this? (linear_trainer.linear_train)
+        self.techniques = {
+            '1vsrest': linear.train_1vsrest,
+            'thresholding': linear.train_thresholding,
+            'cost_sensitive': linear.train_cost_sensitive,
+            'cost_sensitive_micro': linear.train_cost_sensitive_micro,
+            'binary_and_multiclass': linear.train_binary_and_multiclass
+        }
+        self.linear_technique = linear_technique
 
     def fit(self, X, y):
         # Store the classes seen during fit
         self.classes_ = unique_labels(y)
-        self.model = linear.train_1vsrest(y, X, self.options)
+        self.model = self.techniques[self.linear_technique](y, X, self.options)
         return self
 
     def predict(self, X):
