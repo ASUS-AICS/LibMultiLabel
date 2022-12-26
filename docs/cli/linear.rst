@@ -90,7 +90,7 @@ To train and evaluate a model, use
                     --test_file TEST_DATA_PATH \
                     --linear \
                     --liblinear_options=LIBLINEAR_OPTIONS \
-                    --linear_technique MULTILABEL_TECHNIQUE \
+                    --linear_technique MULTILABEL_OR_MULTICLASS_TECHNIQUE \
                     --data_format DATA_FORMAT
 
 - **config**: Path to a configuration file. Command line options
@@ -116,11 +116,12 @@ and its options may be specified.
 
         --liblinear_options='-s 2 -B 1 -e 0.0001 -q'
 
-- **linear_technique**: An option for multi-label techniques.
+- **linear_technique**: An option for multi-label or multi-class techniques.
   It should be one of:
   ``1vsrest`` (one-vs-rest),
   ``thresholding`` (thresholding),
-  and ``cost_sensitive`` (cost-sensitive).
+  ``cost_sensitive`` (cost-sensitive),
+  and ``binary_and_multiclass`` (binary_and_multiclass).
 
 - **data_format**: The data format. It should be one of
   ``txt`` (LibMultiLabel format),
