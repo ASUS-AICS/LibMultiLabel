@@ -3,11 +3,10 @@ from sklearn.utils.multiclass import unique_labels
 from sklearn.utils.validation import check_is_fitted
 
 import libmultilabel.linear as linear
-from linear_trainer import linear_train
 
 
 class MultiLabelMixin:
-    """Mixin class for all classifiers in scikit-learn."""
+    """Mixin class for multi-label classifiers."""
 
     _estimator_type = "classifier"
 
