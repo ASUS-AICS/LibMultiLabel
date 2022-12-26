@@ -121,3 +121,62 @@ class Tree:
             pred = predict_values(node.model, x).ravel()
             scores[node.labelmap] = score - np.log(1 + np.exp(-pred))
         return scores
+
+
+class CachedTree(Tree):
+    def predict_values(self, x: sparse.csr_matrix) -> np.ndarray:
+        if not hasattr(self, 'model'):
+            self._build_model()
+        allpreds = predict_values(self.model, x)
+        return np.vstack([self._beam_search(allpreds[i]) for i in range(allpreds.shape[0])])
+
+    def _build_model(self) -> None:
+        index = 0
+        weights = []
+        bias = self.root.model['-B']
+
+        def visit(node):
+            assert bias == node.model['-B']
+            nonlocal index
+            node.index = index
+            index += 1
+            weights.append(node.model.pop('weights'))
+
+        self.root.dfs(visit)
+        self.model = {
+            'weights': np.hstack(weights),
+            '-B': bias,
+            'threshold': 0
+        }
+        self.weightmap = np.cumsum(
+            [0] + list(map(lambda w: w.shape[1], weights)))
+
+    def _beam_search(self, allpreds: np.ndarray) -> np.ndarray:
+        """ Same as Tree._beam_search except this uses cached decision
+        values instead of computing on the fly.
+        """
+        cur_level = [(self.root, 0.)]   # pairs of (node, score)
+        next_level = []
+        while len(list(filter(lambda pair: not pair[0].isLeaf(), cur_level))) > 0:
+            for node, score in cur_level:
+                if node.isLeaf():
+                    next_level.append((node, score))
+                    continue
+                slice = np.s_[self.weightmap[node.index]:
+                              self.weightmap[node.index+1]]
+                pred = allpreds[slice].ravel()
+                child_score = score - np.log(1 + np.exp(-pred))
+                next_level.extend(zip(node.children, child_score.tolist()))
+
+            cur_level = sorted(next_level, key=lambda pair: -
+                               pair[1])[:self.beam_width]
+            next_level = []
+
+        scores = np.empty_like(self.root.labelmap, dtype='d')
+        scores[:] = -np.inf
+        for node, score in cur_level:
+            slice = np.s_[self.weightmap[node.index]:
+                          self.weightmap[node.index+1]]
+            pred = allpreds[slice].ravel()
+            scores[node.labelmap] = score - np.log(1 + np.exp(-pred))
+        return scores
