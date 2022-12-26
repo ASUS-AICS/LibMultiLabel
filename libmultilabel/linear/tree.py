@@ -180,3 +180,33 @@ class CachedTree(Tree):
             pred = allpreds[slice].ravel()
             scores[node.labelmap] = score - np.log(1 + np.exp(-pred))
         return np.exp(scores)
+
+
+class GlobalTree(Tree):
+    def predict_values(self, x: sparse.csr_matrix) -> np.ndarray:
+        if not hasattr(self, 'model'):
+            self._build_model()
+        return predict_values(self.model, x)
+
+    def _build_model(self) -> None:
+        num_features = self.root.model['weights'].shape[0]
+        num_labels = self.root.labelmap.shape[0]
+        weights = np.ndarray((num_features, num_labels))
+        bias = self.root.model['-B']
+
+        def visit(node):
+            assert bias == node.model['-B']
+            nodeweights = node.model.pop('weights')
+            if node.isLeaf():
+                weights[:, node.labelmap] += nodeweights
+            else:
+                for i in range(len(node.children)):
+                    childlabels = node.labelmap[node.metalabels == i]
+                    weights[:, childlabels] += nodeweights[:, i]
+
+        self.root.dfs(visit)
+        self.model = {
+            'weights': np.asmatrix(weights),
+            '-B': bias,
+            'threshold': 0
+        }
