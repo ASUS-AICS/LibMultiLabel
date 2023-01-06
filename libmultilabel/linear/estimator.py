@@ -1,8 +1,11 @@
+import re
+
 from sklearn.base import BaseEstimator
 from sklearn.utils.multiclass import unique_labels
 from sklearn.utils.validation import check_is_fitted
 
 import libmultilabel.linear as linear
+from libmultilabel.common_utils import LinearUtils
 
 
 class MultiLabelMixin:
@@ -33,23 +36,16 @@ class MultiLabelMixin:
 
 
 class MultiLabelClassifier(MultiLabelMixin, BaseEstimator):
-    def __init__(self, options, metric_threshold=0, val_metric="P@1", linear_technique="1vsrest"):
+    def __init__(self, options="-s 2", metric_threshold=0, val_metric="P@1", linear_technique="1vsrest"):
         super().__init__(metric_threshold, val_metric)
         self.options = options
-        # Can we reuse this? (linear_trainer.linear_train)
-        self.techniques = {
-            '1vsrest': linear.train_1vsrest,
-            'thresholding': linear.train_thresholding,
-            'cost_sensitive': linear.train_cost_sensitive,
-            'cost_sensitive_micro': linear.train_cost_sensitive_micro,
-            'binary_and_multiclass': linear.train_binary_and_multiclass
-        }
         self.linear_technique = linear_technique
 
     def fit(self, X, y):
         # Store the classes seen during fit
         self.classes_ = unique_labels(y)
-        self.model = self.techniques[self.linear_technique](y, X, self.options)
+        self.model = LinearUtils.LINEAR_TECHNIQUES[self.linear_technique](
+            y, X, self.options)
         return self
 
     def predict(self, X):
@@ -57,3 +53,11 @@ class MultiLabelClassifier(MultiLabelMixin, BaseEstimator):
         check_is_fitted(self)
         preds = linear.predict_values(self.model, X)
         return preds
+
+    def refine_options(self, options):
+        """Use `n_jobs` instead of `-m 1`. ??
+
+        Args:
+            options (str): The option string passed to liblinear.
+        """
+        return re.sub(r'-m \d+', '-m 1', options)
