@@ -42,6 +42,7 @@ class MultiLabelClassifier(MultiLabelMixin, BaseEstimator):
         self.linear_technique = linear_technique
 
     def fit(self, X, y):
+        self.options = self.set_singlecore(self.options)
         # Store the classes seen during fit
         self.classes_ = unique_labels(y)
         self.model = LinearUtils.LINEAR_TECHNIQUES[self.linear_technique](
@@ -54,10 +55,12 @@ class MultiLabelClassifier(MultiLabelMixin, BaseEstimator):
         preds = linear.predict_values(self.model, X)
         return preds
 
-    def refine_options(self, options):
-        """Use `n_jobs` instead of `-m 1`. ??
+    def set_singlecore(self, options):
+        """Set `-m 1` if `-m` is not specified in liblinear options.
 
         Args:
             options (str): The option string passed to liblinear.
         """
-        return re.sub(r'-m \d+', '-m 1', options)
+        if len(re.findall(r'-m \d+', options)) == 0:
+            options = f'{options} -m 1'
+        return options
