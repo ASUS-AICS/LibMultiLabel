@@ -2,9 +2,20 @@ import os
 import pickle
 from pathlib import Path
 
+import libmultilabel.linear as linear
+
 from .preprocessor import Preprocessor
 
 __all__ = ['save_pipeline', 'load_pipeline']
+
+
+LINEAR_TECHNIQUES = {
+    '1vsrest': linear.train_1vsrest,
+    'thresholding': linear.train_thresholding,
+    'cost_sensitive': linear.train_cost_sensitive,
+    'cost_sensitive_micro': linear.train_cost_sensitive_micro,
+    'binary_and_multiclass': linear.train_binary_and_multiclass
+}
 
 
 def save_pipeline(checkpoint_dir: str, preprocessor: Preprocessor, model):
