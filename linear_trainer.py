@@ -4,8 +4,9 @@ from math import ceil
 import numpy as np
 
 import libmultilabel.linear as linear
-from libmultilabel.common_utils import (LINEAR_TECHNIQUES, argsort_top_k,
-                                        dump_log, is_multiclass_dataset)
+from libmultilabel.common_utils import (argsort_top_k, dump_log,
+                                        is_multiclass_dataset)
+from libmultilabel.linear.utils import LINEAR_TECHNIQUES
 
 
 def linear_test(config, model, datasets):
