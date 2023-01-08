@@ -81,7 +81,7 @@ class MultiLabelGridSearchCV(GridSearchCV):
         assert key is not None
 
         # Set to single-core liblinear while running with `n_jobs` > 1
-        if n_jobs > 1:
+        if n_jobs is not None and n_jobs > 1:
             regex = r'-m \d+'
             param_grid[key] = [f"{re.sub(regex, '', v)} -m 1" for v in param_grid[key]]
 
