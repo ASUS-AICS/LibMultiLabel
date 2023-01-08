@@ -2,11 +2,11 @@ import re
 
 import scipy.sparse as sparse
 from sklearn.base import BaseEstimator
-from sklearn.utils.multiclass import unique_labels
-from sklearn.utils.validation import check_is_fitted
+from sklearn.utils.validation import check_is_fitted, check_X_y
 
 import libmultilabel.linear as linear
 from libmultilabel.linear.utils import LINEAR_TECHNIQUES
+from sklearn.model_selection import GridSearchCV
 
 
 class MultiLabelMixin:
@@ -64,10 +64,11 @@ class MultiLabelClassifier(MultiLabelMixin, BaseEstimator):
     def fit(self, X: sparse.csr_matrix, y: sparse.csr_matrix):
         if self.gridsearch:
             # Set to single-core liblinear while running grid search
-            self._set_singlecore_options()
+            self.options = re.sub(r'-m \d+', '', self.options)
+            self.options = f'{self.options} -m 1'
 
-        # Sklearn required code for storing the classes seen during fit
-        self.classes_ = unique_labels(y)
+        X, y = check_X_y(X, y, accept_sparse=True, multi_output=True)
+        self.is_fitted_ = True
         self.model = LINEAR_TECHNIQUES[self.linear_technique](
             y, X, self.options)
         return self
@@ -78,11 +79,10 @@ class MultiLabelClassifier(MultiLabelMixin, BaseEstimator):
         preds = linear.predict_values(self.model, X)
         return preds
 
-    def _set_singlecore_options(self):
-        """Set liblinear options to `-m 1`.
 
-        Args:
-            options (str): The option string passed to liblinear.
-        """
-        self.options = re.sub(r'-m \d+', '', self.options)
-        self.options = f'{self.options} -m 1'
+# class GridSearchCV_():
+#     def __init__(self, estimator: MultiLabelClassifier, n_jobs, **kwargs):
+#         if n_jobs > 1:
+#             self.estimator
+
+#         GridSearchCV(estimator=)
