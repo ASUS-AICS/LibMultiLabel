@@ -3,6 +3,7 @@ import re
 import scipy.sparse as sparse
 from sklearn.base import BaseEstimator
 from sklearn.model_selection._search import GridSearchCV
+from sklearn.pipeline import Pipeline
 from sklearn.utils.validation import check_is_fitted, check_X_y
 
 import libmultilabel.linear as linear
@@ -37,6 +38,7 @@ class MultiLabelMixin:
         return metric_dict[self.val_metric]
 
     def _more_tags(self):
+        # whether the estimator requires y to be passed to fit, fit_predict or fit_transform methods
         return {'requires_y': True}
 
 
@@ -73,9 +75,10 @@ class MultiLabelClassifier(MultiLabelMixin, BaseEstimator):
 class MultiLabelGridSearchCV(GridSearchCV):
     _required_parameters = ['estimator', 'param_grid']
 
-    def __init__(self, estimator, param_grid, n_jobs=None, **kwargs):
+    def __init__(self, pipeline, param_grid, n_jobs=None, **kwargs):
+        assert isinstance(pipeline, Pipeline)
         key = None
-        for name, transform in estimator.steps:
+        for name, transform in pipeline.steps:
             if isinstance(transform, MultiLabelClassifier):
                 key = f'{name}__options'
         assert key is not None
@@ -86,7 +89,7 @@ class MultiLabelGridSearchCV(GridSearchCV):
             param_grid[key] = [f"{re.sub(regex, '', v)} -m 1" for v in param_grid[key]]
 
         super().__init__(
-            estimator=estimator,
+            estimator=pipeline,
             n_jobs=n_jobs,
             param_grid=param_grid,
             **kwargs
