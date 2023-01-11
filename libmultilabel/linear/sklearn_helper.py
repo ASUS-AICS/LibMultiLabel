@@ -4,7 +4,7 @@ import scipy.sparse as sparse
 import sklearn.base
 import sklearn.model_selection
 import sklearn.pipeline
-import sklearn.utils as sklearn_utils
+import sklearn.utils
 
 import libmultilabel.linear as linear
 from libmultilabel.linear.utils import LINEAR_TECHNIQUES
@@ -15,11 +15,11 @@ class MultiLabelEstimator(sklearn.base.BaseEstimator):
 
     Args:
         options (str, optional): The option string passed to liblinear. Defaults to '-s 2'.
+        linear_technique (str, optional): Multi-label technique defined in `utils.LINEAR_TECHNIQUES`.
+            Defaults to '1vsrest'.
         metric_threshold (int, optional): The decision value threshold over which a label
             is predicted as positive. Defaults to 0.
         scoring_metric (str, optional): The scoring metric. Defaults to 'P@1'.
-        linear_technique (str, optional): Multi-label technique defined in `utils.LINEAR_TECHNIQUES`.
-            Defaults to '1vsrest'.
     """
 
     def __init__(self, options='-s 2', linear_technique='1vsrest', metric_threshold=0, scoring_metric='P@1'):
@@ -30,7 +30,7 @@ class MultiLabelEstimator(sklearn.base.BaseEstimator):
         self.scoring_metric = scoring_metric
 
     def fit(self, X: sparse.csr_matrix, y: sparse.csr_matrix):
-        X, y = sklearn_utils.validation.check_X_y(
+        X, y = sklearn.utils.validation.check_X_y(
             X, y, accept_sparse=True, multi_output=True)
         self.is_fitted_ = True
         self.model = LINEAR_TECHNIQUES[self.linear_technique](
@@ -38,7 +38,7 @@ class MultiLabelEstimator(sklearn.base.BaseEstimator):
         return self
 
     def predict(self, X: sparse.csr_matrix):
-        sklearn_utils.validation.check_is_fitted(self)
+        sklearn.utils.validation.check_is_fitted(self)
         preds = linear.predict_values(self.model, X)
         return preds
 
@@ -57,7 +57,7 @@ class MultiLabelEstimator(sklearn.base.BaseEstimator):
 class GridSearchCV(sklearn.model_selection.GridSearchCV):
     _required_parameters = ['pipeline', 'param_grid']
 
-    def __init__(self, pipeline, param_grid, n_jobs=None, **kwargs):
+    def __init__(self, pipeline: sklearn.pipeline.Pipeline, param_grid: dict, n_jobs=None, **kwargs):
         assert isinstance(pipeline, sklearn.pipeline.Pipeline)
         if n_jobs is not None and n_jobs > 1:
             param_grid = self._set_singlecore_options(pipeline, param_grid)
@@ -69,7 +69,7 @@ class GridSearchCV(sklearn.model_selection.GridSearchCV):
             **kwargs
         )
 
-    def _set_singlecore_options(self, pipeline, param_grid):
+    def _set_singlecore_options(self, pipeline: sklearn.pipeline.Pipeline, param_grid: dict):
         """Set liblinear options to `-m 1`. The grid search option `n_jobs`
         runs multiple processes in parallel. Using multithreaded liblinear
         in conjunction with grid search oversubscribes the CPU and deteriorates
@@ -80,5 +80,6 @@ class GridSearchCV(sklearn.model_selection.GridSearchCV):
             if isinstance(transform, MultiLabelEstimator):
                 regex = r'-m \d+'
                 key = f'{name}__options'
-                param_grid[key] = [f"{re.sub(regex, '', v)} -m 1" for v in param_grid[key]]
+                param_grid[key] = [
+                    f"{re.sub(regex, '', v)} -m 1" for v in param_grid[key]]
         return param_grid
