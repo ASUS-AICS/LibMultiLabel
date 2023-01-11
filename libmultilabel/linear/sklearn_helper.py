@@ -60,7 +60,7 @@ class GridSearchCV(sklearn.model_selection.GridSearchCV):
     def __init__(self, pipeline, param_grid, n_jobs=None, **kwargs):
         assert isinstance(pipeline, sklearn.pipeline.Pipeline)
         if n_jobs is not None and n_jobs > 1:
-            param_grid = self.set_singlecore_options(pipeline, param_grid)
+            param_grid = self._set_singlecore_options(pipeline, param_grid)
 
         super().__init__(
             estimator=pipeline,
@@ -69,7 +69,7 @@ class GridSearchCV(sklearn.model_selection.GridSearchCV):
             **kwargs
         )
 
-    def set_singlecore_options(self, pipeline, param_grid):
+    def _set_singlecore_options(self, pipeline, param_grid):
         """Set liblinear options to `-m 1`. The grid search option `n_jobs`
         runs multiple processes in parallel. Using multithreaded liblinear
         in conjunction with grid search oversubscribes the CPU and deteriorates
