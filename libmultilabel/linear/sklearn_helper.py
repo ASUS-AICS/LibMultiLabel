@@ -73,7 +73,7 @@ class GridSearchCV(sklearn.model_selection.GridSearchCV):
         """Set liblinear options to `-m 1`. The grid search option `n_jobs`
         runs multiple processes in parallel. Using multithreaded liblinear
         in conjunction with grid search oversubscribes the CPU and deteriorates
-        performance significantly.
+        the performance significantly.
         """
         params = pipeline.get_params()
         for name, transform in params.items():
