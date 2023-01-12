@@ -28,17 +28,18 @@ class MultiLabelEstimator(sklearn.base.BaseEstimator):
         self.linear_technique = linear_technique
         self.metric_threshold = metric_threshold
         self.scoring_metric = scoring_metric
+        self._is_fitted = False
 
     def fit(self, X: sparse.csr_matrix, y: sparse.csr_matrix):
         X, y = sklearn.utils.validation.check_X_y(
             X, y, accept_sparse=True, multi_output=True)
-        self.is_fitted_ = True
+        self._is_fitted = True
         self.model = LINEAR_TECHNIQUES[self.linear_technique](
             y, X, self.options)
         return self
 
     def predict(self, X: sparse.csr_matrix):
-        sklearn.utils.validation.check_is_fitted(self)
+        sklearn.utils.validation.check_is_fitted(self, attributes=['_is_fitted'])
         preds = linear.predict_values(self.model, X)
         return preds
 
