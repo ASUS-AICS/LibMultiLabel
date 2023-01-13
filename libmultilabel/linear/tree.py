@@ -120,7 +120,7 @@ class Tree:
         for node, score in cur_level:
             pred = predict_values(node.model, x).ravel()
             scores[node.labelmap] = score - np.log(1 + np.exp(-pred))
-        return np.exp(scores)
+        return -np.log(np.exp(-scores) - 1)
 
 
 class CachedTree(Tree):
@@ -179,7 +179,7 @@ class CachedTree(Tree):
                           self.weightmap[node.index+1]]
             pred = allpreds[slice].ravel()
             scores[node.labelmap] = score - np.log(1 + np.exp(-pred))
-        return np.exp(scores)
+        return -np.log(np.exp(-scores) - 1)
 
 
 class GlobalTree(Tree):
