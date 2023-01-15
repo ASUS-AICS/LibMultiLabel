@@ -193,7 +193,7 @@ def main():
     # Set up logger
     log_level = logging.WARNING if config.silent else logging.INFO
     stream_handler = add_stream_handler(log_level)
-    collect_handler = add_collect_handler(log_level)
+    collect_handler = add_collect_handler(logging.NOTSET)
 
 
     logging.info(f'Run name: {config.run_name}')
