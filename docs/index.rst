@@ -32,6 +32,7 @@ For practical tips, please see the `User Guide <https://www.csie.ntu.edu.tw/~cjl
    api/nn_tutorial
    api/linear
    api/nn
+   auto_examples/plot_dataset_tutorial
 
 
 ..
