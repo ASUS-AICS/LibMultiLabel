@@ -29,7 +29,8 @@ For practical tips, please see the `User Guide <https://www.csie.ntu.edu.tw/~cjl
 
    api/api
    auto_examples/plot_linear_tutorial
-   api/nn_tutorial
+   auto_examples/plot_nn_tutorial
+   nn_tutorial
    api/linear
    api/nn
    auto_examples/plot_dataset_tutorial
