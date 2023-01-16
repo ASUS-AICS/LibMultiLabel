@@ -154,11 +154,13 @@ def _load_raw_data(path, is_test=False, tokenize_text=True, remove_no_label_data
         if num_no_label_data > 0:
             if remove_no_label_data:
                 logging.info(
-                    f'Remove {num_no_label_data} instances that have no labels from {path}.')
+                    f'Remove {num_no_label_data} instances that have no labels from {path}.',
+                    extra={'collect': True})
                 data = [d for d in data if len(d['label']) > 0]
             else:
                 logging.info(
-                    f'Keep {num_no_label_data} instances that have no labels from {path}.')
+                    f'Keep {num_no_label_data} instances that have no labels from {path}.',
+                    extra={'collect': True})
     return data
 
 

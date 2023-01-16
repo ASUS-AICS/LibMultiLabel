@@ -7,6 +7,7 @@ from pathlib import Path
 import yaml
 
 from libmultilabel.common_utils import Timer, AttributeDict
+from libmultilabel.logging import add_stream_handler, add_collect_handler
 
 
 def add_all_arguments(parser):
@@ -191,8 +192,9 @@ def main():
 
     # Set up logger
     log_level = logging.WARNING if config.silent else logging.INFO
-    logging.basicConfig(
-        level=log_level, format='%(asctime)s %(levelname)s:%(message)s')
+    stream_handler = add_stream_handler(log_level)
+    collect_handler = add_collect_handler(logging.NOTSET)
+
 
     logging.info(f'Run name: {config.run_name}')
 
@@ -208,6 +210,11 @@ def main():
         # test
         if 'test' in trainer.datasets:
             trainer.test()
+
+    collected_logs = collect_handler.get_logs()
+    if collected_logs:
+        print('\n\n======= Collected log messages =======')
+        print("\n".join(collected_logs))
 
 
 if __name__ == '__main__':
