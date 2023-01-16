@@ -33,7 +33,8 @@ def add_stream_handler(level=logging.INFO):
     """Create and return a stream handler so that logging messages are
     sent to the terminal. The stream handler is attached to the root logger.
     The logging messages from the `transformer` and `pytorch_lighting`
-    modules are propagated to the root logger.
+    modules are propagated to the root logger so they can be managed by
+    us (e.g., silence them in silent mode).
     If the handler had been created, this function returns the handler
     created earlier instead.
 
@@ -47,7 +48,6 @@ def add_stream_handler(level=logging.INFO):
     else:
         logging.getLogger().setLevel(logging.NOTSET) # use handlers to control levels
 
-        # propagate their logs so that they can be silenced in silent mode
         transformer_logging.disable_default_handler()
         transformer_logging.enable_propagation()
 
