@@ -41,7 +41,7 @@ def train_libmultilabel_tune(config, datasets, classes, word_dict):
                            classes=classes,
                            word_dict=word_dict,
                            search_params=True,
-                           save_checkpoints=False)
+                           save_checkpoints=True)
     trainer.train()
 
 
@@ -213,9 +213,21 @@ def retrain_best_model(exp_name, best_config, best_log_dir, merge_train_val):
 
     data = load_static_data(
         best_config, merge_train_val=best_config.merge_train_val)
-    logging.info(f'Re-training with best config: \n{best_config}')
-    trainer = TorchTrainer(config=best_config, **data)
-    trainer.train()
+    
+
+    if merge_train_val:
+        logging.info(f'Re-training with best config: \n{best_config}')
+        trainer = TorchTrainer(config=best_config, **data)
+        trainer.train()
+    else:
+        #if not merging training and validation data, load the best result from tune experiment.
+        logging.info(f'Loading best model with best config: \n{best_config}')
+        trainer = TorchTrainer(config=best_config, **data)
+        best_checkpoint = os.path.join(best_log_dir, 'best_model.ckpt')
+        last_checkpoint = os.path.join(best_log_dir, 'last.ckpt')
+        trainer._setup_model(checkpoint_path=best_checkpoint)
+        os.popen(f"cp {best_checkpoint} {os.path.join(checkpoint_dir, 'best_model.ckpt')}")
+        os.popen(f"cp {last_checkpoint} {os.path.join(checkpoint_dir, 'last.ckpt')}")
 
     if 'test' in data['datasets']:
         test_results = trainer.test()
@@ -253,6 +265,7 @@ def main():
     # Check if the validation set is provided.
     if 'val_file' not in config:
         config.val_file = None
+    print(config)
     assert config.val_size > 0 or config.val_file is not None, \
         "You should specify either a positive `val_size` or a `val_file` for parameter search."
 
@@ -306,6 +319,7 @@ def main():
         f'val_{config.val_metric}', config.mode, scope='all')
     best_log_dir = analysis.get_best_logdir(
         f'val_{config.val_metric}', config.mode, scope='all')
+    
     retrain_best_model(exp_name, best_config, best_log_dir,
                        merge_train_val=not args.no_merge_train_val)
 
