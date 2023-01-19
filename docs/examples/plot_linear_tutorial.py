@@ -1,5 +1,5 @@
 """
-Linear Classification Quickstart Tutorial
+Linear Model for Multi-label Classification
 =========================================
 
 .. role:: py(code)

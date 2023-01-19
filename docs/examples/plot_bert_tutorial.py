@@ -1,5 +1,5 @@
 """
-BERT Example
+BERT Model for Multi-label Classification
 ============
 
 This step-by-step example shows how to train and test a BERT model via LibMultiLabel.

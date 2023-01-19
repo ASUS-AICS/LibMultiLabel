@@ -1,5 +1,5 @@
 """
-KimCNN Example
+KimCNN Model for Multi-label Classification
 ==============
 
 This step-by-step example shows how to train and test a KimCNN model via LibMultiLabel.
