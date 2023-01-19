@@ -265,7 +265,6 @@ def main():
     # Check if the validation set is provided.
     if 'val_file' not in config:
         config.val_file = None
-    print(config)
     assert config.val_size > 0 or config.val_file is not None, \
         "You should specify either a positive `val_size` or a `val_file` for parameter search."
 
@@ -319,7 +318,6 @@ def main():
         f'val_{config.val_metric}', config.mode, scope='all')
     best_log_dir = analysis.get_best_logdir(
         f'val_{config.val_metric}', config.mode, scope='all')
-    
     retrain_best_model(exp_name, best_config, best_log_dir,
                        merge_train_val=not args.no_merge_train_val)
 
