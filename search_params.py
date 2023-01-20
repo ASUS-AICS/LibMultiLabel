@@ -219,7 +219,7 @@ def retrain_best_model(exp_name, best_config, best_log_dir, merge_train_val):
         trainer = TorchTrainer(config=best_config, **data)
         trainer.train()
     else:
-        #if not merging training and validation data, load the best result from tune experiment.
+        # If not merging training and validation data, load the best result from tune experiments.
         logging.info(f'Loading best model with best config: \n{best_config}')
         trainer = TorchTrainer(config=best_config, **data)
         best_checkpoint = os.path.join(best_log_dir, 'best_model.ckpt')
