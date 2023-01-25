@@ -1,8 +1,9 @@
 Linear Classifier API
 =====================
 
-Train/Predict
-^^^^^^^^^^^^^
+
+Train and Predict
+^^^^^^^^^^^^^^^^^
 Linear methods are methods based on
 `LibLinear <https://www.csie.ntu.edu.tw/~cjlin/liblinear/>`_.
 The simplest usage is::
@@ -35,15 +36,17 @@ Preprocessor
 
    .. automethod:: __init__
 
+
+Load and Save Pipeline
+^^^^^^^^^^^^^^^^^^^^^^
+
 .. autofunction:: save_pipeline
 
 .. autofunction:: load_pipeline
 
 
-.. _libmultilabel.linear.sklearn_helper:
-
-Grid Search
-^^^^^^^^^^^
+Grid Search with Sklearn Estimators
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. currentmodule:: libmultilabel.linear.sklearn_helper
 
