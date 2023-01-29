@@ -172,4 +172,3 @@ The test results should be similar to::
   }
 
 Please get the full example code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/kimcnn_quickstart.py>`_.
-
