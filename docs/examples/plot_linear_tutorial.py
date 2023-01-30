@@ -2,33 +2,8 @@
 Linear Model for Multi-label Classification
 =========================================
 
-.. role:: py(code)
-   :language: python3
-
 This guide will take you through how LibMultiLabel can
 be used to train a linear classifier in python scripts.
-
-Getting the Dataset
-^^^^^^^^^^^^^^^^^^^
-
-For this guide, we will use the rcv1 dataset, which is
-a collection of news articles.
-On the command line::
-
-    mkdir -p data/rcv1
-    wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/rcv1_topics_train.txt.bz2 -O data/rcv1/train.txt.bz2
-    wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/rcv1_topics_test.txt.bz2 -O data/rcv1/test.txt.bz2
-    bzip2 -d data/rcv1/*.bz2
-
-Each line of the dataset contains an ID, its labels and the
-text, all seperated by tabs. For example::
-
-    2286    E11 ECAT M11 M12 MCAT   recov recov recov recov excit excit bring mexic ...
-
-See `data formats <../cli/ov_data_format.html#dataset-formats>`_ for a complete explanation of the format.
-
-The Python Script
-^^^^^^^^^^^^^^^^^
 
 For this guide, we will only need the linear module:
 """
