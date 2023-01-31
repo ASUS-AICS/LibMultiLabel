@@ -20,6 +20,11 @@ help:
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 	python3 cli/genflags.py > cli/flags.include
 
+html-noplot:
+	python3 cli/genflags.py > cli/flags.include
+	$(SPHINXBUILD) -b html -D plot_gallery=0 "$(SOURCEDIR)" "$(BUILDDIR)/html" $(SPHINXOPTS) $(O)
+
 clean: Makefile
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	rm -rf auto_examples
 	rm cli/flags.include
