@@ -127,7 +127,7 @@ The results should be similar to::
       'P@5':      0.5505486726760864
   }
 
-Please get the full example code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/bert_quickstart.py>`_.
+Please get the full example code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/bert_quickstart.py>`__.
 
 
 KimCNN Example
@@ -171,5 +171,5 @@ The test results should be similar to::
       'P@5':      0.5449321269989014,
   }
 
-Please get the full example code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/kimcnn_quickstart.py>`_.
+Please get the full example code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/kimcnn_quickstart.py>`__.
 

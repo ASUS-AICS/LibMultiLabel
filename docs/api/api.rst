@@ -31,7 +31,7 @@ Quickstart Tutorials
 
 These tutorials shows how the library API may be used in
 end-to-end examples. After these tutorials, more in-depth
-explanations can be found in the `user guides <placeholder>`_.
+explanations can be found in the `user guides <https://www.csie.ntu.edu.tw/~cjlin/papers/libmultilabel/userguide.pdf>`__.
 
 * `Linear Classification <linear_tutorial.html>`_
 * `Neural Network <nn_tutorial.html>`_
