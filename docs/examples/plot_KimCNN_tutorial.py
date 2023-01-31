@@ -1,6 +1,6 @@
 """
 KimCNN Model for Multi-label Classification
-==============
+===========================================
 
 This step-by-step example shows how to train and test a KimCNN model via LibMultiLabel.
 
@@ -127,5 +127,5 @@ trainer.test(model, dataloaders=loaders['test'])
 #      'P@5':      0.5449321269989014,
 #  }
 #
-# Please get the full example code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/kimcnn_quickstart.py>`_.
+# Please get the full example code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/kimcnn_quickstart.py>`__.
 

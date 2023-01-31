@@ -1,6 +1,6 @@
 """
 BERT Model for Multi-label Classification
-============
+=========================================
 
 This step-by-step example shows how to train and test a BERT model via LibMultiLabel.
 
@@ -132,4 +132,4 @@ trainer.test(model, dataloaders=loaders['test'])
 #      'P@5':      0.5505486726760864
 #  }
 #
-# Please get the full example code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/bert_quickstart.py>`_.
+# Please get the full example code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/bert_quickstart.py>`__.

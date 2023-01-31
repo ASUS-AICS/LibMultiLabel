@@ -31,7 +31,7 @@ Quickstart
 
 These tutorials show how the library API may be used in
 end-to-end examples. After these tutorials, more in-depth
-explanations can be found in the `user guides <placeholder>`_.
+explanations can be found in the `user guides <https://www.csie.ntu.edu.tw/~cjlin/papers/libmultilabel/userguide.pdf>`__.
 
 * `Linear Model for Multi-label Classification <../auto_examples/plot_linear_tutorial.html>`_
 * `Bert Model for Multi-label  Classification <../auto_examples/plot_bert_tutorial.html>`_

@@ -1,6 +1,6 @@
 """
 Linear Model for Multi-label Classification
-=========================================
+===========================================
 
 This guide will take you through how LibMultiLabel can
 be used to train a linear classifier in python scripts.
@@ -82,4 +82,4 @@ print(metrics.compute())
 # 
 #     {'Macro-F1': 0.5171960144875225, 'Micro-F1': 0.8008124243391698, 'P@1': 0.9573153795447128, 'P@3': 0.799074151109632, 'P@5': 0.5579924865442584}
 # 
-# Get the full source code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/linear_quickstart.py>`_.
+# Get the full source code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/linear_quickstart.py>`__.
