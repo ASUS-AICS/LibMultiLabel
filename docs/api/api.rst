@@ -26,7 +26,7 @@ We provide two installation types to install LibMultiLabel:
 
     pip3 install libmultilabel[linear]
 
-Quickstart Tutorials
+Quickstart
 ^^^^^^^^^^^^^^^^^^^^
 
 These tutorials show how the library API may be used in
