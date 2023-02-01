@@ -16,7 +16,7 @@ from libmultilabel.nn.nn_utils import *
 from transformers import AutoTokenizer
 
 ######################################################################
-# Step 2. Setup device
+# Setup device
 # --------------------
 # If you need to reproduce the results, please use the function ``set_seed``. 
 # For example, you will get the same result as you always use the seed ``1337``.
