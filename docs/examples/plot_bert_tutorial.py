@@ -5,7 +5,7 @@ BERT Model for Multi-label Classification
 This step-by-step example shows how to train and test a BERT model via LibMultiLabel.
 
 
-Step 1. Import the libraries
+Import the libraries
 ----------------------------
 
 Please add the following code to your python3 script.
@@ -27,7 +27,7 @@ set_seed(1337)
 device = init_device()  # use gpu by default
 
 ######################################################################
-# Step 3. Load and tokenize data
+# Load and tokenize data
 # ------------------------------------------
 # We assume that the ``rcv1`` data is located at the directory ``./data/rcv1``, 
 # and there exist the files ``train.txt`` and ``test.txt``.
@@ -48,7 +48,7 @@ word_dict, embed_vecs = None, None
 tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
 
 ######################################################################
-# Step 4. Initialize a model
+# Initialize a model
 # --------------------------
 #
 # We use the following code to initialize a model.
@@ -77,7 +77,7 @@ model = init_model(
 # * ``moniter_metrics`` includes metrics you would like to track.
 #    
 #
-# Step 5. Initialize a trainer
+# Initialize a trainer
 # ----------------------------
 #
 # We use the function ``init_trainer`` to initialize a trainer. 
@@ -87,7 +87,7 @@ trainer = init_trainer(checkpoint_dir='runs/NN-example', epochs=15, val_metric='
 ######################################################################
 # In this example, ``checkpoint_dir`` is the place we save the best and the last models during the training. Furthermore, we set the number of training loops by ``epochs=15``, and the validation metric by ``val_metric = 'P@5'``.
 #
-# Step 6. Create data loaders
+# Create data loaders
 # ---------------------------
 #
 # In most cases, we do not load a full set due to the hardware limitation.
@@ -109,7 +109,7 @@ for split in ['train', 'val', 'test']:
 ######################################################################
 # This example loads three loaders, and the batch size is set by ``batch_size=8``. Other variables can be checked in `here <../api/nn.html#libmultilabel.nn.data_utils.get_dataset_loader>`_.
 #
-# Step 7. Train and test a model
+# Train and test a model
 # ------------------------------
 #
 # The bert model training process can be started via 
@@ -131,5 +131,3 @@ trainer.test(model, dataloaders=loaders['test'])
 #      'P@3':      0.7907078266143799, 
 #      'P@5':      0.5505486726760864
 #  }
-#
-# Please get the full example code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/bert_quickstart.py>`__.

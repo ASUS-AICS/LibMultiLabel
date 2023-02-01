@@ -5,7 +5,7 @@ KimCNN Model for Multi-label Classification
 This step-by-step example shows how to train and test a KimCNN model via LibMultiLabel.
 
 
-Step 1. Import the libraries
+Import the libraries
 ----------------------------
 
 Please add the following code to your python3 script.
@@ -16,7 +16,7 @@ from libmultilabel.nn.nn_utils import *
 from transformers import AutoTokenizer
 
 ######################################################################
-# Step 2. Setup device
+# Setup device
 # --------------------
 # If you need to reproduce the results, please use the function ``set_seed``. 
 # For example, you will get the same result as you always use the seed ``1337``.
@@ -27,7 +27,7 @@ set_seed(1337)
 device = init_device()  # use gpu by default
 
 ######################################################################
-# Step 3. Load and tokenize data
+# Load and tokenize data
 # ------------------------------------------
 #
 # To run KimCNN, LibMultiLabel tokenizes documents and uses an embedding vector for each word. 
@@ -41,7 +41,7 @@ word_dict, embed_vecs = load_or_build_text_dict(dataset=datasets['train'], embed
 tokenizer = None
  
 ######################################################################
-# Step 4. Initialize a model
+# Initialize a model
 # --------------------------
 #
 # We consider the following settings for the KimCNN model.
@@ -72,7 +72,7 @@ model = init_model(
 # * ``moniter_metrics`` includes metrics you would like to track.
 #    
 #
-# Step 5. Initialize a trainer
+# Initialize a trainer
 # ----------------------------
 #
 # We use the function ``init_trainer`` to initialize a trainer. 
@@ -82,7 +82,7 @@ trainer = init_trainer(checkpoint_dir='runs/NN-example', epochs=15, val_metric='
 ######################################################################
 # In this example, ``checkpoint_dir`` is the place we save the best and the last models during the training. Furthermore, we set the number of training loops by ``epochs=15``, and the validation metric by ``val_metric = 'P@5'``.
 #
-# Step 6. Create data loaders
+# Create data loaders
 # ---------------------------
 #
 # In most cases, we do not load a full set due to the hardware limitation.
@@ -104,7 +104,7 @@ for split in ['train', 'val', 'test']:
 ######################################################################
 # This example loads three loaders, and the batch size is set by ``batch_size=8``. Other variables can be checked in `here <../api/nn.html#libmultilabel.nn.data_utils.get_dataset_loader>`_.
 #
-# Step 7. Train and test a model
+# Train and test a model
 # ------------------------------
 #
 # The bert model training process can be started via 
@@ -126,6 +126,4 @@ trainer.test(model, dataloaders=loaders['test'])
 #      'P@3':      0.7772253751754761,
 #      'P@5':      0.5449321269989014,
 #  }
-#
-# Please get the full example code `here <https://github.com/ASUS-AICS/LibMultiLabel/tree/master/docs/examples/kimcnn_quickstart.py>`__.
 
