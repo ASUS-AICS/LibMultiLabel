@@ -5,7 +5,8 @@ REPORT_PATH="test_tutorial_report.txt"
 LOG_PREFIX="out"
 
 update_libmultilabel() {
-  pip install -U libmultilabel
+  pip3 install -U libmultilabel
+  pip3 install --force-reinstall torch --extra-index-url https://download.pytorch.org/whl/cu116
 }
 
 #######################################
@@ -29,8 +30,8 @@ run_and_compare_logs() {
   echo "$is_passed  $command" >> $REPORT_PATH &
 
   # Remove temporary files.
-  rm out_${BRANCH_TO_TEST}.log
-  rm out_master.log
+  rm ${LOG_PREFIX}_${BRANCH_TO_TEST}.log
+  rm ${LOG_PREFIX}_master.log
 }
 
 main() {
