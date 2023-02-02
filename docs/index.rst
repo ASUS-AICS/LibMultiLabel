@@ -31,6 +31,12 @@ For practical tips, please see the `User Guide <https://www.csie.ntu.edu.tw/~cjl
    api/linear
    api/nn
 
+.. toctree::
+   :caption: Tutorial
+   :maxdepth: 1
+   :hidden:
+
+   tutorial/tutorial
 
 ..
    Indices and tables

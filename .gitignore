@@ -154,6 +154,7 @@ tmp*
 
 # Sphinx build
 docs/_build/*
+docs/auto_examples
 docs/cli/*.include
 !docs/requirements.txt
 !requirements.txt
