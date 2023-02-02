@@ -49,7 +49,7 @@ pipeline.fit(train_data['text'], train_labels)
 ######################################################################
 # Grid Search over LIBLINEAR options
 # ----------------------------------
-# To run grid search with multiple LIBLINEAR options, directly pass in the defined pipeline and parameters to search to GridSearchCV as below.
+# To run grid search with multiple LIBLINEAR options, directly pass in the defined pipeline and parameters to search to ``GridSearchCV`` as below.
 
 from libmultilabel.linear.sklearn_helper import GridSearchCV
 
@@ -60,6 +60,6 @@ clf = GridSearchCV(pipeline, parameters, cv=5, n_jobs=4, verbose=1)
 clf = clf.fit(train_data['text'], train_labels)
 
 ######################################################################
-# Class ``libmultilabel.linear.sklearn_helper.GridSearchCV`` append ``-m 1`` to LIBLINEAR options while ``n_jobs>1``
+# Class ``libmultilabel.linear.sklearn_helper.GridSearchCV`` appends ``-m 1`` to LIBLINEAR options while ``n_jobs>1``
 # to avoid oversubscribing CPU. The key in ``parameters`` should follow the sklearn's coding rule starting
 # with the estimator's alias and two underscores __(i.e., clf__).
