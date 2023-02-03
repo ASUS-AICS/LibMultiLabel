@@ -44,7 +44,7 @@ device = init_device()  # use gpu by default
 
 datasets = load_datasets('data/rcv1/train.txt', 'data/rcv1/test.txt', tokenize_text=False)
 classes = load_or_build_label(datasets)
-word_dict, embed_vecs = None, None 
+word_dict, embed_vecs = None, None
 tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
 
 ######################################################################
@@ -75,7 +75,7 @@ model = init_model(
 # * ``classes`` is the label set of the data.
 # * ``init_weight``, ``word_dict`` and ``embed_vecs`` are not used on a bert-base model, so we can ignore them.
 # * ``moniter_metrics`` includes metrics you would like to track.
-#    
+#
 #
 # Initialize a trainer
 # ----------------------------
@@ -85,7 +85,7 @@ model = init_model(
 trainer = init_trainer(checkpoint_dir='runs/NN-example', epochs=15, val_metric='P@5')
 
 ######################################################################
-# In this example, ``checkpoint_dir`` is the place we save the best and the last models during the training. Furthermore, we set the number of training loops by ``epochs=15``, and the validation metric by ``val_metric = 'P@5'``.
+# In this example, ``checkpoint_dir`` is the place we save the best and the last models during the training. Furthermore, we set the number of training loops by ``epochs=15``, and the validation metric by ``val_metric='P@5'``.
 #
 # Create data loaders
 # ---------------------------

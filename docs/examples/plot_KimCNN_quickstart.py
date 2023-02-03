@@ -30,7 +30,7 @@ device = init_device()  # use gpu by default
 # ------------------------------------------
 #
 # To run KimCNN, LibMultiLabel tokenizes documents and uses an embedding vector for each word.
-# Thus, ``tokenize_text = True`` is set.
+# Thus, ``tokenize_text=True`` is set.
 #
 # We choose ``glove.6B.300d`` from torchtext as embedding vectors.
 
@@ -79,7 +79,7 @@ model = init_model(
 trainer = init_trainer(checkpoint_dir='runs/NN-example', epochs=15, val_metric='P@5')
 
 ######################################################################
-# In this example, ``checkpoint_dir`` is the place we save the best and the last models during the training. Furthermore, we set the number of training loops by ``epochs=15``, and the validation metric by ``val_metric = 'P@5'``.
+# In this example, ``checkpoint_dir`` is the place we save the best and the last models during the training. Furthermore, we set the number of training loops by ``epochs=15``, and the validation metric by ``val_metric='P@5'``.
 #
 # Create data loaders
 # ---------------------------
