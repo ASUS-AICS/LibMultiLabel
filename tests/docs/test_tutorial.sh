@@ -6,7 +6,6 @@ LOG_PREFIX="out"
 
 update_libmultilabel() {
   pip3 install -U libmultilabel
-  pip3 install --force-reinstall torch --extra-index-url https://download.pytorch.org/whl/cu116
 }
 
 #######################################
