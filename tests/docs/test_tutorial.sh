@@ -36,9 +36,9 @@ run_and_compare_logs() {
 main() {
   rm $REPORT_PATH
   TEST_FILES=(
-    "plot_linear_tutorial.py"
-    "plot_KimCNN_tutorial.py"
-    "plot_bert_tutorial.py"
+    "plot_linear_quickstart.py"
+    "plot_KimCNN_quickstart.py"
+    "plot_bert_quickstart.py"
   )
   for file_name in "${TEST_FILES[@]}"; do
     command="python3 docs/examples/${file_name}"

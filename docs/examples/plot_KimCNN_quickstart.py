@@ -13,12 +13,11 @@ Please add the following code to your python3 script.
 
 from libmultilabel.nn.data_utils import *
 from libmultilabel.nn.nn_utils import *
-from transformers import AutoTokenizer
 
 ######################################################################
 # Setup device
 # --------------------
-# If you need to reproduce the results, please use the function ``set_seed``. 
+# If you need to reproduce the results, please use the function ``set_seed``.
 # For example, you will get the same result as you always use the seed ``1337``.
 #
 # For initial a hardware device, please use ``init_device`` to assign the hardware device that you want to use.
@@ -30,16 +29,16 @@ device = init_device()  # use gpu by default
 # Load and tokenize data
 # ------------------------------------------
 #
-# To run KimCNN, LibMultiLabel tokenizes documents and uses an embedding vector for each word. 
+# To run KimCNN, LibMultiLabel tokenizes documents and uses an embedding vector for each word.
 # Thus, ``tokenize_text = True`` is set.
 #
-# We choose ``glove.6B.300d`` from torchtext as embedding vectors. 
+# We choose ``glove.6B.300d`` from torchtext as embedding vectors.
 
 datasets = load_datasets('data/rcv1/train.txt', 'data/rcv1/test.txt', tokenize_text=True)
 classes = load_or_build_label(datasets)
 word_dict, embed_vecs = load_or_build_text_dict(dataset=datasets['train'], embed_file='glove.6B.300d')
 tokenizer = None
- 
+
 ######################################################################
 # Initialize a model
 # --------------------------
@@ -70,12 +69,12 @@ model = init_model(
 # * ``classes`` is the label set of the data.
 # * ``init_weight``, ``word_dict`` and ``embed_vecs`` are not used on a bert-base model, so we can ignore them.
 # * ``moniter_metrics`` includes metrics you would like to track.
-#    
+#
 #
 # Initialize a trainer
 # ----------------------------
 #
-# We use the function ``init_trainer`` to initialize a trainer. 
+# We use the function ``init_trainer`` to initialize a trainer.
 
 trainer = init_trainer(checkpoint_dir='runs/NN-example', epochs=15, val_metric='P@5')
 
@@ -107,7 +106,7 @@ for split in ['train', 'val', 'test']:
 # Train and test a model
 # ------------------------------
 #
-# The bert model training process can be started via 
+# The bert model training process can be started via
 
 trainer.fit(model, loaders['train'], loaders['val'])
 
