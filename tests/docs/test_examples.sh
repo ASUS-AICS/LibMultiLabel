@@ -1,7 +1,7 @@
 #!/bin/bash
 
 BRANCH_TO_TEST=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p')
-REPORT_PATH="test_tutorial_report.txt"
+REPORT_PATH="test_doc_examples_report.txt"
 LOG_PREFIX="out"
 
 update_libmultilabel() {
@@ -54,7 +54,7 @@ main() {
 #######################################
 # Please run this script in the LibMultilabel directory.
 # Usage:
-#   bash tests/docs/test_tutorial.sh
+#   bash tests/docs/test_examples.sh
 #######################################
 if $(echo $(pwd) | grep -q "tests"); then
   echo "Please run this script in the LibMultilabel directory."
