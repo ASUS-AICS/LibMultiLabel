@@ -27,8 +27,8 @@ from libmultilabel.linear import MultiLabelEstimator
 estimator = MultiLabelEstimator(
     options='-s 2 -m 1', linear_technique='1vsrest')
 pipeline = Pipeline([
-    ('vect', CountVectorizer()),
-    ('tfidf', TfidfTransformer(min_df=3)),
+    ('vect', CountVectorizer(max_features=20000, min_df=3)),
+    ('tfidf', TfidfTransformer()),
     ('clf', estimator)
 ])
 
@@ -61,7 +61,11 @@ pipeline.fit(train_data['text'], train_labels)
 from libmultilabel.linear.sklearn_helper import GridSearchCV
 
 liblinear_options = ['-s 2 -c 0.5', '-s 2 -c 1', '-s 2 -c 2']
-parameters = {'clf__options': liblinear_options} # add a method other than tfidf?
+parameters = {
+    'clf__options': liblinear_options,
+    'vect__max_features': [10000, 20000, 40000],
+    'vect__min_df': [3, 5]
+}
 clf = GridSearchCV(pipeline, parameters, cv=5, n_jobs=4, verbose=1)
 clf = clf.fit(train_data['text'], train_labels)
 
