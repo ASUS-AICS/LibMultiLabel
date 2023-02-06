@@ -48,8 +48,6 @@ Load and Save Pipeline
 Grid Search with Sklearn Estimators
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. currentmodule:: libmultilabel.linear.sklearn_helper
-
 .. autoclass:: MultiLabelEstimator
    :members:
 
