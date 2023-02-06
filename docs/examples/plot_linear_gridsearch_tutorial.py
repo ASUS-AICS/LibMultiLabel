@@ -1,26 +1,27 @@
 """
-Linear Grid Search
-==================
+Feature Generation and Parameter Selection for Linear Methods
+=============================================================
 
-This tutorial demonstrates how to train a linear text classifier and grid search over LIBLINEAR options using a customized sklearn estimator.
-
-
-
-Train a linear text classifier
-------------------------------
+This tutorial demonstrates feature generation and parameter selection for linear methods.
+Our workflow is similiar to the one in sklearn.
 
 Here we show an example of training a linear text classifier with the rcv1 dataset.
 If you haven't downloaded it yet, see
 `Getting the Dataset <../api/linear_tutorial.html#getting-the-dataset>`_.
 
-A typical workflow for training a linear text classifier includes binarizing labels,
-transforming text to vectors with TF-IDF vectorizer, and classifying text with linear techniques.
-In the classifying step, a customized sklearn estimator, ``MultiLabelEstimator``, helps users to run LibMultiLabel classifiers in a sklearn Pipeline.
-The sample code shows you how it works.
+Feature Generation and Setting Up a Linear Method
+-------------------------------------------------
+
+If you decide to use the default setting (TF-IDF features) and specify the LIBLINEAR options
+used by linear methods by yourself, check `our quickstart <../api/api.html#quickstart>`_
+for easily conducting training and testing.
+To choose among different feature generations and LIBLINEAR options, we conduct a customized estimator
+for making LibMultiLabel methods in a sklearn Pipeline for a grid search.
+
+TBD. explain why binarizer
 """
 
-from libmultilabel.linear.preprocessor import read_libmultilabel_format
-from libmultilabel.linear.sklearn_helper import MultiLabelEstimator
+from libmultilabel.linear import read_libmultilabel_format, MultiLabelEstimator
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.pipeline import Pipeline
@@ -45,21 +46,27 @@ pipeline.fit(train_data['text'], train_labels)
 ######################################################################
 # For the estimator ``MultiLabelEstimator``, arguments ``options`` is a LIBLINEAR option, and ``linear_technique`` is one of linear techniques:
 # ``1vsrest``, ``thresholding``, ``cost_sensitive``, ``cost_sensitive_micro``, and ``binary_and_mulitclass``.
+# In ``pipeline``, we specify ``tfidf`` as the way to convert texts to vectors.
 
 ######################################################################
-# Grid Search over LIBLINEAR options
-# ----------------------------------
-# To run grid search with multiple LIBLINEAR options, directly pass in the defined pipeline and parameters to search to ``GridSearchCV`` as below.
+# Grid Search over Feature Generations and LIBLINEAR options
+# ----------------------------------------------------------
+# From the above construction of an estimator, because options are set, we can directly train a model.
+pipeline.fit(train_data['text'], train_labels)
+
+######################################################################
+# However, to search for the best setting, we can deploy ``GridSearchCV``.
 
 from libmultilabel.linear.sklearn_helper import GridSearchCV
 
 
 liblinear_options = ['-s 2 -c 0.5', '-s 2 -c 1', '-s 2 -c 2']
-parameters = {'clf__options': liblinear_options}
+parameters = {'clf__options': liblinear_options} # add a method other than tfidf
 clf = GridSearchCV(pipeline, parameters, cv=5, n_jobs=4, verbose=1)
 clf = clf.fit(train_data['text'], train_labels)
 
 ######################################################################
-# Class ``libmultilabel.linear.sklearn_helper.GridSearchCV`` appends ``-m 1`` to LIBLINEAR options while ``n_jobs>1``
-# to avoid oversubscribing CPU. The key in ``parameters`` should follow the sklearn's coding rule starting
-# with the estimator's alias and two underscores __(i.e., clf__).
+# Here we check the combinations of two feature generations and three regularization parameters
+# in the linear classifier. The key in ``parameters`` should follow the sklearn's coding rule
+# starting with the estimator's alias and two underscores __(i.e., clf__).
+# We specify ``n_jobs=4`` to run four tasks in parallel.
