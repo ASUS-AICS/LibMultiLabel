@@ -36,7 +36,7 @@ For practical tips, please see the `User Guide <https://www.csie.ntu.edu.tw/~cjl
    :maxdepth: 1
    :hidden:
 
-   tutorial/tutorial
+   auto_examples/plot_linear_gridsearch_tutorial
 
 ..
    Indices and tables
