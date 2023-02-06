@@ -44,7 +44,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 sphinx_gallery_conf = {
     'examples_dirs': './examples',   # path to your example scripts
     'gallery_dirs': 'auto_examples',  # path to where to save gallery generated output
-    'ignore_pattern': r'_quickstart\.py', # tmp for development, it should be removed when removing the examples 
+    "plot_gallery": False,
 }
 
 

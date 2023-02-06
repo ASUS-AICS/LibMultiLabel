@@ -1,8 +1,8 @@
 """
-KimCNN Model for Multi-label Classification
-===========================================
+BERT Model for Multi-label Classification
+=========================================
 
-This step-by-step example shows how to train and test a KimCNN model via LibMultiLabel.
+This step-by-step example shows how to train and test a BERT model via LibMultiLabel.
 
 
 Import the libraries
@@ -29,31 +29,36 @@ device = init_device()  # use gpu by default
 ######################################################################
 # Load and tokenize data
 # ------------------------------------------
+# We assume that the ``rcv1`` data is located at the directory ``./data/rcv1``, 
+# and there exist the files ``train.txt`` and ``test.txt``.
+# You can utilize the function ``load_datasets()`` to load the data sets. 
+# By default, LibMultiLabel tokenizes documents, but the BERT model uses its own tokenizer. 
+# Thus, we must set ``tokenize_text=False``.
+# Note that ``datasets`` contains three sets: ``datasets['train']``, ``datasets['val']`` and ``datasets['test']``, 
+# where ``datasets['train']`` and ``datasets['val']`` are randomly splitted from ``train.txt`` with the ratio ``8:2``.
 #
-# To run KimCNN, LibMultiLabel tokenizes documents and uses an embedding vector for each word. 
-# Thus, ``tokenize_text = True`` is set.
+# For the labels of the data, we apply the function ``load_or_build_label()`` to generate the label set.
 #
-# We choose ``glove.6B.300d`` from torchtext as embedding vectors. 
+# For BERT, we utilize the API ``AutoTokenizer``, which is supported by ``Hugging Face``, for the word preprocessing setting.
+# We set other variables for word preprocessing as ``None``.
 
-datasets = load_datasets('data/rcv1/train.txt', 'data/rcv1/test.txt', tokenize_text=True)
+datasets = load_datasets('data/rcv1/train.txt', 'data/rcv1/test.txt', tokenize_text=False)
 classes = load_or_build_label(datasets)
-word_dict, embed_vecs = load_or_build_text_dict(dataset=datasets['train'], embed_file='glove.6B.300d')
-tokenizer = None
- 
+word_dict, embed_vecs = None, None
+tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
+
 ######################################################################
 # Initialize a model
 # --------------------------
 #
-# We consider the following settings for the KimCNN model.
+# We use the following code to initialize a model.
 
-model_name = 'KimCNN'
+model_name='BERT'
 network_config = {
-    'embed_dropout': 0.2,
-    'encoder_dropout': 0.2,
-    'filter_sizes': [2, 4, 8],
-    'num_filter_per_size': 128
+    'dropout': 0.1,
+    'lm_weight': 'bert-base-uncased',
 }
-learning_rate = 0.0003
+learning_rate = 0.00003
 model = init_model(
     model_name=model_name,
     network_config=network_config,
@@ -70,7 +75,7 @@ model = init_model(
 # * ``classes`` is the label set of the data.
 # * ``init_weight``, ``word_dict`` and ``embed_vecs`` are not used on a bert-base model, so we can ignore them.
 # * ``moniter_metrics`` includes metrics you would like to track.
-#    
+#
 #
 # Initialize a trainer
 # ----------------------------
@@ -80,7 +85,7 @@ model = init_model(
 trainer = init_trainer(checkpoint_dir='runs/NN-example', epochs=15, val_metric='P@5')
 
 ######################################################################
-# In this example, ``checkpoint_dir`` is the place we save the best and the last models during the training. Furthermore, we set the number of training loops by ``epochs=15``, and the validation metric by ``val_metric = 'P@5'``.
+# In this example, ``checkpoint_dir`` is the place we save the best and the last models during the training. Furthermore, we set the number of training loops by ``epochs=15``, and the validation metric by ``val_metric='P@5'``.
 #
 # Create data loaders
 # ---------------------------
@@ -117,13 +122,12 @@ trainer.fit(model, loaders['train'], loaders['val'])
 trainer.test(model, dataloaders=loaders['test'])
 
 ######################################################################
-# The test results should be similar to::
+# The results should be similar to::
 #
 #  {
-#      'Macro-F1': 0.48948464335831743,
-#      'Micro-F1': 0.7769773602485657,
-#      'P@1':      0.9471677541732788,
-#      'P@3':      0.7772253751754761,
-#      'P@5':      0.5449321269989014,
+#      'Macro-F1': 0.569891024909958, 
+#      'Micro-F1': 0.8142925500869751, 
+#      'P@1':      0.9552904367446899, 
+#      'P@3':      0.7907078266143799, 
+#      'P@5':      0.5505486726760864
 #  }
-
