@@ -1,11 +1,11 @@
 #!/bin/bash
 
 BRANCH_TO_TEST=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p')
-REPORT_PATH="test_tutorial_report.txt"
+REPORT_PATH="test_doc_examples_report.txt"
 LOG_PREFIX="out"
 
 update_libmultilabel() {
-  pip install -U libmultilabel
+  pip3 install -U libmultilabel
 }
 
 #######################################
@@ -29,16 +29,16 @@ run_and_compare_logs() {
   echo "$is_passed  $command" >> $REPORT_PATH &
 
   # Remove temporary files.
-  rm out_${BRANCH_TO_TEST}.log
-  rm out_master.log
+  rm ${LOG_PREFIX}_${BRANCH_TO_TEST}.log
+  rm ${LOG_PREFIX}_master.log
 }
 
 main() {
   rm $REPORT_PATH
   TEST_FILES=(
-    "plot_linear_tutorial.py"
-    "plot_KimCNN_tutorial.py"
-    "plot_bert_tutorial.py"
+    "plot_linear_quickstart.py"
+    "plot_KimCNN_quickstart.py"
+    "plot_bert_quickstart.py"
   )
   for file_name in "${TEST_FILES[@]}"; do
     command="python3 docs/examples/${file_name}"
@@ -54,7 +54,7 @@ main() {
 #######################################
 # Please run this script in the LibMultilabel directory.
 # Usage:
-#   bash tests/docs/test_tutorial.sh
+#   bash tests/docs/test_examples.sh
 #######################################
 if $(echo $(pwd) | grep -q "tests"); then
   echo "Please run this script in the LibMultilabel directory."
