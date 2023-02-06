@@ -45,7 +45,7 @@ pipeline = Pipeline([
 # We format labels into a 0/1 sparse matrix with ``MultiLabelBinarizer``.
 
 from sklearn.preprocessing import MultiLabelBinarizer
-from libmultilabel.linear import MultiLabelEstimator, read_libmultilabel_format
+from libmultilabel.linear.preprocessor import read_libmultilabel_format
 
 training_file = 'data/rcv1/train.txt'
 train_data = read_libmultilabel_format(training_file)
@@ -53,6 +53,7 @@ train_data = read_libmultilabel_format(training_file)
 binarizer = MultiLabelBinarizer(sparse_output=True)
 binarizer.fit(train_data['label'])
 train_labels = binarizer.transform(train_data['label']).astype('d')
+
 pipeline.fit(train_data['text'], train_labels)
 
 ######################################################################
