@@ -7,19 +7,36 @@ Our workflow is similiar to the one in sklearn.
 
 Here we show an example of training a linear text classifier with the rcv1 dataset.
 If you haven't downloaded it yet, see `Data Preparation  <../cli/linear.html#step-1-data-preparation>`_.
-
-Feature Generation
-------------------
-
-To use a linear method, we must convert ecah text to a vector of numerical features.
-If you decide to use the default setting (TF-IDF features) and specify the LIBLINEAR options
-used by linear methods by yourself, check `our quickstart <../api/api.html#quickstart>`_
-for easily conducting training and testing.
-
-TBD. Sheng-Wei's version
 """
 
+from sklearn.preprocessing import MultiLabelBinarizer
+from libmultilabel.linear.preprocessor import read_libmultilabel_format
+
+train_data = read_libmultilabel_format('data/rcv1/train.txt')
+binarizer = MultiLabelBinarizer(sparse_output=True)
+binarizer.fit(train_data['label'])
+y = binarizer.transform(train_data['label']).astype('d')
+
 ######################################################################
+# Feature Generation
+# ------------------
+# To use a linear method, we must convert ecah text to a vector of numerical features.
+# If you decide to use the default setting (TF-IDF features) and specify the LIBLINEAR options
+# used by linear methods by yourself, check `our quickstart <../api/api.html#quickstart>`_
+# for easily conducting training and testing.
+#
+# If we decided to generate TF-IDF features in a different way, consider
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+vectorizer = TfidfVectorizer(max_features=20000, min_df=3)
+vectorizer.fit(train_data['text'])
+X = vectorizer.transform(train_data['text'])
+
+#######################################################################
+# We can then use the generated numerical features for training and predictions;
+# see `Linear Model for MultiLabel Classification <../auto_examples/plot_linear_quickstart.html#linear-model-for-multi-label-classification>`_.
+#
 # An Alternative Way for Using a Linear Method
 # --------------------------------------------
 # Besides the default way shown in `Feature Generation <#feature-generation>`_,
@@ -46,18 +63,7 @@ pipeline = Pipeline([
 # For example, ``tfidf`` is the alias of ``TfidfVectorizer`` and ``clf`` is the alias of the estimator.
 #
 # We can then use the following code for training.
-
-from sklearn.preprocessing import MultiLabelBinarizer
-from libmultilabel.linear.preprocessor import read_libmultilabel_format
-
-training_file = 'data/rcv1/train.txt'
-train_data = read_libmultilabel_format(training_file)
-
-binarizer = MultiLabelBinarizer(sparse_output=True)
-binarizer.fit(train_data['label'])
-train_labels = binarizer.transform(train_data['label']).astype('d')
-
-pipeline.fit(train_data['text'], train_labels)
+pipeline.fit(train_data['text'], y)
 
 ######################################################################
 # Grid Search over Feature Generations and LIBLINEAR Options
