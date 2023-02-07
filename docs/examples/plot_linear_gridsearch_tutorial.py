@@ -3,7 +3,6 @@ Feature Generation and Parameter Selection for Linear Methods
 =============================================================
 
 This tutorial demonstrates feature generation and parameter selection for linear methods.
-Our workflow is similiar to the one in sklearn.
 
 Here we show an example of training a linear text classifier with the rcv1 dataset.
 If you haven't downloaded it yet, see `Data Preparation  <../cli/linear.html#step-1-data-preparation>`_.
@@ -18,29 +17,33 @@ binarizer.fit(train_data['label'])
 y = binarizer.transform(train_data['label']).astype('d')
 
 ######################################################################
+# We format labels into a 0/1 sparse matrix with ``MultiLabelBinarizer``.
+#
 # Feature Generation
 # ------------------
-# To use a linear method, we must convert ecah text to a vector of numerical features.
-# If you decide to use the default setting (TF-IDF features) and specify the LIBLINEAR options
-# used by linear methods by yourself, check `our quickstart <../api/api.html#quickstart>`_
+# Before training a linear classifier, we must convert each text to a vector of numerical features.
+# To use the default setting (TF-IDF features), check
+# `Linear Model for MultiLabel Classification <../auto_examples/plot_linear_quickstart.html#linear-model-for-multi-label-classification>`_
 # for easily conducting training and testing.
 #
-# If we decided to generate TF-IDF features in a different way, consider
+# If you want to generate TF-IDF features with your own settings, consider
 
+import libmultilabel.linear as linear
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 vectorizer = TfidfVectorizer(max_features=20000, min_df=3)
 vectorizer.fit(train_data['text'])
-X = vectorizer.transform(train_data['text'])
+x = vectorizer.transform(train_data['text'])
+model = linear.train_1vsrest(y, x, '-s 2 -m 1')
 
 #######################################################################
-# We can then use the generated numerical features for training and predictions;
-# see `Linear Model for MultiLabel Classification <../auto_examples/plot_linear_quickstart.html#linear-model-for-multi-label-classification>`_.
+# We can then use the generated numerical features ``x`` as the input of
+# the linear method ``linear.train_1vsrest``.
 #
 # An Alternative Way for Using a Linear Method
 # --------------------------------------------
 # Besides the default way shown in `Feature Generation <#feature-generation>`_,
-# we can construct a sklearn estimator for training/prediction.
+# we can construct a sklearn estimator for training (do we need to demo prediction?).
 # This way is used namely for parameter selection described later,
 # as the estimator makes LibMultiLabel methods in a sklearn Pipeline for a grid search.
 
@@ -68,13 +71,7 @@ pipeline.fit(train_data['text'], y)
 ######################################################################
 # Grid Search over Feature Generations and LIBLINEAR Options
 # -----------------------------------------------------------
-# From the above construction of an estimator, because options are set, we can directly train a model with ``pipeline.fit``.
-# We format labels into a 0/1 sparse matrix with ``MultiLabelBinarizer``.
-
-
-
-######################################################################
-# However, to search for the best setting, we can employ ``GridSearchCV``.
+# To search for the best setting, we can employ ``GridSearchCV``.
 
 from libmultilabel.linear.sklearn_helper import GridSearchCV
 
@@ -85,7 +82,7 @@ parameters = {
     'tfidf__min_df': [3, 5]
 }
 clf = GridSearchCV(pipeline, parameters, cv=5, n_jobs=4, verbose=1)
-clf = clf.fit(train_data['text'], train_labels)
+clf = clf.fit(train_data['text'], y)
 
 ######################################################################
 # Here we check the combinations of two feature generations and three regularization parameters
