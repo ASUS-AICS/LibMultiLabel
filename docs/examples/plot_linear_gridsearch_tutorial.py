@@ -6,6 +6,7 @@ This tutorial demonstrates feature generation and parameter selection for linear
 
 Here we show an example of training a linear text classifier with the rcv1 dataset.
 If you haven't downloaded it yet, see `Data Preparation  <../cli/linear.html#step-1-data-preparation>`_.
+Otherwise, you can read and preprocess the data as follow.
 """
 
 from sklearn.preprocessing import MultiLabelBinarizer
