@@ -11,7 +11,7 @@ Then you can read and preprocess the data as
 
 from sklearn.preprocessing import MultiLabelBinarizer
 import libmultilabel.linear as linear
-from libmultilabel.linear.preprocessor import read_libmultilabel_format # code?
+from libmultilabel.linear.preprocessor import read_libmultilabel_format
 
 train_data = read_libmultilabel_format('data/rcv1/train.txt')
 binarizer = MultiLabelBinarizer(sparse_output=True)
