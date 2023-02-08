@@ -12,6 +12,8 @@ import scipy.sparse as sparse
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import MultiLabelBinarizer
 
+import csv
+
 __all__ = ['Preprocessor']
 
 
@@ -141,7 +143,7 @@ class Preprocessor:
 def read_libmultilabel_format(path: str) -> 'dict[str,list[str]]':
     data = pd.read_csv(path, sep='\t', header=None,
                        dtype=str,
-                       on_bad_lines='skip').fillna('')
+                       on_bad_lines='skip', quoting=csv.QUOTE_NONE).fillna('')
     if data.shape[1] == 2:
         data.columns = ['label', 'text']
         data = data.reset_index()
