@@ -6,7 +6,7 @@ This tutorial demonstrates feature generation and parameter selection for linear
 
 Here we show an example of training a linear text classifier with the rcv1 dataset.
 If you haven't downloaded it yet, see `Data Preparation  <../cli/linear.html#step-1-data-preparation>`_.
-Otherwise, you can read and preprocess the data as follow.
+Then you can read and preprocess the data as
 """
 
 from sklearn.preprocessing import MultiLabelBinarizer
@@ -28,7 +28,7 @@ y = binarizer.transform(train_data['label']).astype('d')
 # `Linear Model for MultiLabel Classification <../auto_examples/plot_linear_quickstart.html#linear-model-for-multi-label-classification>`_
 # for easily conducting training and testing.
 #
-# If you want to generate TF-IDF features with your own settings, consider
+# If you want to tweak the generation of TF-IDF features, consider
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 
@@ -38,13 +38,13 @@ x = vectorizer.transform(train_data['text'])
 model = linear.train_1vsrest(y, x, '-s 2 -m 4')
 
 #######################################################################
-# We can then use the generated numerical features ``x`` as the input of
+# We use the generated numerical features ``x`` as the input of
 # the linear method ``linear.train_1vsrest``.
 #
 # An Alternative Way for Using a Linear Method
 # --------------------------------------------
 # Besides the default way shown in `Feature Generation <#feature-generation>`_,
-# we can construct a sklearn estimator for training (do we need to demo prediction?).
+# we can construct a sklearn estimator for training and prediction.
 # This way is used namely for parameter selection described later,
 # as the estimator makes LibMultiLabel methods in a sklearn Pipeline for a grid search.
 
@@ -62,8 +62,7 @@ pipeline = Pipeline([
 # ``linear_technique`` is one of linear techniques: ``1vsrest``, ``thresholding``, ``cost_sensitive``,
 # ``cost_sensitive_micro``, and ``binary_and_mulitclass``.
 # In ``pipeline``, we specify settings used by the estimator.
-# For example, ``tfidf`` indicates the vectorizer for generating TF-IDF features,
-# and ``clf`` is the estimator.
+# For example, ``tfidf`` is the alias of ``TfidfVectorizer`` and ``clf`` is the alias of the estimator.
 #
 # We can then use the following code for training.
 pipeline.fit(train_data['text'], y)
@@ -82,7 +81,7 @@ clf = linear.GridSearchCV(pipeline, parameters, cv=5, n_jobs=4, verbose=1)
 clf = clf.fit(train_data['text'], y)
 
 ######################################################################
-# Here we check the combinations of two feature generations and three regularization parameters
+# Here we check the combinations of six feature generations and three regularization parameters
 # in the linear classifier. The key in ``parameters`` should follow the sklearn's coding rule
 # starting with the estimator's alias and two underscores (i.e., ``clf__``).
 # We specify ``n_jobs=4`` to run four tasks in parallel.
