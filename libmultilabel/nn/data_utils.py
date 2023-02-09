@@ -1,3 +1,4 @@
+import csv
 import gc
 import logging
 import warnings
@@ -136,7 +137,7 @@ def _load_raw_data(path, is_test=False, tokenize_text=True, remove_no_label_data
     """
     logging.info(f'Load data from {path}.')
     data = pd.read_csv(path, sep='\t', header=None,
-                       error_bad_lines=False, warn_bad_lines=True).fillna('')
+                       error_bad_lines=False, warn_bad_lines=True, quoting=csv.QUOTE_NONE).fillna('')
     if data.shape[1] == 2:
         data.columns = ['label', 'text']
         data = data.reset_index()
