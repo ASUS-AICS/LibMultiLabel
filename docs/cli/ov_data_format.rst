@@ -1,5 +1,5 @@
-Installation, Dataset Formats, and Modules
-==========================================
+Installation and Dataset Formats
+=============================================
 
 To work with the command line interface, firstly
 
@@ -116,3 +116,4 @@ Some sample lines are as follows::
 
     1,3,5 1:0.1 9:0.2 13:0.3
     2,4,6 2:0.4 10:0.5 14:0.4
+
