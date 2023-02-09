@@ -12,25 +12,13 @@ For installation of LibMultiLabel, you can visit the `Command Line Interface <cl
 For practical tips, please see the `User Guide <https://www.csie.ntu.edu.tw/~cjlin/papers/libmultilabel/userguide.pdf>`_.
 
 .. toctree::
-    :caption: Command Line Interface
-    :maxdepth: 1
-    :hidden:
-
-    cli/ov_data_format
-    cli/linear
-    cli/nn
-    cli/flags
-    User Guide <https://www.csie.ntu.edu.tw/~cjlin/papers/libmultilabel/userguide.pdf>
-
-.. toctree::
-   :caption: Library
    :maxdepth: 1
    :hidden:
 
-   api/api
-   api/linear
-   api/nn
-
+   cli_index
+   library&api_index
+   tutorial
+   
 
 ..
    Indices and tables

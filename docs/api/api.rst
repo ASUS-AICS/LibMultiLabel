@@ -1,5 +1,5 @@
-Getting Started
-===============
+Installation and Quickstart
+===========================
 
 The library API is used in your own scripts if you want
 more fine grained control over the training/prediction process.
@@ -27,7 +27,7 @@ We provide two installation types to install LibMultiLabel:
     pip3 install libmultilabel[linear]
 
 Quickstart
-^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 These tutorials show how the library API may be used in
 end-to-end examples. After these tutorials, more in-depth
@@ -52,6 +52,9 @@ Before we start, please download and decompress the data ``rcv1`` via the follow
     wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/rcv1_topics_train.txt.bz2 -O data/rcv1/train.txt.bz2
     wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel/rcv1_topics_test.txt.bz2 -O data/rcv1/test.txt.bz2
     bzip2 -d data/rcv1/*.bz2
+
+
+
 
 
 
