@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import logging
 import re
 from array import array
@@ -11,8 +12,6 @@ import scipy
 import scipy.sparse as sparse
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import MultiLabelBinarizer
-
-import csv
 
 __all__ = ['Preprocessor']
 

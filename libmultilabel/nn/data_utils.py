@@ -1,3 +1,4 @@
+import csv
 import gc
 import logging
 import warnings
@@ -12,8 +13,6 @@ from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import Dataset
 from torchtext.vocab import build_vocab_from_iterator, pretrained_aliases
 from tqdm import tqdm
-
-import csv
 
 transformers.logging.set_verbosity_error()
 warnings.simplefilter(action='ignore', category=FutureWarning)
