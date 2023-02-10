@@ -1,4 +1,4 @@
-API Library
+API Libraries
 ^^^^^^^^^^^
 
 * `Installation <api/api.html>`_
