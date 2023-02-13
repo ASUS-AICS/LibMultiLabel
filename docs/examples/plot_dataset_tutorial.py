@@ -36,8 +36,8 @@ data_sets['test'] = load_dataset('tweet_eval', 'emoji', split='test')
 # In consistence with our `linear model quickstart <https://www.csie.ntu.edu.tw/~cjlin/libmultilabel/auto_examples/plot_linear_quickstart.html>`_ which don't have validation set,
 # we use ``pandas.concat`` to merge training and validation sets and use ``reset_index`` to add the new indices to rows.
 
-for d_set in ['train', 'val', 'test']:
-    data_sets[d_set] = pandas.DataFrame(data_sets[d_set], columns=['label', 'text'])
+for split in ['train', 'val', 'test']:
+    data_sets[split] = pandas.DataFrame(data_sets[split], columns=['label', 'text'])
 data_sets['train'] = pandas.concat([data_sets['train'], data_sets['val']], axis=0, ignore_index=True)
 data_sets['train'] = data_sets['train'].reset_index()
 data_sets['test'] = data_sets['test'].reset_index()
@@ -66,7 +66,3 @@ metrics = linear.get_metrics(metric_threshold=0,
                              num_classes=datasets['test']['y'].shape[1])
 target = datasets['test']['y'].toarray()
 metrics.update(preds, target)
-
-
-
-
