@@ -235,11 +235,10 @@ def read_libsvm_format(file_path: str) -> 'tuple[list[list[int]], sparse.csr_mat
         except:
             raise ValueError(
                 f'invalid svm format at line {i+1} of the file \'{file_path}\'')
-            
+       
     prob_x = scipy.frombuffer(prob_x, dtype='d')
     col_idx = scipy.frombuffer(col_idx, dtype='l')
     row_ptr = scipy.frombuffer(row_ptr, dtype='l')
     prob_x = sparse.csr_matrix((prob_x, col_idx, row_ptr))
 
     return (prob_y, prob_x)
-
