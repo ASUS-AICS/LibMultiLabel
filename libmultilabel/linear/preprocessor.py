@@ -33,8 +33,8 @@ class Preprocessor:
 
         self.data_format = data_format
 
-    def load_data(self, training_file: str = None,
-                  test_file: str = None,
+    def load_data(self, training_data: Union[str, pd.DataFrame] = None,
+                  test_data: Union[str, pd.DataFrame] = None,
                   eval: bool = False,
                   label_file: str = None,
                   include_test_labels: bool = False,
@@ -42,8 +42,8 @@ class Preprocessor:
         """Loads and preprocesses data.
 
         Args:
-            training_file (str): Training data file. Ignored if eval is True. Defaults to None.
-            test_file (str): Test data file. Ignored if test_file doesn't exist. Defaults to None.
+            training_data (str): Training data file or dataframe in LibMultiLabel format. Ignored if eval is True. Defaults to None.
+            test_data (str): Test data file or dataframe in LibMultiLabel format. Ignored if test_data doesn't exist. Defaults to None.
             eval (bool): If True, ignores training data and uses previously loaded state to preprocess test data.
             label_file (str, optional): Path to a file holding all labels.
             include_test_labels (bool, optional): Whether to include labels in the test dataset. Defaults to False.
@@ -58,18 +58,18 @@ class Preprocessor:
             with open(label_file, 'r') as fp:
                 self.classes = sorted([s.strip() for s in fp.readlines()])
         else:
-            if test_file is None and include_test_labels:
+            if test_data is None and include_test_labels:
                 raise ValueError(
                     f'Specified the inclusion of test labels but test file does not exist')
             self.classes = None
             self.include_test_labels = include_test_labels
 
         if self.data_format == 'txt':
-            data = self._load_txt(training_file, test_file, eval)
+            data = self._load_txt(training_data, test_data, eval)
         elif self.data_format == 'dataframe':
-            data = self._load_dataframe(training_file, test_file, eval)
+            data = self._load_dataframe(training_data, test_data, eval)
         elif self.data_format == 'svm':
-            data = self._load_svm(training_file, test_file, eval)
+            data = self._load_svm(training_data, test_data, eval)
 
         if 'train' in data:
             num_labels = data['train']['y'].getnnz(axis=1)
@@ -77,24 +77,24 @@ class Preprocessor:
             if num_no_label_data > 0:
                 if remove_no_label_data:
                     logging.info(
-                        f'Remove {num_no_label_data} instances that have no labels from {training_file}.',
+                        f'Remove {num_no_label_data} instances that have no labels from {training_data}.',
                         extra={'collect': True})
                     data['train']['x'] = data['train']['x'][num_labels > 0]
                     data['train']['y'] = data['train']['y'][num_labels > 0]
                 else:
                     logging.info(
-                        f'Keep {num_no_label_data} instances that have no labels from {training_file}.',
+                        f'Keep {num_no_label_data} instances that have no labels from {training_data}.',
                         extra={'collect': True})
 
         return data
 
-    def _load_txt(self, training_file, test_file, eval) -> 'dict[str, dict]':
+    def _load_txt(self, training_data, test_data, eval) -> 'dict[str, dict]':
         datasets = defaultdict(dict)
-        if test_file is not None:
-            test = read_libmultilabel_format_file(test_file)
+        if test_data is not None:
+            test = read_libmultilabel_format_file(test_data)
 
         if not eval:
-            train = read_libmultilabel_format_file(training_file)
+            train = read_libmultilabel_format_file(training_data)
             self._generate_tfidf(train['text'])
 
             if self.classes or not self.include_test_labels:
@@ -105,20 +105,20 @@ class Preprocessor:
             datasets['train']['y'] = self.binarizer.transform(
                 train['label']).astype('d')
 
-        if test_file is not None:
+        if test_data is not None:
             datasets['test']['x'] = self.vectorizer.transform(test['text'])
             datasets['test']['y'] = self.binarizer.transform(
                 test['label']).astype('d')
 
         return dict(datasets)
 
-    def _load_svm(self, training_file, test_file, eval) -> 'dict[str, dict]':
+    def _load_svm(self, training_data, test_data, eval) -> 'dict[str, dict]':
         datasets = defaultdict(dict)
-        if test_file is not None:
-            ty, tx = read_libsvm_format(test_file)
+        if test_data is not None:
+            ty, tx = read_libsvm_format(test_data)
 
         if not eval:
-            y, x = read_libsvm_format(training_file)
+            y, x = read_libsvm_format(training_data)
             if self.classes or not self.include_test_labels:
                 self._generate_label_mapping(y, self.classes)
             else:
@@ -126,18 +126,18 @@ class Preprocessor:
             datasets['train']['x'] = x
             datasets['train']['y'] = self.binarizer.transform(y).astype('d')
 
-        if test_file is not None:
+        if test_data is not None:
             datasets['test']['x'] = tx
             datasets['test']['y'] = self.binarizer.transform(ty).astype('d')
         return dict(datasets)
 
-    def _load_dataframe(self, training_file, test_file, eval) -> 'dict[str, dict]':
+    def _load_dataframe(self, training_data, test_data, eval) -> 'dict[str, dict]':
         datasets = defaultdict(dict)
-        if test_file is not None:
-            test = read_libmultilabel_format_dataframe(test_file)
+        if test_data is not None:
+            test = read_libmultilabel_format_dataframe(test_data)
 
         if not eval:
-            train = read_libmultilabel_format_dataframe(training_file)
+            train = read_libmultilabel_format_dataframe(training_data)
             self._generate_tfidf(train['text'])
 
             if self.classes or not self.include_test_labels:
@@ -148,7 +148,7 @@ class Preprocessor:
             datasets['train']['y'] = self.binarizer.transform(
                 train['label']).astype('d')
 
-        if test_file is not None:
+        if test_data is not None:
             datasets['test']['x'] = self.vectorizer.transform(test['text'])
             datasets['test']['y'] = self.binarizer.transform(
                 test['label']).astype('d')
