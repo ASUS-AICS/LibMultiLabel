@@ -1,5 +1,5 @@
 API Libraries
-^^^^^^^^^^^
+^^^^^^^^^^^^^
 
 * `Installation <api/api.html>`_
 * `Quickstart <api/quickstart.html>`_
