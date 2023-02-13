@@ -26,7 +26,7 @@ class Preprocessor:
         """Initializes the preprocessor.
 
         Args:
-            data_format (str): The data format used. 'svm' for LibSVM format and 'txt' for LibMultiLabel format.
+            data_format (str): The data format used. 'svm' for LibSVM format, 'txt' for LibMultiLabel format in file and 'dataframe' for LibMultiLabel format in dataframe .
         """
         if not data_format in {'txt', 'svm', 'dataframe'}:
             raise ValueError(f'unsupported data format {data_format}')
@@ -42,8 +42,8 @@ class Preprocessor:
         """Loads and preprocesses data.
 
         Args:
-            training_data (str): Training data file or dataframe in LibMultiLabel format. Ignored if eval is True. Defaults to None.
-            test_data (str): Test data file or dataframe in LibMultiLabel format. Ignored if test_data doesn't exist. Defaults to None.
+            training_data (Union[str, pd.DataFrame]): Training data file or dataframe in LibMultiLabel format. Ignored if eval is True. Defaults to None.
+            test_data (Union[str, pd.DataFrame]): Test data file or dataframe in LibMultiLabel format. Ignored if test_data doesn't exist. Defaults to None.
             eval (bool): If True, ignores training data and uses previously loaded state to preprocess test data.
             label_file (str, optional): Path to a file holding all labels.
             include_test_labels (bool, optional): Whether to include labels in the test dataset. Defaults to False.
