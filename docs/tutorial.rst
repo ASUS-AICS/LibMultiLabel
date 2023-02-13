@@ -8,4 +8,5 @@ Tutorials
     :maxdepth: 1
     :hidden:
 
+    ../auto_examples/plot_linear_dataset_tutorial
     ../auto_examples/plot_linear_gridsearch_tutorial
