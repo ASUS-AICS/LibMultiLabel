@@ -155,7 +155,6 @@ def read_libmultilabel_format(data: pd.DataFrame) -> 'dict[str,list[str]]':
     else:
         raise ValueError(f'Expected 2 or 3 columns, got {data.shape[1]}.')
     data['label'] = data['label'].map(lambda s: s.split())
-
     return data.to_dict('list')
 
 def read_libsvm_format(file_path: str) -> 'tuple[list[list[int]], sparse.csr_matrix]':
