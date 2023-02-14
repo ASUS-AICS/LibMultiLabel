@@ -64,10 +64,8 @@ class Preprocessor:
             self.classes = None
             self.include_test_labels = include_test_labels
 
-        if self.data_format == 'txt':
-            data = self._load_txt(training_data, test_data, eval)
-        elif self.data_format == 'dataframe':
-            data = self._load_dataframe(training_data, test_data, eval)
+        if self.data_format == 'txt' or 'dataframe':
+            data = self._load_libmultilabel(training_data, test_data, eval)
         elif self.data_format == 'svm':
             data = self._load_svm(training_data, test_data, eval)
 
@@ -88,13 +86,19 @@ class Preprocessor:
 
         return data
 
-    def _load_txt(self, training_data, test_data, eval) -> 'dict[str, dict]':
+    def _load_libmultilabel(self, training_data, test_data, eval) -> 'dict[str, dict]':
         datasets = defaultdict(dict)
         if test_data is not None:
-            test = read_libmultilabel_format_file(test_data)
+            if self.data_format == 'txt':
+                test_data = pd.read_csv(test_data, sep='\t', header=None,
+                                        on_bad_lines='skip', quoting=csv.QUOTE_NONE).fillna('')
+            test = read_libmultilabel_format(test_data)
 
         if not eval:
-            train = read_libmultilabel_format_file(training_data)
+            if self.data_format == 'txt':
+                training_data = pd.read_csv(training_data, sep='\t', header=None,
+                                            on_bad_lines='skip', quoting=csv.QUOTE_NONE).fillna('')
+            train = read_libmultilabel_format(training_data)
             self._generate_tfidf(train['text'])
 
             if self.classes or not self.include_test_labels:
@@ -131,30 +135,6 @@ class Preprocessor:
             datasets['test']['y'] = self.binarizer.transform(ty).astype('d')
         return dict(datasets)
 
-    def _load_dataframe(self, training_data, test_data, eval) -> 'dict[str, dict]':
-        datasets = defaultdict(dict)
-        if test_data is not None:
-            test = read_libmultilabel_format_dataframe(test_data)
-
-        if not eval:
-            train = read_libmultilabel_format_dataframe(training_data)
-            self._generate_tfidf(train['text'])
-
-            if self.classes or not self.include_test_labels:
-                self._generate_label_mapping(train['label'], self.classes)
-            else:
-                self._generate_label_mapping(train['label'] + test['label'])
-            datasets['train']['x'] = self.vectorizer.transform(train['text'])
-            datasets['train']['y'] = self.binarizer.transform(
-                train['label']).astype('d')
-
-        if test_data is not None:
-            datasets['test']['x'] = self.vectorizer.transform(test['text'])
-            datasets['test']['y'] = self.binarizer.transform(
-                test['label']).astype('d')
-
-        return dict(datasets)
-
     def _generate_tfidf(self, texts):
         self.vectorizer = TfidfVectorizer()
         self.vectorizer.fit(texts)
@@ -165,7 +145,7 @@ class Preprocessor:
         self.binarizer.fit(labels)
 
 
-def read_libmultilabel_format_dataframe(data: pd.DataFrame) -> 'dict[str,list[str]]':
+def read_libmultilabel_format(data: pd.DataFrame) -> 'dict[str,list[str]]':
     data = data.astype(str)
     if data.shape[1] == 2:
         data.columns = ['label', 'text']
@@ -175,24 +155,8 @@ def read_libmultilabel_format_dataframe(data: pd.DataFrame) -> 'dict[str,list[st
     else:
         raise ValueError(f'Expected 2 or 3 columns, got {data.shape[1]}.')
     data['label'] = data['label'].map(lambda s: s.split())
-    with open('test.json', 'w') as w:
-        json.dump(data.to_dict('list'), w)
-    return data.to_dict('list')
 
-def read_libmultilabel_format_file(path: str) -> 'dict[str,list[str]]':
-    data = pd.read_csv(path, sep='\t', header=None,
-                       dtype=str,
-                       on_bad_lines='skip', quoting=csv.QUOTE_NONE).fillna('')
-    if data.shape[1] == 2:
-        data.columns = ['label', 'text']
-        data = data.reset_index()
-    elif data.shape[1] == 3:
-        data.columns = ['index', 'label', 'text']
-    else:
-        raise ValueError(f'Expected 2 or 3 columns, got {data.shape[1]}.')
-    data['label'] = data['label'].map(lambda s: s.split())
     return data.to_dict('list')
-
 
 def read_libsvm_format(file_path: str) -> 'tuple[list[list[int]], sparse.csr_matrix]':
     """Read multi-label LIBSVM-format data.
