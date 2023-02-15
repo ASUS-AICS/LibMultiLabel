@@ -205,7 +205,7 @@ def load_datasets(
                                            remove_no_label_data=remove_no_label_data)
 
     if val_data is not None:
-        if isinstance(training_data, str):
+        if isinstance(val_data, str):
             logging.info(f'Load data from {val_data}.')
             val_data = pd.read_csv(val_data, sep='\t', header=None,
                                    error_bad_lines=False, warn_bad_lines=True, quoting=csv.QUOTE_NONE).fillna('')
@@ -216,7 +216,7 @@ def load_datasets(
             datasets['train'], test_size=val_size, random_state=42)
 
     if test_data is not None:
-        if isinstance(training_data, str):
+        if isinstance(test_data, str):
             logging.info(f'Load data from {test_data}.')
             test_data = pd.read_csv(test_data, sep='\t', header=None,
                                     error_bad_lines=False, warn_bad_lines=True, quoting=csv.QUOTE_NONE).fillna('')
