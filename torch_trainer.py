@@ -56,9 +56,9 @@ class TorchTrainer:
         # Load dataset
         if datasets is None:
             self.datasets = data_utils.load_datasets(
-                training_file=config.training_file,
-                test_file=config.test_file,
-                val_file=config.val_file,
+                training_data=config.training_file,
+                test_data=config.test_file,
+                val_data=config.val_file,
                 val_size=config.val_size,
                 merge_train_val=config.merge_train_val,
                 tokenize_text=tokenize_text,
