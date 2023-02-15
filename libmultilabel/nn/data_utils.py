@@ -176,9 +176,9 @@ def load_datasets(
     If `val_data` does not exist but `val_size` > 0, the validation set will be split from the training dataset.
 
     Args:
-        training_data (Union[str, pandas,.Dataframe], optional): Path to training data.
-        test_data (Union[str, pandas,.Dataframe], optional): Path to test data.
-        val_data (Union[str, pandas,.Dataframe], optional): Path to validation data.
+        training_data (Union[str, pandas,.Dataframe], optional): Path to training data or a dataframe.
+        test_data (Union[str, pandas,.Dataframe], optional): Path to test data or a dataframe.
+        val_data (Union[str, pandas,.Dataframe], optional): Path to validation data or a dataframe.
         val_size (float, optional): Training-validation split: a ratio in [0, 1] or an integer for the size of the validation set.
             Defaults to 0.2.
         merge_train_val (bool, optional): Whether to merge the training and validation data.
