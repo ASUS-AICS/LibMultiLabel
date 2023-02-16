@@ -91,13 +91,13 @@ class Preprocessor:
         if test_data is not None:
             if self.data_format == 'txt':
                 test_data = pd.read_csv(test_data, sep='\t', header=None,
-                                        on_bad_lines='skip', quoting=csv.QUOTE_NONE).fillna('')
+                                        error_bad_lines=False, warn_bad_lines=True, quoting=csv.QUOTE_NONE).fillna('')
             test = read_libmultilabel_format(test_data)
 
         if not eval:
             if self.data_format == 'txt':
                 training_data = pd.read_csv(training_data, sep='\t', header=None,
-                                            on_bad_lines='skip', quoting=csv.QUOTE_NONE).fillna('')
+                                            error_bad_lines=False, warn_bad_lines=True, quoting=csv.QUOTE_NONE).fillna('')
             train = read_libmultilabel_format(training_data)
             self._generate_tfidf(train['text'])
 
