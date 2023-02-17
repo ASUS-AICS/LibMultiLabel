@@ -60,7 +60,7 @@ datasets = preprocessor.load_data(data_sets['train'], data_sets['test'])
 
 ###############################################################################
 # Also, if you want to use a NN model,
-# use ``load_datasets`` from ``datasets`` and change the data to the dataframes we created.
+# use ``load_dataset`` from ``libmultilabel.nn.data_utils`` and change the data to the dataframes we created.
 # Here is the modification of our `Bert model quickstart <https://www.csie.ntu.edu.tw/~cjlin/libmultilabel/auto_examples/plot_BERT_quickstart.html>`_. 
 
 from libmultilabel.nn.data_utils import load_datasets
