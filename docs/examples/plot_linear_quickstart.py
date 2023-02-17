@@ -9,7 +9,6 @@ For this guide, we will only need the linear module:
 """
 
 import libmultilabel.linear as linear
-import numpy as np
 
 ######################################################################
 # To start, we need to read and preprocess the input data:
