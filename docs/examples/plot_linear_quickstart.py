@@ -9,6 +9,7 @@ For this guide, we will only need the linear module:
 """
 
 import libmultilabel.linear as linear
+import numpy as np
 
 ######################################################################
 # To start, we need to read and preprocess the input data:
@@ -52,10 +53,10 @@ preds = linear.predict_values(model, datasets['test']['x'])
 ######################################################################
 # ``preds`` holds the decision values, i.e. the raw values
 # outputted by the model. To transform it into predictions,
-# the simplest way is to take the positive values as
-# the labels predicted to be associated with the sample,
-# i.e. ``preds > 0``.
-#
+# you can use the ``predict`` funciton with desired top k value. 
+# For example, if you want top 3 labels:
+#   >>> print(linear.predict_values(preprocessor, preds, top_k=3)[0])
+#   ... ('GCAT', 'GDIP', 'GSPO')
 # To see how well we performed, we may want to check various
 # metrics with the test set.
 # For that we may use:
