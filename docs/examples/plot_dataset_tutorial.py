@@ -50,7 +50,7 @@ data_sets['test'] = data_sets['test'].reset_index()
 #   index  label                                               text
 #       0     12  Sunday afternoon walking through Venice in the...  
 #
-# Next, we train and make prediction with the data set using linear model. The detailed explanation is in our `linear model quickstart <https://www.csie.ntu.edu.tw/~cjlin/libmultilabel/auto_examples/plot_linear_quickstart.html>`_. 
+# Next, we train and make prediction with the data set using a linear model. The detailed explanation is in our `linear model quickstart <https://www.csie.ntu.edu.tw/~cjlin/libmultilabel/auto_examples/plot_linear_quickstart.html>`_. 
 # The difference between here and the quickstart is that the ``data_format`` option should be ``dataframe`` because the data set is a dataframe now.
 
 import libmultilabel.linear as linear
