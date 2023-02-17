@@ -1,6 +1,6 @@
 """
-Linear Model for Multi-label Classification
-===========================================
+Linear Model for Multi-label Classification.
+============================================
 
 This guide will take you through how LibMultiLabel can
 be used to train a linear classifier in python scripts.
