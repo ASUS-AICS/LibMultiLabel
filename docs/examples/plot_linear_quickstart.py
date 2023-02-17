@@ -55,7 +55,7 @@ preds = linear.predict_values(model, datasets['test']['x'])
 # outputted by the model. To transform it into predictions,
 # you can use the ``predict`` funciton with desired top k value. 
 # For example, if you want top 3 labels:
-#   >>> print(linear.predict_values(preprocessor, preds, top_k=3)[0])
+#   >>> print(linear.predict(preprocessor, preds, top_k=3)[0])
 #   ... ('GCAT', 'GDIP', 'GSPO')
 # To see how well we performed, we may want to check various
 # metrics with the test set.
