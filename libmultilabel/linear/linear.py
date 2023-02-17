@@ -545,7 +545,7 @@ def predict(preprocessor, x: np.ndarray, top_k: int = 3) -> 'list[tuple(str)]':
     """Make predictions from decision values.
 
     Args:
-        preprocessor: The preprocessor object from ``Preprocessor`` API used to preprocess the data.
+        preprocessor: The preprocessor object from ``Preprocessor`` API used to load and preprocess the data.
         x (np.ndarray): A matrix of decision values with dimension number of instances * number of classes.
         top_k (int): Determine how many classes per instance should be predicted.
 
