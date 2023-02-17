@@ -63,6 +63,6 @@ datasets = preprocessor.load_data(data_sets['train'], data_sets['test'])
 # use ``load_datasets`` from ``datasets`` and change the data to the dataframes we created.
 # Here is the modification of our `Bert model quickstart <https://www.csie.ntu.edu.tw/~cjlin/libmultilabel/auto_examples/plot_BERT_quickstart.html>`_. 
 
-from datasets import load_dataset
+from libmultilabel.nn.data_utils import load_datasets
 
 datasets = load_datasets(data_sets['train'], data_sets['test'], tokenize_text=False)
