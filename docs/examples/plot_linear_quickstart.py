@@ -53,7 +53,7 @@ preds = linear.predict_values(model, datasets['test']['x'])
 ######################################################################
 # ``preds`` holds the decision values, i.e. the raw values
 # outputted by the model. To transform it into predictions,
-# you can use the ``predict`` funciton with desired top k value. 
+# you can use the ``predict`` funciton with the desired top k value. 
 # For example, if you want top 3 labels:
 #   >>> print(linear.predict(preprocessor, preds, top_k=3)[0])
 #   ... ('GCAT', 'GDIP', 'GSPO')
