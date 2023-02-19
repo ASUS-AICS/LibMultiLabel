@@ -149,8 +149,8 @@ def read_libmultilabel_format(data: Union[str, pd.DataFrame]) -> 'dict[str,list[
         dict[str,list[str]]: A dictionary with a list of index (optional), label, and text.
     """
     if isinstance(data, str):
-        data = pd.read_csv(data, sep='\t', header=None, error_bad_lines=False,
-                           warn_bad_lines=True, quoting=csv.QUOTE_NONE).fillna('')
+        data = pd.read_csv(data, sep='\t', header=None,
+                           on_bad_lines='warn', quoting=csv.QUOTE_NONE).fillna('')
     data = data.astype(str)
     if data.shape[1] == 2:
         data.columns = ['label', 'text']
