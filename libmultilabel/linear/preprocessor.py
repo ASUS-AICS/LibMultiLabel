@@ -65,7 +65,7 @@ class Preprocessor:
             self.include_test_labels = include_test_labels
 
         if self.data_format == 'txt' or 'dataframe':
-            data = self._load_libmultilabel(training_data, test_data, eval)
+            data = self._load_text(training_data, test_data, eval)
         elif self.data_format == 'svm':
             data = self._load_svm(training_data, test_data, eval)
 
@@ -86,18 +86,12 @@ class Preprocessor:
 
         return data
 
-    def _load_libmultilabel(self, training_data, test_data, eval) -> 'dict[str, dict]':
+    def _load_text(self, training_data, test_data, eval) -> 'dict[str, dict]':
         datasets = defaultdict(dict)
         if test_data is not None:
-            if self.data_format == 'txt':
-                test_data = pd.read_csv(test_data, sep='\t', header=None,
-                                        error_bad_lines=False, warn_bad_lines=True, quoting=csv.QUOTE_NONE).fillna('')
             test = read_libmultilabel_format(test_data)
 
         if not eval:
-            if self.data_format == 'txt':
-                training_data = pd.read_csv(training_data, sep='\t', header=None,
-                                            error_bad_lines=False, warn_bad_lines=True, quoting=csv.QUOTE_NONE).fillna('')
             train = read_libmultilabel_format(training_data)
             self._generate_tfidf(train['text'])
 
@@ -145,7 +139,18 @@ class Preprocessor:
         self.binarizer.fit(labels)
 
 
-def read_libmultilabel_format(data: pd.DataFrame) -> 'dict[str,list[str]]':
+def read_libmultilabel_format(data: Union[str, pd.DataFrame]) -> 'dict[str,list[str]]':
+    """Read multi-label text data from file or pandas dataframe.
+
+    Args:
+        data (Union[str, pd.DataFrame]): A file path to data in `LibMultiLabel format <https://www.csie.ntu.edu.tw/~cjlin/libmultilabel/cli/ov_data_format.html#libmultilabel-format>`_
+            or a pandas dataframe contains index (optional), label, and text.
+    Returns:
+        dict[str,list[str]]: A dictionary with a list of index (optional), label, and text.
+    """
+    if isinstance(data, str):
+        data = pd.read_csv(data, sep='\t', header=None,
+                           on_bad_lines='warn', quoting=csv.QUOTE_NONE).fillna('')
     data = data.astype(str)
     if data.shape[1] == 2:
         data.columns = ['label', 'text']
@@ -156,6 +161,7 @@ def read_libmultilabel_format(data: pd.DataFrame) -> 'dict[str,list[str]]':
         raise ValueError(f'Expected 2 or 3 columns, got {data.shape[1]}.')
     data['label'] = data['label'].map(lambda s: s.split())
     return data.to_dict('list')
+
 
 def read_libsvm_format(file_path: str) -> 'tuple[list[list[int]], sparse.csr_matrix]':
     """Read multi-label LIBSVM-format data.
