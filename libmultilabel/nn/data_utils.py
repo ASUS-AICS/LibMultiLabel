@@ -135,6 +135,10 @@ def _load_raw_data(data, is_test=False, tokenize_text=True, remove_no_label_data
     Returns:
         pandas.DataFrame: Data composed of index, label, and tokenized text.
     """
+    if isinstance(data, str):
+        logging.info(f'Load data from {data}.')
+        data = pd.read_csv(data, sep='\t', header=None,
+                           on_bad_lines='warn', quoting=csv.QUOTE_NONE).fillna('')
     data = data.astype(str)
     if data.shape[1] == 2:
         data.columns = ['label', 'text']
@@ -197,31 +201,19 @@ def load_datasets(
 
     datasets = {}
     if training_data is not None:
-        if isinstance(training_data, str):
-            logging.info(f'Load data from {training_data}.')
-            training_data = pd.read_csv(training_data, sep='\t', header=None,
-                                        error_bad_lines=False, warn_bad_lines=True, quoting=csv.QUOTE_NONE).fillna('')
-        datasets['train'] = _load_raw_data(training_data, tokenize_text=tokenize_text,
-                                           remove_no_label_data=remove_no_label_data)
+        datasets['train'] = _load_raw_data(
+            training_data, tokenize_text=tokenize_text, remove_no_label_data=remove_no_label_data)
 
     if val_data is not None:
-        if isinstance(val_data, str):
-            logging.info(f'Load data from {val_data}.')
-            val_data = pd.read_csv(val_data, sep='\t', header=None,
-                                   error_bad_lines=False, warn_bad_lines=True, quoting=csv.QUOTE_NONE).fillna('')
-        datasets['val'] = _load_raw_data(val_data, tokenize_text=tokenize_text,
-                                           remove_no_label_data=remove_no_label_data)   
+        datasets['val'] = _load_raw_data(
+            val_data, tokenize_text=tokenize_text, remove_no_label_data=remove_no_label_data)
     elif val_size > 0:
         datasets['train'], datasets['val'] = train_test_split(
             datasets['train'], test_size=val_size, random_state=42)
 
     if test_data is not None:
-        if isinstance(test_data, str):
-            logging.info(f'Load data from {test_data}.')
-            test_data = pd.read_csv(test_data, sep='\t', header=None,
-                                    error_bad_lines=False, warn_bad_lines=True, quoting=csv.QUOTE_NONE).fillna('')
-        datasets['test'] = _load_raw_data(test_data, is_test=True, tokenize_text=tokenize_text,
-                                          remove_no_label_data=remove_no_label_data)
+        datasets['test'] = _load_raw_data(
+            test_data, is_test=True, tokenize_text=tokenize_text, remove_no_label_data=remove_no_label_data)
 
     if merge_train_val:
         datasets['train'] = datasets['train'] + datasets['val']
