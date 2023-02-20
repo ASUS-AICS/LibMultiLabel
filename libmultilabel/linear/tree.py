@@ -1,6 +1,6 @@
 import numpy as np
 import scipy.sparse as sparse
-from sklearn.cluster import KMeans, MiniBatchKMeans
+from sklearn.cluster import MiniBatchKMeans
 
 from .linear import predict_values, train_1vsrest
 
@@ -41,7 +41,6 @@ class Tree:
 
         def visit(node):
             idx = y[:, node.labelmap].getnnz(axis=1) > 0
-            assert(np.all(y[idx].getnnz(axis=1) > 0))
             return self._train_node(y[idx], x[idx], options, node)
 
         self.root.dfs(visit)
@@ -210,3 +209,35 @@ class GlobalTree(Tree):
             '-B': bias,
             'threshold': 0
         }
+
+
+class WeirdLossTree(CachedTree):
+    def _beam_search(self, allpreds: np.ndarray) -> np.ndarray:
+        """ Same as Tree._beam_search except this uses cached decision
+        values instead of computing on the fly.
+        """
+        cur_level = [(self.root, 0.)]   # pairs of (node, score)
+        next_level = []
+        while len(list(filter(lambda pair: not pair[0].isLeaf(), cur_level))) > 0:
+            for node, score in cur_level:
+                if node.isLeaf():
+                    next_level.append((node, score))
+                    continue
+                slice = np.s_[self.weightmap[node.index]:
+                              self.weightmap[node.index+1]]
+                pred = allpreds[slice].ravel()
+                child_score = score - np.maximum(0, 1 - pred)**2
+                next_level.extend(zip(node.children, child_score.tolist()))
+
+            cur_level = sorted(next_level, key=lambda pair: -
+                               pair[1])[:self.beam_width]
+            next_level = []
+
+        scores = np.empty_like(self.root.labelmap, dtype='d')
+        scores[:] = -np.inf
+        for node, score in cur_level:
+            slice = np.s_[self.weightmap[node.index]:
+                          self.weightmap[node.index+1]]
+            pred = allpreds[slice].ravel()
+            scores[node.labelmap] = np.exp(score - np.maximum(0, 1 - pred)**2)
+        return scores
