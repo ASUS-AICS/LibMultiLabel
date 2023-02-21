@@ -58,7 +58,8 @@ pipeline = Pipeline([
 ])
 
 ######################################################################
-# For the estimator ``MultiLabelEstimator``, arguments ``options`` is a `LIBLINEAR option <https://github.com/cjlin1/liblinear/blob/70ecb8963b9390baf56892290b0d5a9e7e3d84ec/README#L99>`__, and
+# For the estimator ``MultiLabelEstimator``, arguments ``options`` is a LIBLINEAR option
+# (see *train Usage* in `liblinear <https://github.com/cjlin1/liblinear>`__ README), and
 # ``linear_technique`` is one of linear techniques: ``1vsrest``, ``thresholding``, ``cost_sensitive``,
 # ``cost_sensitive_micro``, and ``binary_and_mulitclass``.
 # In ``pipeline``, we specify settings used by the estimator.
