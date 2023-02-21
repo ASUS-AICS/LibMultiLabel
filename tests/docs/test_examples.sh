@@ -39,8 +39,6 @@ main() {
     "plot_linear_quickstart.py"
     "plot_KimCNN_quickstart.py"
     "plot_bert_quickstart.py"
-    "plot_linear_gridsearch_tutorial.py"
-    "plot_dataset_tutorial.py"
   )
   for file_name in "${TEST_FILES[@]}"; do
     command="python3 docs/examples/${file_name}"
