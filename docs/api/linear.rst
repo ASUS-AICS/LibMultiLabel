@@ -36,6 +36,8 @@ Preprocessor
 
    .. automethod:: __init__
 
+.. automodule:: libmultilabel.linear.preprocessor
+
 .. autofunction:: load_libmultilabel_format
 
 .. autofunction:: load_libsvm_format
