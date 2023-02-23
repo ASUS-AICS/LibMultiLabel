@@ -21,11 +21,13 @@ def spherical(x: sparse.csr_matrix, k: int, max_iter: int, tol: float) -> np.nda
     prev_sim = np.inf
     for _ in range(max_iter):
         similarity = x * centroids.transpose()
-        cluster = similarity.argmax(axis=1)
+        cluster = similarity.argmax(axis=1).A1
 
         centroids = np.zeros(centroids.shape)
         for i in range(k):
-            centroids[i] = x[cluster == i].sum(axis=0)
+            centroids[i] = x[cluster == i].sum(axis=0).A1
+        # what is best way to store centroids?
+        centroids = sparse.csr_matrix(centroids)
 
         avg_sim = similarity[:, cluster].sum() / x.shape[0]
         if prev_sim - avg_sim < tol:

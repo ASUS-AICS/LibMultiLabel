@@ -54,9 +54,9 @@ class Tree:
         if d >= self.dmax or rep.shape[0] <= self.K:
             return Node(labelmap, [], np.arange(len(labelmap)))
 
-        metalabels = sklearn.cluster.MiniBatchKMeans(
-            self.K, random_state=np.random.randint(2**32)).fit(rep).labels_
-        # metalabels = kmeans.spherical(rep, self.K, max_iter=300, tol=0.0001)
+        # metalabels = sklearn.cluster.MiniBatchKMeans(
+        #     self.K, random_state=np.random.randint(2**32)).fit(rep).labels_
+        metalabels = kmeans.spherical(rep, self.K, max_iter=300, tol=0.0001)
         maps = [labelmap[metalabels == i] for i in range(self.K)]
         reps = [rep[metalabels == i] for i in range(self.K)]
         children = [self._build(reps[i], maps[i], d+1)
