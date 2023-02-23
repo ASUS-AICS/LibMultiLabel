@@ -67,7 +67,8 @@ prediction = preprocessor.binarizer.inverse_transform(preds)
 # The result of first row looks like:
 #
 #   >>> print(prediction[0])
-#   ... ('GCAT', 'GSPO')
+#   ... 
+#       ('GCAT', 'GSPO')
 #
 # To see how well we performed, we may want to check various
 # metrics with the test set.
