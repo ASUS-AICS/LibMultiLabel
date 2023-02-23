@@ -71,14 +71,14 @@ class Tree:
                     ):
         if node.isLeaf():
             node.model = linear.train_1vsrest(
-                y[:, node.labelmap], x, options,
+                y[:, node.labelmap], x, options, False
             )
         else:
             childy = [y[:, child.labelmap].getnnz(axis=1).reshape(-1, 1) > 0
                       for child in node.children]
             childy = sparse.csr_matrix(np.hstack(childy))
             node.model = linear.train_1vsrest(
-                childy, x, options,
+                childy, x, options, False
             )
 
     def predict_values(self, x: sparse.csr_matrix) -> np.ndarray:

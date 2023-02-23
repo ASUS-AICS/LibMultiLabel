@@ -14,13 +14,14 @@ __all__ = ['train_1vsrest',
            'predict_values']
 
 
-def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
+def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str, verbose: bool = True):
     """Trains a linear model for multiabel data using a one-vs-rest strategy.
 
     Args:
         y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
         x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
         options (str): The option string passed to liblinear.
+        verbose (bool): Verbosity.
 
     Returns:
         A model which can be used in predict_values.
@@ -34,7 +35,7 @@ def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str):
     weights = np.zeros((num_feature, num_class), order='F')
 
     logging.info(f'Training one-vs-rest model on {num_class} labels')
-    for i in tqdm(range(num_class)):
+    for i in tqdm(range(num_class), disable=not verbose):
         yi = y[:, i].toarray().reshape(-1)
         weights[:, i] = do_train(2*yi - 1, x, options).ravel()
 
