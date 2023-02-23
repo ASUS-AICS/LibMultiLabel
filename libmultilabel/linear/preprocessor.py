@@ -13,7 +13,7 @@ import scipy.sparse as sparse
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import MultiLabelBinarizer
 
-__all__ = ['Preprocessor']
+__all__ = ['Preprocessor', 'read_libmultilabel_format', 'read_libsvm_format']
 
 
 class Preprocessor:
