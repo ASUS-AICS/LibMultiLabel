@@ -541,8 +541,8 @@ def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
 
     return (x * model['weights']).A + model['threshold']
 
-def predict(preprocessor, x: np.ndarray, top_k: int = 3) -> 'list[tuple(str)]':
-    """Make predictions from decision values.
+def predict_topk(preprocessor, x: np.ndarray, top_k: int = 5) -> 'list[tuple(str)]':
+    """Make top k predictions from decision values.
 
     Args:
         preprocessor: The preprocessor object from ``Preprocessor`` API used to load and preprocess the data.
