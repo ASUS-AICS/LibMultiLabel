@@ -64,7 +64,7 @@ class Preprocessor:
             self.classes = None
             self.include_test_labels = include_test_labels
 
-        if self.data_format == 'txt' or 'dataframe':
+        if self.data_format in {'txt', 'dataframe'}:
             data = self._load_text(training_data, test_data, eval)
         elif self.data_format == 'svm':
             data = self._load_svm(training_data, test_data, eval)
