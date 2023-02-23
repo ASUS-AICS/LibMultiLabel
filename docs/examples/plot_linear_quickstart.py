@@ -52,12 +52,18 @@ preds = linear.predict_values(model, datasets['test']['x'])
 ######################################################################
 # ``preds`` holds the decision values, i.e. the raw values
 # outputted by the model. To transform it into predictions,
-# you can use the ``predict`` funciton with the desired top k value. 
-# For example, if you want top 3 labels:
-#   
-#    >>> print(linear.predict(preprocessor, preds, top_k=3)[0])
-#    ... ('GCAT', 'GDIP', 'GSPO')
-#
+# the simplest way is to take the positive values as the labels predicted
+# to be associated with the sample, i.e. preds > 0. 
+
+preds[preds > 0] = 1
+preds[preds <= 0] = 0
+
+######################################################################
+#To transform the binary labels back to multi-class labels, we can use ``inverse_transform`` in the ``Preprocessor.binarizer``:
+
+prediction = preprocessor.binarizer.inverse_transform(preds)
+
+######################################################################
 # To see how well we performed, we may want to check various
 # metrics with the test set.
 # For that we may use:
