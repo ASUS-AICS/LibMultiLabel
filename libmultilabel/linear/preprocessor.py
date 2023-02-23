@@ -148,6 +148,7 @@ def read_libmultilabel_format(data: Union[str, pd.DataFrame]) -> 'dict[str,list[
     Returns:
         dict[str,list[str]]: A dictionary with a list of index (optional), label, and text.
     """
+    assert isinstance(data, str) or isinstance(data, pd.DataFrame), "Data must be from a file or pandas dataframe."
     if isinstance(data, str):
         data = pd.read_csv(data, sep='\t', header=None,
                            on_bad_lines='warn', quoting=csv.QUOTE_NONE).fillna('')
