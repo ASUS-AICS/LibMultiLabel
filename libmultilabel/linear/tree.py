@@ -1,8 +1,9 @@
 import numpy as np
 import scipy.sparse as sparse
-from sklearn.cluster import MiniBatchKMeans
+import sklearn.cluster
+import sklearn.preprocessing
 
-from .linear import predict_values, train_1vsrest
+from . import kmeans, linear
 
 
 class Node:
@@ -53,8 +54,9 @@ class Tree:
         if d >= self.dmax or rep.shape[0] <= self.K:
             return Node(labelmap, [], np.arange(len(labelmap)))
 
-        metalabels = MiniBatchKMeans(
+        metalabels = sklearn.cluster.MiniBatchKMeans(
             self.K, random_state=np.random.randint(2**32)).fit(rep).labels_
+        # metalabels = kmeans.spherical(rep, self.K, max_iter=300, tol=0.0001)
         maps = [labelmap[metalabels == i] for i in range(self.K)]
         reps = [rep[metalabels == i] for i in range(self.K)]
         children = [self._build(reps[i], maps[i], d+1)
@@ -68,14 +70,14 @@ class Tree:
                     node: Node
                     ):
         if node.isLeaf():
-            node.model = train_1vsrest(
+            node.model = linear.train_1vsrest(
                 y[:, node.labelmap], x, options,
             )
         else:
             childy = [y[:, child.labelmap].getnnz(axis=1).reshape(-1, 1) > 0
                       for child in node.children]
             childy = sparse.csr_matrix(np.hstack(childy))
-            node.model = train_1vsrest(
+            node.model = linear.train_1vsrest(
                 childy, x, options,
             )
 
@@ -106,7 +108,7 @@ class Tree:
                 if node.isLeaf():
                     next_level.append((node, score))
                     continue
-                pred = predict_values(node.model, x).ravel()
+                pred = linear.predict_values(node.model, x).ravel()
                 child_score = score - np.log(1 + np.exp(-pred))
                 next_level.extend(zip(node.children, child_score.tolist()))
 
@@ -117,7 +119,7 @@ class Tree:
         scores = np.empty_like(self.root.labelmap, dtype='d')
         scores[:] = -np.inf
         for node, score in cur_level:
-            pred = predict_values(node.model, x).ravel()
+            pred = linear.predict_values(node.model, x).ravel()
             scores[node.labelmap] = score - np.log(1 + np.exp(-pred))
         return -np.log(np.exp(-scores) - 1)
 
@@ -126,7 +128,7 @@ class CachedTree(Tree):
     def predict_values(self, x: sparse.csr_matrix) -> np.ndarray:
         if not hasattr(self, 'model'):
             self._build_model()
-        allpreds = predict_values(self.model, x)
+        allpreds = linear.predict_values(self.model, x)
         return np.vstack([self._beam_search(allpreds[i]) for i in range(allpreds.shape[0])])
 
     def _build_model(self) -> None:
@@ -185,12 +187,12 @@ class GlobalTree(Tree):
     def predict_values(self, x: sparse.csr_matrix) -> np.ndarray:
         if not hasattr(self, 'model'):
             self._build_model()
-        return predict_values(self.model, x)
+        return linear.predict_values(self.model, x)
 
     def _build_model(self) -> None:
         num_features = self.root.model['weights'].shape[0]
         num_labels = self.root.labelmap.shape[0]
-        weights = np.ndarray((num_features, num_labels))
+        weights = np.zeros((num_features, num_labels))
         bias = self.root.model['-B']
 
         def visit(node):
