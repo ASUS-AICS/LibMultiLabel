@@ -59,12 +59,13 @@ preds[preds > 0] = 1
 preds[preds <= 0] = 0
 
 ######################################################################
-#To transform the binary labels back to multi-class labels, we can use ``inverse_transform`` in the ``Preprocessor.binarizer``:
+# To transform the binary labels back to multi-class labels, we can use ``inverse_transform`` in the ``Preprocessor.binarizer``:
 
 prediction = preprocessor.binarizer.inverse_transform(preds)
 
 ######################################################################
 # The result of first row looks like:
+#
 #   >>>print(prediction[0])
 #   ...('GCAT', 'GSPO')
 # To see how well we performed, we may want to check various
