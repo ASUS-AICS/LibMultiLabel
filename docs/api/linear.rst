@@ -36,6 +36,9 @@ Preprocessor
 
    .. automethod:: __init__
 
+.. autofunction:: load_libmultilabel_format
+
+.. autofunction:: load_libsvm_format
 
 Load and Save Pipeline
 ^^^^^^^^^^^^^^^^^^^^^^
