@@ -53,7 +53,7 @@ preds = linear.predict_values(model, datasets['test']['x'])
 # ``preds`` holds the decision values, i.e. the raw values
 # outputted by the model. To transform it into predictions,
 # the simplest way is to take the positive values as the labels predicted
-# to be associated with the sample, i.e. preds > 0. 
+# to be associated with the sample, i.e. ``preds > 0``. 
 
 preds[preds > 0] = 1
 preds[preds <= 0] = 0
