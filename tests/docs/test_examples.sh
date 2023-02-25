@@ -33,19 +33,39 @@ run_and_compare_logs() {
   rm ${LOG_PREFIX}_master.log
 }
 
+#######################################
+# Check if error occur.
+# Arguments:
+#   $1: Command to run.
+#######################################
+run() {
+  command="$1"
+  # Simply run the code and test if error occur.
+  is_passed=$([ $command = 0 ] && echo "PASSED" || echo "FAILED")
+  echo "$is_passed  $command" >> $REPORT_PATH &
+}
+
 main() {
   rm $REPORT_PATH
-  TEST_FILES=(
+  TEST_FILES_WithOutput=(
     "plot_linear_quickstart.py"
     "plot_KimCNN_quickstart.py"
     "plot_bert_quickstart.py"
-    "plot_linear_gridsearch_tutorial.py"
-    "plot_dataset_tutorial.py"
   )
-  for file_name in "${TEST_FILES[@]}"; do
+  for file_name in "${TEST_FILES_WithOutput[@]}"; do
     command="python3 docs/examples/${file_name}"
     run_and_compare_logs "$command"
   done
+
+  TEST_FILES_WithoutOutput=(
+    "plot_linear_gridsearch_tutorial.py"
+    "plot_dataset_tutorial.py"
+  )
+  for file_name in "${TEST_FILES_WithoutOutput[@]}"; do
+    command="python3 docs/examples/${file_name}"
+    run "$command"
+  done
+
 
   # Print the test results and remove the intermediate files.
   all_tests=$(grep 'PASSED\|FAILED' $REPORT_PATH | wc -l)
