@@ -48,16 +48,6 @@ run() {
 
 main() {
   rm $REPORT_PATH
-  TEST_FILES_WithOutput=(
-    "plot_linear_quickstart.py"
-    "plot_KimCNN_quickstart.py"
-    "plot_bert_quickstart.py"
-  )
-  for file_name in "${TEST_FILES_WithOutput[@]}"; do
-    command="python3 docs/examples/${file_name}"
-    run_and_compare_logs "$command"
-  done
-  
   TEST_FILES_WithoutOutput=(
     "plot_linear_gridsearch_tutorial.py"
     "plot_dataset_tutorial.py"
@@ -67,7 +57,16 @@ main() {
     run "$command"
   done
 
-  
+  TEST_FILES_WithOutput=(
+    "plot_linear_quickstart.py"
+    "plot_KimCNN_quickstart.py"
+    "plot_bert_quickstart.py"
+  )
+  for file_name in "${TEST_FILES_WithOutput[@]}"; do
+    echo ${file_name}
+    command="python3 docs/examples/${file_name}"
+    run_and_compare_logs "$command"
+  done
 
   # Print the test results and remove the intermediate files.
   all_tests=$(grep 'PASSED\|FAILED' $REPORT_PATH | wc -l)
