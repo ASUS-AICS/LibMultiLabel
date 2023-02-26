@@ -541,6 +541,7 @@ def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
 
     return (x * model['weights']).A + model['threshold']
 
+
 def predict_topk(preprocessor, preds: np.ndarray, top_k: int = 5) -> 'list[tuple(str)]':
     """Make top k predictions from decision values.
 
