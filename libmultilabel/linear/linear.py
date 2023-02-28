@@ -4,6 +4,7 @@ import os
 import numpy as np
 import scipy.sparse as sparse
 from liblinear.liblinearutil import train
+from .preprocessor import Preprocessor
 from tqdm import tqdm
 
 __all__ = ['train_1vsrest',
@@ -541,18 +542,19 @@ def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
 
     return (x * model['weights']).A + model['threshold']
 
-def predict_topk(preprocessor, preds: np.ndarray, top_k: int = 5) -> 'list[tuple(str)]':
+def predict_topk(preprocessor: Preprocessor, preds: np.ndarray, top_k: int=5) -> 'list[list[str]]':
     """Make top k predictions from decision values.
 
     Args:
-        preprocessor: The preprocessor object from ``Preprocessor`` API used to load and preprocess the data.
+        preprocessor: The preprocessor used to load and preprocess the data.
         preds (np.ndarray): A matrix of decision values with dimension number of instances * number of classes.
         top_k (int): Determine how many classes per instance should be predicted.
 
     Returns:
-        list of tuples which contain predicted top k labels.
+        list of lists which contain top k labels.
     """
     top_k_ind = np.argpartition(preds, -top_k)[:, -top_k:]
     pred_result = np.zeros(preds.shape)
     np.put_along_axis(pred_result, top_k_ind, 1, -1)
-    return preprocessor.binarizer.inverse_transform(pred_result)
+    topk_result = list(map(list, preprocessor.binarizer.inverse_transform(pred_result)))
+    return topk_result
