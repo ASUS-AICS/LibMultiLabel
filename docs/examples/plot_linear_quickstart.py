@@ -59,16 +59,18 @@ preds[preds > 0] = 1
 preds[preds <= 0] = 0
 
 ######################################################################
-# To transform the binary labels back to multi-class labels, we can use ``inverse_transform`` in the ``Preprocessor.binarizer``:
+# Now we have labels predicted in binary form. Next step,
+# use the label mapping in the ``Preprocessor`` to transform it to multiclass form.
 
-prediction = preprocessor.binarizer.inverse_transform(preds)
+label_mapping = preprocessor.label_mapping
+prediction = [list(label_mapping.compress(row)) for row in preds]
 
 ######################################################################
-# The result of first row looks like:
+# The result of first instance looks like:
 #
 #   >>> print(prediction[0])
 #   ... 
-#       ('GCAT', 'GSPO')
+#       ['GCAT', 'GSPO')]
 #
 # To see how well we performed, we may want to check various
 # metrics with the test set.
