@@ -542,19 +542,19 @@ def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
 
     return (x * model['weights']).A + model['threshold']
 
-def predict_topk(preprocessor: Preprocessor, preds: np.ndarray, top_k: int=5) -> 'list[list[str]]':
+def take_topk_labels(label_mapping: 'list[str]', preds: np.ndarray, top_k: int=5) -> 'list[list[str]]':
     """Make top k predictions from decision values.
 
     Args:
-        preprocessor: The preprocessor used to load and preprocess the data.
+        label_mapping (list[str]): A list of class labels that maps each label to its index. 
         preds (np.ndarray): A matrix of decision values with dimension number of instances * number of classes.
         top_k (int): Determine how many classes per instance should be predicted.
 
     Returns:
         list of lists which contain top k labels.
     """
+    labels = np.array(label_mapping)
     top_k_ind = np.argpartition(preds, -top_k)[:, -top_k:]
     pred_result = np.zeros(preds.shape)
     np.put_along_axis(pred_result, top_k_ind, 1, -1)
-    topk_result = list(map(list, preprocessor.binarizer.inverse_transform(pred_result)))
-    return topk_result
+    return [list(labels.compress(row)) for row in pred_result]

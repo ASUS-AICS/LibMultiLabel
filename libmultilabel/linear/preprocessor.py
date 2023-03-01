@@ -143,6 +143,7 @@ class Preprocessor:
         self.binarizer = MultiLabelBinarizer(
             sparse_output=True, classes=classes)
         self.binarizer.fit(labels)
+        self.label_mapping = self.binarizer.classes_.tolist()
 
 
 def read_libmultilabel_format(data: pd.DataFrame) -> 'dict[str,list[str]]':
