@@ -70,7 +70,7 @@ prediction = [list(label_mapping.compress(row)) for row in preds]
 #
 #   >>> print(prediction[0])
 #   ... 
-#       ['GCAT', 'GSPO')]
+#       ['GCAT', 'GSPO']
 #
 # To see how well we performed, we may want to check various
 # metrics with the test set.
