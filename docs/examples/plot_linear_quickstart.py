@@ -59,7 +59,7 @@ label_mask = preds > 0
 
 ######################################################################
 # We now have the label mask. Next,
-# we use label_mapping in ``Preprocessor`` to get the original labels.
+# we use ``label_mapping`` in ``Preprocessor`` to get the original labels.
 
 label_mapping = preprocessor.label_mapping
 prediction = [label_mapping[row].tolist() for row in label_mask]
