@@ -4,7 +4,6 @@ import os
 import numpy as np
 import scipy.sparse as sparse
 from liblinear.liblinearutil import train
-from .preprocessor import Preprocessor
 from tqdm import tqdm
 
 __all__ = ['train_1vsrest',
