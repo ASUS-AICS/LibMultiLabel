@@ -553,7 +553,5 @@ def get_topk_labels(label_mapping: np.ndarray, preds: np.ndarray, top_k: int = 5
     Returns:
         list of lists which contain top k labels.
     """
-    top_k_ind = np.argpartition(preds, -top_k)[:, -top_k:]
-    pred_result = np.zeros(preds.shape)
-    np.put_along_axis(pred_result, top_k_ind, 1, -1)
-    return [list(label_mapping.compress(row)) for row in pred_result]
+    top_k_ind = np.argpartition(preds, -top_k)[:, :-top_k-1:-1]
+    return label_mapping[top_k_ind].tolist()
