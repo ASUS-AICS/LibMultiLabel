@@ -542,8 +542,9 @@ def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
 
     return (x * model['weights']).A + model['threshold']
 
-def take_topk_labels(label_mapping: np.ndarray, preds: np.ndarray, top_k: int=5) -> 'list[list[str]]':
-    """Make top k predictions from decision values.
+
+def get_topk_labels(label_mapping: np.ndarray, preds: np.ndarray, top_k: int = 5) -> 'list[list[str]]':
+    """Get top k predictions from decision values.
 
     Args:
         label_mapping (np.ndarray): A ndarray of class labels that maps each label to its index. 
