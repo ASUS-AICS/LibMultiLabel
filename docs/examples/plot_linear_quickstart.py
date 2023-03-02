@@ -55,15 +55,14 @@ preds = linear.predict_values(model, datasets['test']['x'])
 # the simplest way is to take the positive values as the labels predicted
 # to be associated with the sample, i.e. ``preds > 0``. 
 
-preds[preds > 0] = 1
-preds[preds <= 0] = 0
-
+label_mask = pred > 0 
 ######################################################################
-# Now we have labels predicted in binary form. Next step,
-# use the label mapping in the ``Preprocessor`` to transform it to multiclass form.
+# We now have the label mask. Next,
+# we use label_mapping in ``Preprocessor`` to get the original labels.
 
 label_mapping = preprocessor.label_mapping
-prediction = [list(label_mapping.compress(row)) for row in preds]
+prediction = label_mapping[labelmask].tolist()
+print(prediction[0])
 
 ######################################################################
 # The result of first instance looks like:
