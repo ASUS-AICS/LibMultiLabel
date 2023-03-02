@@ -76,8 +76,7 @@ prediction = [label_mapping[row].tolist() for row in label_mask]
 # For that we may use:
 
 metrics = linear.get_metrics(metric_threshold=0,
-                             monitor_metrics=['Macro-F1',
-                                              'Micro-F1', 'P@1', 'P@3', 'P@5'],
+                             monitor_metrics=['Macro-F1', 'Micro-F1', 'P@1', 'P@3', 'P@5'],
                              num_classes=datasets['test']['y'].shape[1])
 
 ######################################################################
