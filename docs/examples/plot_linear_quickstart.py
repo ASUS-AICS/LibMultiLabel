@@ -53,22 +53,22 @@ preds = linear.predict_values(model, datasets['test']['x'])
 # ``preds`` holds the decision values, i.e. the raw values
 # outputted by the model. To transform it into predictions,
 # the simplest way is to take the positive values as the labels predicted
-# to be associated with the sample, i.e. ``preds > 0``. 
+# to be associated with the sample, i.e. ``preds > 0``.
 
-label_mask = pred > 0 
+label_mask = preds > 0
+
 ######################################################################
 # We now have the label mask. Next,
 # we use label_mapping in ``Preprocessor`` to get the original labels.
 
 label_mapping = preprocessor.label_mapping
-prediction = label_mapping[labelmask].tolist()
-print(prediction[0])
+prediction = [label_mapping[row].tolist() for row in label_mask]
 
 ######################################################################
 # The result of first instance looks like:
 #
 #   >>> print(prediction[0])
-#   ... 
+#   ...
 #       ['GCAT', 'GSPO']
 #
 # To see how well we performed, we may want to check various
@@ -76,7 +76,8 @@ print(prediction[0])
 # For that we may use:
 
 metrics = linear.get_metrics(metric_threshold=0,
-                             monitor_metrics=['Macro-F1', 'Micro-F1', 'P@1', 'P@3', 'P@5'],
+                             monitor_metrics=['Macro-F1',
+                                              'Micro-F1', 'P@1', 'P@3', 'P@5'],
                              num_classes=datasets['test']['y'].shape[1])
 
 ######################################################################
