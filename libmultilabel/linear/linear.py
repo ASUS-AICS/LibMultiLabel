@@ -540,3 +540,18 @@ def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
         ], 'csr')
 
     return (x * model['weights']).A + model['threshold']
+
+
+def get_topk_labels(label_mapping: np.ndarray, preds: np.ndarray, top_k: int = 5) -> 'list[list[str]]':
+    """Get top k predictions from decision values.
+
+    Args:
+        label_mapping (np.ndarray): A ndarray of class labels that maps each label to its index. 
+        preds (np.ndarray): A matrix of decision values with dimension number of instances * number of classes.
+        top_k (int): Determine how many classes per instance should be predicted.
+
+    Returns:
+        list of lists which contain top k labels.
+    """
+    top_k_ind = np.argpartition(preds, -top_k)[:, :-top_k-1:-1]
+    return label_mapping[top_k_ind].tolist()
