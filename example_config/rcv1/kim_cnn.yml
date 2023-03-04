@@ -1,5 +1,6 @@
 # data
-data_dir: data/rcv1
+training_file: data/rcv1/train.txt
+test_file: data/rcv1/test.txt
 data_name: rcv1
 min_vocab_freq: 1
 max_seq_length: 500

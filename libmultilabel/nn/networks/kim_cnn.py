@@ -8,7 +8,7 @@ class KimCNN(nn.Module):
     """KimCNN
 
     Args:
-        embed_vecs (FloatTensor): The pre-trained word vectors of shape(vocab_size, embed_dim).
+        embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
         num_classes (int): Total number of classes.
         filter_sizes (list): The size of convolutional filters.
         num_filter_per_size (int): The number of filters in convolutional layers in each size. Defaults to 128.
@@ -16,6 +16,7 @@ class KimCNN(nn.Module):
         encoder_dropout (float): The dropout rate of the encoder output. Defaults to 0.
         activation (str): Activation function to be used. Defaults to 'relu'.
     """
+
     def __init__(
         self,
         embed_vecs,
@@ -37,6 +38,6 @@ class KimCNN(nn.Module):
     def forward(self, input):
         x = self.embedding(input['text'])  # (batch_size, length, embed_dim)
         x = self.encoder(x)  # (batch_size, num_filter, 1)
-        x = torch.squeeze(x, 2) # (batch_size, num_filter)
+        x = torch.squeeze(x, 2)  # (batch_size, num_filter)
         x = self.linear(x)  # (batch_size, num_classes)
         return {'logits': x}

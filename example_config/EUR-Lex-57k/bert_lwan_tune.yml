@@ -1,10 +1,13 @@
 # data
-data_dir: data/EUR-Lex-57k
+training_file: data/EUR-Lex-57k/train.txt
+val_file: data/EUR-Lex-57k/valid.txt
+test_file: data/EUR-Lex-57k/test.txt
 data_name: EUR-Lex-57k
 min_vocab_freq: 1
 max_seq_length: 500
 include_test_labels: true
-keep_no_label_data: false
+remove_no_label_data: false
+add_special_tokens: false
 
 # train
 seed: 1337
@@ -15,6 +18,7 @@ learning_rate: ['grid_search', [0.0001, 0.00005, 0.00001, 0.000005]]
 momentum: 0
 weight_decay: ['grid_search', [0.001]]
 patience: 5
+early_stopping_metric: RP@5
 shuffle: true
 
 # eval
@@ -24,6 +28,7 @@ val_metric: RP@5
 
 # model
 model_name: BERTAttention
+loss_function: binary_cross_entropy_with_logits
 init_weight: null
 network_config:
   dropout: ['grid_search', [0, 0.1, 0.2, 0.4]]
@@ -63,7 +68,4 @@ metric_threshold: 0.5
 result_dir: runs
 save_k_predictions: 0
 silent: true
-test_path: null
-train_path: null
-val_path: null
 val_size: 0.2

@@ -1,11 +1,17 @@
 # https://github.com/jamesmullenbach/caml-mimic/blob/master/predictions/CAML_mimic3_50/train_new_model.sh
 # data
-data_dir: data/MIMIC-50
+training_file: data/MIMIC-50/train.txt
+val_file: data/MIMIC-50/valid.txt
+test_file: data/MIMIC-50/test.txt
 data_name: MIMIC-50
 min_vocab_freq: 3
 max_seq_length: 2500
 # We follow caml-mimic that includes labels in both training and test datasets.
 include_test_labels: true
+# Follow https://github.com/jamesmullenbach/caml-mimic/blob/master/datasets.py#L45
+# to remove training and validation instances that have no labels.
+remove_no_label_data: true
+add_special_tokens: false
 
 # train
 seed: 1337

@@ -10,7 +10,7 @@ class Embedding(nn.Module):
     """Embedding layer with dropout
 
     Args:
-        embed_vecs (FloatTensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
+        embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
         dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
     """
 
@@ -42,7 +42,8 @@ class RNNEncoder(ABC, nn.Module):
     def forward(self, input, length, **kwargs):
         self.rnn.flatten_parameters()
         idx = torch.argsort(length, descending=True)
-        length_clamped = length[idx].cpu().clamp(min=1)  # avoid the empty text with length 0
+        length_clamped = length[idx].cpu().clamp(
+            min=1)  # avoid the empty text with length 0
         packed_input = pack_padded_sequence(
             input[idx], length_clamped, batch_first=True)
         outputs, _ = pad_packed_sequence(
@@ -134,7 +135,8 @@ class CNNEncoder(nn.Module):
         for conv in self.convs:
             h_sub = conv(h)  # (batch_size, num_filter, length)
             if self.num_pool == 1:
-                h_sub = F.max_pool1d(h_sub, h_sub.shape[2])  # (batch_size, num_filter, 1)
+                # (batch_size, num_filter, 1)
+                h_sub = F.max_pool1d(h_sub, h_sub.shape[2])
             elif self.num_pool > 1:
                 h_sub = self.pool(h_sub)  # (batch_size, num_filter, num_pool)
             h_list.append(h_sub)
@@ -153,14 +155,17 @@ class LabelwiseAttention(nn.Module):
         input_size (int): The number of expected features in the input.
         num_classes (int): Total number of classes.
     """
+
     def __init__(self, input_size, num_classes):
         super(LabelwiseAttention, self).__init__()
         self.attention = nn.Linear(input_size, num_classes, bias=False)
 
     def forward(self, input):
-        attention = self.attention(input).transpose(1, 2)  # (batch_size, num_classes, sequence_length)
+        # (batch_size, num_classes, sequence_length)
+        attention = self.attention(input).transpose(1, 2)
         attention = F.softmax(attention, -1)
-        logits = torch.bmm(attention, input)  # (batch_size, num_classes, hidden_dim)
+        # (batch_size, num_classes, hidden_dim)
+        logits = torch.bmm(attention, input)
         return logits, attention
 
 
@@ -173,18 +178,23 @@ class LabelwiseMultiHeadAttention(nn.Module):
         num_heads (int): The number of parallel attention heads.
         attention_dropout (float): The dropout rate for the attention. Defaults to 0.0.
     """
+
     def __init__(self, input_size, num_classes, num_heads, attention_dropout=0.0):
         super(LabelwiseMultiHeadAttention, self).__init__()
-        self.attention = nn.MultiheadAttention(embed_dim=input_size, num_heads=num_heads, dropout=attention_dropout)
+        self.attention = nn.MultiheadAttention(
+            embed_dim=input_size, num_heads=num_heads, dropout=attention_dropout)
         self.Q = nn.Linear(input_size, num_classes)
 
     def forward(self, input, attention_mask=None):
-        key = value = input.permute(1, 0, 2)  # (sequence_length, batch_size, hidden_dim)
+        # (sequence_length, batch_size, hidden_dim)
+        key = value = input.permute(1, 0, 2)
         query = self.Q.weight.repeat(input.size(0), 1, 1).transpose(
             0, 1)  # (num_classes, batch_size, hidden_dim)
 
-        logits, attention = self.attention(query, key, value, key_padding_mask=attention_mask)
-        logits = logits.permute(1, 0, 2)  # (batch_size, num_classes, hidden_dim)
+        logits, attention = self.attention(
+            query, key, value, key_padding_mask=attention_mask)
+        # (batch_size, num_classes, hidden_dim)
+        logits = logits.permute(1, 0, 2)
         return logits, attention
 
 

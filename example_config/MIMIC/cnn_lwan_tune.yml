@@ -1,10 +1,15 @@
 # data
-data_dir: data/MIMIC
+training_file: data/MIMIC/train.txt
+val_file: data/MIMIC/valid.txt
+test_file: data/MIMIC/test.txt
 data_name: MIMIC
 min_vocab_freq: 3
 max_seq_length: 2500
 include_test_labels: true
-keep_no_label_data: false
+# Follow https://github.com/jamesmullenbach/caml-mimic/blob/master/datasets.py#L45
+# to remove training and validation instances that have no labels.
+remove_no_label_data: true
+add_special_tokens: false
 
 # train
 seed: 1337
@@ -15,6 +20,7 @@ learning_rate: ['grid_search', [0.003, 0.001, 0.0003]]
 momentum: 0
 weight_decay: 0
 patience: 10
+early_stopping_metric: RP@5
 shuffle: true
 
 # eval
@@ -24,6 +30,7 @@ val_metric: RP@15
 
 # model
 model_name: CNNLWAN
+loss_function: binary_cross_entropy_with_logits
 init_weight: kaiming_uniform
 network_config:
   embed_dropout: ['grid_search', [0, 0.2, 0.4, 0.6, 0.8]]
@@ -63,7 +70,4 @@ metric_threshold: 0.5
 result_dir: runs
 save_k_predictions: 0
 silent: true
-test_path: data/MIMIC/test.txt
-train_path: data/MIMIC/train.txt
-val_path: data/MIMIC/valid.txt
 val_size: 0.2

@@ -1,10 +1,12 @@
 # data
-data_dir: data/EUR-Lex
+training_file: data/EUR-Lex/train.txt
+test_file: data/EUR-Lex/test.txt
 data_name: EUR-Lex
 min_vocab_freq: 1
 max_seq_length: 500
 include_test_labels: false
-keep_no_label_data: false
+remove_no_label_data: false
+add_special_tokens: false
 
 # train
 seed: 1337
@@ -15,6 +17,7 @@ learning_rate: ['grid_search', [0.003, 0.001, 0.0003]]
 momentum: 0
 weight_decay: 0
 patience: 10
+early_stopping_metric: RP@5
 shuffle: true
 
 # eval
@@ -24,6 +27,7 @@ val_metric: RP@5
 
 # model
 model_name: KimCNN
+loss_function: binary_cross_entropy_with_logits
 init_weight: kaiming_uniform
 network_config:
   activation: relu
@@ -64,7 +68,4 @@ metric_threshold: 0.5
 result_dir: runs
 save_k_predictions: 0
 silent: true
-test_path: null
-train_path: null
-val_path: null
 val_size: 0.2

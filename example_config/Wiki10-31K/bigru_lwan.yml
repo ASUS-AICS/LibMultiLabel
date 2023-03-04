@@ -1,5 +1,6 @@
 # data
-data_dir: data/Wiki10-31K
+training_file: data/Wiki10-31K/train.txt
+test_file: data/Wiki10-31K/test.txt
 data_name: Wiki10-31K
 min_vocab_freq: 1
 max_seq_length: 500

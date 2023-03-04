@@ -1,14 +1,14 @@
-Dataset Formats, Installation, and Modules
-==========================================
+Installation and Dataset Formats
+=============================================
+
+To work with the command line interface, firstly
+
+    - :ref:`installation`
 
 The supported :ref:`data_format` include:
 
     - :ref:`libmultilabel-format`
     - :ref:`libsvm-format`
-
-To work with the command line interface, firstly
-
-    - :ref:`installation`
 
 Then the following modules are available.
 
@@ -25,8 +25,20 @@ Install LibMultiLabel from Source
 * Environment
 
     * Python: 3.7+
-    * CUDA: 10.2 (if training neural networks by GPU)
-    * Pytorch 1.8+
+    * CUDA: 11.6 (if training neural networks by GPU)
+    * Pytorch 1.13.1+
+
+It is optional but highly recommended to
+create a virtual environment.
+For example, you can first refer to the
+`link <https://docs.conda.io/en/latest/miniconda.html>`_
+for the installation guidances of Miniconda
+and then create a virtual enviroment as follows.
+
+.. code-block:: bash
+
+    conda create -n LibMultiLabel python=3.7
+    conda activate LibMultiLabel
 
 * Clone `LibMultiLabel <https://github.com/ASUS-AICS/LibMultiLabel>`_.
 
@@ -104,3 +116,4 @@ Some sample lines are as follows::
 
     1,3,5 1:0.1 9:0.2 13:0.3
     2,4,6 2:0.4 10:0.5 14:0.4
+

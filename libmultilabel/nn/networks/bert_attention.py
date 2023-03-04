@@ -18,6 +18,7 @@ class BERTAttention(nn.Module):
         attention_type (str): Type of attention to use (caml or multihead). Defaults to 'multihead'.
         attention_dropout (float): The dropout rate for the attention. Defaults to 0.0.
     """
+
     def __init__(
         self,
         num_classes,
@@ -37,15 +38,18 @@ class BERTAttention(nn.Module):
         self.embed_drop = nn.Dropout(p=dropout)
 
         self.attention_type = attention_type
-        assert attention_type in ['singlehead', 'multihead'], "attention_type must be 'singlehead' or 'multihead'"
+        assert attention_type in [
+            'singlehead', 'multihead'], "attention_type must be 'singlehead' or 'multihead'"
         if attention_type == 'singlehead':
-            self.attention = LabelwiseAttention(self.lm.config.hidden_size, num_classes)
+            self.attention = LabelwiseAttention(
+                self.lm.config.hidden_size, num_classes)
         else:
             self.attention = LabelwiseMultiHeadAttention(
                 self.lm.config.hidden_size, num_classes, num_heads, attention_dropout)
 
         # Final layer: create a matrix to use for the #labels binary classifiers
-        self.output = LabelwiseLinearOutput(self.lm.config.hidden_size, num_classes)
+        self.output = LabelwiseLinearOutput(
+            self.lm.config.hidden_size, num_classes)
 
     def lm_feature(self, input_ids):
         """BERT takes an input of a sequence of no more than 512 tokens.
@@ -85,9 +89,10 @@ class BERTAttention(nn.Module):
             return pad_sequence(x, batch_first=True)
 
     def forward(self, input):
-        input_ids = input['text'] # (batch_size, sequence_length)
+        input_ids = input['text']  # (batch_size, sequence_length)
         attention_mask = input_ids == self.lm.config.pad_token_id
-        x = self.lm_feature(input_ids) # (batch_size, sequence_length, lm_hidden_size)
+        # (batch_size, sequence_length, lm_hidden_size)
+        x = self.lm_feature(input_ids)
         x = self.embed_drop(x)
 
         # Apply per-label attention.

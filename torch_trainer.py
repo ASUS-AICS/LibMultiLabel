@@ -5,10 +5,11 @@ import numpy as np
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from transformers import AutoTokenizer
 
+from libmultilabel.common_utils import dump_log, is_multiclass_dataset
 from libmultilabel.nn import data_utils
 from libmultilabel.nn.model import Model
-from libmultilabel.nn.nn_utils import init_device, init_model, init_trainer, set_seed
-from libmultilabel.common_utils import dump_log
+from libmultilabel.nn.nn_utils import (init_device, init_model, init_trainer,
+                                       set_seed)
 
 
 class TorchTrainer:
@@ -19,16 +20,20 @@ class TorchTrainer:
         datasets (dict, optional): Datasets for training, validation, and test. Defaults to None.
         classes(list, optional): List of class names.
         word_dict(torchtext.vocab.Vocab, optional): A vocab object which maps tokens to indices.
-        search_params (bool): Enable pytorch-lightning trainer to report the results to ray tune
+        embed_vecs (torch.Tensor, optional): The pre-trained word vectors of shape (vocab_size, embed_dim).
+        search_params (bool, optional): Enable pytorch-lightning trainer to report the results to ray tune
             on validation end during hyperparameter search. Defaults to False.
-        save_checkpoints (bool): Whether to save the last and the best checkpoint or not. Defaults to True.
+        save_checkpoints (bool, optional): Whether to save the last and the best checkpoint or not.
+            Defaults to True.
     """
+
     def __init__(
         self,
         config: dict,
         datasets: dict = None,
         classes: list = None,
         word_dict: dict = None,
+        embed_vecs=None,
         search_params: bool = False,
         save_checkpoints: bool = True
     ):
@@ -46,28 +51,33 @@ class TorchTrainer:
         self.tokenizer = None
         tokenize_text = 'lm_weight' not in config.network_config
         if not tokenize_text:
-            self.tokenizer = AutoTokenizer.from_pretrained(config.network_config['lm_weight'], use_fast=True)
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                config.network_config['lm_weight'], use_fast=True)
         # Load dataset
         if datasets is None:
             self.datasets = data_utils.load_datasets(
-                train_path=config.train_path,
-                test_path=config.test_path,
-                val_path=config.val_path,
+                training_data=config.training_file,
+                test_data=config.test_file,
+                val_data=config.val_file,
                 val_size=config.val_size,
                 merge_train_val=config.merge_train_val,
                 tokenize_text=tokenize_text,
-                keep_no_label_data=config.keep_no_label_data
+                remove_no_label_data=config.remove_no_label_data
             )
         else:
             self.datasets = datasets
 
+        self.config.multiclass = is_multiclass_dataset(
+            self.datasets['train']+self.datasets.get('val', list()))
         self._setup_model(classes=classes,
                           word_dict=word_dict,
+                          embed_vecs=embed_vecs,
                           log_path=self.log_path,
                           checkpoint_path=config.checkpoint_path)
         self.trainer = init_trainer(checkpoint_dir=self.checkpoint_dir,
                                     epochs=config.epochs,
                                     patience=config.patience,
+                                    early_stopping_metric=config.early_stopping_metric,
                                     val_metric=config.val_metric,
                                     silent=config.silent,
                                     use_cpu=config.cpu,
@@ -76,7 +86,8 @@ class TorchTrainer:
                                     limit_test_batches=config.limit_test_batches,
                                     search_params=search_params,
                                     save_checkpoints=save_checkpoints)
-        callbacks = [callback for callback in self.trainer.callbacks if isinstance(callback, ModelCheckpoint)]
+        callbacks = [callback for callback in self.trainer.callbacks if isinstance(
+            callback, ModelCheckpoint)]
         self.checkpoint_callback = callbacks[0] if callbacks else None
 
         # Dump config to log
@@ -86,6 +97,7 @@ class TorchTrainer:
         self,
         classes: list = None,
         word_dict: dict = None,
+        embed_vecs=None,
         log_path: str = None,
         checkpoint_path: str = None
     ):
@@ -95,6 +107,7 @@ class TorchTrainer:
         Args:
             classes(list): List of class names.
             word_dict(torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
+            embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
             log_path (str): Path to the log file. The log file contains the validation
                 results for each epoch and the test results. If the `log_path` is None, no performance
                 results will be logged.
@@ -110,7 +123,7 @@ class TorchTrainer:
             logging.info('Initialize model from scratch.')
             if self.config.embed_file is not None:
                 logging.info('Load word dictionary ')
-                word_dict = data_utils.load_or_build_text_dict(
+                word_dict, embed_vecs = data_utils.load_or_build_text_dict(
                     dataset=self.datasets['train'],
                     vocab_file=self.config.vocab_file,
                     min_vocab_freq=self.config.min_vocab_freq,
@@ -123,15 +136,26 @@ class TorchTrainer:
                 classes = data_utils.load_or_build_label(
                     self.datasets, self.config.label_file, self.config.include_test_labels)
 
+            if self.config.early_stopping_metric not in self.config.monitor_metrics:
+                logging.warn(
+                    f'{self.config.early_stopping_metric} is not in `monitor_metrics`. '
+                    f'Add {self.config.early_stopping_metric} to `monitor_metrics`.'
+                )
+                self.config.monitor_metrics += [
+                    self.config.early_stopping_metric]
+
             if self.config.val_metric not in self.config.monitor_metrics:
                 logging.warn(
-                    f'{self.config.val_metric} is not in `monitor_metrics`. Add {self.config.val_metric} to `monitor_metrics`.')
+                    f'{self.config.val_metric} is not in `monitor_metrics`. '
+                    f'Add {self.config.val_metric} to `monitor_metrics`.')
                 self.config.monitor_metrics += [self.config.val_metric]
 
             self.model = init_model(model_name=self.config.model_name,
-                                    network_config=dict(self.config.network_config),
+                                    network_config=dict(
+                                        self.config.network_config),
                                     classes=classes,
                                     word_dict=word_dict,
+                                    embed_vecs=embed_vecs,
                                     init_weight=self.config.init_weight,
                                     log_path=log_path,
                                     learning_rate=self.config.learning_rate,
@@ -140,9 +164,11 @@ class TorchTrainer:
                                     weight_decay=self.config.weight_decay,
                                     metric_threshold=self.config.metric_threshold,
                                     monitor_metrics=self.config.monitor_metrics,
+                                    multiclass=self.config.multiclass,
+                                    loss_function=self.config.loss_function,
                                     silent=self.config.silent,
                                     save_k_predictions=self.config.save_k_predictions
-                                   )
+                                    )
 
     def _get_dataset_loader(self, split, shuffle=False):
         """Get dataset loader.
@@ -163,7 +189,8 @@ class TorchTrainer:
             batch_size=self.config.batch_size if split == 'train' else self.config.eval_batch_size,
             shuffle=shuffle,
             data_workers=self.config.data_workers,
-            tokenizer=self.tokenizer
+            tokenizer=self.tokenizer,
+            add_special_tokens=self.config.add_special_tokens
         )
 
     def train(self):
@@ -171,10 +198,12 @@ class TorchTrainer:
         process is finished.
         """
         assert self.trainer is not None, "Please make sure the trainer is successfully initialized by `self._setup_trainer()`."
-        train_loader = self._get_dataset_loader(split='train', shuffle=self.config.shuffle)
+        train_loader = self._get_dataset_loader(
+            split='train', shuffle=self.config.shuffle)
 
         if 'val' not in self.datasets:
-            logging.info('No validation dataset is provided. Train without vaildation.')
+            logging.info(
+                'No validation dataset is provided. Train without vaildation.')
             self.trainer.fit(self.model, train_loader)
         else:
             val_loader = self._get_dataset_loader(split='val')
@@ -184,7 +213,8 @@ class TorchTrainer:
         # training (i.e., val_size=0), the model is set to the last model.
         model_path = self.checkpoint_callback.best_model_path or self.checkpoint_callback.last_model_path
         if model_path:
-            logging.info(f'Finished training. Load best model from {model_path}.')
+            logging.info(
+                f'Finished training. Load best model from {model_path}.')
             self._setup_model(checkpoint_path=model_path)
         else:
             logging.info('No model is saved during training. \
@@ -204,7 +234,7 @@ class TorchTrainer:
 
         logging.info(f'Testing on {split} set.')
         test_loader = self._get_dataset_loader(split=split)
-        metric_dict = self.trainer.test(self.model, test_dataloaders=test_loader)[0]
+        metric_dict = self.trainer.test(self.model, dataloaders=test_loader)[0]
 
         if self.config.save_k_predictions > 0:
             self._save_predictions(test_loader, self.config.predict_out_path)
@@ -218,7 +248,8 @@ class TorchTrainer:
             dataloader (torch.utils.data.DataLoader): Dataloader for the test or valid dataset.
             predict_out_path (str): Path to the an output file holding top k label results.
         """
-        batch_predictions = self.trainer.predict(self.model, dataloaders=dataloader)
+        batch_predictions = self.trainer.predict(
+            self.model, dataloaders=dataloader)
         pred_labels = np.vstack([batch['top_k_pred']
                                 for batch in batch_predictions])
         pred_scores = np.vstack([batch['top_k_pred_scores']
