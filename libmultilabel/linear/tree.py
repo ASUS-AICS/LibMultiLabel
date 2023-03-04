@@ -3,7 +3,7 @@ import scipy.sparse as sparse
 import sklearn.cluster
 import sklearn.preprocessing
 
-from . import kmeans, linear
+from . import linear
 
 
 class Node:
@@ -34,9 +34,10 @@ class Tree:
     def train(self,
               y: sparse.csr_matrix,
               x: sparse.csr_matrix,
-              options: str
+              options: str,
               ) -> None:
         rep = (y.T * x).tocsr()
+        rep = sklearn.preprocessing.normalize(rep, norm='l2', axis=1)
 
         self.root = self._build(rep, np.arange(y.shape[1]), 0)
 
@@ -54,9 +55,14 @@ class Tree:
         if d >= self.dmax or rep.shape[0] <= self.K:
             return Node(labelmap, [], np.arange(len(labelmap)))
 
-        # metalabels = sklearn.cluster.MiniBatchKMeans(
-        #     self.K, random_state=np.random.randint(2**32)).fit(rep).labels_
-        metalabels = kmeans.spherical(rep, self.K, max_iter=300, tol=0.0001)
+        metalabels = sklearn.cluster.KMeans(
+            self.K,
+            random_state=np.random.randint(2**32),
+            n_init=1,
+            max_iter=300,
+            tol=0.0001,
+            algorithm='lloyd',
+        ).fit(rep).labels_
         maps = [labelmap[metalabels == i] for i in range(self.K)]
         reps = [rep[metalabels == i] for i in range(self.K)]
         children = [self._build(reps[i], maps[i], d+1)
