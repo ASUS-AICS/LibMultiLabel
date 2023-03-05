@@ -3,7 +3,7 @@ import scipy.sparse as sparse
 import sklearn.cluster
 import sklearn.preprocessing
 
-from . import linear
+from . import linear, kmeans
 
 
 class Node:
@@ -26,10 +26,11 @@ class Node:
 
 
 class Tree:
-    def __init__(self, K=100, dmax=10, beam_width=10) -> None:
+    def __init__(self, K=100, dmax=10, beam_width=10, kmeans='sklearn-lloyd') -> None:
         self.K = K
         self.dmax = dmax
         self.beam_width = beam_width
+        self.kmeans = kmeans
 
     def train(self,
               y: sparse.csr_matrix,
@@ -55,14 +56,25 @@ class Tree:
         if d >= self.dmax or rep.shape[0] <= self.K:
             return Node(labelmap, [], np.arange(len(labelmap)))
 
-        metalabels = sklearn.cluster.KMeans(
-            self.K,
-            random_state=np.random.randint(2**32),
-            n_init=1,
-            max_iter=300,
-            tol=0.0001,
-            algorithm='lloyd',
-        ).fit(rep).labels_
+        if self.kmeans.startswith('sklearn'):
+            metalabels = sklearn.cluster.KMeans(
+                self.K,
+                random_state=np.random.randint(2**32),
+                n_init=1,
+                max_iter=300,
+                tol=0.0001,
+                algorithm=self.kmeans.replace('sklearn-', ''),
+            ).fit(rep).labels_
+        else:
+            metalabels = {
+                'lloyd': kmeans.lloyd,
+                'spherical': kmeans.spherical,
+            }[self.kmeans](
+                rep,
+                self.K,
+                max_iter=300,
+                tol=0.0001,
+            )
         maps = [labelmap[metalabels == i] for i in range(self.K)]
         reps = [rep[metalabels == i] for i in range(self.K)]
         children = [self._build(reps[i], maps[i], d+1)
