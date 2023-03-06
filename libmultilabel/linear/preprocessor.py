@@ -13,7 +13,7 @@ import scipy.sparse as sparse
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import MultiLabelBinarizer
 
-__all__ = ['Preprocessor']
+__all__ = ['Preprocessor', 'read_libmultilabel_format', 'read_libsvm_format']
 
 
 class Preprocessor:
@@ -64,7 +64,7 @@ class Preprocessor:
             self.classes = None
             self.include_test_labels = include_test_labels
 
-        if self.data_format == 'txt' or 'dataframe':
+        if self.data_format in {'txt', 'dataframe'}:
             data = self._load_text(training_data, test_data, eval)
         elif self.data_format == 'svm':
             data = self._load_svm(training_data, test_data, eval)
@@ -137,6 +137,7 @@ class Preprocessor:
         self.binarizer = MultiLabelBinarizer(
             sparse_output=True, classes=classes)
         self.binarizer.fit(labels)
+        self.label_mapping = self.binarizer.classes_
 
 
 def read_libmultilabel_format(data: Union[str, pd.DataFrame]) -> 'dict[str,list[str]]':
