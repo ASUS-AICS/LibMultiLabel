@@ -1,5 +1,4 @@
 import logging
-import transformers.utils.logging as transformer_logging
 
 LOG_FORMAT = '%(asctime)s %(levelname)s:%(message)s'
 
@@ -48,8 +47,12 @@ def add_stream_handler(level=logging.INFO):
     else:
         logging.getLogger().setLevel(logging.NOTSET) # use handlers to control levels
 
-        transformer_logging.disable_default_handler()
-        transformer_logging.enable_propagation()
+        try:
+            import transformers.utils.logging as transformer_logging
+            transformer_logging.disable_default_handler()
+            transformer_logging.enable_propagation()
+        except ImportError:
+            pass
 
         lightning_logger = logging.getLogger('pytorch_lightning')
         lightning_logger.handlers.clear()
