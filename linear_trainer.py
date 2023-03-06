@@ -14,7 +14,8 @@ def linear_test(config, model, datasets):
         config.metric_threshold,
         config.monitor_metrics,
         datasets['test']['y'].shape[1],
-        multiclass=config.multiclass
+        multiclass=config.get('multiclass', is_multiclass_dataset(
+            datasets['test'], label='y'))
     )
     num_instance = datasets['test']['x'].shape[0]
 
