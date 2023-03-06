@@ -546,7 +546,7 @@ def get_topk_labels(label_mapping: np.ndarray, preds: np.ndarray, top_k: int = 5
     """Get top k predictions from decision values.
 
     Args:
-        label_mapping (np.ndarray): A ndarray of class labels that maps each label to its index. 
+        label_mapping (np.ndarray): A ndarray of class labels that maps each index (from 0 to ``num_class-1``) to its label. 
         preds (np.ndarray): A matrix of decision values with dimension number of instances * number of classes.
         top_k (int): Determine how many classes per instance should be predicted.
 
