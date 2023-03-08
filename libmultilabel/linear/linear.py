@@ -16,6 +16,15 @@ __all__ = ['train_1vsrest',
 
 class FlatModel(dict):
     def predict_values(self, x: sparse.csr_matrix) -> np.ndarray:
+        """Calculates the decision values associated with x.
+
+        Args:
+            model: A model returned from a training function.
+            x (sparse.csr_matrix): A matrix with dimension number of instances * number of features.
+
+        Returns:
+            np.ndarray: A matrix with dimension number of instances * number of classes.
+        """
         bias = self['-B']
         bias_col = np.full((x.shape[0], 1 if bias > 0 else 0), bias)
         num_feature = self['weights'].shape[0]

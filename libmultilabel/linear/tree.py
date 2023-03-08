@@ -33,25 +33,44 @@ class Node:
 class TreeModel:
     def __init__(self,
                  root: Node,
-                 flatModel: linear.FlatModel,
-                 weightmap: np.ndarray,
+                 flat_model: linear.FlatModel,
+                 weight_map: np.ndarray,
                  default_beam_width: int,
                  ):
         self.root = root
-        self.flatModel = flatModel
-        self.weightmap = weightmap
+        self.flat_model = flat_model
+        self.weight_map = weight_map
         self.default_beam_width = default_beam_width
 
     def predict_values(self, x: sparse.csr_matrix,
                        beam_width: 'Optional[int]' = None
                        ) -> np.ndarray:
+        """Calculates the decision values associated with x.
+
+        Args:
+            model: A model returned from a training function.
+            x (sparse.csr_matrix): A matrix with dimension number of instances * number of features.
+            beam_width (int, optional): Number of candidates considered during beam search. If None, uses the default beam width set during training. Defaults to None.
+
+        Returns:
+            np.ndarray: A matrix with dimension number of instances * number of classes.
+        """
         if beam_width is None:
             beam_width = self.default_beam_width
-        allpreds = linear.predict_values(self.flatModel, x)
+        allpreds = linear.predict_values(self.flat_model, x)
         return np.vstack([self._beam_search(allpreds[i], beam_width)
                           for i in range(allpreds.shape[0])])
 
     def _beam_search(self, allpreds: np.ndarray, beam_width: int) -> np.ndarray:
+        """Predict with beam search using cached decision values.
+
+        Args:
+            allpreds (np.ndarray): Cached decision values of each node.
+            beam_width (int): Number of candidates considered.
+
+        Returns:
+            np.ndarray: A matrix with dimension 1 * number of classes.
+        """
         cur_level = [(self.root, 0.)]   # pairs of (node, score)
         next_level = []
         while True:
@@ -64,8 +83,8 @@ class TreeModel:
                 if node.isLeaf():
                     next_level.append((node, score))
                     continue
-                slice = np.s_[self.weightmap[node.index]:
-                              self.weightmap[node.index+1]]
+                slice = np.s_[self.weight_map[node.index]:
+                              self.weight_map[node.index+1]]
                 pred = allpreds[slice].ravel()
                 child_score = score - np.maximum(0, 1 - pred)**2
                 next_level.extend(zip(node.children, child_score.tolist()))
@@ -77,8 +96,8 @@ class TreeModel:
         scores = np.empty_like(self.root.labelmap, dtype='d')
         scores[:] = -np.inf
         for node, score in cur_level:
-            slice = np.s_[self.weightmap[node.index]:
-                          self.weightmap[node.index+1]]
+            slice = np.s_[self.weight_map[node.index]:
+                          self.weight_map[node.index+1]]
             pred = allpreds[slice].ravel()
             scores[node.labelmap] = np.exp(score - np.maximum(0, 1 - pred)**2)
         return scores
@@ -91,6 +110,20 @@ def train_tree(y: sparse.csr_matrix,
                default_beam_width=10,
                verbose: bool = True,
                ) -> TreeModel:
+    """Trains a linear model for multiabel data using a divide-and-conquer strategy.
+
+    Args:
+        y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
+        x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
+        options (str): The option string passed to liblinear.
+        K (int, optional): Degree of the tree. Defaults to 100.
+        dmax (int, optional): Maximum depth of the tree. Defaults to 10.
+        default_beam_width (int, optional): Beam width used in predict_values when none is specified. Defaults to 10.
+        verbose (bool, optional): Output extra progress information. Defaults to True.
+
+    Returns:
+        A model which can be used in predict_values.
+    """
     rep = (y.T * x).tocsr()
     rep = sklearn.preprocessing.normalize(rep, norm='l2', axis=1)
     root = _build_tree(rep, np.arange(y.shape[1]), 0, K, dmax)
@@ -110,14 +143,26 @@ def train_tree(y: sparse.csr_matrix,
 
     root.dfs(visit)
     pbar.close()
-    flatModel, weightmap = _flatten_model(root)
-    return TreeModel(root, flatModel, weightmap, default_beam_width)
+    flat_model, weight_map = _flatten_model(root)
+    return TreeModel(root, flat_model, weight_map, default_beam_width)
 
 
 def _build_tree(rep: sparse.csr_matrix,
                 labelmap: np.ndarray,
                 d: int, K: int, dmax: int
                 ) -> Node:
+    """Builds the tree recursively by kmeans clustering.
+
+    Args:
+        rep (sparse.csr_matrix): Label representations.
+        labelmap (np.ndarray): Maps the index of rep to the index in the complete data.
+        d (int): Current depth.
+        K (int): Degree of the tree.
+        dmax (int): Maximum depth of the tree.
+
+    Returns:
+        Node: root of the (sub)tree built from rep.
+    """
     if d >= dmax or rep.shape[0] <= K:
         return Node(labelmap, [], np.arange(len(labelmap)))
 
@@ -141,6 +186,15 @@ def _train_node(y: sparse.csr_matrix,
                 options: str,
                 node: Node
                 ):
+    """If node is internal, creates the metalabels representing each child and trains
+    on the metalabels. Otherwise, train on y.
+
+    Args:
+        y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
+        x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
+        options (str): The option string passed to liblinear.
+        node (Node): Node to be trained.
+    """
     if node.isLeaf():
         node.model = linear.train_1vsrest(
             y[:, node.labelmap], x, options, False
@@ -154,7 +208,17 @@ def _train_node(y: sparse.csr_matrix,
         )
 
 
-def _flatten_model(root) -> 'tuple[linear.FlatModel, np.ndarray]':
+def _flatten_model(root: Node) -> 'tuple[linear.FlatModel, np.ndarray]':
+    """Flattens tree weight matrices into a single weight matrix. The flattened weight
+    matrix is used to predict all possible values, which is cached for beam search.
+    This pessimizes complexity but is faster in practice.
+
+    Args:
+        root (Node): Root of the tree.
+
+    Returns:
+        tuple[linear.FlatModel, np.ndarray]: The flattened model and the flattened ranges of each node.
+    """
     index = 0
     weights = []
     bias = root.model['-B']
@@ -172,7 +236,7 @@ def _flatten_model(root) -> 'tuple[linear.FlatModel, np.ndarray]':
         '-B': bias,
         'threshold': 0
     })
-    weightmap = np.cumsum(
+    weight_map = np.cumsum(
         [0] + list(map(lambda w: w.shape[1], weights)))
 
-    return model, weightmap
+    return model, weight_map
