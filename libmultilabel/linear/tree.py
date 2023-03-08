@@ -4,6 +4,7 @@ import numpy as np
 import scipy.sparse as sparse
 import sklearn.cluster
 import sklearn.preprocessing
+from tqdm import tqdm
 
 from . import linear
 
@@ -15,7 +16,7 @@ class Node:
                  labelmap: np.ndarray,
                  children: 'list[Node]',
                  metalabels: np.ndarray,
-                 ) -> None:
+                 ):
         self.labelmap = labelmap
         self.children = children
         self.metalabels = metalabels
@@ -35,7 +36,7 @@ class TreeModel:
                  flatModel: linear.FlatModel,
                  weightmap: np.ndarray,
                  default_beam_width: int,
-                 ) -> None:
+                 ):
         self.root = root
         self.flatModel = flatModel
         self.weightmap = weightmap
@@ -83,17 +84,27 @@ def train_tree(y: sparse.csr_matrix,
                options: str,
                K=100, dmax=10,
                default_beam_width=10,
+               verbose: bool = True,
                ) -> TreeModel:
     rep = (y.T * x).tocsr()
     rep = sklearn.preprocessing.normalize(rep, norm='l2', axis=1)
-
     root = _build_tree(rep, np.arange(y.shape[1]), 0, K, dmax)
+
+    total = 0
+
+    def count(node):
+        nonlocal total
+        total += 1
+    root.dfs(count)
+    pbar = tqdm(total=total, disable=not verbose)
 
     def visit(node):
         idx = y[:, node.labelmap].getnnz(axis=1) > 0
-        return _train_node(y[idx], x[idx], options, node)
+        _train_node(y[idx], x[idx], options, node)
+        pbar.update()
 
     root.dfs(visit)
+    pbar.close()
     flatModel, weightmap = _flatten_model(root)
     return TreeModel(root, flatModel, weightmap, default_beam_width)
 
