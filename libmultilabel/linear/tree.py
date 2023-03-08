@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 import scipy.sparse as sparse
 import sklearn.cluster
@@ -31,15 +33,22 @@ class TreeModel:
     def __init__(self,
                  root: Node,
                  flatModel: linear.FlatModel,
-                 weightmap: np.ndarray
+                 weightmap: np.ndarray,
+                 default_beam_width: int,
                  ) -> None:
         self.root = root
         self.flatModel = flatModel
         self.weightmap = weightmap
+        self.default_beam_width = default_beam_width
 
-    def predict_values(self, x: sparse.csr_matrix, beam_width: int = 10) -> np.ndarray:
+    def predict_values(self, x: sparse.csr_matrix,
+                       beam_width: 'Optional[int]' = None
+                       ) -> np.ndarray:
+        if beam_width is None:
+            beam_width = self.default_beam_width
         allpreds = linear.predict_values(self.flatModel, x)
-        return np.vstack([self._beam_search(allpreds[i]) for i in range(allpreds.shape[0])])
+        return np.vstack([self._beam_search(allpreds[i], beam_width)
+                          for i in range(allpreds.shape[0])])
 
     def _beam_search(self, allpreds: np.ndarray, beam_width: int) -> np.ndarray:
         cur_level = [(self.root, 0.)]   # pairs of (node, score)
@@ -72,7 +81,9 @@ class TreeModel:
 def train_tree(y: sparse.csr_matrix,
                x: sparse.csr_matrix,
                options: str,
-               K=100, dmax=10) -> TreeModel:
+               K=100, dmax=10,
+               default_beam_width=10,
+               ) -> TreeModel:
     rep = (y.T * x).tocsr()
     rep = sklearn.preprocessing.normalize(rep, norm='l2', axis=1)
 
@@ -84,7 +95,7 @@ def train_tree(y: sparse.csr_matrix,
 
     root.dfs(visit)
     flatModel, weightmap = _flatten_model(root)
-    return TreeModel(root, flatModel, weightmap)
+    return TreeModel(root, flatModel, weightmap, default_beam_width)
 
 
 def _build_tree(rep: sparse.csr_matrix,
@@ -140,11 +151,11 @@ def _flatten_model(root) -> 'tuple[linear.FlatModel, np.ndarray]':
         weights.append(node.model.pop('weights'))
 
     root.dfs(visit)
-    model = {
+    model = linear.FlatModel({
         'weights': np.hstack(weights),
         '-B': bias,
         'threshold': 0
-    }
+    })
     weightmap = np.cumsum(
         [0] + list(map(lambda w: w.shape[1], weights)))
 

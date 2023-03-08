@@ -59,7 +59,8 @@ def train_1vsrest(y: sparse.csr_matrix,
     num_feature = x.shape[1]
     weights = np.zeros((num_feature, num_class), order='F')
 
-    logging.info(f'Training one-vs-rest model on {num_class} labels')
+    if verbose:
+        logging.info(f'Training one-vs-rest model on {num_class} labels')
     for i in tqdm(range(num_class), disable=not verbose):
         yi = y[:, i].toarray().reshape(-1)
         weights[:, i] = do_train(2*yi - 1, x, options).ravel()
@@ -139,7 +140,8 @@ def train_thresholding(y: sparse.csr_matrix,
     weights = np.zeros((num_feature, num_class), order='F')
     thresholds = np.zeros(num_class)
 
-    logging.info(f'Training thresholding model on {num_class} labels')
+    if verbose:
+        logging.info(f'Training thresholding model on {num_class} labels')
     for i in tqdm(range(num_class), disable=not verbose):
         yi = y[:, i].toarray().reshape(-1)
         w, t = thresholding_one_label(2*yi - 1, x, options)
@@ -378,8 +380,9 @@ def train_cost_sensitive(y: sparse.csr_matrix,
     num_feature = x.shape[1]
     weights = np.zeros((num_feature, num_class), order='F')
 
-    logging.info(
-        f'Training cost-sensitive model for Macro-F1 on {num_class} labels')
+    if verbose:
+        logging.info(
+            f'Training cost-sensitive model for Macro-F1 on {num_class} labels')
     for i in tqdm(range(num_class), disable=not verbose):
         yi = y[:, i].toarray().reshape(-1)
         w = cost_sensitive_one_label(2*yi - 1, x, options)
@@ -485,8 +488,9 @@ def train_cost_sensitive_micro(y: sparse.csr_matrix,
     param_space = [1, 1.33, 1.8, 2.5, 3.67, 6, 13]
     bestScore = -np.Inf
 
-    logging.info(
-        f'Training cost-sensitive model for Micro-F1 on {num_class} labels')
+    if verbose:
+        logging.info(
+            f'Training cost-sensitive model for Micro-F1 on {num_class} labels')
     for a in param_space:
         tp = fn = fp = 0
         for i in tqdm(range(num_class), disable=not verbose):

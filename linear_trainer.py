@@ -38,11 +38,21 @@ def linear_test(config, model, datasets):
 
 
 def linear_train(datasets, config):
-    model = LINEAR_TECHNIQUES[config.linear_technique](
-        datasets['train']['y'],
-        datasets['train']['x'],
-        config.liblinear_options,
-    )
+    if config.linear_technique == 'tree':
+        model = LINEAR_TECHNIQUES[config.linear_technique](
+            datasets['train']['y'],
+            datasets['train']['x'],
+            config.liblinear_options,
+            config.tree_degree,
+            config.tree_max_depth,
+            config.beam_width,
+        )
+    else:
+        model = LINEAR_TECHNIQUES[config.linear_technique](
+            datasets['train']['y'],
+            datasets['train']['x'],
+            config.liblinear_options,
+        )
     return model
 
 
