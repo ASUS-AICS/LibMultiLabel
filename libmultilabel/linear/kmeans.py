@@ -30,7 +30,11 @@ def spherical(x: sparse.csr_matrix, k: int, max_iter: int, tol: float) -> np.nda
 
         centroids = np.zeros(centroids.shape)
         for i in range(k):
-            centroids[i] = x[cluster == i].sum(axis=0).A1
+            clusterx = x[cluster == i]
+            if clusterx.shape[0] > 0:
+                centroids[i] = x[cluster == i].sum(axis=0).A1
+            else:
+                centroids[i] = x[np.random.choice(np.arange(x.shape[0]))].toarray()
         # should centroids be stored as sparse matrices?
         centroids = sparse.csr_matrix(centroids)
         centroids = sklearn.preprocessing.normalize(
@@ -44,7 +48,7 @@ def lloyd(x: sparse.csr_matrix, k: int, max_iter: int, tol: float) -> np.ndarray
     """Perform lloyd's algorithm k-means clustering on x.
 
     Args:
-        x (sparse.csr_matrix): Matrix with dimensions number of points * dimension of underlying space. Each row must be L2 normalized.
+        x (sparse.csr_matrix): Matrix with dimensions number of points * dimension of underlying space.
         k (int): Number of clusters.
         max_iter (int): Maximum number of iterations.
         tol (float): Stopping tolerance. Lower for more optimal clustering but longer run time.
@@ -68,7 +72,11 @@ def lloyd(x: sparse.csr_matrix, k: int, max_iter: int, tol: float) -> np.ndarray
 
         centroids = np.zeros(centroids.shape)
         for i in range(k):
-            centroids[i] = x[cluster == i].mean(axis=0).A1
+            clusterx = x[cluster == i]
+            if clusterx.shape[0] > 0:
+                centroids[i] = clusterx.mean(axis=0).A1
+            else:
+                centroids[i] = x[np.random.choice(np.arange(x.shape[0]))].toarray()
         # should centroids be stored as sparse matrices?
         centroids = sparse.csr_matrix(centroids)
         prev_dist = avg_dist
