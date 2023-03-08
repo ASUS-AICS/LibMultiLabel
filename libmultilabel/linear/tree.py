@@ -54,7 +54,12 @@ class TreeModel:
     def _beam_search(self, allpreds: np.ndarray, beam_width: int) -> np.ndarray:
         cur_level = [(self.root, 0.)]   # pairs of (node, score)
         next_level = []
-        while len(list(filter(lambda pair: not pair[0].isLeaf(), cur_level))) > 0:
+        while True:
+            num_internal = sum(
+                map(lambda pair: not pair[0].isLeaf(), cur_level))
+            if num_internal == 0:
+                break
+
             for node, score in cur_level:
                 if node.isLeaf():
                     next_level.append((node, score))
