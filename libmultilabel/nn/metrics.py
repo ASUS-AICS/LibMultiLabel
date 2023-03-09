@@ -256,7 +256,7 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes, top_k=None):
 def tabulate_metrics(metric_dict, split):
     msg = f'====== {split} dataset evaluation result =======\n'
     header = '|'.join([f'{k:^18}' for k in metric_dict.keys()])
-    values = '|'.join([f'{x * 100:^18.4f}' if isinstance(x, (np.floating,
+    values = '|'.join([f'{x:^18.4f}' if isinstance(x, (np.floating,
                       float)) else f'{x:^18}' for x in metric_dict.values()])
     msg += f"|{header}|\n|{'-----------------:|' * len(metric_dict)}\n|{values}|\n"
     return msg

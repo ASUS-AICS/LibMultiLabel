@@ -164,7 +164,8 @@ def init_trainer(checkpoint_dir,
             {f'val_{val_metric}': val_metric}, on="validation_end")]
 
     trainer = pl.Trainer(logger=False, num_sanity_val_steps=0,
-                         gpus=0 if use_cpu else 1,
+                         accelerator='cpu' if use_cpu else 'gpu',
+                         devices=None if use_cpu else 1,
                          enable_progress_bar=False if silent else True,
                          max_epochs=epochs,
                          callbacks=callbacks,

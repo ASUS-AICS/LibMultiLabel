@@ -234,7 +234,7 @@ class TorchTrainer:
 
         logging.info(f'Testing on {split} set.')
         test_loader = self._get_dataset_loader(split=split)
-        metric_dict = self.trainer.test(self.model, dataloaders=test_loader)[0]
+        metric_dict = self.trainer.test(self.model, dataloaders=test_loader, verbose=False)[0]
 
         if self.config.save_k_predictions > 0:
             self._save_predictions(test_loader, self.config.predict_out_path)
