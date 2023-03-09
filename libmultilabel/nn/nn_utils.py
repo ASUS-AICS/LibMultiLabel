@@ -37,8 +37,8 @@ def init_device(use_cpu=False):
 def init_model(model_name,
                network_config,
                classes,
-               word_dict,
-               embed_vecs,
+               word_dict=None,
+               embed_vecs=None,
                init_weight=None,
                log_path=None,
                learning_rate=0.0001,
@@ -57,8 +57,10 @@ def init_model(model_name,
         model_name (str): Model to be used such as KimCNN.
         network_config (dict): Configuration for defining the network.
         classes (list): List of class names.
-        word_dict (torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
-        embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
+        word_dict (torchtext.vocab.Vocab, optional): A vocab object for word tokenizer to
+            map tokens to indices. Defaults to None.
+        embed_vecs (torch.Tensor, optional): The pre-trained word vectors of shape
+            (vocab_size, embed_dim). Defaults to None.
         init_weight (str): Weight initialization method from `torch.nn.init`.
             For example, the `init_weight` of `torch.nn.init.kaiming_uniform_`
             is `kaiming_uniform`. Defaults to None.
