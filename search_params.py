@@ -164,9 +164,9 @@ def load_static_data(config, merge_train_val=False):
     Returns:
         dict: A dict of static data containing datasets, classes, and word_dict.
     """
-    datasets = data_utils.load_datasets(training_file=config.training_file,
-                                        test_file=config.test_file,
-                                        val_file=config.val_file,
+    datasets = data_utils.load_datasets(training_data=config.training_file,
+                                        test_data=config.test_file,
+                                        val_data=config.val_file,
                                         val_size=config.val_size,
                                         merge_train_val=merge_train_val,
                                         tokenize_text='lm_weight' not in config['network_config'],
