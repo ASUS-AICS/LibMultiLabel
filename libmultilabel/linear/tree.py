@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Callable, Optional
 
 import numpy as np
 import scipy.sparse as sparse
@@ -13,19 +13,26 @@ __all__ = ['train_tree']
 
 class Node:
     def __init__(self,
-                 labelmap: np.ndarray,
+                 label_map: np.ndarray,
                  children: 'list[Node]',
                  metalabels: np.ndarray,
                  ):
-        self.labelmap = labelmap
+        """
+        Args:
+            label_map (np.ndarray): The labels under this node.
+            children (list[Node]): Children of this node. Must be an empty list if this is a leaf node.
+            metalabels (np.ndarray): The metalabels corresponding to the labels under this node.
+        """
+        self.label_map = label_map
         self.children = children
         self.metalabels = metalabels
 
     def isLeaf(self) -> bool:
         return len(self.children) == 0
 
-    def dfs(self, visit):
+    def dfs(self, visit: 'Callable[[Node], None]'):
         visit(self)
+        # Stops if self.children is empty, i.e. self is a leaf node
         for child in self.children:
             child.dfs(visit)
 
@@ -93,13 +100,13 @@ class TreeModel:
                                pair[1])[:beam_width]
             next_level = []
 
-        scores = np.empty_like(self.root.labelmap, dtype='d')
+        scores = np.empty_like(self.root.label_map, dtype='d')
         scores[:] = -np.inf
         for node, score in cur_level:
             slice = np.s_[self.weight_map[node.index]:
                           self.weight_map[node.index+1]]
             pred = allpreds[slice].ravel()
-            scores[node.labelmap] = np.exp(score - np.maximum(0, 1 - pred)**2)
+            scores[node.label_map] = np.exp(score - np.maximum(0, 1 - pred)**2)
         return scores
 
 
@@ -116,7 +123,7 @@ def train_tree(y: sparse.csr_matrix,
         y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
         x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
         options (str): The option string passed to liblinear.
-        K (int, optional): Degree of the tree. Defaults to 100.
+        K (int, optional): Maximum degree of nodes in the tree. Defaults to 100.
         dmax (int, optional): Maximum depth of the tree. Defaults to 10.
         default_beam_width (int, optional): Beam width used in predict_values when none is specified. Defaults to 10.
         verbose (bool, optional): Output extra progress information. Defaults to True.
@@ -124,9 +131,10 @@ def train_tree(y: sparse.csr_matrix,
     Returns:
         A model which can be used in predict_values.
     """
-    rep = (y.T * x).tocsr()
-    rep = sklearn.preprocessing.normalize(rep, norm='l2', axis=1)
-    root = _build_tree(rep, np.arange(y.shape[1]), 0, K, dmax)
+    label_representation = (y.T * x).tocsr()
+    label_representation = sklearn.preprocessing.normalize(
+        label_representation, norm='l2', axis=1)
+    root = _build_tree(label_representation, np.arange(y.shape[1]), 0, K, dmax)
 
     total = 0
 
@@ -134,37 +142,42 @@ def train_tree(y: sparse.csr_matrix,
         nonlocal total
         total += 1
     root.dfs(count)
+
     pbar = tqdm(total=total, disable=not verbose)
 
     def visit(node):
-        idx = y[:, node.labelmap].getnnz(axis=1) > 0
-        _train_node(y[idx], x[idx], options, node)
+        relevant_instances = y[:, node.label_map].getnnz(axis=1) > 0
+        _train_node(y[relevant_instances],
+                    x[relevant_instances], options, node)
         pbar.update()
 
     root.dfs(visit)
     pbar.close()
+
     flat_model, weight_map = _flatten_model(root)
     return TreeModel(root, flat_model, weight_map, default_beam_width)
 
 
-def _build_tree(rep: sparse.csr_matrix,
-                labelmap: np.ndarray,
+def _build_tree(label_representation: sparse.csr_matrix,
+                label_map: np.ndarray,
                 d: int, K: int, dmax: int
                 ) -> Node:
     """Builds the tree recursively by kmeans clustering.
 
     Args:
-        rep (sparse.csr_matrix): Label representations.
-        labelmap (np.ndarray): Maps the index of rep to the index in the complete data.
+        label_representation (sparse.csr_matrix): A matrix with dimensions number of classes under this node * number of features.
+        label_map (np.ndarray): Maps 0..label_representation.shape[0] to the index in the complete data.
         d (int): Current depth.
-        K (int): Degree of the tree.
+        K (int): Maximum degree of nodes in the tree.
         dmax (int): Maximum depth of the tree.
 
     Returns:
         Node: root of the (sub)tree built from rep.
     """
-    if d >= dmax or rep.shape[0] <= K:
-        return Node(labelmap, [], np.arange(len(labelmap)))
+    if d >= dmax or label_representation.shape[0] <= K:
+        return Node(label_map=label_map,
+                    children=[],
+                    metalabels=np.arange(len(label_map)))
 
     metalabels = sklearn.cluster.KMeans(
         K,
@@ -173,12 +186,20 @@ def _build_tree(rep: sparse.csr_matrix,
         max_iter=300,
         tol=0.0001,
         algorithm='elkan',
-    ).fit(rep).labels_
-    maps = [labelmap[metalabels == i] for i in range(K)]
-    reps = [rep[metalabels == i] for i in range(K)]
-    children = [_build_tree(reps[i], maps[i], d+1, K, dmax)
-                for i in range(K)]
-    return Node(labelmap, children, metalabels)
+    ).fit(label_representation).labels_
+
+    children = []
+    for i in range(K):
+        child_map = label_map[metalabels == i]
+        child_representation = label_representation[metalabels == i]
+        child = _build_tree(child_representation,
+                            child_map,
+                            d + 1, K, dmax)
+        children.append(child)
+
+    return Node(label_map=label_map,
+                children=children,
+                metalabels=np.arange(len(label_map)))
 
 
 def _train_node(y: sparse.csr_matrix,
@@ -197,14 +218,14 @@ def _train_node(y: sparse.csr_matrix,
     """
     if node.isLeaf():
         node.model = linear.train_1vsrest(
-            y[:, node.labelmap], x, options, False
+            y[:, node.label_map], x, options, False
         )
     else:
-        childy = [y[:, child.labelmap].getnnz(axis=1).reshape(-1, 1) > 0
-                  for child in node.children]
-        childy = sparse.csr_matrix(np.hstack(childy))
+        child_y = [y[:, child.label_map].getnnz(axis=1).reshape(-1, 1) > 0
+                   for child in node.children]
+        child_y = sparse.csr_matrix(np.hstack(child_y))
         node.model = linear.train_1vsrest(
-            childy, x, options, False
+            child_y, x, options, False
         )
 
 
