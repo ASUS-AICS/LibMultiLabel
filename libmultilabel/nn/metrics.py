@@ -32,7 +32,7 @@ class Loss(Metric):
         self.num_sample += len(preds)
 
     def compute(self):
-        return self.loss / self.num_sample 
+        return self.loss / self.num_sample
 
 
 class NDCG(Metric):
