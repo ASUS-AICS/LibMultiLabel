@@ -163,8 +163,8 @@ def init_trainer(checkpoint_dir,
         callbacks += [TuneReportCallback(
             {f'val_{val_metric}': val_metric}, on="validation_end")]
 
-    trainer = pl.Trainer(logger=False, num_sanity_val_steps=0,
-                         gpus=0 if use_cpu else 1,
+    if use_cpu:
+        trainer = pl.Trainer(logger=False, num_sanity_val_steps=0,
                          enable_progress_bar=False if silent else True,
                          max_epochs=epochs,
                          callbacks=callbacks,
@@ -172,6 +172,19 @@ def init_trainer(checkpoint_dir,
                          limit_val_batches=limit_val_batches,
                          limit_test_batches=limit_test_batches,
                          deterministic='warn')
+
+    else:
+        trainer = pl.Trainer(logger=False, num_sanity_val_steps=0,
+                         accelerator='gpu',
+                         devices=1,
+                         enable_progress_bar=False if silent else True,
+                         max_epochs=epochs,
+                         callbacks=callbacks,
+                         limit_train_batches=limit_train_batches,
+                         limit_val_batches=limit_val_batches,
+                         limit_test_batches=limit_test_batches,
+                         deterministic='warn')
+
     return trainer
 
 
