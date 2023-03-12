@@ -19,7 +19,6 @@ class FlatModel(dict):
         """Calculates the decision values associated with x.
 
         Args:
-            model: A model returned from a training function.
             x (sparse.csr_matrix): A matrix with dimension number of instances * number of features.
 
         Returns:

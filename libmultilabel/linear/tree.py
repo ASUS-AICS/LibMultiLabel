@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Callable
 
 import numpy as np
 import scipy.sparse as sparse
@@ -15,17 +15,14 @@ class Node:
     def __init__(self,
                  label_map: np.ndarray,
                  children: 'list[Node]',
-                 metalabels: np.ndarray,
                  ):
         """
         Args:
             label_map (np.ndarray): The labels under this node.
             children (list[Node]): Children of this node. Must be an empty list if this is a leaf node.
-            metalabels (np.ndarray): The metalabels corresponding to the labels under this node.
         """
         self.label_map = label_map
         self.children = children
-        self.metalabels = metalabels
 
     def isLeaf(self) -> bool:
         return len(self.children) == 0
@@ -42,41 +39,37 @@ class TreeModel:
                  root: Node,
                  flat_model: linear.FlatModel,
                  weight_map: np.ndarray,
-                 default_beam_width: int,
                  ):
         self.root = root
         self.flat_model = flat_model
         self.weight_map = weight_map
-        self.default_beam_width = default_beam_width
 
     def predict_values(self, x: sparse.csr_matrix,
-                       beam_width: 'Optional[int]' = None
+                       beam_width: int = 10,
                        ) -> np.ndarray:
         """Calculates the decision values associated with x.
 
         Args:
-            model: A model returned from a training function.
             x (sparse.csr_matrix): A matrix with dimension number of instances * number of features.
-            beam_width (int, optional): Number of candidates considered during beam search. If None, uses the default beam width set during training. Defaults to None.
+            beam_width (int, optional): Number of candidates considered during beam search. Defaults to 10.
 
         Returns:
             np.ndarray: A matrix with dimension number of instances * number of classes.
         """
-        if beam_width is None:
-            beam_width = self.default_beam_width
-        allpreds = linear.predict_values(self.flat_model, x)
-        return np.vstack([self._beam_search(allpreds[i], beam_width)
-                          for i in range(allpreds.shape[0])])
+        # number of instances * number of labels + total number of metalabels
+        all_preds = linear.predict_values(self.flat_model, x)
+        return np.vstack([self._beam_search(all_preds[i], beam_width)
+                          for i in range(all_preds.shape[0])])
 
-    def _beam_search(self, allpreds: np.ndarray, beam_width: int) -> np.ndarray:
-        """Predict with beam search using cached decision values.
+    def _beam_search(self, instance_preds: np.ndarray, beam_width: int) -> np.ndarray:
+        """Predict with beam search using cached decision values for a single instance.
 
         Args:
-            allpreds (np.ndarray): Cached decision values of each node.
+            instance_preds (np.ndarray): A vector of cached decision values of each node, has dimension number of labels + total number of metalabels.
             beam_width (int): Number of candidates considered.
 
         Returns:
-            np.ndarray: A matrix with dimension 1 * number of classes.
+            np.ndarray: A vector with dimension number of classes.
         """
         cur_level = [(self.root, 0.)]   # pairs of (node, score)
         next_level = []
@@ -92,20 +85,20 @@ class TreeModel:
                     continue
                 slice = np.s_[self.weight_map[node.index]:
                               self.weight_map[node.index+1]]
-                pred = allpreds[slice].ravel()
-                child_score = score - np.maximum(0, 1 - pred)**2
-                next_level.extend(zip(node.children, child_score.tolist()))
+                pred = instance_preds[slice].ravel()
+                children_score = score - np.maximum(0, 1 - pred)**2
+                next_level.extend(zip(node.children, children_score.tolist()))
 
             cur_level = sorted(next_level, key=lambda pair: -
                                pair[1])[:beam_width]
             next_level = []
 
-        scores = np.empty_like(self.root.label_map, dtype='d')
-        scores[:] = -np.inf
+        num_labels = len(self.root.label_map)
+        scores = np.full(num_labels, -np.inf)
         for node, score in cur_level:
             slice = np.s_[self.weight_map[node.index]:
                           self.weight_map[node.index+1]]
-            pred = allpreds[slice].ravel()
+            pred = instance_preds[slice].ravel()
             scores[node.label_map] = np.exp(score - np.maximum(0, 1 - pred)**2)
         return scores
 
@@ -114,7 +107,6 @@ def train_tree(y: sparse.csr_matrix,
                x: sparse.csr_matrix,
                options: str,
                K=100, dmax=10,
-               default_beam_width=10,
                verbose: bool = True,
                ) -> TreeModel:
     """Trains a linear model for multiabel data using a divide-and-conquer strategy.
@@ -125,7 +117,6 @@ def train_tree(y: sparse.csr_matrix,
         options (str): The option string passed to liblinear.
         K (int, optional): Maximum degree of nodes in the tree. Defaults to 100.
         dmax (int, optional): Maximum depth of the tree. Defaults to 10.
-        default_beam_width (int, optional): Beam width used in predict_values when none is specified. Defaults to 10.
         verbose (bool, optional): Output extra progress information. Defaults to True.
 
     Returns:
@@ -136,14 +127,14 @@ def train_tree(y: sparse.csr_matrix,
         label_representation, norm='l2', axis=1)
     root = _build_tree(label_representation, np.arange(y.shape[1]), 0, K, dmax)
 
-    total = 0
+    num_nodes = 0
 
     def count(node):
-        nonlocal total
-        total += 1
+        nonlocal num_nodes
+        num_nodes += 1
     root.dfs(count)
 
-    pbar = tqdm(total=total, disable=not verbose)
+    pbar = tqdm(total=num_nodes, disable=not verbose)
 
     def visit(node):
         relevant_instances = y[:, node.label_map].getnnz(axis=1) > 0
@@ -155,7 +146,7 @@ def train_tree(y: sparse.csr_matrix,
     pbar.close()
 
     flat_model, weight_map = _flatten_model(root)
-    return TreeModel(root, flat_model, weight_map, default_beam_width)
+    return TreeModel(root, flat_model, weight_map)
 
 
 def _build_tree(label_representation: sparse.csr_matrix,
@@ -166,18 +157,17 @@ def _build_tree(label_representation: sparse.csr_matrix,
 
     Args:
         label_representation (sparse.csr_matrix): A matrix with dimensions number of classes under this node * number of features.
-        label_map (np.ndarray): Maps 0..label_representation.shape[0] to the index in the complete data.
+        label_map (np.ndarray): Maps 0..label_representation.shape[0] to the original label indices.
         d (int): Current depth.
         K (int): Maximum degree of nodes in the tree.
         dmax (int): Maximum depth of the tree.
 
     Returns:
-        Node: root of the (sub)tree built from rep.
+        Node: root of the (sub)tree built from label_representation.
     """
     if d >= dmax or label_representation.shape[0] <= K:
         return Node(label_map=label_map,
-                    children=[],
-                    metalabels=np.arange(len(label_map)))
+                    children=[])
 
     metalabels = sklearn.cluster.KMeans(
         K,
@@ -190,16 +180,15 @@ def _build_tree(label_representation: sparse.csr_matrix,
 
     children = []
     for i in range(K):
-        child_map = label_map[metalabels == i]
         child_representation = label_representation[metalabels == i]
+        child_map = label_map[metalabels == i]
         child = _build_tree(child_representation,
                             child_map,
                             d + 1, K, dmax)
         children.append(child)
 
     return Node(label_map=label_map,
-                children=children,
-                metalabels=np.arange(len(label_map)))
+                children=children)
 
 
 def _train_node(y: sparse.csr_matrix,
@@ -207,7 +196,7 @@ def _train_node(y: sparse.csr_matrix,
                 options: str,
                 node: Node
                 ):
-    """If node is internal, creates the metalabels representing each child and trains
+    """If node is internal, computes the metalabels representing each child and trains
     on the metalabels. Otherwise, train on y.
 
     Args:
@@ -221,11 +210,12 @@ def _train_node(y: sparse.csr_matrix,
             y[:, node.label_map], x, options, False
         )
     else:
-        child_y = [y[:, child.label_map].getnnz(axis=1).reshape(-1, 1) > 0
-                   for child in node.children]
-        child_y = sparse.csr_matrix(np.hstack(child_y))
+        # meta_y[i, j] is 1 if the ith instance is relevant to the jth child.
+        meta_y = [y[:, child.label_map].getnnz(axis=1).reshape(-1, 1) > 0
+                  for child in node.children]
+        meta_y = sparse.csr_matrix(np.hstack(meta_y))
         node.model = linear.train_1vsrest(
-            child_y, x, options, False
+            meta_y, x, options, False
         )
 
 
@@ -233,12 +223,18 @@ def _flatten_model(root: Node) -> 'tuple[linear.FlatModel, np.ndarray]':
     """Flattens tree weight matrices into a single weight matrix. The flattened weight
     matrix is used to predict all possible values, which is cached for beam search.
     This pessimizes complexity but is faster in practice.
+    Consecutive values of the returned map denotes the start and end indices of the
+    weights of each node. Conceptually, given root and node:
+        flat_model, weight_map = _flatten_model(root)
+        slice = np.s_[weight_map[node.index]:
+                      weight_map[node.index+1]]
+        node.model['weights'] == flat_model['weights'][:, slice]
 
     Args:
         root (Node): Root of the tree.
 
     Returns:
-        tuple[linear.FlatModel, np.ndarray]: The flattened model and the flattened ranges of each node.
+        tuple[linear.FlatModel, np.ndarray]: The flattened model and the ranges of each node.
     """
     index = 0
     weights = []
@@ -252,11 +248,14 @@ def _flatten_model(root: Node) -> 'tuple[linear.FlatModel, np.ndarray]':
         weights.append(node.model.pop('weights'))
 
     root.dfs(visit)
+
     model = linear.FlatModel({
         'weights': np.hstack(weights),
         '-B': bias,
         'threshold': 0
     })
+
+    # w.shape[1] is the number of labels/metalabels of each node
     weight_map = np.cumsum(
         [0] + list(map(lambda w: w.shape[1], weights)))
 
