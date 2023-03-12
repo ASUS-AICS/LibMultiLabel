@@ -14,7 +14,15 @@ __all__ = ['train_1vsrest',
            'predict_values']
 
 
-class FlatModel(dict):
+class FlatModel:
+    def __init__(self, weights: np.matrix,
+                 bias: float,
+                 thresholds: 'float | np.ndarray',
+                 ):
+        self.weights = weights
+        self.bias = bias
+        self.thresholds = thresholds
+
     def predict_values(self, x: sparse.csr_matrix) -> np.ndarray:
         """Calculates the decision values associated with x.
 
@@ -24,9 +32,9 @@ class FlatModel(dict):
         Returns:
             np.ndarray: A matrix with dimension number of instances * number of classes.
         """
-        bias = self['-B']
+        bias = self.bias
         bias_col = np.full((x.shape[0], 1 if bias > 0 else 0), bias)
-        num_feature = self['weights'].shape[0]
+        num_feature = self.weights.shape[0]
         num_feature -= 1 if bias > 0 else 0
         if x.shape[1] < num_feature:
             x = sparse.hstack([
@@ -40,7 +48,7 @@ class FlatModel(dict):
                 bias_col,
             ], 'csr')
 
-        return (x * self['weights']).A + self['threshold']
+        return (x * self.weights).A + self.thresholds
 
 
 def train_1vsrest(y: sparse.csr_matrix,
@@ -73,7 +81,9 @@ def train_1vsrest(y: sparse.csr_matrix,
         yi = y[:, i].toarray().reshape(-1)
         weights[:, i] = do_train(2*yi - 1, x, options).ravel()
 
-    return FlatModel({'weights': np.asmatrix(weights), '-B': bias, 'threshold': 0})
+    return FlatModel(weights=np.asmatrix(weights),
+                     bias=bias,
+                     thresholds=0)
 
 
 def prepare_options(x: sparse.csr_matrix, options: str) -> 'tuple[sparse.csr_matrix, str, float]':
@@ -125,7 +135,7 @@ def train_thresholding(y: sparse.csr_matrix,
                        verbose: bool = True
                        ) -> FlatModel:
     """Trains a linear model for multilabel data using a one-vs-rest strategy
-    and cross-validation to pick an optimal decision threshold for Macro-F1.
+    and cross-validation to pick optimal decision thresholds for Macro-F1.
     Outperforms train_1vsrest in most aspects at the cost of higher
     time complexity.
     See user guide for more details.
@@ -156,7 +166,9 @@ def train_thresholding(y: sparse.csr_matrix,
         weights[:, i] = w.ravel()
         thresholds[i] = t
 
-    return FlatModel({'weights': np.asmatrix(weights), '-B': bias, 'threshold': thresholds})
+    return FlatModel(weights=np.asmatrix(weights),
+                     bias=bias,
+                     thresholds=thresholds)
 
 
 def thresholding_one_label(y: np.ndarray,
@@ -396,7 +408,9 @@ def train_cost_sensitive(y: sparse.csr_matrix,
         w = cost_sensitive_one_label(2*yi - 1, x, options)
         weights[:, i] = w.ravel()
 
-    return FlatModel({'weights': np.asmatrix(weights), '-B': bias, 'threshold': 0})
+    return FlatModel(weights=np.asmatrix(weights),
+                     bias=bias,
+                     thresholds=0)
 
 
 def cost_sensitive_one_label(y: np.ndarray,
@@ -522,7 +536,9 @@ def train_cost_sensitive_micro(y: sparse.csr_matrix,
         w = do_train(2*yi - 1, x, final_options)
         weights[:, i] = w.ravel()
 
-    return FlatModel({'weights': np.asmatrix(weights), '-B': bias, 'threshold': 0})
+    return FlatModel(weights=np.asmatrix(weights),
+                     bias=bias,
+                     thresholds=0)
 
 
 def train_binary_and_multiclass(y: sparse.csr_matrix,
@@ -566,9 +582,11 @@ def train_binary_and_multiclass(y: sparse.csr_matrix,
         weights[:, train_labels] = w
 
     # For labels not appeared in training, assign thresholds to -inf so they won't be predicted.
-    threshold = np.full(num_labels, -np.inf)
-    threshold[train_labels] = 0
-    return FlatModel({'weights': np.asmatrix(weights), '-B': bias, 'threshold': threshold})
+    thresholds = np.full(num_labels, -np.inf)
+    thresholds[train_labels] = 0
+    return FlatModel(weights=np.asmatrix(weights),
+                     bias=bias,
+                     thresholds=thresholds)
 
 
 def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:

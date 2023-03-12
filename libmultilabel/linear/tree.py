@@ -228,7 +228,7 @@ def _flatten_model(root: Node) -> 'tuple[linear.FlatModel, np.ndarray]':
         flat_model, weight_map = _flatten_model(root)
         slice = np.s_[weight_map[node.index]:
                       weight_map[node.index+1]]
-        node.model['weights'] == flat_model['weights'][:, slice]
+        node.model.weights == flat_model.weights[:, slice]
 
     Args:
         root (Node): Root of the tree.
@@ -238,22 +238,22 @@ def _flatten_model(root: Node) -> 'tuple[linear.FlatModel, np.ndarray]':
     """
     index = 0
     weights = []
-    bias = root.model['-B']
+    bias = root.model.bias
 
     def visit(node):
-        assert bias == node.model['-B']
+        assert bias == node.model.bias
         nonlocal index
         node.index = index
         index += 1
-        weights.append(node.model.pop('weights'))
+        weights.append(node.model.__dict__.pop('weights'))
 
     root.dfs(visit)
 
-    model = linear.FlatModel({
-        'weights': np.hstack(weights),
-        '-B': bias,
-        'threshold': 0
-    })
+    model = linear.FlatModel(
+        weights=np.hstack(weights),
+        bias=bias,
+        thresholds=0,
+    )
 
     # w.shape[1] is the number of labels/metalabels of each node
     weight_map = np.cumsum(
