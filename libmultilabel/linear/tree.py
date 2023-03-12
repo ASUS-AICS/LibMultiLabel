@@ -85,7 +85,7 @@ class TreeModel:
                     continue
                 slice = np.s_[self.weight_map[node.index]:
                               self.weight_map[node.index+1]]
-                pred = instance_preds[slice].ravel()
+                pred = instance_preds[slice]
                 children_score = score - np.maximum(0, 1 - pred)**2
                 next_level.extend(zip(node.children, children_score.tolist()))
 
@@ -98,7 +98,7 @@ class TreeModel:
         for node, score in cur_level:
             slice = np.s_[self.weight_map[node.index]:
                           self.weight_map[node.index+1]]
-            pred = instance_preds[slice].ravel()
+            pred = instance_preds[slice]
             scores[node.label_map] = np.exp(score - np.maximum(0, 1 - pred)**2)
         return scores
 
@@ -211,6 +211,8 @@ def _train_node(y: sparse.csr_matrix,
         )
     else:
         # meta_y[i, j] is 1 if the ith instance is relevant to the jth child.
+        # getnnz returns an ndarray of shape number of instances.
+        # This must be reshaped into number of instances * 1 to be interpreted as a column.
         meta_y = [y[:, child.label_map].getnnz(axis=1).reshape(-1, 1) > 0
                   for child in node.children]
         meta_y = sparse.csr_matrix(np.hstack(meta_y))
