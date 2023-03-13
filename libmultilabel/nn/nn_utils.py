@@ -81,11 +81,14 @@ def init_model(model_name,
         Model: A class that implements `MultiLabelModel` for initializing and training a neural network.
     """
 
-    network = getattr(networks, model_name)(
-        embed_vecs=embed_vecs,
-        num_classes=len(classes),
-        **dict(network_config)
-    )
+    try:
+        network = getattr(networks, model_name)(
+            embed_vecs=embed_vecs,
+            num_classes=len(classes),
+            **dict(network_config)
+        )
+    except:
+        raise AttributeError(f'Failed to initialize {model_name}.')
 
     if init_weight is not None:
         init_weight = networks.get_init_weight_func(

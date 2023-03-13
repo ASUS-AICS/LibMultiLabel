@@ -37,7 +37,6 @@ device = init_device()  # use gpu by default
 datasets = load_datasets('data/rcv1/train.txt', 'data/rcv1/test.txt', tokenize_text=True)
 classes = load_or_build_label(datasets)
 word_dict, embed_vecs = load_or_build_text_dict(dataset=datasets['train'], embed_file='glove.6B.300d')
-tokenizer = None
 
 ######################################################################
 # Initialize a model
@@ -97,7 +96,6 @@ for split in ['train', 'val', 'test']:
         max_seq_length=512,
         batch_size=8,
         shuffle=True if split == 'train' else False,
-        tokenizer=tokenizer
     )
 
 ######################################################################
