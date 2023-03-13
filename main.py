@@ -5,9 +5,14 @@ from datetime import datetime
 from pathlib import Path
 
 import yaml
+from torch.profiler import ProfilerActivity, profile
 
-from libmultilabel.common_utils import Timer, AttributeDict
-from libmultilabel.logging import add_stream_handler, add_collect_handler
+from libmultilabel.common_utils import AttributeDict, Timer
+from libmultilabel.logging import add_collect_handler, add_stream_handler
+
+# single-core
+import torch
+torch.set_num_threads(1)
 
 
 def add_all_arguments(parser):
@@ -206,7 +211,17 @@ def main():
         trainer = TorchTrainer(config)  # initialize trainer
         # train
         if not config.eval:
-            trainer.train()
+            with profile(activities=[ProfilerActivity.CPU]) as prof:
+                trainer.train()
+
+            # save the profiling log
+            res_table = prof.key_averages().table(
+                sort_by="cpu_time_total",
+                max_name_column_width=100, row_limit=500)
+            profile_path = os.path.join(trainer.checkpoint_dir, 'profile.log')
+            with open(profile_path, 'w') as f:
+                f.write(res_table)
+            logging.info(f'Saving profiling logs to {profile_path}.')
         # test
         if 'test' in trainer.datasets:
             trainer.test()

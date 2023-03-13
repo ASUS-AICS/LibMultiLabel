@@ -3,6 +3,7 @@ from abc import abstractmethod
 import numpy as np
 import pytorch_lightning as pl
 import torch
+import torch.autograd.profiler as profiler
 import torch.nn.functional as F
 import torch.optim as optim
 
@@ -61,6 +62,9 @@ class MultiLabelModel(pl.LightningModule):
         self.eval_metric = get_metrics(
             metric_threshold, monitor_metrics, num_classes, top_k=top_k)
 
+        # disable automatic optimization
+        self.automatic_optimization = False
+
     @abstractmethod
     def shared_step(self, batch):
         """Return loss and predicted logits"""
@@ -97,6 +101,13 @@ class MultiLabelModel(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         loss, _ = self.shared_step(batch)
+
+        opt = self.optimizers()
+        opt.zero_grad()  # reset
+        with profiler.record_function(">>>>> backward"):
+            # loss.backward() in pytorch
+            self.manual_backward(loss)  # back propagation, calculate gradient
+        opt.step()  # update parameters
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -229,7 +240,8 @@ class Model(MultiLabelModel):
             pred_logits (torch.Tensor): The predict logits (batch_size, num_classes).
         """
         target_labels = batch['label']
-        outputs = self.network(batch)
+        with profiler.record_function(">>>>> forward"):
+            outputs = self.network(batch)
         pred_logits = outputs['logits']
         loss = self.loss_function(pred_logits, target_labels.float())
 
