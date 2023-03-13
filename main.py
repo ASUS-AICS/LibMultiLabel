@@ -133,8 +133,6 @@ def add_all_arguments(parser):
     # tree options
     parser.add_argument('--tree_degree', type=int, default=100,
                         help='Degree of the tree (default: %(default)s)')
-    parser.add_argument('--beam_width', type=int, default=10,
-                        help='Number of candidates considered during beam search (default: %(default)s)')
     parser.add_argument('--tree_max_depth', type=int, default=10,
                         help='Maximum depth of the tree (default: %(default)s)')
 

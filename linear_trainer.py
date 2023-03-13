@@ -45,7 +45,6 @@ def linear_train(datasets, config):
             config.liblinear_options,
             config.tree_degree,
             config.tree_max_depth,
-            config.beam_width,
         )
     else:
         model = LINEAR_TECHNIQUES[config.linear_technique](
