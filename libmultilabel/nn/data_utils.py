@@ -11,7 +11,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import Dataset
-from torchtext.vocab import build_vocab_from_iterator, pretrained_aliases
+from torchtext.vocab import build_vocab_from_iterator, pretrained_aliases, Vocab
 from tqdm import tqdm
 
 transformers.logging.set_verbosity_error()
@@ -57,7 +57,7 @@ class TextDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, index):
-        assert isinstance(self.word_dict, dict) or isinstance(
+        assert isinstance(self.word_dict, Vocab) or isinstance(
             self.tokenizer, transformers.PreTrainedTokenizerBase
             ), "Please specify either `word_dict` or `tokenizer`."
 
