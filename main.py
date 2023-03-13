@@ -126,8 +126,15 @@ def add_all_arguments(parser):
                         help='Options passed to liblinear (default: %(default)s)')
     parser.add_argument('--linear_technique', type=str, default='1vsrest',
                         choices=['1vsrest', 'thresholding', 'cost_sensitive',
-                                 'cost_sensitive_micro', 'binary_and_multiclass'],
+                                 'cost_sensitive_micro', 'binary_and_multiclass',
+                                 'tree'],
                         help='Technique for linear classification (default: %(default)s)')
+
+    # tree options
+    parser.add_argument('--tree_degree', type=int, default=100,
+                        help='Degree of the tree (default: %(default)s)')
+    parser.add_argument('--tree_max_depth', type=int, default=10,
+                        help='Maximum depth of the tree (default: %(default)s)')
 
     parser.add_argument('-h', '--help', action='help',
                         help="If you are trying to specify network config such as dropout or activation, use a yaml file instead. "
@@ -194,7 +201,6 @@ def main():
     log_level = logging.WARNING if config.silent else logging.INFO
     stream_handler = add_stream_handler(log_level)
     collect_handler = add_collect_handler(logging.NOTSET)
-
 
     logging.info(f'Run name: {config.run_name}')
 
