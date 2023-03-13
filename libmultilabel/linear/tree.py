@@ -110,6 +110,7 @@ def train_tree(y: sparse.csr_matrix,
                verbose: bool = True,
                ) -> TreeModel:
     """Trains a linear model for multiabel data using a divide-and-conquer strategy.
+    The algorithm used is based on https://github.com/xmc-aalto/bonsai.
 
     Args:
         y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
@@ -213,7 +214,7 @@ def _train_node(y: sparse.csr_matrix,
         # meta_y[i, j] is 1 if the ith instance is relevant to the jth child.
         # getnnz returns an ndarray of shape number of instances.
         # This must be reshaped into number of instances * 1 to be interpreted as a column.
-        meta_y = [y[:, child.label_map].getnnz(axis=1).reshape(-1, 1) > 0
+        meta_y = [y[:, child.label_map].getnnz(axis=1)[:, np.newaxis] > 0
                   for child in node.children]
         meta_y = sparse.csr_matrix(np.hstack(meta_y))
         node.model = linear.train_1vsrest(
