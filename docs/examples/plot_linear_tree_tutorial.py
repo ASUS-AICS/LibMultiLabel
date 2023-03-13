@@ -62,11 +62,13 @@ print("Training time of one-versus-rest: {:10.2f}".format(training_end-training_
 # 
 # .. math::
 # 
-#  O( k \sum_{i=0}^{d} \frac{ \text{nnz of } X }{ k^{i} } ) \approx O( \frac{k^{2}}{k-1} \times \text{nnz of } X )
+#  O( \sum_{s=0}^{d} k^{s} \times k \times  \frac{ \text{nnz of } X }{ k^{s} } ) 
+#    \approx O( k \times (\log_{k} (m) + 1 ) \times \text{nnz of } X )
 #
 # if the label tree is a balanced :math:`d-\text{level}` tree and the nnz of :math:`X` is uniformly distributed.
 #
 # In our implementation, we mainly consider the method `Bonsai` :cite:t:`SK20a`, and you can use the solver by the following code.
+
 
 training_start = time.time()
 model_tree = linear.train_tree(datasets['train']['y'],
@@ -97,7 +99,10 @@ metrics.update(preds_tree, target)
 print("Evaluation of tree:", metrics.compute())
 
 ######################################################################
-# The results will look similar to
+# The results will look similar to::
+#
+#     Evaluation of OVR: {'Macro-F1': 0.16310265482983555, 'Micro-F1': 0.5125155218613162, 'P@1': 0.833117723156533, 'P@3': 0.6989219491159984, 'P@5': 0.585666235446313}
+#     Evaluation of tree: {'Macro-F1': 0.08138827935674002, 'Micro-F1': 0.05018160714821745, 'P@1': 0.825614489003881, 'P@3': 0.6947822337214317, 'P@5': 0.5803622250970245}
 #
 #
 #.. bibliography::
