@@ -30,7 +30,8 @@ class TextDataset(Dataset):
         max_seq_length (int, optional): The maximum number of tokens of a sample.
         word_dict (torchtext.vocab.Vocab, optional): A vocab object for word tokenizer to
             map tokens to indices. Defaults to None.
-        tokenizer (optional): Tokenizer of the transformer-based language model. Defaults to None.
+        tokenizer (transformers.PreTrainedTokenizerBase, optional): HuggingFace's tokenizer of
+            the transformer-based pretrained language model. Defaults to None.
         add_special_tokens (bool, optional): Whether to add the special tokens. Defaults to True.
     """
     def __init__(
@@ -56,8 +57,11 @@ class TextDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, index):
-        data = self.data[index]
+        assert isinstance(self.word_dict, dict) or isinstance(
+            self.tokenizer, transformers.PreTrainedTokenizerBase
+            ), "Please specify either `word_dict` or `tokenizer`."
 
+        data = self.data[index]
         if self.tokenizer is not None:  # transformers tokenizer
             if self.add_special_tokens:  # tentatively hard code
                 input_ids = self.tokenizer.encode(data['text'],
@@ -123,7 +127,8 @@ def get_dataset_loader(
         data_workers (int, optional): Use multi-cpu core for data pre-processing. Defaults to 4.
         word_dict (torchtext.vocab.Vocab, optional): A vocab object for word tokenizer to
             map tokens to indices. Defaults to None.
-        tokenizer (optional): Tokenizer of the transformer-based language model. Defaults to None.
+        tokenizer (transformers.PreTrainedTokenizerBase, optional): HuggingFace's tokenizer of
+            the transformer-based pretrained language model. Defaults to None.
         add_special_tokens (bool, optional): Whether to add the special tokens. Defaults to True.
 
     Returns:
