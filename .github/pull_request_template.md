@@ -12,4 +12,4 @@
 - [ ] Not Applicable (i.e., the PR does not include API changes.)
 
 ## Test quickstart & API if modified (`bash tests/docs/test_changed_document.sh`)
-If any APIs in the document is modified. Please make sure to run this test after the APIs are realeased.
+If any APIs in the document are modified, please run this test after the APIs are released.
