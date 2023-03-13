@@ -94,7 +94,6 @@ loaders = dict()
 for split in ['train', 'val', 'test']:
     loaders[split] = get_dataset_loader(
         data=datasets[split],
-        # word_dict=word_dict,
         classes=classes,
         device=device,
         max_seq_length=512,
