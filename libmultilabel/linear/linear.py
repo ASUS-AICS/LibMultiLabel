@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import os
 
@@ -304,7 +306,10 @@ def _scutfbr(y: np.ndarray,
     return _do_train(y, x, options), b_list
 
 
-def _do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> np.matrix:
+def _do_train(y: np.ndarray,
+              x: sparse.csr_matrix,
+              options: str
+              ) -> np.matrix:
     """Wrapper around liblinear.liblinearutil.train.
     Forcibly suppresses all IO regardless of options.
 
@@ -603,7 +608,10 @@ def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
     return model.predict_values(x)
 
 
-def get_topk_labels(label_mapping: np.ndarray, preds: np.ndarray, top_k: int = 5) -> 'list[list[str]]':
+def get_topk_labels(label_mapping: np.ndarray,
+                    preds: np.ndarray,
+                    top_k: int = 5
+                    ) -> 'list[list[str]]':
     """Get top k predictions from decision values.
 
     Args:
