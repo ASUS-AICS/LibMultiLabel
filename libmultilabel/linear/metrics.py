@@ -1,12 +1,10 @@
+from __future__ import annotations
+
 import re
 
 import numpy as np
 
-__all__ = ['RPrecision',
-           'Precision',
-           'F1',
-           'MetricCollection',
-           'get_metrics',
+__all__ = ['get_metrics',
            'tabulate_metrics']
 
 
@@ -107,7 +105,11 @@ class MetricCollection(dict):
         return ret
 
 
-def get_metrics(metric_threshold: float, monitor_metrics: list, num_classes: int, multiclass=False):
+def get_metrics(metric_threshold: float,
+                monitor_metrics: list,
+                num_classes: int,
+                multiclass: bool = False
+                ) -> MetricCollection:
     """Get a collection of metrics by their names.
 
     Args:
@@ -139,7 +141,7 @@ def get_metrics(metric_threshold: float, monitor_metrics: list, num_classes: int
     return MetricCollection(metrics)
 
 
-def tabulate_metrics(metric_dict, split):
+def tabulate_metrics(metric_dict: dict, split: str) -> str:
     msg = f'====== {split} dataset evaluation result =======\n'
     header = '|'.join([f'{k:^18}' for k in metric_dict.keys()])
     values = '|'.join([f'{x * 100:^18.4f}' if isinstance(x, (np.floating,
