@@ -16,7 +16,7 @@ def add_all_arguments(parser):
                         help='The directory to save checkpoints and logs (default: %(default)s)')
 
     # data
-    parser.add_argument('--data_name', default='unnamed',
+    parser.add_argument('--data_name', default='unnamed_data',
                         help='Dataset name (default: %(default)s)')
     parser.add_argument('--training_file',
                         help='Path to training data (default: %(default)s)')
@@ -64,7 +64,7 @@ def add_all_arguments(parser):
                         help='Whether the embeddings of each word is normalized to a unit vector (default: %(default)s)')
 
     # model
-    parser.add_argument('--model_name', default='KimCNN',
+    parser.add_argument('--model_name', default='unnamed_model',
                         help='Model to be used (default: %(default)s)')
     parser.add_argument('--init_weight', default='kaiming_uniform',
                         help='Weight initialization to be used (default: %(default)s)')
