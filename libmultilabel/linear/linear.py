@@ -11,7 +11,8 @@ __all__ = ['train_1vsrest',
            'train_cost_sensitive',
            'train_cost_sensitive_micro',
            'train_binary_and_multiclass',
-           'predict_values']
+           'predict_values',
+           'get_topk_labels']
 
 
 class FlatModel:
@@ -68,7 +69,7 @@ def train_1vsrest(y: sparse.csr_matrix,
         A model which can be used in predict_values.
     """
     # Follows the MATLAB implementation at https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/multilabel/
-    x, options, bias = prepare_options(x, options)
+    x, options, bias = _prepare_options(x, options)
 
     y = y.tocsc()
     num_class = y.shape[1]
@@ -79,14 +80,14 @@ def train_1vsrest(y: sparse.csr_matrix,
         logging.info(f'Training one-vs-rest model on {num_class} labels')
     for i in tqdm(range(num_class), disable=not verbose):
         yi = y[:, i].toarray().reshape(-1)
-        weights[:, i] = do_train(2*yi - 1, x, options).ravel()
+        weights[:, i] = _do_train(2*yi - 1, x, options).ravel()
 
     return FlatModel(weights=np.asmatrix(weights),
                      bias=bias,
                      thresholds=0)
 
 
-def prepare_options(x: sparse.csr_matrix, options: str) -> 'tuple[sparse.csr_matrix, str, float]':
+def _prepare_options(x: sparse.csr_matrix, options: str) -> 'tuple[sparse.csr_matrix, str, float]':
     """Prepare options and x for multi-label training. Called in the first line of
     any training function.
 
@@ -150,7 +151,7 @@ def train_thresholding(y: sparse.csr_matrix,
         A model which can be used in predict_values.
     """
     # Follows the MATLAB implementation at https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/multilabel/
-    x, options, bias = prepare_options(x, options)
+    x, options, bias = _prepare_options(x, options)
 
     y = y.tocsc()
     num_class = y.shape[1]
@@ -162,7 +163,7 @@ def train_thresholding(y: sparse.csr_matrix,
         logging.info(f'Training thresholding model on {num_class} labels')
     for i in tqdm(range(num_class), disable=not verbose):
         yi = y[:, i].toarray().reshape(-1)
-        w, t = thresholding_one_label(2*yi - 1, x, options)
+        w, t = _thresholding_one_label(2*yi - 1, x, options)
         weights[:, i] = w.ravel()
         thresholds[i] = t
 
@@ -171,7 +172,7 @@ def train_thresholding(y: sparse.csr_matrix,
                      thresholds=thresholds)
 
 
-def thresholding_one_label(y: np.ndarray,
+def _thresholding_one_label(y: np.ndarray,
                            x: sparse.csr_matrix,
                            options: str
                            ) -> 'tuple[np.ndarray, float]':
@@ -201,12 +202,12 @@ def thresholding_one_label(y: np.ndarray,
         val_idx = perm[mask]
         train_idx = perm[mask != True]
 
-        scutfbr_w, scutfbr_b_list = scutfbr(
+        scutfbr_w, scutfbr_b_list = _scutfbr(
             y[train_idx], x[train_idx], fbr_list, options)
         wTx = (x[val_idx] * scutfbr_w).A1
 
         for i in range(fbr_list.size):
-            F = fmeasure(y[val_idx], 2*(wTx > -scutfbr_b_list[i]) - 1)
+            F = _fmeasure(y[val_idx], 2*(wTx > -scutfbr_b_list[i]) - 1)
             f_list[i] += F
 
     best_fbr = fbr_list[::-1][np.argmax(f_list[::-1])]  # last largest
@@ -214,12 +215,12 @@ def thresholding_one_label(y: np.ndarray,
         best_fbr = np.min(fbr_list)
 
     # final model
-    w, b_list = scutfbr(y, x, np.array([best_fbr]), options)
+    w, b_list = _scutfbr(y, x, np.array([best_fbr]), options)
 
     return w, b_list[0]
 
 
-def scutfbr(y: np.ndarray,
+def _scutfbr(y: np.ndarray,
             x: sparse.csr_matrix,
             fbr_list: 'list[float]',
             options: str
@@ -250,10 +251,10 @@ def scutfbr(y: np.ndarray,
         val_idx = perm[mask]
         train_idx = perm[mask != True]
 
-        w = do_train(y[train_idx], x[train_idx], options)
+        w = _do_train(y[train_idx], x[train_idx], options)
         wTx = (x[val_idx] * w).A1
         scut_b = 0.
-        start_F = fmeasure(y[val_idx], 2*(wTx > -scut_b) - 1)
+        start_F = _fmeasure(y[val_idx], 2*(wTx > -scut_b) - 1)
 
         # stableness to match the MATLAB implementation
         sorted_wTx_index = np.argsort(wTx, kind='stable')
@@ -291,7 +292,7 @@ def scutfbr(y: np.ndarray,
             else:
                 scut_b = -(sorted_wTx[cut] + sorted_wTx[cut + 1]) / 2
 
-        F = fmeasure(y_val, 2*(wTx > -scut_b) - 1)
+        F = _fmeasure(y_val, 2*(wTx > -scut_b) - 1)
 
         for i in range(fbr_list.size):
             if F > fbr_list[i]:
@@ -300,10 +301,10 @@ def scutfbr(y: np.ndarray,
                 b_list[i] -= np.max(wTx)
 
     b_list = b_list / nr_fold
-    return do_train(y, x, options), b_list
+    return _do_train(y, x, options), b_list
 
 
-def do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> np.matrix:
+def _do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> np.matrix:
     """Wrapper around liblinear.liblinearutil.train.
     Forcibly suppresses all IO regardless of options.
 
@@ -351,7 +352,7 @@ class silent_stderr:
         os.close(self.stderr)
 
 
-def fmeasure(y_true: np.ndarray, y_pred: np.ndarray) -> float:
+def _fmeasure(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     """Calculate F1 score.
 
     Args:
@@ -393,7 +394,7 @@ def train_cost_sensitive(y: sparse.csr_matrix,
         A model which can be used in predict_values.
     """
     # Follows the MATLAB implementation at https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/multilabel/
-    x, options, bias = prepare_options(x, options)
+    x, options, bias = _prepare_options(x, options)
 
     y = y.tocsc()
     num_class = y.shape[1]
@@ -405,7 +406,7 @@ def train_cost_sensitive(y: sparse.csr_matrix,
             f'Training cost-sensitive model for Macro-F1 on {num_class} labels')
     for i in tqdm(range(num_class), disable=not verbose):
         yi = y[:, i].toarray().reshape(-1)
-        w = cost_sensitive_one_label(2*yi - 1, x, options)
+        w = _cost_sensitive_one_label(2*yi - 1, x, options)
         weights[:, i] = w.ravel()
 
     return FlatModel(weights=np.asmatrix(weights),
@@ -413,7 +414,7 @@ def train_cost_sensitive(y: sparse.csr_matrix,
                      thresholds=0)
 
 
-def cost_sensitive_one_label(y: np.ndarray,
+def _cost_sensitive_one_label(y: np.ndarray,
                              x: sparse.csr_matrix,
                              options: str
                              ) -> np.ndarray:
@@ -436,17 +437,17 @@ def cost_sensitive_one_label(y: np.ndarray,
     bestScore = -np.Inf
     for a in param_space:
         cv_options = f'{options} -w1 {a}'
-        pred = cross_validate(y, x, cv_options, perm)
-        score = fmeasure(y, pred)
+        pred = _cross_validate(y, x, cv_options, perm)
+        score = _fmeasure(y, pred)
         if bestScore < score:
             bestScore = score
             bestA = a
 
     final_options = f'{options} -w1 {bestA}'
-    return do_train(y, x, final_options)
+    return _do_train(y, x, final_options)
 
 
-def cross_validate(y: np.ndarray,
+def _cross_validate(y: np.ndarray,
                    x: sparse.csr_matrix,
                    options: str,
                    perm: np.ndarray
@@ -470,7 +471,7 @@ def cross_validate(y: np.ndarray,
         val_idx = perm[mask]
         train_idx = perm[mask != True]
 
-        w = do_train(y[train_idx], x[train_idx], options)
+        w = _do_train(y[train_idx], x[train_idx], options)
         pred[val_idx] = (x[val_idx] * w).A1 > 0
 
     return 2*pred - 1
@@ -498,7 +499,7 @@ def train_cost_sensitive_micro(y: sparse.csr_matrix,
         A model which can be used in predict_values.
     """
     # Follows the MATLAB implementation at https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/multilabel/
-    x, options, bias = prepare_options(x, options)
+    x, options, bias = _prepare_options(x, options)
 
     y = y.tocsc()
     num_class = y.shape[1]
@@ -520,7 +521,7 @@ def train_cost_sensitive_micro(y: sparse.csr_matrix,
             yi = 2*yi - 1
 
             cv_options = f'{options} -w1 {a}'
-            pred = cross_validate(yi, x, cv_options, perm)
+            pred = _cross_validate(yi, x, cv_options, perm)
             tp = tp + np.sum(np.logical_and(yi == 1, pred == 1))
             fn = fn + np.sum(np.logical_and(yi == 1, pred == -1))
             fp = fp + np.sum(np.logical_and(yi == -1, pred == 1))
@@ -533,7 +534,7 @@ def train_cost_sensitive_micro(y: sparse.csr_matrix,
     final_options = f'{options} -w1 {bestA}'
     for i in range(num_class):
         yi = y[:, i].toarray().reshape(-1)
-        w = do_train(2*yi - 1, x, final_options)
+        w = _do_train(2*yi - 1, x, final_options)
         weights[:, i] = w.ravel()
 
     return FlatModel(weights=np.asmatrix(weights),
@@ -557,7 +558,7 @@ def train_binary_and_multiclass(y: sparse.csr_matrix,
     Returns:
         A model which can be used in predict_values.
     """
-    x, options, bias = prepare_options(x, options)
+    x, options, bias = _prepare_options(x, options)
     num_instances, num_labels = y.shape
     nonzero_instance_ids, nonzero_label_ids = y.nonzero()
     assert len(set(nonzero_instance_ids)) == num_instances, """
