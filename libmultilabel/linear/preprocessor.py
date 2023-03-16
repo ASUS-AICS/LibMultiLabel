@@ -140,7 +140,7 @@ class Preprocessor:
         self.vectorizer = TfidfVectorizer()
         self.vectorizer.fit(texts)
 
-    def _generate_label_mapping(self, labels: 'list[str]', classes: 'list[str]' = None):
+    def _generate_label_mapping(self, labels: 'list[list[str]]', classes: 'list[str]' = None):
         self.binarizer = MultiLabelBinarizer(
             sparse_output=True, classes=classes)
         self.binarizer.fit(labels)
