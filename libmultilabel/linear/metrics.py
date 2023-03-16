@@ -98,7 +98,7 @@ class MetricCollection(dict):
         for metric in self.metrics.values():
             metric.update(preds, target)
 
-    def compute(self) -> 'dict[str, float]':
+    def compute(self) -> dict[str, float]:
         ret = {}
         for name, metric in self.metrics.items():
             ret[name] = metric.compute()
@@ -106,7 +106,7 @@ class MetricCollection(dict):
 
 
 def get_metrics(metric_threshold: float,
-                monitor_metrics: 'list[str]',
+                monitor_metrics: list[str],
                 num_classes: int,
                 multiclass: bool = False
                 ) -> MetricCollection:
@@ -141,7 +141,7 @@ def get_metrics(metric_threshold: float,
     return MetricCollection(metrics)
 
 
-def tabulate_metrics(metric_dict: 'dict[str, float]', split: str) -> str:
+def tabulate_metrics(metric_dict: dict[str, float], split: str) -> str:
     msg = f'====== {split} dataset evaluation result =======\n'
     header = '|'.join([f'{k:^18}' for k in metric_dict.keys()])
     values = '|'.join([f'{x * 100:^18.4f}' if isinstance(x, (np.floating,

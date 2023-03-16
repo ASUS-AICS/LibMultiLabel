@@ -33,13 +33,13 @@ class Preprocessor:
 
         self.data_format = data_format
 
-    def load_data(self, training_data: 'str | pd.DataFrame' = None,
-                  test_data: 'str | pd.DataFrame' = None,
+    def load_data(self, training_data: str | pd.DataFrame = None,
+                  test_data: str | pd.DataFrame = None,
                   eval: bool = False,
                   label_file: str = None,
                   include_test_labels: bool = False,
                   remove_no_label_data: bool = False
-                  ) -> 'dict[str, dict[str, sparse.csr_matrix]]':
+                  ) -> dict[str, dict[str, sparse.csr_matrix]]:
         """Loads and preprocesses data.
 
         Args:
@@ -87,10 +87,10 @@ class Preprocessor:
 
         return data
 
-    def _load_text(self, training_data: 'str | pd.Dataframe',
-                   test_data: 'str | pd.Dataframe',
+    def _load_text(self, training_data: str | pd.Dataframe,
+                   test_data: str | pd.Dataframe,
                    eval: bool
-                   ) -> 'dict[str, dict[str, sparse.csr_matrix]]':
+                   ) -> dict[str, dict[str, sparse.csr_matrix]]:
         datasets = defaultdict(dict)
         if test_data is not None:
             test = read_libmultilabel_format(test_data)
@@ -117,7 +117,7 @@ class Preprocessor:
     def _load_svm(self, training_data: str,
                   test_data: str,
                   eval: bool
-                  ) -> 'dict[str, dict[str, sparse.csr_matrix]]':
+                  ) -> dict[str, dict[str, sparse.csr_matrix]]:
         datasets = defaultdict(dict)
         if test_data is not None:
             ty, tx = read_libsvm_format(test_data)
@@ -136,18 +136,18 @@ class Preprocessor:
             datasets['test']['y'] = self.binarizer.transform(ty).astype('d')
         return dict(datasets)
 
-    def _generate_tfidf(self, texts: 'list[str]'):
+    def _generate_tfidf(self, texts: list[str]):
         self.vectorizer = TfidfVectorizer()
         self.vectorizer.fit(texts)
 
-    def _generate_label_mapping(self, labels: 'list[list[str]]', classes: 'list[str]' = None):
+    def _generate_label_mapping(self, labels: list[list[str]], classes: list[str] = None):
         self.binarizer = MultiLabelBinarizer(
             sparse_output=True, classes=classes)
         self.binarizer.fit(labels)
         self.label_mapping = self.binarizer.classes_
 
 
-def read_libmultilabel_format(data: 'str | pd.Dataframe') -> 'dict[str,list[str]]':
+def read_libmultilabel_format(data: str | pd.Dataframe) -> dict[str,list[str]]:
     """Read multi-label text data from file or pandas dataframe.
 
     Args:
@@ -172,7 +172,7 @@ def read_libmultilabel_format(data: 'str | pd.Dataframe') -> 'dict[str,list[str]
     return data.to_dict('list')
 
 
-def read_libsvm_format(file_path: str) -> 'tuple[list[list[int]], sparse.csr_matrix]':
+def read_libsvm_format(file_path: str) -> tuple[list[list[int]], sparse.csr_matrix]:
     """Read multi-label LIBSVM-format data.
 
     Args:

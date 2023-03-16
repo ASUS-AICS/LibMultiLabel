@@ -20,7 +20,7 @@ __all__ = ['train_1vsrest',
 class FlatModel:
     def __init__(self, weights: np.matrix,
                  bias: float,
-                 thresholds: 'float | np.ndarray',
+                 thresholds: float | np.ndarray,
                  ):
         self.weights = weights
         self.bias = bias
@@ -89,7 +89,7 @@ def train_1vsrest(y: sparse.csr_matrix,
                      thresholds=0)
 
 
-def _prepare_options(x: sparse.csr_matrix, options: str) -> 'tuple[sparse.csr_matrix, str, float]':
+def _prepare_options(x: sparse.csr_matrix, options: str) -> tuple[sparse.csr_matrix, str, float]:
     """Prepare options and x for multi-label training. Called in the first line of
     any training function.
 
@@ -177,7 +177,7 @@ def train_thresholding(y: sparse.csr_matrix,
 def _thresholding_one_label(y: np.ndarray,
                            x: sparse.csr_matrix,
                            options: str
-                           ) -> 'tuple[np.ndarray, float]':
+                           ) -> tuple[np.ndarray, float]:
     """Outer cross-validation for thresholding on a single label.
 
     Args:
@@ -224,9 +224,9 @@ def _thresholding_one_label(y: np.ndarray,
 
 def _scutfbr(y: np.ndarray,
             x: sparse.csr_matrix,
-            fbr_list: 'list[float]',
+            fbr_list: list[float],
             options: str
-            ) -> 'tuple[np.matrix, np.ndarray]':
+            ) -> tuple[np.matrix, np.ndarray]:
     """Inner cross-validation for SCutfbr heuristic.
 
     Args:
@@ -611,7 +611,7 @@ def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
 def get_topk_labels(label_mapping: np.ndarray,
                     preds: np.ndarray,
                     top_k: int = 5
-                    ) -> 'list[list[str]]':
+                    ) -> list[list[str]]:
     """Get top k predictions from decision values.
 
     Args:

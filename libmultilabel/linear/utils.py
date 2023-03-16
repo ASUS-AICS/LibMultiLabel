@@ -49,7 +49,7 @@ def save_pipeline(checkpoint_dir: str, preprocessor: Preprocessor, model):
         }, f)
 
 
-def load_pipeline(checkpoint_path: str) -> 'tuple[Preprocessor, Any]':
+def load_pipeline(checkpoint_path: str) -> tuple[Preprocessor, Any]:
     """Loads preprocessor and model from checkpoint_path.
 
     Args:
