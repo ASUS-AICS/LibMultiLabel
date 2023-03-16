@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Callable
 
 import numpy as np
@@ -14,7 +16,7 @@ __all__ = ['train_tree']
 class Node:
     def __init__(self,
                  label_map: np.ndarray,
-                 children: 'list[Node]',
+                 children: list[Node],
                  ):
         """
         Args:
@@ -27,7 +29,7 @@ class Node:
     def isLeaf(self) -> bool:
         return len(self.children) == 0
 
-    def dfs(self, visit: 'Callable[[Node], None]'):
+    def dfs(self, visit: Callable[[Node], None]):
         visit(self)
         # Stops if self.children is empty, i.e. self is a leaf node
         for child in self.children:
@@ -222,7 +224,7 @@ def _train_node(y: sparse.csr_matrix,
         )
 
 
-def _flatten_model(root: Node) -> 'tuple[linear.FlatModel, np.ndarray]':
+def _flatten_model(root: Node) -> tuple[linear.FlatModel, np.ndarray]:
     """Flattens tree weight matrices into a single weight matrix. The flattened weight
     matrix is used to predict all possible values, which is cached for beam search.
     This pessimizes complexity but is faster in practice.
