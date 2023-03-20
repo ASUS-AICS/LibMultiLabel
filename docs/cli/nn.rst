@@ -135,7 +135,7 @@ Hyper-parameter Search
 
 Parameter selection is known to be extremely important in machine learning practice; see a powerful reminder in "`this paper <https://www.csie.ntu.edu.tw/~cjlin/papers/parameter_selection/acl2021_parameter_selection.pdf>`_". Here we leverage `Ray Tune <https://docs.ray.io/en/master/tune/index.html>`__, which is a python library for hyper-parameter tuning, to select parameters. Due to the dependency of Ray Tune, first make sure your python version is not greater than 3.8. Then, install the related packages with::
 
-    pip3 install -Ur requirements_parameter_search.txt
+    pip3 install .[nn-param-search]
 
 We provide a program ``search_params.py`` to demonstrate how to run LibMultiLabel with Ray Tune. An example is as follows::
 

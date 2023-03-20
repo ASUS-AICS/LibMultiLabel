@@ -51,7 +51,7 @@ and then create a virtual enviroment as follows.
 
 .. code-block:: bash
 
-    pip3 install -r requirements.txt
+    pip3 install .[all]
 
 If you have a different version of CUDA,
 follow the installation instructions for PyTorch LTS at
