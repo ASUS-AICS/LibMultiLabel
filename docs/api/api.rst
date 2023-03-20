@@ -14,7 +14,7 @@ The library API is composed of a `linear classifier module <linear.html>`_ and a
 The two types of APIs can be used independently.
 The modules can be installed with:
 
-* Install both neural network module and linear classifier module. ::
+* Install both neural network module and linear classifier module ::
 
     pip3 install libmultilabel[all]
 
