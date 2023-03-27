@@ -38,10 +38,12 @@ class Node:
 
 class TreeModel:
     def __init__(self,
+                 name: str,
                  root: Node,
                  flat_model: linear.FlatModel,
                  weight_map: np.ndarray,
                  ):
+        self.name = name
         self.root = root
         self.flat_model = flat_model
         self.weight_map = weight_map
@@ -149,7 +151,7 @@ def train_tree(y: sparse.csr_matrix,
     pbar.close()
 
     flat_model, weight_map = _flatten_model(root)
-    return TreeModel(root, flat_model, weight_map)
+    return TreeModel('tree', root, flat_model, weight_map)
 
 
 def _build_tree(label_representation: sparse.csr_matrix,
