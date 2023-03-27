@@ -54,14 +54,15 @@ class TextDataset(Dataset):
         self.num_classes = len(self.classes)
         self.label_binarizer = MultiLabelBinarizer().fit([classes])
 
+        if not isinstance(self.word_dict, Vocab) ^ isinstance(
+            self.tokenizer, transformers.PreTrainedTokenizerBase):
+            raise ValueError(
+                'Please specify exactly one of word_dict or tokenizer')
+
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, index):
-        assert isinstance(self.word_dict, Vocab) or isinstance(
-            self.tokenizer, transformers.PreTrainedTokenizerBase
-            ), "Please specify either `word_dict` or `tokenizer`."
-
         data = self.data[index]
         if self.tokenizer is not None:  # transformers tokenizer
             if self.add_special_tokens:  # tentatively hard code
