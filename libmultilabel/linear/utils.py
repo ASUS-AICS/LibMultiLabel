@@ -30,8 +30,6 @@ LINEAR_TECHNIQUES = {
     'tree': linear.train_tree,
 }
 
-MULTICLASS_MODEL = 'binary_and_multiclass'
-
 
 def save_pipeline(checkpoint_dir: str, preprocessor: Preprocessor, model):
     """Saves preprocessor and model to checkpoint_dir/linear_pipline.pickle.

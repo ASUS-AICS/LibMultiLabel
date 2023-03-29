@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 import libmultilabel.linear as linear
 from libmultilabel.common_utils import argsort_top_k, dump_log
-from libmultilabel.linear.utils import LINEAR_TECHNIQUES, MULTICLASS_MODEL
+from libmultilabel.linear.utils import LINEAR_TECHNIQUES
 
 
 def linear_test(config, model, datasets):
@@ -14,7 +14,7 @@ def linear_test(config, model, datasets):
         config.metric_threshold,
         config.monitor_metrics,
         datasets['test']['y'].shape[1],
-        multiclass=model.name==MULTICLASS_MODEL
+        multiclass=model.name=='binary_and_multiclass'
     )
     num_instance = datasets['test']['x'].shape[0]
 
