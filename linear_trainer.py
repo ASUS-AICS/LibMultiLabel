@@ -5,8 +5,7 @@ import numpy as np
 from tqdm import tqdm
 
 import libmultilabel.linear as linear
-from libmultilabel.common_utils import (argsort_top_k, dump_log,
-                                        is_multiclass_dataset)
+from libmultilabel.common_utils import argsort_top_k, dump_log
 from libmultilabel.linear.utils import LINEAR_TECHNIQUES
 
 
@@ -15,7 +14,7 @@ def linear_test(config, model, datasets):
         config.metric_threshold,
         config.monitor_metrics,
         datasets['test']['y'].shape[1],
-        multiclass=config.multiclass
+        multiclass=model.name=='binary_and_multiclass'
     )
     num_instance = datasets['test']['x'].shape[0]
 
@@ -73,7 +72,6 @@ def linear_run(config):
             config.label_file,
             config.include_test_labels,
             config.remove_no_label_data)
-        config.multiclass = is_multiclass_dataset(datasets['train'], label='y')
         model = linear_train(datasets, config)
         linear.save_pipeline(config.checkpoint_dir, preprocessor, model)
 

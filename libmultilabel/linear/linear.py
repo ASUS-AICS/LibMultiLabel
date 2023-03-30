@@ -18,10 +18,12 @@ __all__ = ['train_1vsrest',
 
 
 class FlatModel:
-    def __init__(self, weights: np.matrix,
+    def __init__(self, name: str,
+                 weights: np.matrix,
                  bias: float,
                  thresholds: float | np.ndarray,
                  ):
+        self.name = name
         self.weights = weights
         self.bias = bias
         self.thresholds = thresholds
@@ -84,7 +86,8 @@ def train_1vsrest(y: sparse.csr_matrix,
         yi = y[:, i].toarray().reshape(-1)
         weights[:, i] = _do_train(2*yi - 1, x, options).ravel()
 
-    return FlatModel(weights=np.asmatrix(weights),
+    return FlatModel(name='1vsrest',
+                     weights=np.asmatrix(weights),
                      bias=bias,
                      thresholds=0)
 
@@ -169,15 +172,16 @@ def train_thresholding(y: sparse.csr_matrix,
         weights[:, i] = w.ravel()
         thresholds[i] = t
 
-    return FlatModel(weights=np.asmatrix(weights),
+    return FlatModel(name='thresholding',
+                     weights=np.asmatrix(weights),
                      bias=bias,
                      thresholds=thresholds)
 
 
 def _thresholding_one_label(y: np.ndarray,
-                           x: sparse.csr_matrix,
-                           options: str
-                           ) -> tuple[np.ndarray, float]:
+                            x: sparse.csr_matrix,
+                            options: str
+                            ) -> tuple[np.ndarray, float]:
     """Outer cross-validation for thresholding on a single label.
 
     Args:
@@ -223,10 +227,10 @@ def _thresholding_one_label(y: np.ndarray,
 
 
 def _scutfbr(y: np.ndarray,
-            x: sparse.csr_matrix,
-            fbr_list: list[float],
-            options: str
-            ) -> tuple[np.matrix, np.ndarray]:
+             x: sparse.csr_matrix,
+             fbr_list: list[float],
+             options: str
+             ) -> tuple[np.matrix, np.ndarray]:
     """Inner cross-validation for SCutfbr heuristic.
 
     Args:
@@ -414,15 +418,16 @@ def train_cost_sensitive(y: sparse.csr_matrix,
         w = _cost_sensitive_one_label(2*yi - 1, x, options)
         weights[:, i] = w.ravel()
 
-    return FlatModel(weights=np.asmatrix(weights),
+    return FlatModel(name='cost_sensitive',
+                     weights=np.asmatrix(weights),
                      bias=bias,
                      thresholds=0)
 
 
 def _cost_sensitive_one_label(y: np.ndarray,
-                             x: sparse.csr_matrix,
-                             options: str
-                             ) -> np.ndarray:
+                              x: sparse.csr_matrix,
+                              options: str
+                              ) -> np.ndarray:
     """Loop over parameter space for cost-sensitive on a single label.
 
     Args:
@@ -453,10 +458,10 @@ def _cost_sensitive_one_label(y: np.ndarray,
 
 
 def _cross_validate(y: np.ndarray,
-                   x: sparse.csr_matrix,
-                   options: str,
-                   perm: np.ndarray
-                   ) -> np.ndarray:
+                    x: sparse.csr_matrix,
+                    options: str,
+                    perm: np.ndarray
+                    ) -> np.ndarray:
     """Cross-validation for cost-sensitive.
 
     Args:
@@ -542,7 +547,8 @@ def train_cost_sensitive_micro(y: sparse.csr_matrix,
         w = _do_train(2*yi - 1, x, final_options)
         weights[:, i] = w.ravel()
 
-    return FlatModel(weights=np.asmatrix(weights),
+    return FlatModel(name='cost_sensitive_micro',
+                     weights=np.asmatrix(weights),
                      bias=bias,
                      thresholds=0)
 
@@ -590,7 +596,8 @@ def train_binary_and_multiclass(y: sparse.csr_matrix,
     # For labels not appeared in training, assign thresholds to -inf so they won't be predicted.
     thresholds = np.full(num_labels, -np.inf)
     thresholds[train_labels] = 0
-    return FlatModel(weights=np.asmatrix(weights),
+    return FlatModel(name='binary_and_multiclass',
+                     weights=np.asmatrix(weights),
                      bias=bias,
                      thresholds=thresholds)
 
@@ -615,7 +622,7 @@ def get_topk_labels(label_mapping: np.ndarray,
     """Get top k predictions from decision values.
 
     Args:
-        label_mapping (np.ndarray): A ndarray of class labels that maps each index (from 0 to ``num_class-1``) to its label. 
+        label_mapping (np.ndarray): A ndarray of class labels that maps each index (from 0 to ``num_class-1``) to its label.
         preds (np.ndarray): A matrix of decision values with dimension number of instances * number of classes.
         top_k (int): Determine how many classes per instance should be predicted.
 

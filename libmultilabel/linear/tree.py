@@ -42,6 +42,7 @@ class TreeModel:
                  flat_model: linear.FlatModel,
                  weight_map: np.ndarray,
                  ):
+        self.name = 'tree'
         self.root = root
         self.flat_model = flat_model
         self.weight_map = weight_map
