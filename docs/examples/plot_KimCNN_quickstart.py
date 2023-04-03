@@ -37,7 +37,6 @@ device = init_device()  # use gpu by default
 datasets = load_datasets('data/rcv1/train.txt', 'data/rcv1/test.txt', tokenize_text=True)
 classes = load_or_build_label(datasets)
 word_dict, embed_vecs = load_or_build_text_dict(dataset=datasets['train'], embed_file='glove.6B.300d')
-tokenizer = None
 
 ######################################################################
 # Initialize a model
@@ -91,13 +90,12 @@ loaders = dict()
 for split in ['train', 'val', 'test']:
     loaders[split] = get_dataset_loader(
         data=datasets[split],
-        word_dict=word_dict,
         classes=classes,
         device=device,
         max_seq_length=512,
         batch_size=8,
         shuffle=True if split == 'train' else False,
-        tokenizer=tokenizer
+        word_dict=word_dict
     )
 
 ######################################################################
@@ -125,4 +123,3 @@ trainer.test(model, dataloaders=loaders['test'])
 #      'P@3':      0.7772253751754761,
 #      'P@5':      0.5449321269989014,
 #  }
-
