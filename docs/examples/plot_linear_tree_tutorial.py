@@ -1,14 +1,14 @@
 """
-Handling Data with Many Labels
-==============================
+Accelerated Training in Linear Model: Extreme Label Problems
+============================================================
 
-Training a multi-label classification problem with numerous labels can be time-consuming. 
-We show how a solver in LibMultiLabel can reduce training time on such datasets.
+Training a multi-label classification problem on a large-scale dataset with numerous labels can be time-consuming. 
+In this tutorial, we will introduce an accelerated training algorithm for multi-label classification that can reduce training time on such datasets.
 
-Consider the EUR-Lex dataset, which contains a large number of labels (3,956 labels) 
+To demonstrate the effectiveness of our approach, we will use the EUR-Lex dataset, 
+which contains a large number of labels (3,956 labels) 
 and can be downloaded from `LIBSVM Data Sets <https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel.html>`_. 
-We show the use of the ``train_tree`` method and compare it with the standard one ``train_1vsrest``.
-To run the following code, you must put data to the designated directory.
+We will provide code that is similar to `our quickstart of linear model <plot_linear_quickstart.html>`_, but with the added benefit of faster training time.
 """
 
 import libmultilabel.linear as linear
@@ -18,7 +18,7 @@ preprocessor = linear.Preprocessor(data_format='txt')
 datasets = preprocessor.load_data('datasets/libmultilabel-format/eur-lex/train.txt', 'datasets/libmultilabel-format/eur-lex/test.txt')
 
 training_start = time.time()
-# the standard one-vs-rest way to train multi-label problems
+# Original API from quickstart of linear model
 model_OVR = linear.train_1vsrest(datasets['train']['y'],
                                  datasets['train']['x'],
                                  '-s 2')
@@ -26,7 +26,7 @@ training_end = time.time()
 print('Training time of one-versus-rest: {:10.2f}'.format(training_end-training_start))
 
 training_start = time.time()
-# the method for fast training of data with many labels
+# New API for accelerated training a linear model
 model_tree = linear.train_tree(datasets['train']['y'],
                                datasets['train']['x'],
                                '-s 2')
@@ -34,16 +34,21 @@ training_end = time.time()
 print('Training time of tree-based: {:10.2f}'.format(training_end-training_start))
 
 ######################################################################
-# On a machine with an AMD-7950X CPU, 
-# the ``train_1vsrest`` function required `578.30` seconds, 
+# On our machine, equipped with an AMD-7950X CPU, 
+# we observed that the ``train_1vsrest`` function required `578.30` seconds to complete the training on the EUR-Lex dataset, 
 # while the ``train_tree`` function only required `144.37` seconds. 
+# This demonstrates the significant reduction in training time that can be achieved by using the ``train_tree`` algorithm.
 # 
 # .. note::
 #
-#   The ``train_tree`` function in this tutorial is based on the work of :cite:t:`SK20a`.
+#   The ``train_tree`` function in this tutorial is based on the work of :cite:t:`SK20a`, 
+#   who introduced label approximation techniques to improve the training speed of their model, known as Bonsai. 
+#   Although the details of these techniques are beyond the scope of this tutorial,
+#   we have incorporated them into our implementation to provide a faster training algorithm for multi-label classification problems.
 #
-# Due to the nature of some approximations, it is unclear if ``train_tree`` trades performance for time.
-# We use the following code to check the test performance.
+# While approximation methods may lead to slightly worse performance compared to the original algorithm, 
+# we found that the difference in performance between ``train_tree`` and ``train_1vsrest`` was minimal in our experiments. 
+# To evaluate the performance of our models on the EUR-Lex dataset, we provide the following code for calculating evaluation metrics.
 
 preds_OVR = linear.predict_values(model_OVR, datasets['test']['x'])
 preds_tree = linear.predict_values(model_tree, datasets['test']['x'])
@@ -55,21 +60,23 @@ metrics = linear.get_metrics(metric_threshold=0,
 target = datasets['test']['y'].toarray()
 
 metrics.update(preds_OVR, target)
-print("Evaluation of OVR:", metrics_OVR.compute())
+print("Evaluation of OVR:", metrics.compute())
 
 metrics.reset()
 
 metrics.update(preds_tree, target)
-print("Evaluation of tree:", metrics_tree.compute())
+print("Evaluation of tree:", metrics.compute())
 
 ######################################################################
-#  :math:`P@K`, a ranking-based criterion, is a suitable metric for data with many labels.
+# Using the evaluation code provided, we can calculate the following metrics for our trained models:
 #
 #.. code-block::
-#   
-#   Evaluation of OVR: {'P@1': 0.833117723156533, 'P@3': 0.6988357050452781, 'P@5': 0.585666235446313}
-#   Evaluation of tree: {'P@1': 0.8217335058214748, 'P@3': 0.692539887882708, 'P@5': 0.578835705045278}
 #
-#For this set, ``train_tree`` gives only slightly lower :math:`P@K`, but is much faster.
+#   Evaluation of OVR: {'P@1': 0.833117723156533, 'P@3': 0.6989219491159984, 'P@5': 0.585666235446313}
+#   Evaluation of tree: {'P@1': 0.825614489003881, 'P@3': 0.6947822337214317, 'P@5': 0.5803622250970245}
+#
+#As we can see, while there is a slight difference in performance between the two methods, it is not significant. 
+#Therefore, the ``train_tree`` algorithm can be considered a viable option 
+#for training linear models on large-scale multi-label classification problems with a reduced training time.
 #
 #.. bibliography::
