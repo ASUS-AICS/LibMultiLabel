@@ -1,12 +1,10 @@
+from __future__ import annotations
+
 import re
 
 import numpy as np
 
-__all__ = ['RPrecision',
-           'Precision',
-           'F1',
-           'MetricCollection',
-           'get_metrics',
+__all__ = ['get_metrics',
            'tabulate_metrics']
 
 
@@ -100,20 +98,24 @@ class MetricCollection(dict):
         for metric in self.metrics.values():
             metric.update(preds, target)
 
-    def compute(self) -> "dict[str, float]":
+    def compute(self) -> dict[str, float]:
         ret = {}
         for name, metric in self.metrics.items():
             ret[name] = metric.compute()
         return ret
 
 
-def get_metrics(metric_threshold: float, monitor_metrics: list, num_classes: int, multiclass=False):
+def get_metrics(metric_threshold: float,
+                monitor_metrics: list[str],
+                num_classes: int,
+                multiclass: bool = False
+                ) -> MetricCollection:
     """Get a collection of metrics by their names.
 
     Args:
         metric_threshold (float): The decision value threshold over which a
         label is predicted as positive.
-        monitor_metrics (list): A list of strings naming the metrics.
+        monitor_metrics (list[str]): A list metric names.
         num_classes (int): The number of classes.
         multiclass (bool, optional): Enable multiclass mode. Defaults to False.
 
@@ -139,7 +141,7 @@ def get_metrics(metric_threshold: float, monitor_metrics: list, num_classes: int
     return MetricCollection(metrics)
 
 
-def tabulate_metrics(metric_dict, split):
+def tabulate_metrics(metric_dict: dict[str, float], split: str) -> str:
     msg = f'====== {split} dataset evaluation result =======\n'
     header = '|'.join([f'{k:^18}' for k in metric_dict.keys()])
     values = '|'.join([f'{x * 100:^18.4f}' if isinstance(x, (np.floating,

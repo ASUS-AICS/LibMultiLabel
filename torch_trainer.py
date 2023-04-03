@@ -182,13 +182,13 @@ class TorchTrainer:
         """
         return data_utils.get_dataset_loader(
             data=self.datasets[split],
-            word_dict=self.model.word_dict,
             classes=self.model.classes,
             device=self.device,
             max_seq_length=self.config.max_seq_length,
             batch_size=self.config.batch_size if split == 'train' else self.config.eval_batch_size,
             shuffle=shuffle,
             data_workers=self.config.data_workers,
+            word_dict=self.model.word_dict,
             tokenizer=self.tokenizer,
             add_special_tokens=self.config.add_special_tokens
         )

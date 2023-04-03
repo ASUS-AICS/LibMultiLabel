@@ -11,7 +11,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import Dataset
-from torchtext.vocab import build_vocab_from_iterator, pretrained_aliases
+from torchtext.vocab import build_vocab_from_iterator, pretrained_aliases, Vocab
 from tqdm import tqdm
 
 transformers.logging.set_verbosity_error()
@@ -22,24 +22,48 @@ PAD = '<pad>'
 
 
 class TextDataset(Dataset):
-    """Class for text dataset"""
+    """Class for text dataset.
 
-    def __init__(self, data, word_dict, classes, max_seq_length, tokenizer=None, add_special_tokens=True):
+    Args:
+        data (list[dict]): List of instances with index, label, and text.
+        classes (list): List of labels.
+        max_seq_length (int, optional): The maximum number of tokens of a sample.
+        add_special_tokens (bool, optional): Whether to add the special tokens. Defaults to True.
+        tokenizer (transformers.PreTrainedTokenizerBase, optional): HuggingFace's tokenizer of
+            the transformer-based pretrained language model. Defaults to None.
+        word_dict (torchtext.vocab.Vocab, optional): A vocab object for word tokenizer to
+            map tokens to indices. Defaults to None.
+    """
+    def __init__(
+        self,
+        data,
+        classes,
+        max_seq_length,
+        add_special_tokens=True,
+        *,
+        tokenizer=None,
+        word_dict=None,
+    ):
         self.data = data
-        self.word_dict = word_dict
         self.classes = classes
         self.max_seq_length = max_seq_length
-        self.num_classes = len(self.classes)
-        self.label_binarizer = MultiLabelBinarizer().fit([classes])
+        self.word_dict = word_dict
         self.tokenizer = tokenizer
         self.add_special_tokens = add_special_tokens
+
+        self.num_classes = len(self.classes)
+        self.label_binarizer = MultiLabelBinarizer().fit([classes])
+
+        if not isinstance(self.word_dict, Vocab) ^ isinstance(
+            self.tokenizer, transformers.PreTrainedTokenizerBase):
+            raise ValueError(
+                'Please specify exactly one of word_dict or tokenizer')
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, index):
         data = self.data[index]
-
         if self.tokenizer is not None:  # transformers tokenizer
             if self.add_special_tokens:  # tentatively hard code
                 input_ids = self.tokenizer.encode(data['text'],
@@ -83,35 +107,44 @@ def generate_batch(data_batch):
 
 def get_dataset_loader(
     data,
-    word_dict,
     classes,
     device,
     max_seq_length=500,
     batch_size=1,
     shuffle=False,
     data_workers=4,
+    add_special_tokens=True,
+    *,
     tokenizer=None,
-    add_special_tokens=True
+    word_dict=None,
 ):
     """Create a pytorch DataLoader.
 
     Args:
-        data (list): List of training instances with index, label, and tokenized text.
-        word_dict (torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
+        data (list[dict]): List of training instances with index, label, and tokenized text.
         classes (list): List of labels.
         device (torch.device): One of cuda or cpu.
         max_seq_length (int, optional): The maximum number of tokens of a sample. Defaults to 500.
         batch_size (int, optional): Size of training batches. Defaults to 1.
         shuffle (bool, optional): Whether to shuffle training data before each epoch. Defaults to False.
         data_workers (int, optional): Use multi-cpu core for data pre-processing. Defaults to 4.
-        tokenizer (optional): Tokenizer of the transformer-based language model. Defaults to None.
         add_special_tokens (bool, optional): Whether to add the special tokens. Defaults to True.
+        tokenizer (transformers.PreTrainedTokenizerBase, optional): HuggingFace's tokenizer of
+            the transformer-based pretrained language model. Defaults to None.
+        word_dict (torchtext.vocab.Vocab, optional): A vocab object for word tokenizer to
+            map tokens to indices. Defaults to None.
 
     Returns:
         torch.utils.data.DataLoader: A pytorch DataLoader.
     """
-    dataset = TextDataset(data, word_dict, classes, max_seq_length, tokenizer=tokenizer,
-                          add_special_tokens=add_special_tokens)
+    dataset = TextDataset(
+        data,
+        classes,
+        max_seq_length,
+        word_dict=word_dict,
+        tokenizer=tokenizer,
+        add_special_tokens=add_special_tokens
+    )
     dataset_loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=batch_size,

@@ -25,6 +25,8 @@ The simplest usage is::
 
 .. autofunction:: train_binary_and_multiclass
 
+.. autofunction:: train_tree
+
 .. autofunction:: predict_values
 
 

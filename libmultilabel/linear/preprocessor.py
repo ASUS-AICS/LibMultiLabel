@@ -33,25 +33,26 @@ class Preprocessor:
 
         self.data_format = data_format
 
-    def load_data(self, training_data: Union[str, pd.DataFrame] = None,
-                  test_data: Union[str, pd.DataFrame] = None,
+    def load_data(self, training_data: str | pd.DataFrame = None,
+                  test_data: str | pd.DataFrame = None,
                   eval: bool = False,
                   label_file: str = None,
                   include_test_labels: bool = False,
-                  remove_no_label_data: bool = False) -> 'dict[str, dict]':
+                  remove_no_label_data: bool = False
+                  ) -> dict[str, dict[str, sparse.csr_matrix]]:
         """Loads and preprocesses data.
 
         Args:
-            training_data (Union[str, pd.DataFrame]): Training data file or dataframe in LibMultiLabel format. Ignored if eval is True. Defaults to None.
-            test_data (Union[str, pd.DataFrame]): Test data file or dataframe in LibMultiLabel format. Ignored if test_data doesn't exist. Defaults to None.
-            eval (bool): If True, ignores training data and uses previously loaded state to preprocess test data.
-            label_file (str, optional): Path to a file holding all labels.
+            training_data (str | pd.DataFrame, optional): Training data file or dataframe in LibMultiLabel format. Ignored if eval is True. Defaults to None.
+            test_data (str | pd.DataFrame, optional): Test data file or dataframe in LibMultiLabel format. Ignored if test_data doesn't exist. Defaults to None.
+            eval (bool, optional): If True, ignores training data and uses previously loaded state to preprocess test data. Defaults to False.
+            label_file (str, optional): Path to a file holding all labels. Defaults to None.
             include_test_labels (bool, optional): Whether to include labels in the test dataset. Defaults to False.
-            remove_no_label_data (bool, optional): Whether to remove training instances that have no labels.
+            remove_no_label_data (bool, optional): Whether to remove training instances that have no labels. Defaults to False.
 
         Returns:
-            dict[str, dict]: The training and test data, with keys 'train' and 'test' respectively. The data
-            has keys 'x' for input features and 'y' for labels.
+            dict[str, dict[str, sparse.csr_matrix]]: The training and test data, with keys 'train' and 'test' respectively.
+            The data has keys 'x' for input features and 'y' for labels.
         """
         if label_file is not None:
             logging.info(f'Load labels from {label_file}.')
@@ -86,7 +87,10 @@ class Preprocessor:
 
         return data
 
-    def _load_text(self, training_data, test_data, eval) -> 'dict[str, dict]':
+    def _load_text(self, training_data: str | pd.Dataframe,
+                   test_data: str | pd.Dataframe,
+                   eval: bool
+                   ) -> dict[str, dict[str, sparse.csr_matrix]]:
         datasets = defaultdict(dict)
         if test_data is not None:
             test = read_libmultilabel_format(test_data)
@@ -110,7 +114,10 @@ class Preprocessor:
 
         return dict(datasets)
 
-    def _load_svm(self, training_data, test_data, eval) -> 'dict[str, dict]':
+    def _load_svm(self, training_data: str,
+                  test_data: str,
+                  eval: bool
+                  ) -> dict[str, dict[str, sparse.csr_matrix]]:
         datasets = defaultdict(dict)
         if test_data is not None:
             ty, tx = read_libsvm_format(test_data)
@@ -129,22 +136,22 @@ class Preprocessor:
             datasets['test']['y'] = self.binarizer.transform(ty).astype('d')
         return dict(datasets)
 
-    def _generate_tfidf(self, texts):
+    def _generate_tfidf(self, texts: list[str]):
         self.vectorizer = TfidfVectorizer()
         self.vectorizer.fit(texts)
 
-    def _generate_label_mapping(self, labels, classes=None):
+    def _generate_label_mapping(self, labels: list[list[str]], classes: list[str] = None):
         self.binarizer = MultiLabelBinarizer(
             sparse_output=True, classes=classes)
         self.binarizer.fit(labels)
         self.label_mapping = self.binarizer.classes_
 
 
-def read_libmultilabel_format(data: Union[str, pd.DataFrame]) -> 'dict[str,list[str]]':
+def read_libmultilabel_format(data: str | pd.Dataframe) -> dict[str,list[str]]:
     """Read multi-label text data from file or pandas dataframe.
 
     Args:
-        data (Union[str, pd.DataFrame]): A file path to data in `LibMultiLabel format <https://www.csie.ntu.edu.tw/~cjlin/libmultilabel/cli/ov_data_format.html#libmultilabel-format>`_
+        data ('str | pd.Dataframe'): A file path to data in `LibMultiLabel format <https://www.csie.ntu.edu.tw/~cjlin/libmultilabel/cli/ov_data_format.html#libmultilabel-format>`_
             or a pandas dataframe contains index (optional), label, and text.
     Returns:
         dict[str,list[str]]: A dictionary with a list of index (optional), label, and text.
@@ -165,7 +172,7 @@ def read_libmultilabel_format(data: Union[str, pd.DataFrame]) -> 'dict[str,list[
     return data.to_dict('list')
 
 
-def read_libsvm_format(file_path: str) -> 'tuple[list[list[int]], sparse.csr_matrix]':
+def read_libsvm_format(file_path: str) -> tuple[list[list[int]], sparse.csr_matrix]:
     """Read multi-label LIBSVM-format data.
 
     Args:
