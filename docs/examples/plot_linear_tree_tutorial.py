@@ -15,8 +15,7 @@ import libmultilabel.linear as linear
 import time
 
 preprocessor = linear.Preprocessor(data_format='txt')
-datasets = preprocessor.load_data('data/eur-lex/train.txt',
-                                  'data/eur-lex/test.txt')
+datasets = preprocessor.load_data('datasets/libmultilabel-format/eur-lex/train.txt', 'datasets/libmultilabel-format/eur-lex/test.txt')
 
 training_start = time.time()
 # Original API from quickstart of linear model
@@ -54,18 +53,18 @@ print('Training time of tree-based: {:10.2f}'.format(training_end-training_start
 preds_OVR = linear.predict_values(model_OVR, datasets['test']['x'])
 preds_tree = linear.predict_values(model_tree, datasets['test']['x'])
 
-metrics_OVR = linear.get_metrics(metric_threshold=0,
-                                 monitor_metrics=['P@1', 'P@3', 'P@5'],
-                                 num_classes=datasets['test']['y'].shape[1])
-metrics_tree = linear.get_metrics(metric_threshold=0,
-                                  monitor_metrics=['P@1', 'P@3', 'P@5'],
-                                  num_classes=datasets['test']['y'].shape[1])
+metrics = linear.get_metrics(metric_threshold=0,
+                             monitor_metrics=['P@1', 'P@3', 'P@5'],
+                             num_classes=datasets['test']['y'].shape[1])
 
 target = datasets['test']['y'].toarray()
 
-metrics_OVR.update(preds_OVR, target)
+metrics.update(preds_OVR, target)
 print("Evaluation of OVR:", metrics_OVR.compute())
-metrics_tree.update(preds_tree, target)
+
+metrics.reset()
+
+metrics.update(preds_tree, target)
 print("Evaluation of tree:", metrics_tree.compute())
 
 ######################################################################

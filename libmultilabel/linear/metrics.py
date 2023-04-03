@@ -30,6 +30,10 @@ class RPrecision:
     def compute(self) -> float:
         return self.score / self.num_sample
 
+    def reset(self):
+        self.score = 0
+        self.num_sample = 0
+
 
 class Precision:
     def __init__(self, num_classes: int, average: str, top_k: int) -> None:
@@ -46,6 +50,10 @@ class Precision:
 
     def compute(self) -> float:
         return self.score / self.num_sample
+
+    def reset(self):
+        self.score = 0
+        self.num_sample = 0
 
 
 class F1:
@@ -90,6 +98,9 @@ class F1:
         np.seterr(**prev_settings)
         return score
 
+    def reset(self):
+        self.tp = self.fp = self.fn = 0
+
 
 class MetricCollection(dict):
     def __init__(self, metrics) -> None:
@@ -105,6 +116,12 @@ class MetricCollection(dict):
         for name, metric in self.metrics.items():
             ret[name] = metric.compute()
         return ret
+
+    def reset(self):
+        """Clears the accumulated batches of decision values and ground truth labels.
+        """
+        for metric in self.metrics.values():
+            metric.reset()
 
 
 def get_metrics(metric_threshold: float, monitor_metrics: list, num_classes: int, multiclass=False):
