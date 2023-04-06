@@ -11,7 +11,6 @@ The simplest usage is::
    model = linear.train_1vsrest(train_y, train_x, options)
    predict = linear.predict_values(model, test_x)
 
-.. See `the user guide <../guides/linear_guides.html>`_ for more details.
 
 .. currentmodule:: libmultilabel.linear
 
@@ -53,6 +52,14 @@ Load and Save Pipeline
 
 Metrics
 ^^^^^^^
+Metrics are specified by their names in ``compute_metrics`` and ``get_metrics``.
+The possible metric names are:
+
+* ``'P@K'``: the top-K precision where K is a positive integer.
+* ``'RP@K'``: the top-K R-precision where K is a positive integer.
+* ``'Macro-F1'``
+* ``'Micro-F1'``
+
 .. autofunction:: compute_metrics
 
 .. autofunction:: get_metrics

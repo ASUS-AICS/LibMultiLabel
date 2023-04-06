@@ -111,6 +111,7 @@ class MetricCollection(dict):
     decision values and labels are added with update(). After all instances have been
     added, compute() computes the metric values from the accumulated batches.
     """
+
     def __init__(self, metrics):
         self.metrics = metrics
 
