@@ -6,7 +6,8 @@ import numpy as np
 
 __all__ = ['get_metrics',
            'compute_metrics',
-           'tabulate_metrics']
+           'tabulate_metrics',
+           'MetricCollection']
 
 
 class RPrecision:
@@ -105,13 +106,16 @@ class F1:
 
 
 class MetricCollection(dict):
-    """A collection of metrics.
+    """A collection of metrics created by get_metrics.
+    MetricCollection computes metric values in two steps. First, batches of
+    decision values and labels are added with update(). After all instances have been
+    added, compute() computes the metric values from the accumulated batches.
     """
     def __init__(self, metrics):
         self.metrics = metrics
 
     def update(self, preds: np.ndarray, target: np.ndarray):
-        """Adds a batch of decision values and ground truth labels.
+        """Adds a batch of decision values and labels.
 
         Args:
             preds (np.ndarray): A matrix of decision values with dimensions number of instances * number of classes.
@@ -122,8 +126,7 @@ class MetricCollection(dict):
             metric.update(preds, target)
 
     def compute(self) -> dict[str, float]:
-        """Computes the metrics for the accumulated batches of decision values and
-        ground truth labels.
+        """Computes the metrics from the accumulated batches of decision values and labels.
 
         Returns:
             dict[str, float]: A dictionary of metric values.
@@ -134,7 +137,7 @@ class MetricCollection(dict):
         return ret
 
     def reset(self):
-        """Clears the accumulated batches of decision values and ground truth labels.
+        """Clears the accumulated batches of decision values and labels.
         """
         for metric in self.metrics.values():
             metric.reset()
@@ -146,6 +149,7 @@ def get_metrics(metric_threshold: float,
                 multiclass: bool = False
                 ) -> MetricCollection:
     """Get a collection of metrics by their names.
+    See MetricCollection for more details.
 
     Args:
         metric_threshold (float): The decision value threshold over which a label is predicted as positive.
@@ -181,7 +185,10 @@ def compute_metrics(preds: np.ndarray,
                     monitor_metrics: list[str],
                     multiclass: bool = False
                     ) -> dict[str, float]:
-    """Compute metrics with decision values and ground truth labels.
+    """Compute metrics with decision values and labels.
+    See get_metrics and MetricCollection if decision values and labels are too
+    large to hold in memory.
+
 
     Args:
         preds (np.ndarray): A matrix of decision values with dimensions number of instances * number of classes.
@@ -202,14 +209,14 @@ def compute_metrics(preds: np.ndarray,
 
 
 def tabulate_metrics(metric_dict: dict[str, float], split: str) -> str:
-    """Convert a dictionary of metric values into a string in a pretty format for printing.
+    """Convert a dictionary of metric values into a pretty formatted string for printing.
 
     Args:
         metric_dict (dict[str, float]): A dictionary of metric values.
         split (str): Name of the data split.
 
     Returns:
-        str: String in a pretty format.
+        str: Pretty formatted string.
     """
     msg = f'====== {split} dataset evaluation result =======\n'
     header = '|'.join([f'{k:^18}' for k in metric_dict.keys()])

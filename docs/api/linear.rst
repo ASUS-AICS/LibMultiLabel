@@ -51,6 +51,17 @@ Load and Save Pipeline
 .. autofunction:: load_pipeline
 
 
+Metrics
+^^^^^^^
+.. autofunction:: compute_metrics
+
+.. autofunction:: get_metrics
+
+.. autoclass:: MetricCollection
+   :members:
+
+.. autofunction:: tabulate_metrics
+
 Grid Search with Sklearn Estimators
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
