@@ -67,13 +67,13 @@ class MultiLabelEstimator(sklearn.base.BaseEstimator):
     """Customized sklearn estimator for the multi-label classifier.
 
     Args:
-        options (str, optional): The option string passed to liblinear. Defaults to '-s 2'.
+        options (str, optional): The option string passed to liblinear. Defaults to ''.
         linear_technique (str, optional): Multi-label technique defined in `utils.LINEAR_TECHNIQUES`.
             Defaults to '1vsrest'.
         scoring_metric (str, optional): The scoring metric. Defaults to 'P@1'.
     """
 
-    def __init__(self, options: str = '-s 2',
+    def __init__(self, options: str = '',
                  linear_technique: str = '1vsrest',
                  scoring_metric: str = 'P@1'
                  ):
