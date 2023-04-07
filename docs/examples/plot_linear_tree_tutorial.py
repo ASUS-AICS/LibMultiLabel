@@ -3,11 +3,11 @@ Handling Data with Many Labels
 ==============================
 
 Training a multi-label classification problem with numerous labels can be time-consuming. 
-We show how a solver in LibMultiLabel can reduce training time on such datasets.
+We show how a solver in LibMultiLabel can reduce the training time on such datasets.
 
-Consider the EUR-Lex dataset, which contains a large number of labels (3,956 labels) 
+Consider the EUR-Lex dataset, which contains 3,956 labels 
 and can be downloaded from `LIBSVM Data Sets <https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel.html>`_. 
-We show the use of the ``train_tree`` method and compare it with the standard one ``train_1vsrest``.
+We show the use of the ``train_tree`` method and compare it with the standard ``train_1vsrest`` method.
 To run the following code, you must put data to the designated directory.
 """
 
@@ -22,7 +22,7 @@ training_start = time.time()
 # the standard one-vs-rest way to train multi-label problems
 model_OVR = linear.train_1vsrest(datasets['train']['y'],
                                  datasets['train']['x'],
-                                 '-s 2')
+                                 '')
 training_end = time.time()
 print('Training time of one-versus-rest: {:10.2f}'.format(training_end-training_start))
 
@@ -30,7 +30,7 @@ training_start = time.time()
 # the method for fast training of data with many labels
 model_tree = linear.train_tree(datasets['train']['y'],
                                datasets['train']['x'],
-                               '-s 2')
+                               '')
 training_end = time.time()
 print('Training time of tree-based: {:10.2f}'.format(training_end-training_start))
 
