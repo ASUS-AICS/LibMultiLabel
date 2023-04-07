@@ -67,23 +67,19 @@ class MultiLabelEstimator(sklearn.base.BaseEstimator):
     """Customized sklearn estimator for the multi-label classifier.
 
     Args:
-        options (str, optional): The option string passed to liblinear. Defaults to '-s 2'.
+        options (str, optional): The option string passed to liblinear. Defaults to ''.
         linear_technique (str, optional): Multi-label technique defined in `utils.LINEAR_TECHNIQUES`.
             Defaults to '1vsrest'.
-        metric_threshold (int, optional): The decision value threshold over which a label
-            is predicted as positive. Defaults to 0.
         scoring_metric (str, optional): The scoring metric. Defaults to 'P@1'.
     """
 
-    def __init__(self, options: str = '-s 2',
+    def __init__(self, options: str = '',
                  linear_technique: str = '1vsrest',
-                 metric_threshold: float = 0,
                  scoring_metric: str = 'P@1'
                  ):
         super().__init__()
         self.options = options
         self.linear_technique = linear_technique
-        self.metric_threshold = metric_threshold
         self.scoring_metric = scoring_metric
         self._is_fitted = False
 
@@ -103,7 +99,6 @@ class MultiLabelEstimator(sklearn.base.BaseEstimator):
 
     def score(self, X: sparse.csr_matrix, y: sparse.csr_matrix) -> float:
         metrics = linear.get_metrics(
-            self.metric_threshold,
             [self.scoring_metric],
             y.shape[1],
         )

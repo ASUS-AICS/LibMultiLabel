@@ -73,24 +73,21 @@ prediction = [label_mapping[row].tolist() for row in label_mask]
 #
 # To see how well we performed, we may want to check various
 # metrics with the test set.
-# For that we may use:
-
-metrics = linear.get_metrics(metric_threshold=0,
-                             monitor_metrics=['Macro-F1', 'Micro-F1', 'P@1', 'P@3', 'P@5'],
-                             num_classes=datasets['test']['y'].shape[1])
-
-######################################################################
-# This creates the set of metrics we wish to see.
 # Since the dataset we loaded are stored as ``scipy.sparse.csr_matrix``,
-# we need to transform them to ``np.array`` before we can compute the metrics:
+# we will first transform the dataset to ``np.array``.
 
 target = datasets['test']['y'].toarray()
 
-######################################################################
-# Finally, we compute and print the metrics:
+##############################################################################
+# Then we will compute the metrics with ``compute_metrics``.
 
-metrics.update(preds, target)
-print(metrics.compute())
+metrics = linear.compute_metrics(
+    preds,
+    target,
+    monitor_metrics=['Macro-F1', 'Micro-F1', 'P@1', 'P@3', 'P@5'],
+)
+
+print(metrics)
 
 ######################################################################
 # The results will look similar to::
