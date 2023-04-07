@@ -124,7 +124,7 @@ class MacroF1(Metric):
 
     Args:
         num_classes (int): Total number of classes.
-        metric_threshold (float): Threshold to monitor for metrics.
+        metric_threshold (float): The decision value threshold over which a label is predicted as positive.
         another_macro_f1 (bool, optional): Whether to compute the 'Another-Macro-F1' score.
             The 'Another-Macro-F1' is the f1 value of macro-precision and macro-recall.
             This variant of macro-f1 is less preferred but is used in some works.
@@ -185,7 +185,7 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes, top_k=None):
     (https://torchmetrics.readthedocs.io/en/latest/references/modules.html).
 
     Args:
-        metric_threshold (float): Threshold to monitor for metrics.
+        metric_threshold (float): The decision value threshold over which a label is predicted as positive.
         monitor_metrics (list): Metrics to monitor while validating.
         num_classes (int): Total number of classes.
 
