@@ -55,10 +55,12 @@ Metrics
 Metrics are specified by their names in ``compute_metrics`` and ``get_metrics``.
 The possible metric names are:
 
-* ``'P@K'``: the top-K precision where K is a positive integer.
-* ``'RP@K'``: the top-K R-precision where K is a positive integer.
+* ``'P@K'``, where ``K`` is a positive integer
+* ``'RP@K'``, where ``K`` is a positive integer
 * ``'Macro-F1'``
 * ``'Micro-F1'``
+
+.. Their definitions are given in the `user guide <https://www.csie.ntu.edu.tw/~cjlin/papers/libmultilabel/userguide.pdf>`_.
 
 .. autofunction:: compute_metrics
 
