@@ -84,7 +84,6 @@ target = datasets['test']['y'].toarray()
 metrics = linear.compute_metrics(
     preds,
     target,
-    metric_threshold=0,
     monitor_metrics=['Macro-F1', 'Micro-F1', 'P@1', 'P@3', 'P@5'],
 )
 
