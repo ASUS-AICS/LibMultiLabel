@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 import os
+import pathlib
 import pickle
 import re
-from pathlib import Path
+from typing import Any
 
+import numpy as np
 import scipy.sparse as sparse
 import sklearn.base
 import sklearn.model_selection
@@ -13,7 +17,8 @@ import libmultilabel.linear as linear
 
 from .preprocessor import Preprocessor
 
-__all__ = ['save_pipeline', 'load_pipeline', 'MultiLabelEstimator', 'GridSearchCV']
+__all__ = ['save_pipeline', 'load_pipeline',
+           'MultiLabelEstimator', 'GridSearchCV']
 
 
 LINEAR_TECHNIQUES = {
@@ -21,7 +26,8 @@ LINEAR_TECHNIQUES = {
     'thresholding': linear.train_thresholding,
     'cost_sensitive': linear.train_cost_sensitive,
     'cost_sensitive_micro': linear.train_cost_sensitive_micro,
-    'binary_and_multiclass': linear.train_binary_and_multiclass
+    'binary_and_multiclass': linear.train_binary_and_multiclass,
+    'tree': linear.train_tree,
 }
 
 
@@ -33,7 +39,7 @@ def save_pipeline(checkpoint_dir: str, preprocessor: Preprocessor, model):
         preprocessor (Preprocessor): A Preprocessor.
         model: A model returned from one of the training functions.
     """
-    Path(checkpoint_dir).mkdir(parents=True, exist_ok=True)
+    pathlib.Path(checkpoint_dir).mkdir(parents=True, exist_ok=True)
     checkpoint_path = os.path.join(checkpoint_dir, 'linear_pipeline.pickle')
 
     with open(checkpoint_path, 'wb') as f:
@@ -43,14 +49,14 @@ def save_pipeline(checkpoint_dir: str, preprocessor: Preprocessor, model):
         }, f)
 
 
-def load_pipeline(checkpoint_path: str) -> tuple:
+def load_pipeline(checkpoint_path: str) -> tuple[Preprocessor, Any]:
     """Loads preprocessor and model from checkpoint_path.
 
     Args:
         checkpoint_path (str): The path to a previously saved pipeline.
 
     Returns:
-        tuple: A tuple of the preprocessor and model.
+        tuple[Preprocessor, Any]: A tuple of the preprocessor and model.
     """
     with open(checkpoint_path, 'rb') as f:
         pipeline = pickle.load(f)
@@ -61,19 +67,19 @@ class MultiLabelEstimator(sklearn.base.BaseEstimator):
     """Customized sklearn estimator for the multi-label classifier.
 
     Args:
-        options (str, optional): The option string passed to liblinear. Defaults to '-s 2'.
+        options (str, optional): The option string passed to liblinear. Defaults to ''.
         linear_technique (str, optional): Multi-label technique defined in `utils.LINEAR_TECHNIQUES`.
             Defaults to '1vsrest'.
-        metric_threshold (int, optional): The decision value threshold over which a label
-            is predicted as positive. Defaults to 0.
         scoring_metric (str, optional): The scoring metric. Defaults to 'P@1'.
     """
 
-    def __init__(self, options='-s 2', linear_technique='1vsrest', metric_threshold=0, scoring_metric='P@1'):
+    def __init__(self, options: str = '',
+                 linear_technique: str = '1vsrest',
+                 scoring_metric: str = 'P@1'
+                 ):
         super().__init__()
         self.options = options
         self.linear_technique = linear_technique
-        self.metric_threshold = metric_threshold
         self.scoring_metric = scoring_metric
         self._is_fitted = False
 
@@ -85,15 +91,14 @@ class MultiLabelEstimator(sklearn.base.BaseEstimator):
             y, X, self.options)
         return self
 
-    def predict(self, X: sparse.csr_matrix):
+    def predict(self, X: sparse.csr_matrix) -> np.ndarray:
         sklearn.utils.validation.check_is_fitted(
             self, attributes=['_is_fitted'])
         preds = linear.predict_values(self.model, X)
         return preds
 
-    def score(self, X: sparse.csr_matrix, y: sparse.csr_matrix):
+    def score(self, X: sparse.csr_matrix, y: sparse.csr_matrix) -> float:
         metrics = linear.get_metrics(
-            self.metric_threshold,
             [self.scoring_metric],
             y.shape[1],
         )

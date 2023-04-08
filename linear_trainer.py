@@ -2,19 +2,18 @@ import logging
 from math import ceil
 
 import numpy as np
+from tqdm import tqdm
 
 import libmultilabel.linear as linear
-from libmultilabel.common_utils import (argsort_top_k, dump_log,
-                                        is_multiclass_dataset)
+from libmultilabel.common_utils import argsort_top_k, dump_log
 from libmultilabel.linear.utils import LINEAR_TECHNIQUES
 
 
 def linear_test(config, model, datasets):
     metrics = linear.get_metrics(
-        config.metric_threshold,
         config.monitor_metrics,
         datasets['test']['y'].shape[1],
-        multiclass=config.multiclass
+        multiclass=model.name=='binary_and_multiclass'
     )
     num_instance = datasets['test']['x'].shape[0]
     num_classes = datasets['test']['x'].shape[1]
@@ -22,6 +21,8 @@ def linear_test(config, model, datasets):
     k = config.save_k_predictions
     top_k_idx = np.zeros((num_instance, k), dtype='i')
     top_k_scores = np.zeros((num_instance, k), dtype='d')
+
+    for i in tqdm(range(ceil(num_instance / config.eval_batch_size))):
     """
     preds = np.empty((num_instance, num_classes))
     for i in range(ceil(num_instance / config.eval_batch_size)):
@@ -43,11 +44,20 @@ def linear_test(config, model, datasets):
 
 
 def linear_train(datasets, config):
-    model = LINEAR_TECHNIQUES[config.linear_technique](
-        datasets['train']['y'],
-        datasets['train']['x'],
-        config.liblinear_options,
-    )
+    if config.linear_technique == 'tree':
+        model = LINEAR_TECHNIQUES[config.linear_technique](
+            datasets['train']['y'],
+            datasets['train']['x'],
+            config.liblinear_options,
+            config.tree_degree,
+            config.tree_max_depth,
+        )
+    else:
+        model = LINEAR_TECHNIQUES[config.linear_technique](
+            datasets['train']['y'],
+            datasets['train']['x'],
+            config.liblinear_options,
+        )
     return model
 
 
@@ -68,7 +78,6 @@ def linear_run(config):
             config.label_file,
             config.include_test_labels,
             config.remove_no_label_data)
-        config.multiclass = is_multiclass_dataset(datasets['train'], label='y')
         model = linear_train(datasets, config)
         linear.save_pipeline(config.checkpoint_dir, preprocessor, model)
 

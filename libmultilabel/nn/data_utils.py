@@ -11,7 +11,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import Dataset
-from torchtext.vocab import build_vocab_from_iterator, pretrained_aliases
+from torchtext.vocab import build_vocab_from_iterator, pretrained_aliases, Vocab
 from tqdm import tqdm
 
 transformers.logging.set_verbosity_error()
@@ -22,24 +22,48 @@ PAD = '<pad>'
 
 
 class TextDataset(Dataset):
-    """Class for text dataset"""
+    """Class for text dataset.
 
-    def __init__(self, data, word_dict, classes, max_seq_length, tokenizer=None, add_special_tokens=True):
+    Args:
+        data (list[dict]): List of instances with index, label, and text.
+        classes (list): List of labels.
+        max_seq_length (int, optional): The maximum number of tokens of a sample.
+        add_special_tokens (bool, optional): Whether to add the special tokens. Defaults to True.
+        tokenizer (transformers.PreTrainedTokenizerBase, optional): HuggingFace's tokenizer of
+            the transformer-based pretrained language model. Defaults to None.
+        word_dict (torchtext.vocab.Vocab, optional): A vocab object for word tokenizer to
+            map tokens to indices. Defaults to None.
+    """
+    def __init__(
+        self,
+        data,
+        classes,
+        max_seq_length,
+        add_special_tokens=True,
+        *,
+        tokenizer=None,
+        word_dict=None,
+    ):
         self.data = data
-        self.word_dict = word_dict
         self.classes = classes
         self.max_seq_length = max_seq_length
-        self.num_classes = len(self.classes)
-        self.label_binarizer = MultiLabelBinarizer().fit([classes])
+        self.word_dict = word_dict
         self.tokenizer = tokenizer
         self.add_special_tokens = add_special_tokens
+
+        self.num_classes = len(self.classes)
+        self.label_binarizer = MultiLabelBinarizer().fit([classes])
+
+        if not isinstance(self.word_dict, Vocab) ^ isinstance(
+            self.tokenizer, transformers.PreTrainedTokenizerBase):
+            raise ValueError(
+                'Please specify exactly one of word_dict or tokenizer')
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, index):
         data = self.data[index]
-
         if self.tokenizer is not None:  # transformers tokenizer
             if self.add_special_tokens:  # tentatively hard code
                 input_ids = self.tokenizer.encode(data['text'],
@@ -83,35 +107,44 @@ def generate_batch(data_batch):
 
 def get_dataset_loader(
     data,
-    word_dict,
     classes,
     device,
     max_seq_length=500,
     batch_size=1,
     shuffle=False,
     data_workers=4,
+    add_special_tokens=True,
+    *,
     tokenizer=None,
-    add_special_tokens=True
+    word_dict=None,
 ):
     """Create a pytorch DataLoader.
 
     Args:
-        data (list): List of training instances with index, label, and tokenized text.
-        word_dict (torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
+        data (list[dict]): List of training instances with index, label, and tokenized text.
         classes (list): List of labels.
         device (torch.device): One of cuda or cpu.
         max_seq_length (int, optional): The maximum number of tokens of a sample. Defaults to 500.
         batch_size (int, optional): Size of training batches. Defaults to 1.
         shuffle (bool, optional): Whether to shuffle training data before each epoch. Defaults to False.
         data_workers (int, optional): Use multi-cpu core for data pre-processing. Defaults to 4.
-        tokenizer (optional): Tokenizer of the transformer-based language model. Defaults to None.
         add_special_tokens (bool, optional): Whether to add the special tokens. Defaults to True.
+        tokenizer (transformers.PreTrainedTokenizerBase, optional): HuggingFace's tokenizer of
+            the transformer-based pretrained language model. Defaults to None.
+        word_dict (torchtext.vocab.Vocab, optional): A vocab object for word tokenizer to
+            map tokens to indices. Defaults to None.
 
     Returns:
         torch.utils.data.DataLoader: A pytorch DataLoader.
     """
-    dataset = TextDataset(data, word_dict, classes, max_seq_length, tokenizer=tokenizer,
-                          add_special_tokens=add_special_tokens)
+    dataset = TextDataset(
+        data,
+        classes,
+        max_seq_length,
+        word_dict=word_dict,
+        tokenizer=tokenizer,
+        add_special_tokens=add_special_tokens
+    )
     dataset_loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=batch_size,
@@ -135,6 +168,11 @@ def _load_raw_data(data, is_test=False, tokenize_text=True, remove_no_label_data
     Returns:
         pandas.DataFrame: Data composed of index, label, and tokenized text.
     """
+    assert isinstance(data, str) or isinstance(data, pd.DataFrame), "Data must be from a file or pandas dataframe."
+    if isinstance(data, str):
+        logging.info(f'Load data from {data}.')
+        data = pd.read_csv(data, sep='\t', header=None,
+                           on_bad_lines='warn', quoting=csv.QUOTE_NONE).fillna('')
     data = data.astype(str)
     if data.shape[1] == 2:
         data.columns = ['label', 'text']
@@ -153,12 +191,12 @@ def _load_raw_data(data, is_test=False, tokenize_text=True, remove_no_label_data
         if num_no_label_data > 0:
             if remove_no_label_data:
                 logging.info(
-                    f'Remove {num_no_label_data} instances that have no labels from {path}.',
+                    f'Remove {num_no_label_data} instances that have no labels from data.',
                     extra={'collect': True})
                 data = [d for d in data if len(d['label']) > 0]
             else:
                 logging.info(
-                    f'Keep {num_no_label_data} instances that have no labels from {path}.',
+                    f'Keep {num_no_label_data} instances that have no labels from data.',
                     extra={'collect': True})
     return data
 
@@ -197,31 +235,19 @@ def load_datasets(
 
     datasets = {}
     if training_data is not None:
-        if isinstance(training_data, str):
-            logging.info(f'Load data from {training_data}.')
-            training_data = pd.read_csv(training_data, sep='\t', header=None,
-                                        error_bad_lines=False, warn_bad_lines=True, quoting=csv.QUOTE_NONE).fillna('')
-        datasets['train'] = _load_raw_data(training_data, tokenize_text=tokenize_text,
-                                           remove_no_label_data=remove_no_label_data)
+        datasets['train'] = _load_raw_data(
+            training_data, tokenize_text=tokenize_text, remove_no_label_data=remove_no_label_data)
 
     if val_data is not None:
-        if isinstance(val_data, str):
-            logging.info(f'Load data from {val_data}.')
-            val_data = pd.read_csv(val_data, sep='\t', header=None,
-                                   error_bad_lines=False, warn_bad_lines=True, quoting=csv.QUOTE_NONE).fillna('')
-        datasets['val'] = _load_raw_data(val_data, tokenize_text=tokenize_text,
-                                           remove_no_label_data=remove_no_label_data)   
+        datasets['val'] = _load_raw_data(
+            val_data, tokenize_text=tokenize_text, remove_no_label_data=remove_no_label_data)
     elif val_size > 0:
         datasets['train'], datasets['val'] = train_test_split(
             datasets['train'], test_size=val_size, random_state=42)
 
     if test_data is not None:
-        if isinstance(test_data, str):
-            logging.info(f'Load data from {test_data}.')
-            test_data = pd.read_csv(test_data, sep='\t', header=None,
-                                    error_bad_lines=False, warn_bad_lines=True, quoting=csv.QUOTE_NONE).fillna('')
-        datasets['test'] = _load_raw_data(test_data, is_test=True, tokenize_text=tokenize_text,
-                                          remove_no_label_data=remove_no_label_data)
+        datasets['test'] = _load_raw_data(
+            test_data, is_test=True, tokenize_text=tokenize_text, remove_no_label_data=remove_no_label_data)
 
     if merge_train_val:
         datasets['train'] = datasets['train'] + datasets['val']

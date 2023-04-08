@@ -1,6 +1,6 @@
 """
-Linear Model for Multi-label Classification
-===========================================
+Linear Model for Multi-label Classification.
+============================================
 
 This guide will take you through how LibMultiLabel can
 be used to train a linear classifier in python scripts.
@@ -52,30 +52,42 @@ preds = linear.predict_values(model, datasets['test']['x'])
 ######################################################################
 # ``preds`` holds the decision values, i.e. the raw values
 # outputted by the model. To transform it into predictions,
-# the simplest way is to take the positive values as
-# the labels predicted to be associated with the sample,
-# i.e. ``preds > 0``.
+# the simplest way is to take the positive values as the labels predicted
+# to be associated with the sample, i.e. ``preds > 0``.
+
+label_mask = preds > 0
+
+######################################################################
+# We now have the label mask. Next,
+# we use ``label_mapping`` in ``Preprocessor`` to get the original labels.
+
+label_mapping = preprocessor.label_mapping
+prediction = [label_mapping[row].tolist() for row in label_mask]
+
+######################################################################
+# The result of first instance looks like:
+#
+#   >>> print(prediction[0])
+#   ...
+#       ['GCAT', 'GSPO']
 #
 # To see how well we performed, we may want to check various
 # metrics with the test set.
-# For that we may use:
-
-metrics = linear.get_metrics(metric_threshold=0,
-                             monitor_metrics=['Macro-F1', 'Micro-F1', 'P@1', 'P@3', 'P@5'],
-                             num_classes=datasets['test']['y'].shape[1])
-
-######################################################################
-# This creates the set of metrics we wish to see.
 # Since the dataset we loaded are stored as ``scipy.sparse.csr_matrix``,
-# we need to transform them to ``np.array`` before we can compute the metrics:
+# we will first transform the dataset to ``np.array``.
 
 target = datasets['test']['y'].toarray()
 
-######################################################################
-# Finally, we compute and print the metrics:
+##############################################################################
+# Then we will compute the metrics with ``compute_metrics``.
 
-metrics.update(preds, target)
-print(metrics.compute())
+metrics = linear.compute_metrics(
+    preds,
+    target,
+    monitor_metrics=['Macro-F1', 'Micro-F1', 'P@1', 'P@3', 'P@5'],
+)
+
+print(metrics)
 
 ######################################################################
 # The results will look similar to::

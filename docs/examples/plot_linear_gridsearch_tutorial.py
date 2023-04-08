@@ -11,9 +11,8 @@ Then you can read and preprocess the data as follows
 
 from sklearn.preprocessing import MultiLabelBinarizer
 import libmultilabel.linear as linear
-from libmultilabel.linear.preprocessor import read_libmultilabel_format
 
-train_data = read_libmultilabel_format('data/rcv1/train.txt')
+train_data = linear.read_libmultilabel_format('data/rcv1/train.txt')
 binarizer = MultiLabelBinarizer(sparse_output=True)
 binarizer.fit(train_data['label'])
 y = binarizer.transform(train_data['label']).astype('d')
@@ -58,7 +57,8 @@ pipeline = Pipeline([
 ])
 
 ######################################################################
-# For the estimator ``MultiLabelEstimator``, arguments ``options`` is a LIBLINEAR option, and
+# For the estimator ``MultiLabelEstimator``, arguments ``options`` is a LIBLINEAR option
+# (see *train Usage* in `liblinear <https://github.com/cjlin1/liblinear>`__ README), and
 # ``linear_technique`` is one of linear techniques: ``1vsrest``, ``thresholding``, ``cost_sensitive``,
 # ``cost_sensitive_micro``, and ``binary_and_mulitclass``.
 # In ``pipeline``, we specify settings used by the estimator.

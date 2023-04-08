@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 
 import numpy as np
@@ -122,7 +124,7 @@ class MacroF1(Metric):
 
     Args:
         num_classes (int): Total number of classes.
-        metric_threshold (float): Threshold to monitor for metrics.
+        metric_threshold (float): The decision value threshold over which a label is predicted as positive.
         another_macro_f1 (bool, optional): Whether to compute the 'Another-Macro-F1' score.
             The 'Another-Macro-F1' is the f1 value of macro-precision and macro-recall.
             This variant of macro-f1 is less preferred but is used in some works.
@@ -183,7 +185,7 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes, top_k=None):
     (https://torchmetrics.readthedocs.io/en/latest/references/modules.html).
 
     Args:
-        metric_threshold (float): Threshold to monitor for metrics.
+        metric_threshold (float): The decision value threshold over which a label is predicted as positive.
         monitor_metrics (list): Metrics to monitor while validating.
         num_classes (int): Total number of classes.
 
@@ -253,10 +255,19 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes, top_k=None):
     return MetricCollection(metrics, compute_groups=False)
 
 
-def tabulate_metrics(metric_dict, split):
+def tabulate_metrics(metric_dict: dict[str, float], split: str) -> str:
+    """Convert a dictionary of metric values into a pretty formatted string for printing.
+
+    Args:
+        metric_dict (dict[str, float]): A dictionary of metric values.
+        split (str): Name of the data split.
+
+    Returns:
+        str: Pretty formatted string.
+    """
     msg = f'====== {split} dataset evaluation result =======\n'
     header = '|'.join([f'{k:^18}' for k in metric_dict.keys()])
-    values = '|'.join([f'{x * 100:^18.4f}' if isinstance(x, (np.floating,
+    values = '|'.join([f'{x:^18.4f}' if isinstance(x, (np.floating,
                       float)) else f'{x:^18}' for x in metric_dict.values()])
     msg += f"|{header}|\n|{'-----------------:|' * len(metric_dict)}\n|{values}|\n"
     return msg

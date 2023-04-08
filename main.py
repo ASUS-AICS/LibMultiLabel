@@ -16,7 +16,7 @@ def add_all_arguments(parser):
                         help='The directory to save checkpoints and logs (default: %(default)s)')
 
     # data
-    parser.add_argument('--data_name', default='unnamed',
+    parser.add_argument('--data_name', default='unnamed_data',
                         help='Dataset name (default: %(default)s)')
     parser.add_argument('--training_file',
                         help='Path to training data (default: %(default)s)')
@@ -64,7 +64,7 @@ def add_all_arguments(parser):
                         help='Whether the embeddings of each word is normalized to a unit vector (default: %(default)s)')
 
     # model
-    parser.add_argument('--model_name', default='KimCNN',
+    parser.add_argument('--model_name', default='unnamed_model',
                         help='Model to be used (default: %(default)s)')
     parser.add_argument('--init_weight', default='kaiming_uniform',
                         help='Weight initialization to be used (default: %(default)s)')
@@ -75,7 +75,7 @@ def add_all_arguments(parser):
     parser.add_argument('--eval_batch_size', type=int, default=256,
                         help='Size of evaluating batches (default: %(default)s)')
     parser.add_argument('--metric_threshold', type=float, default=0.5,
-                        help='Thresholds to monitor for metrics (default: %(default)s)')
+                        help='The decision value threshold over which a label is predicted as positive (default: %(default)s)')
     parser.add_argument('--monitor_metrics', nargs='+', default=['P@1', 'P@3', 'P@5'],
                         help='Metrics to monitor while validating (default: %(default)s)')
     parser.add_argument('--val_metric', default='P@1',
@@ -126,8 +126,16 @@ def add_all_arguments(parser):
                         help='Options passed to liblinear (default: %(default)s)')
     parser.add_argument('--linear_technique', type=str, default='1vsrest',
                         choices=['1vsrest', 'thresholding', 'cost_sensitive',
-                                 'cost_sensitive_micro', 'binary_and_multiclass'],
+                                 'cost_sensitive_micro', 'binary_and_multiclass',
+                                 'tree'],
                         help='Technique for linear classification (default: %(default)s)')
+
+    # tree options
+    parser.add_argument('--tree_degree', type=int, default=100,
+                        help='Degree of the tree (default: %(default)s)')
+    parser.add_argument('--tree_max_depth', type=int, default=10,
+                        help='Maximum depth of the tree (default: %(default)s)')
+
     parser.add_argument('--save_all', action='store_true',
                         help='Save all the predictions with decision value larger then 0. If used, the save_k_predictions must be set to 0')
     parser.add_argument('-h', '--help', action='help',
@@ -195,7 +203,6 @@ def main():
     log_level = logging.WARNING if config.silent else logging.INFO
     stream_handler = add_stream_handler(log_level)
     collect_handler = add_collect_handler(logging.NOTSET)
-
 
     logging.info(f'Run name: {config.run_name}')
 

@@ -37,8 +37,8 @@ def init_device(use_cpu=False):
 def init_model(model_name,
                network_config,
                classes,
-               word_dict,
-               embed_vecs,
+               word_dict=None,
+               embed_vecs=None,
                init_weight=None,
                log_path=None,
                learning_rate=0.0001,
@@ -57,8 +57,10 @@ def init_model(model_name,
         model_name (str): Model to be used such as KimCNN.
         network_config (dict): Configuration for defining the network.
         classes (list): List of class names.
-        word_dict (torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
-        embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
+        word_dict (torchtext.vocab.Vocab, optional): A vocab object for word tokenizer to
+            map tokens to indices. Defaults to None.
+        embed_vecs (torch.Tensor, optional): The pre-trained word vectors of shape
+            (vocab_size, embed_dim). Defaults to None.
         init_weight (str): Weight initialization method from `torch.nn.init`.
             For example, the `init_weight` of `torch.nn.init.kaiming_uniform_`
             is `kaiming_uniform`. Defaults to None.
@@ -67,7 +69,7 @@ def init_model(model_name,
         optimizer (str, optional): Optimizer name (i.e., sgd, adam, or adamw). Defaults to 'adam'.
         momentum (float, optional): Momentum factor for SGD only. Defaults to 0.9.
         weight_decay (int, optional): Weight decay factor. Defaults to 0.
-        metric_threshold (float, optional): Threshold to monitor for metrics. Defaults to 0.5.
+        metric_threshold (float, optional): The decision value threshold over which a label is predicted as positive. Defaults to 0.5.
         monitor_metrics (list, optional): Metrics to monitor while validating. Defaults to None.
         multiclass (bool, optional): Enable multiclass mode. Defaults to False.
         silent (bool, optional): Enable silent mode. Defaults to False.
@@ -79,11 +81,14 @@ def init_model(model_name,
         Model: A class that implements `MultiLabelModel` for initializing and training a neural network.
     """
 
-    network = getattr(networks, model_name)(
-        embed_vecs=embed_vecs,
-        num_classes=len(classes),
-        **dict(network_config)
-    )
+    try:
+        network = getattr(networks, model_name)(
+            embed_vecs=embed_vecs,
+            num_classes=len(classes),
+            **dict(network_config)
+        )
+    except:
+        raise AttributeError(f'Failed to initialize {model_name}.')
 
     if init_weight is not None:
         init_weight = networks.get_init_weight_func(
@@ -164,7 +169,8 @@ def init_trainer(checkpoint_dir,
             {f'val_{val_metric}': val_metric}, on="validation_end")]
 
     trainer = pl.Trainer(logger=False, num_sanity_val_steps=0,
-                         gpus=0 if use_cpu else 1,
+                         accelerator='cpu' if use_cpu else 'gpu',
+                         devices=None if use_cpu else 1,
                          enable_progress_bar=False if silent else True,
                          max_epochs=epochs,
                          callbacks=callbacks,

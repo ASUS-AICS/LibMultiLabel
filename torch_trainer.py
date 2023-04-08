@@ -182,13 +182,13 @@ class TorchTrainer:
         """
         return data_utils.get_dataset_loader(
             data=self.datasets[split],
-            word_dict=self.model.word_dict,
             classes=self.model.classes,
             device=self.device,
             max_seq_length=self.config.max_seq_length,
             batch_size=self.config.batch_size if split == 'train' else self.config.eval_batch_size,
             shuffle=shuffle,
             data_workers=self.config.data_workers,
+            word_dict=self.model.word_dict,
             tokenizer=self.tokenizer,
             add_special_tokens=self.config.add_special_tokens
         )
@@ -234,7 +234,7 @@ class TorchTrainer:
 
         logging.info(f'Testing on {split} set.')
         test_loader = self._get_dataset_loader(split=split)
-        metric_dict = self.trainer.test(self.model, dataloaders=test_loader)[0]
+        metric_dict = self.trainer.test(self.model, dataloaders=test_loader, verbose=False)[0]
 
         if self.config.save_k_predictions > 0:
             self._save_predictions(test_loader, self.config.predict_out_path)
