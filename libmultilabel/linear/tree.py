@@ -108,7 +108,7 @@ class TreeModel:
 
 def train_tree(y: sparse.csr_matrix,
                x: sparse.csr_matrix,
-               options: str,
+               options: str = '',
                K=100, dmax=10,
                verbose: bool = True,
                ) -> TreeModel:
