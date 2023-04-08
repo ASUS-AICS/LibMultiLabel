@@ -5,16 +5,18 @@ import re
 import numpy as np
 
 __all__ = ['get_metrics',
-           'tabulate_metrics']
+           'compute_metrics',
+           'tabulate_metrics',
+           'MetricCollection']
 
 
 class RPrecision:
-    def __init__(self, top_k: int) -> None:
+    def __init__(self, top_k: int):
         self.top_k = top_k
         self.score = 0
         self.num_sample = 0
 
-    def update(self, preds: np.ndarray, target: np.ndarray) -> None:
+    def update(self, preds: np.ndarray, target: np.ndarray):
         assert preds.shape == target.shape  # (batch_size, num_classes)
         top_k_ind = np.argpartition(preds, -self.top_k)[:, -self.top_k:]
         num_relevant = np.take_along_axis(
@@ -34,12 +36,15 @@ class RPrecision:
 
 
 class Precision:
-    def __init__(self, num_classes: int, average: str, top_k: int) -> None:
+    def __init__(self, num_classes: int, average: str, top_k: int):
+        if average != 'samples':
+            raise ValueError('unsupported average')
+
         self.top_k = top_k
         self.score = 0
         self.num_sample = 0
 
-    def update(self, preds: np.ndarray, target: np.ndarray) -> None:
+    def update(self, preds: np.ndarray, target: np.ndarray):
         assert preds.shape == target.shape  # (batch_size, num_classes)
         top_k_ind = np.argpartition(preds, -self.top_k)[:, -self.top_k:]
         num_relevant = np.take_along_axis(target, top_k_ind, -1).sum()
@@ -55,23 +60,22 @@ class Precision:
 
 
 class F1:
-    def __init__(self, num_classes: int, metric_threshold: float, average: str, multiclass=False) -> None:
+    def __init__(self, num_classes: int, average: str, multiclass=False):
         self.num_classes = num_classes
-        self.metric_threshold = metric_threshold
         if average not in {'macro', 'micro', 'another-macro'}:
             raise ValueError('unsupported average')
         self.average = average
         self.multiclass = multiclass
         self.tp = self.fp = self.fn = 0
 
-    def update(self, preds: np.ndarray, target: np.ndarray) -> None:
+    def update(self, preds: np.ndarray, target: np.ndarray):
         assert preds.shape == target.shape  # (batch_size, num_classes)
         if self.multiclass:
             max_idx = np.argmax(preds, axis=1).reshape(-1, 1)
             preds = np.zeros(preds.shape)
             np.put_along_axis(preds, max_idx, 1, axis=1)
         else:
-            preds = preds > self.metric_threshold
+            preds = preds > 0
         self.tp += np.logical_and(target == 1, preds == 1).sum(axis=0)
         self.fn += np.logical_and(target == 1, preds == 0).sum(axis=0)
         self.fp += np.logical_and(target == 0, preds == 1).sum(axis=0)
@@ -101,38 +105,53 @@ class F1:
 
 
 class MetricCollection(dict):
-    def __init__(self, metrics) -> None:
+    """A collection of metrics created by get_metrics.
+    MetricCollection computes metric values in two steps. First, batches of
+    decision values and labels are added with update(). After all instances have been
+    added, compute() computes the metric values from the accumulated batches.
+    """
+
+    def __init__(self, metrics):
         self.metrics = metrics
 
-    def update(self, preds: np.ndarray, target: np.ndarray) -> None:
+    def update(self, preds: np.ndarray, target: np.ndarray):
+        """Adds a batch of decision values and labels.
+
+        Args:
+            preds (np.ndarray): A matrix of decision values with dimensions number of instances * number of classes.
+            target (np.ndarray): A 0/1 matrix of labels with dimensions number of instances * number of classes.
+        """
         assert preds.shape == target.shape  # (batch_size, num_classes)
         for metric in self.metrics.values():
             metric.update(preds, target)
 
     def compute(self) -> dict[str, float]:
+        """Computes the metrics from the accumulated batches of decision values and labels.
+
+        Returns:
+            dict[str, float]: A dictionary of metric values.
+        """
         ret = {}
         for name, metric in self.metrics.items():
             ret[name] = metric.compute()
         return ret
 
     def reset(self):
-        """Clears the accumulated batches of decision values and ground truth labels.
+        """Clears the accumulated batches of decision values and labels.
         """
         for metric in self.metrics.values():
             metric.reset()
 
 
-def get_metrics(metric_threshold: float,
-                monitor_metrics: list[str],
+def get_metrics(monitor_metrics: list[str],
                 num_classes: int,
                 multiclass: bool = False
                 ) -> MetricCollection:
     """Get a collection of metrics by their names.
+    See MetricCollection for more details.
 
     Args:
-        metric_threshold (float): The decision value threshold over which a
-        label is predicted as positive.
-        monitor_metrics (list[str]): A list metric names.
+        monitor_metrics (list[str]): A list of metric names.
         num_classes (int): The number of classes.
         multiclass (bool, optional): Enable multiclass mode. Defaults to False.
 
@@ -149,19 +168,54 @@ def get_metrics(metric_threshold: float,
         elif re.match('RP@\d+', metric):
             metrics[metric] = RPrecision(top_k=int(metric[3:]))
         elif metric in {'Another-Macro-F1', 'Macro-F1', 'Micro-F1'}:
-            metrics[metric] = F1(num_classes, metric_threshold,
+            metrics[metric] = F1(num_classes,
                                  average=metric[:-3].lower(),
                                  multiclass=multiclass)
         else:
-            raise ValueError(f'Invalid metric: {metric}')
+            raise ValueError(f'invalid metric: {metric}')
 
     return MetricCollection(metrics)
 
 
+def compute_metrics(preds: np.ndarray,
+                    target: np.ndarray,
+                    monitor_metrics: list[str],
+                    multiclass: bool = False
+                    ) -> dict[str, float]:
+    """Compute metrics with decision values and labels.
+    See get_metrics and MetricCollection if decision values and labels are too
+    large to hold in memory.
+
+
+    Args:
+        preds (np.ndarray): A matrix of decision values with dimensions number of instances * number of classes.
+        target (np.ndarray): A 0/1 matrix of labels with dimensions number of instances * number of classes.
+        monitor_metrics (list[str]): A list of metric names.
+        multiclass (bool, optional): Enable multiclass mode. Defaults to False.
+
+    Returns:
+        dict[str, float]: A dictionary of metric values.
+    """
+    assert preds.shape == target.shape
+
+    metric = get_metrics(monitor_metrics, preds.shape[1], multiclass)
+    metric.update(preds, target)
+    return metric.compute()
+
+
 def tabulate_metrics(metric_dict: dict[str, float], split: str) -> str:
+    """Convert a dictionary of metric values into a pretty formatted string for printing.
+
+    Args:
+        metric_dict (dict[str, float]): A dictionary of metric values.
+        split (str): Name of the data split.
+
+    Returns:
+        str: Pretty formatted string.
+    """
     msg = f'====== {split} dataset evaluation result =======\n'
     header = '|'.join([f'{k:^18}' for k in metric_dict.keys()])
-    values = '|'.join([f'{x * 100:^18.4f}' if isinstance(x, (np.floating,
+    values = '|'.join([f'{x:^18.4f}' if isinstance(x, (np.floating,
                       float)) else f'{x:^18}' for x in metric_dict.values()])
     msg += f"|{header}|\n|{'-----------------:|' * len(metric_dict)}\n|{values}|\n"
     return msg

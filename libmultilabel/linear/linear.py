@@ -58,7 +58,7 @@ class FlatModel:
 
 def train_1vsrest(y: sparse.csr_matrix,
                   x: sparse.csr_matrix,
-                  options: str,
+                  options: str = '',
                   verbose: bool = True
                   ) -> FlatModel:
     """Trains a linear model for multiabel data using a one-vs-rest strategy.
@@ -66,7 +66,7 @@ def train_1vsrest(y: sparse.csr_matrix,
     Args:
         y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
         x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
-        options (str): The option string passed to liblinear.
+        options (str, optional): The option string passed to liblinear. Defaults to ''.
         verbose (bool, optional): Output extra progress information. Defaults to True.
 
     Returns:
@@ -116,6 +116,9 @@ def _prepare_options(x: sparse.csr_matrix, options: str) -> tuple[sparse.csr_mat
         if solver_type < 0 or solver_type > 7:
             raise ValueError(
                 "Invalid LIBLINEAR solver type. Only classification solvers are allowed.")
+    else:
+        # workaround for liblinear warning about unspecified solver
+        options_split.extend(['-s', '2'])
 
     bias = -1.
     if '-B' in options_split:
@@ -137,7 +140,7 @@ def _prepare_options(x: sparse.csr_matrix, options: str) -> tuple[sparse.csr_mat
 
 def train_thresholding(y: sparse.csr_matrix,
                        x: sparse.csr_matrix,
-                       options: str,
+                       options: str = '',
                        verbose: bool = True
                        ) -> FlatModel:
     """Trains a linear model for multilabel data using a one-vs-rest strategy
@@ -149,7 +152,7 @@ def train_thresholding(y: sparse.csr_matrix,
     Args:
         y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
         x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
-        options (str): The option string passed to liblinear.
+        options (str, optional): The option string passed to liblinear. Defaults to ''.
         verbose (bool, optional): Output extra progress information. Defaults to True.
 
     Returns:
@@ -383,7 +386,7 @@ def _fmeasure(y_true: np.ndarray, y_pred: np.ndarray) -> float:
 
 def train_cost_sensitive(y: sparse.csr_matrix,
                          x: sparse.csr_matrix,
-                         options: str,
+                         options: str = '',
                          verbose: bool = True
                          ) -> FlatModel:
     """Trains a linear model for multilabel data using a one-vs-rest strategy
@@ -396,7 +399,7 @@ def train_cost_sensitive(y: sparse.csr_matrix,
     Args:
         y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
         x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
-        options (str): The option string passed to liblinear.
+        options (str, optional): The option string passed to liblinear. Defaults to ''.
         verbose (bool, optional): Output extra progress information. Defaults to True.
 
     Returns:
@@ -489,7 +492,7 @@ def _cross_validate(y: np.ndarray,
 
 def train_cost_sensitive_micro(y: sparse.csr_matrix,
                                x: sparse.csr_matrix,
-                               options: str,
+                               options: str = '',
                                verbose: bool = True
                                ) -> FlatModel:
     """Trains a linear model for multilabel data using a one-vs-rest strategy
@@ -502,7 +505,7 @@ def train_cost_sensitive_micro(y: sparse.csr_matrix,
     Args:
         y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
         x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
-        options (str): The option string passed to liblinear.
+        options (str, optional): The option string passed to liblinear. Defaults to ''.
         verbose (bool, optional): Output extra progress information. Defaults to True.
 
     Returns:
@@ -555,7 +558,7 @@ def train_cost_sensitive_micro(y: sparse.csr_matrix,
 
 def train_binary_and_multiclass(y: sparse.csr_matrix,
                                 x: sparse.csr_matrix,
-                                options: str,
+                                options: str = '',
                                 verbose: bool = True
                                 ) -> FlatModel:
     """Trains a linear model for binary and multi-class data.
@@ -563,7 +566,7 @@ def train_binary_and_multiclass(y: sparse.csr_matrix,
     Args:
         y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
         x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
-        options (str): The option string passed to liblinear.
+        options (str, optional): The option string passed to liblinear. Defaults to ''.
         verbose (bool, optional): Output extra progress information. Defaults to True.
 
     Returns:

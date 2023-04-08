@@ -11,7 +11,6 @@ from libmultilabel.linear.utils import LINEAR_TECHNIQUES
 
 def linear_test(config, model, datasets):
     metrics = linear.get_metrics(
-        config.metric_threshold,
         config.monitor_metrics,
         datasets['test']['y'].shape[1],
         multiclass=model.name=='binary_and_multiclass'
