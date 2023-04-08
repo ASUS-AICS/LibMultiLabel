@@ -44,8 +44,7 @@ print('Training time of tree-based: {:10.2f}'.format(training_end-training_start
 preds_OVR = linear.predict_values(model_OVR, datasets['test']['x'])
 preds_tree = linear.predict_values(model_tree, datasets['test']['x'])
 
-metrics = linear.get_metrics(metric_threshold=0,
-                             monitor_metrics=['P@1', 'P@3', 'P@5'],
+metrics = linear.get_metrics(monitor_metrics=['P@1', 'P@3', 'P@5'],
                              num_classes=datasets['test']['y'].shape[1])
 
 target = datasets['test']['y'].toarray()
