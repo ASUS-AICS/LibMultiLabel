@@ -15,22 +15,17 @@ import libmultilabel.linear as linear
 import time
 
 preprocessor = linear.Preprocessor(data_format='txt')
-datasets = preprocessor.load_data('data/eur-lex/train.txt',
-                                  'data/eur-lex/test.txt')
+datasets = preprocessor.load_data('data/eur-lex/train.txt', 'data/eur-lex/test.txt')
 
 training_start = time.time()
 # the standard one-vs-rest way to train multi-label problems
-model_OVR = linear.train_1vsrest(datasets['train']['y'],
-                                 datasets['train']['x'],
-                                 '')
+model_OVR = linear.train_1vsrest(datasets['train']['y'], datasets['train']['x'])
 training_end = time.time()
 print('Training time of one-versus-rest: {:10.2f}'.format(training_end-training_start))
 
 training_start = time.time()
 # the method for fast training of data with many labels
-model_tree = linear.train_tree(datasets['train']['y'],
-                               datasets['train']['x'],
-                               '')
+model_tree = linear.train_tree(datasets['train']['y'], datasets['train']['x'])
 training_end = time.time()
 print('Training time of tree-based: {:10.2f}'.format(training_end-training_start))
 
