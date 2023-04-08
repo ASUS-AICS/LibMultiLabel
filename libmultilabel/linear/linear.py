@@ -555,3 +555,28 @@ def get_topk_labels(label_mapping: np.ndarray, preds: np.ndarray, top_k: int = 5
     """
     top_k_ind = np.argpartition(preds, -top_k)[:, :-top_k-1:-1]
     return label_mapping[top_k_ind].tolist()
+
+def save_predictions(predict_out_path: str, label_mapping: np.ndarray, preds: np.ndarray, top_k: int = 5) -> 'list[list[str]]':
+    """Save top k predictions from decision values or save all labels with decision value larger than 0.
+
+    Args:
+        predict_out_path (str): Path to the output file.
+        label_mapping (np.ndarray): A ndarray of class labels that maps each label to its index. 
+        preds (np.ndarray): A matrix of decision values with dimension number of instances * number of classes.
+        top_k (int): Determine how many classes per instance should be predicted. If set to 0, all labels with decision value larger than 0 will be saved. 
+
+    Returns:
+        list of lists which contain top k labels.
+    """
+    if top_k > 0:
+        ind = np.argpartition(preds, -top_k)[:, :-top_k-1:-1]
+    elif top_k == 0:
+        ind = preds > 0
+    else:
+        ValueError("Top_k must be a none negative integer")
+    with open(predict_out_path, 'w') as fp:
+        for idx, score in zip(ind, preds[ind]):
+            out_str = ' '.join([f'{label_mapping[i]}:{s:.4}' for i, s in zip(
+                idx, score)])
+            fp.write(out_str+'\n')
+    return label_mapping[ind].tolist()
