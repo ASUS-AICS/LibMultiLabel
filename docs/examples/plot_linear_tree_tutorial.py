@@ -2,69 +2,99 @@
 Handling Data with Many Labels
 ==============================
 
-Training a multi-label classification problem with numerous labels can be time-consuming. 
-We show how a solver in LibMultiLabel can reduce the training time on such datasets.
+For very large data sets, the training time of the standard ``train_1vsrest`` method may be unpleasantly long.
+In the case that the amount of labels is very large,
+the ``train_tree`` method in LibMultiLabel can vastly improve the training time on such datasets while maintaining
+competitive performance.
 
-Consider the EUR-Lex dataset, which contains 3,956 labels 
-and can be downloaded from `LIBSVM Data Sets <https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel.html>`_. 
-We show the use of the ``train_tree`` method and compare it with the standard ``train_1vsrest`` method.
-To run the following code, you must put data to the designated directory.
+To illustrate this speedup, we will use the `EUR-Lex dataset <https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel.html>`_,
+which contains 3,956 labels.
+In this example, the data is downloaded under the directory ``data/eur-lex``.
 """
 
+import math
 import libmultilabel.linear as linear
 import time
 
 preprocessor = linear.Preprocessor(data_format='txt')
-datasets = preprocessor.load_data('data/eur-lex/train.txt', 'data/eur-lex/test.txt')
+datasets = preprocessor.load_data(
+    'data/eur-lex/train.txt', 'data/eur-lex/test.txt')
 
 training_start = time.time()
-# the standard one-vs-rest way to train multi-label problems
-model_OVR = linear.train_1vsrest(datasets['train']['y'], datasets['train']['x'])
+# the standard one-vs-rest method for multi-label problems
+ovr_model = linear.train_1vsrest(
+    datasets['train']['y'], datasets['train']['x'])
 training_end = time.time()
-print('Training time of one-versus-rest: {:10.2f}'.format(training_end-training_start))
+print(
+    'Training time of one-versus-rest: {:10.2f}'.format(training_end-training_start))
 
 training_start = time.time()
-# the method for fast training of data with many labels
-model_tree = linear.train_tree(datasets['train']['y'], datasets['train']['x'])
+# the train_tree method for fast training on data with many labels
+tree_model = linear.train_tree(datasets['train']['y'], datasets['train']['x'])
 training_end = time.time()
-print('Training time of tree-based: {:10.2f}'.format(training_end-training_start))
+print(
+    'Training time of tree-based: {:10.2f}'.format(training_end-training_start))
 
 ######################################################################
-# On a machine with an AMD-7950X CPU, 
-# the ``train_1vsrest`` function required `578.30` seconds, 
-# while the ``train_tree`` function only required `144.37` seconds. 
-# 
+# On a machine with an AMD-7950X CPU,
+# the ``train_1vsrest`` function took `578.30` seconds,
+# while the ``train_tree`` function only took `144.37` seconds.
+# This is a 4x speedup by only changing the function called!
+#
 # .. note::
 #
 #   The ``train_tree`` function in this tutorial is based on the work of :cite:t:`SK20a`.
 #
-# Due to the nature of some approximations, it is unclear if ``train_tree`` trades performance for time.
-# We use the following code to check the test performance.
+# ``train_tree`` achieves this speedup by approximating ``train_1vsrest``. To check whether the approximation
+# performs well, we'll compute some metrics on the test set.
 
-preds_OVR = linear.predict_values(model_OVR, datasets['test']['x'])
-preds_tree = linear.predict_values(model_tree, datasets['test']['x'])
-
-metrics = linear.get_metrics(monitor_metrics=['P@1', 'P@3', 'P@5'],
-                             num_classes=datasets['test']['y'].shape[1])
+ovr_preds = linear.predict_values(ovr_model, datasets['test']['x'])
+tree_preds = linear.predict_values(tree_model, datasets['test']['x'])
 
 target = datasets['test']['y'].toarray()
 
-metrics.update(preds_OVR, target)
-print("Evaluation of OVR:", metrics.compute())
+ovr_score = linear.compute_metrics(ovr_preds, target, ['P@1', 'P@3', 'P@5'])
+print("Score of 1vsrest:", ovr_score)
 
-metrics.reset()
-
-metrics.update(preds_tree, target)
-print("Evaluation of tree:", metrics.compute())
+tree_score = linear.compute_metrics(tree_preds, target, ['P@1', 'P@3', 'P@5'])
+print("Score of tree:", tree_score)
 
 ######################################################################
-#  :math:`P@K`, a ranking-based criterion, is a suitable metric for data with many labels.
+#  :math:`P@K`, a ranking-based criterion, is a metric often used for data with a large amount of labels.
 #
-#.. code-block::
-#   
-#   Evaluation of OVR: {'P@1': 0.833117723156533, 'P@3': 0.6988357050452781, 'P@5': 0.585666235446313}
-#   Evaluation of tree: {'P@1': 0.8217335058214748, 'P@3': 0.692539887882708, 'P@5': 0.578835705045278}
+# .. code-block::
 #
-#For this set, ``train_tree`` gives only slightly lower :math:`P@K`, but is much faster.
+#   Score of 1vsrest: {'P@1': 0.833117723156533, 'P@3': 0.6988357050452781, 'P@5': 0.585666235446313}
+#   Score of tree: {'P@1': 0.8217335058214748, 'P@3': 0.692539887882708, 'P@5': 0.578835705045278}
 #
-#.. bibliography::
+# As we can see, for this data set, ``train_tree`` gives a slightly lower :math:`P@K`, but has a significantly faster training time.
+# Typcially, the speedup of ``train_tree`` over ``train_1vsrest`` increases with the amount of labels unless a large portion of labels
+# are very common.
+# Usually, most labels in multi-label data sets are very _uncommon_ and ``train_tree`` is very effective at reducing training time.
+#
+# For even larger data sets, we may not be able to store the entire `preds` and `target` in memory at once.
+# In this case, the metrics can be computed in batches.
+
+
+def predict_in_batches(model):
+    batch_size = 256
+    num_instances = datasets['test']['x'].shape[0]
+    num_batches = math.ceil(num_instances / batch_size)
+
+    metrics = linear.get_metrics(['P@1', 'P@3', 'P@5'],
+                                 num_classes=datasets['test']['y'].shape[1])
+
+    for i in range(num_batches):
+        preds = linear.predict_values(
+            model, datasets['test']['x'][i*batch_size:(i+1)*batch_size])
+        target = datasets['test']['y'][i*batch_size:(i+1)*batch_size].toarray()
+        metrics.update(preds, target)
+
+    return metrics.compute()
+
+
+print("Score of 1vsrest:", predict_in_batches(ovr_model))
+print("Score of tree:", predict_in_batches(tree_model))
+
+#
+# .. bibliography::
