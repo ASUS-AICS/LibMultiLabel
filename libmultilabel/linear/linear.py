@@ -647,15 +647,16 @@ def save_predictions(predict_out_path: str, label_mapping: np.ndarray, preds: np
 
     """
     if top_k > 0:
-        ind = np.argpartition(preds, -top_k)[:, :-top_k-1:-1]
+        ind = pred.argsort()[-top_k:][::-1]
     elif top_k == 0:
         ind = preds > 0
     else:
         ValueError("Top_k must be a none negative integer")
-    with open(predict_out_path, 'w') as fp:
+    print(ind.shape, preds.shape)
+    with open(predict_out_path, 'a') as fp:
         for idx, score in zip(ind, preds):
-            #print(idx, score)
             out_str = ' '.join([f'{i}:{s:.4}' for i, s in zip(
                 label_mapping[idx], score[idx])])
             fp.write(out_str+'\n')
+
 
