@@ -14,8 +14,7 @@ __all__ = ['train_1vsrest',
            'train_cost_sensitive_micro',
            'train_binary_and_multiclass',
            'predict_values',
-           'get_topk_labels',
-           'save_predictions']
+           'get_topk_labels']
 
 
 class FlatModel:
@@ -635,28 +634,3 @@ def get_topk_labels(label_mapping: np.ndarray,
     """
     top_k_ind = np.argpartition(preds, -top_k)[:, :-top_k-1:-1]
     return label_mapping[top_k_ind].tolist()
-
-def save_predictions(predict_out_path: str, label_mapping: np.ndarray, preds: np.ndarray, top_k: int = 5) -> 'list[list[str]]':
-    """Save top k predictions from decision values or save all labels with decision value larger than 0.
-
-    Args:
-        predict_out_path (str): Path to the output file.
-        label_mapping (np.ndarray): A ndarray of class labels that maps each label to its index. 
-        preds (np.ndarray): A matrix of decision values with dimension number of instances * number of classes.
-        top_k (int): Determine how many classes per instance should be predicted. If set to 0, all labels with decision value larger than 0 will be saved. 
-
-    """
-    if top_k > 0:
-        ind = pred.argsort()[-top_k:][::-1]
-    elif top_k == 0:
-        ind = preds > 0
-    else:
-        ValueError("Top_k must be a none negative integer")
-    print(ind.shape, preds.shape)
-    with open(predict_out_path, 'a') as fp:
-        for idx, score in zip(ind, preds):
-            out_str = ' '.join([f'{i}:{s:.4}' for i, s in zip(
-                label_mapping[idx], score[idx])])
-            fp.write(out_str+'\n')
-
-
