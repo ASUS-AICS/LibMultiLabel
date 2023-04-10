@@ -7,7 +7,7 @@ In the case that the amount of labels is very large,
 the ``train_tree`` method in LibMultiLabel can vastly improve the training time on such datasets while maintaining
 competitive performance.
 
-To illustrate this speedup, we will use the `EUR-Lex dataset <https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel.html>`_,
+To illustrate this speedup, we will use the `EUR-Lex dataset <https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel.html#EUR-Lex>`_,
 which contains 3,956 labels.
 In this example, the data is downloaded under the directory ``data/eur-lex``.
 """
