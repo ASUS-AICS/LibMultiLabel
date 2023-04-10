@@ -10,11 +10,9 @@ from libmultilabel.linear.utils import LINEAR_TECHNIQUES
 
 
 def get_pred(preds, k):
-    if k > 0:
-        indices = argsort_top_k(preds, k, axis=1)
-    if k == 0:
-        indices = np.where(preds > 0)
-    score = np.take_along_axis(preds, indices, axis=1)
+    
+    print(score)
+    breakpoint()
     return (indices, score)
 
 
@@ -27,8 +25,8 @@ def linear_test(config, model, datasets, label_mapping=None):
     num_instance = datasets['test']['x'].shape[0]
     assert not config.save_all or config.save_k_predictions <= 0, "If save_k_predictions is larger than 0, only top k labels are saved. Save all labels with decision value larger than 0 by using save_all and save_k_predictions=0."
     k = config.save_k_predictions
-    ind = []
-    score = []
+    idx = []
+    value = []
     for i in tqdm(range(ceil(num_instance / config.eval_batch_size))):
         slice = np.s_[i*config.eval_batch_size:(i+1)*config.eval_batch_size]
         preds = linear.predict_values(model, datasets['test']['x'][slice])
@@ -36,13 +34,17 @@ def linear_test(config, model, datasets, label_mapping=None):
         metrics.update(preds, target)
 
         if config.save_all or k > 0:
-            q = get_pred(preds, k)
-            ind.append(q[0])
-            score.append(q[1])
-
+            for i_pred in preds:
+                if k > 0:
+                    indice = argsort_top_k(i_pred, k, axis=1)
+                    score = np.take_along_axis(i_preds, indice, axis=1)
+                if k == 0:
+                    indice = i_pred > 0
+                    score = i_pred[indice]
+                idx.append(indice)
+                value.append(score)
     metric_dict = metrics.compute()
-
-    return metric_dict, ind, score
+    return metric_dict, idx, value
 
 
 def linear_train(datasets, config):
@@ -84,7 +86,7 @@ def linear_run(config):
         linear.save_pipeline(config.checkpoint_dir, preprocessor, model)
 
     if config.test_file is not None:
-        metric_dict, ind, scores = linear_test(
+        metric_dict, idx, values = linear_test(
             config, model, datasets, preprocessor.label_mapping)
 
         dump_log(config=config, metrics=metric_dict,
@@ -92,9 +94,8 @@ def linear_run(config):
         print(linear.tabulate_metrics(metric_dict, 'test'))
         if config.save_all or config.save_k_predictions > 0:
             with open(config.predict_out_path, 'w') as fp:
-                for batch_idx, batch_score in zip(ind, scores):
-                    for i_batch, s_batch in zip(batch_idx, batch_score):
-                        out_str = ' '.join([f'{i}:{s:.4}' for i, s in zip(
-                            preprocessor.label_mapping[i_batch], s_batch)])
-                        fp.write(out_str+'\n')
+                for idx, score in zip(idx, values):
+                    out_str = ' '.join([f'{i}:{s:.4}' for i, s in zip(
+                        preprocessor.label_mapping[idx], score)])
+                    fp.write(out_str+'\n')
             logging.info(f'Saved predictions to: {config.predict_out_path}')
