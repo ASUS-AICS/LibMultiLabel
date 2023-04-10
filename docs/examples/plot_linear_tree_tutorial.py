@@ -70,7 +70,7 @@ print("Score of tree:", tree_score)
 # As we can see, for this data set, ``train_tree`` gives a slightly lower :math:`P@K`, but has a significantly faster training time.
 # Typcially, the speedup of ``train_tree`` over ``train_1vsrest`` increases with the amount of labels unless a large portion of labels
 # are very common.
-# Usually, most labels in multi-label data sets are very _uncommon_ and ``train_tree`` is very effective at reducing training time.
+# Usually, most labels in multi-label data sets are very uncommon and ``train_tree`` is very effective at reducing training time.
 #
 # For even larger data sets, we may not be able to store the entire ``preds`` and ``target`` in memory at once.
 # In this case, the metrics can be computed in batches.
