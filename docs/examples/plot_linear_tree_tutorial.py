@@ -72,7 +72,7 @@ print("Score of tree:", tree_score)
 # are very common.
 # Usually, most labels in multi-label data sets are very _uncommon_ and ``train_tree`` is very effective at reducing training time.
 #
-# For even larger data sets, we may not be able to store the entire `preds` and `target` in memory at once.
+# For even larger data sets, we may not be able to store the entire ``preds`` and ``target`` in memory at once.
 # In this case, the metrics can be computed in batches.
 
 
