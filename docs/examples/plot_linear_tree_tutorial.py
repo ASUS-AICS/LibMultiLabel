@@ -76,7 +76,7 @@ print("Score of tree:", tree_score)
 # In this case, the metrics can be computed in batches.
 
 
-def predict_in_batches(model):
+def metrics_in_batches(model):
     batch_size = 256
     num_instances = datasets['test']['x'].shape[0]
     num_batches = math.ceil(num_instances / batch_size)
@@ -93,8 +93,8 @@ def predict_in_batches(model):
     return metrics.compute()
 
 
-print("Score of 1vsrest:", predict_in_batches(ovr_model))
-print("Score of tree:", predict_in_batches(tree_model))
+print("Score of 1vsrest:", metrics_in_batches(ovr_model))
+print("Score of tree:", metrics_in_batches(tree_model))
 
 #
 # .. bibliography::
