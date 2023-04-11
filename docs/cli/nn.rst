@@ -163,3 +163,5 @@ The re-training process by default adds the validation set for training.
 Our empirical analysis shows that this setting improves test results.
 If you do not want to incorporate the validation data for training, you can specify the option ``no_merge_train_val``.
 In either case, the optimization starts from scratch and runs for the number of epochs that leads to the best validation results in the hyper-parameter search.
+
+For more information on this section, please refer to :ref:`Parameter Selection for Neural Networks`
