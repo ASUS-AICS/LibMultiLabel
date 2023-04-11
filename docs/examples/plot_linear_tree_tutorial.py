@@ -96,5 +96,6 @@ def metrics_in_batches(model):
 print("Score of 1vsrest:", metrics_in_batches(ovr_model))
 print("Score of tree:", metrics_in_batches(tree_model))
 
+######################################################################
 #
 # .. bibliography::
