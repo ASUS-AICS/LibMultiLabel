@@ -2,10 +2,9 @@
 Handling Data with Many Labels
 ==============================
 
-For very large data sets, the training time of the standard ``train_1vsrest`` method may be unpleasantly long.
-In the case that the amount of labels is very large,
-the ``train_tree`` method in LibMultiLabel can vastly improve the training time on such datasets while maintaining
-competitive performance.
+For the case that the amount of labels is very large,
+the training time of the standard ``train_1vsrest`` method may be unpleasantly long.
+The ``train_tree`` method in LibMultiLabel can vastly improve the training time on such data sets.
 
 To illustrate this speedup, we will use the `EUR-Lex dataset <https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel.html#EUR-Lex>`_,
 which contains 3,956 labels.
@@ -39,7 +38,6 @@ print(
 # On a machine with an AMD-7950X CPU,
 # the ``train_1vsrest`` function took `578.30` seconds,
 # while the ``train_tree`` function only took `144.37` seconds.
-# This is a 4x speedup by only changing the function called!
 #
 # .. note::
 #
@@ -67,10 +65,8 @@ print("Score of tree:", tree_score)
 #   Score of 1vsrest: {'P@1': 0.833117723156533, 'P@3': 0.6988357050452781, 'P@5': 0.585666235446313}
 #   Score of tree: {'P@1': 0.8217335058214748, 'P@3': 0.692539887882708, 'P@5': 0.578835705045278}
 #
-# As we can see, for this data set, ``train_tree`` gives a slightly lower :math:`P@K`, but has a significantly faster training time.
-# Typcially, the speedup of ``train_tree`` over ``train_1vsrest`` increases with the amount of labels unless a large portion of labels
-# are very common.
-# Usually, most labels in multi-label data sets are very uncommon and ``train_tree`` is very effective at reducing training time.
+# For this data set, ``train_tree`` gives a slightly lower :math:`P@K`, but has a significantly faster training time.
+# Typcially, the speedup of ``train_tree`` over ``train_1vsrest`` increases with the amount of labels.
 #
 # For even larger data sets, we may not be able to store the entire ``preds`` and ``target`` in memory at once.
 # In this case, the metrics can be computed in batches.
