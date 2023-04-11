@@ -44,6 +44,8 @@ Next, the ``learning rate`` is changed to 0.003 while other parameters are kept 
 By the same training command, the P@1 score of the second parameter set is about 78.14%, which is
 4% lower than the first one.This demonstrates the importance of parameter selection.
 
+.. _Parameter Selection for Neural Networks:
+
 grid search for parameters
 ------------------------------------------
 
