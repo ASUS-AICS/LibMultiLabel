@@ -9,13 +9,6 @@ from libmultilabel.common_utils import argsort_top_k, dump_log
 from libmultilabel.linear.utils import LINEAR_TECHNIQUES
 
 
-def get_pred(preds, k):
-    
-    print(score)
-    breakpoint()
-    return (indices, score)
-
-
 def linear_test(config, model, datasets, label_mapping=None):
     metrics = linear.get_metrics(
         config.monitor_metrics,
@@ -23,24 +16,29 @@ def linear_test(config, model, datasets, label_mapping=None):
         multiclass=model.name == 'binary_and_multiclass'
     )
     num_instance = datasets['test']['x'].shape[0]
-    assert not config.save_all or config.save_k_predictions <= 0, "If save_k_predictions is larger than 0, only top k labels are saved. Save all labels with decision value larger than 0 by using save_all and save_k_predictions=0."
+    assert not config.save_positive_predictions or config.save_k_predictions <= 0, "If save_k_predictions is larger than 0, only top k labels are saved. Save all labels with decision value larger than 0 by using save_all and save_k_predictions=0."
     k = config.save_k_predictions
-    idx = []
-    value = []
+    if k > 0:
+        idx = np.zeros((num_instance, k), dtype='i')
+        value = np.zeros((num_instance, k), dtype='d')
+    if config.save_positive_predictions:
+        idx = []
+        value = []
+
     for i in tqdm(range(ceil(num_instance / config.eval_batch_size))):
         slice = np.s_[i*config.eval_batch_size:(i+1)*config.eval_batch_size]
         preds = linear.predict_values(model, datasets['test']['x'][slice])
         target = datasets['test']['y'][slice].toarray()
         metrics.update(preds, target)
 
-        if config.save_all or k > 0:
+        if k > 0:
+            idx[slice] = argsort_top_k(preds, k, axis=1)
+            value[slice] = np.take_along_axis(preds, idx[slice], axis=1)
+
+        if config.save_positive_predictions:
             for i_pred in preds:
-                if k > 0:
-                    indice = argsort_top_k(i_pred, k, axis=1)
-                    score = np.take_along_axis(i_preds, indice, axis=1)
-                if k == 0:
-                    indice = i_pred > 0
-                    score = i_pred[indice]
+                indice = i_pred > 0
+                score = i_pred[indice]
                 idx.append(indice)
                 value.append(score)
     metric_dict = metrics.compute()
@@ -92,7 +90,7 @@ def linear_run(config):
         dump_log(config=config, metrics=metric_dict,
                  split='test', log_path=config.log_path)
         print(linear.tabulate_metrics(metric_dict, 'test'))
-        if config.save_all or config.save_k_predictions > 0:
+        if config.save_positive_predictions or config.save_k_predictions > 0:
             with open(config.predict_out_path, 'w') as fp:
                 for idx, score in zip(idx, values):
                     out_str = ' '.join([f'{i}:{s:.4}' for i, s in zip(
