@@ -224,6 +224,8 @@ def _train_node(y: sparse.csr_matrix,
             meta_y, x, options, False
         )
 
+    node.model.weights = sparse.csr_matrix(node.model.weights)
+
 
 def _flatten_model(root: Node) -> tuple[linear.FlatModel, np.ndarray]:
     """Flattens tree weight matrices into a single weight matrix. The flattened weight
@@ -257,7 +259,7 @@ def _flatten_model(root: Node) -> tuple[linear.FlatModel, np.ndarray]:
 
     model = linear.FlatModel(
         name='flattened-tree',
-        weights=np.hstack(weights),
+        weights=sparse.hstack(weights, 'csr'),
         bias=bias,
         thresholds=0,
     )
