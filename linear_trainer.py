@@ -21,7 +21,7 @@ def linear_test(config, model, datasets, label_mapping=None):
     if k > 0:
         idx = np.zeros((num_instance, k), dtype='i')
         value = np.zeros((num_instance, k), dtype='d')
-    if config.save_positive_predictions:
+    else:
         idx = []
         value = []
 
