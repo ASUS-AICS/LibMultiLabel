@@ -1,5 +1,5 @@
-from typing import Any
 from __future__ import annotations
+from typing import Any
 
 import re
 
@@ -17,7 +17,8 @@ __all__ = ['get_metrics',
 def _DCG(
         preds: np.ndarray,
         target: np.ndarray,
-        k=5,
+        k: int = 5,
+        gain_func: str = 'linear'
 ) -> numpy.ndarray:
     k = min(preds.shape[-1], k)
     order = argsort_top_k(preds, k)
@@ -25,23 +26,33 @@ def _DCG(
 
     # pow rank
     # reference: https://nlp.stanford.edu/IR-book/pdf/08eval.pdf p.163 (8.9)
-    gain_function = lambda x: 2 ** x - 1
-    gains = np.apply_along_axis(gain_function, -1, true_sorted_by_preds)
-    discounts = np.array(1) / np.log2(np.arange(1, true_sorted_by_preds.shape[1] + 1, dtype=np.float) + 1)
-    discounted_gains = (gains * discounts)
+    def gain_function(x, gain='linear'):
+        if gain == 'linear':
+            return x
+        elif gain == 'exponential':
+            return 2 ** x - 1
+        else:
+            raise ValueError(f'Unexpected gain function.')
 
-    sum_dcg = np.sum(discounted_gains, dim=1)
-    return sum_dcg
+    gains = np.apply_along_axis(gain_function, -1, true_sorted_by_preds)
+
+    discount = 1 / (np.log2(np.arange(true_sorted_by_preds.shape[1]) + 2))
+
+    dcg = gains.dot(discount)
+
+    return dcg
 
 
 class NDCG:
     def __init__(
             self,
             top_k: int,
+            gain_func: str = 'linear'
     ) -> None:
         self.top_k = top_k
         self.score = 0
         self.num_sample = 0
+        self.gain_func = gain_func
 
     def update(
             self,
@@ -49,15 +60,15 @@ class NDCG:
             target: np.ndarray
     ) -> None:
         assert preds.shape == target.shape  # (batch_size, num_classes)
-        ideal_dcgs = _DCG(target, target, self.top_k)
-        predicted_dcgs = _DCG(preds, target, self.top_k)
+        ideal_dcgs = _DCG(target, target, self.top_k, self.gain_func)
+        predicted_dcgs = _DCG(preds, target, self.top_k, self.gain_func)
         ndcg_score = predicted_dcgs / ideal_dcgs
         # deal with data points with none labels
         self.score += np.nan_to_num(ndcg_score, posinf=0.0)
         self.num_sample += preds.shape[0]
 
     def compute(self) -> float:
-        return self.score / self.num_sample
+        return np.sum(self.score / self.num_sample)
 
     def reset(self) -> None:
         self.score = 0
