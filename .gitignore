@@ -158,3 +158,6 @@ docs/auto_examples/
 docs/cli/*.include
 !docs/requirements.txt
 !requirements.txt
+
+# idea config
+.idea/

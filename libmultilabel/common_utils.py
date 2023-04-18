@@ -89,6 +89,7 @@ def dump_log(log_path, metrics=None, split=None, config=None):
 
 
 def argsort_top_k(vals, k, axis=-1):
+    # non-increasing order
     unsorted_top_k_idx = np.argpartition(vals, -k, axis=axis)[:, -k:]
     unsorted_top_k_scores = np.take_along_axis(
         vals, unsorted_top_k_idx, axis=axis)

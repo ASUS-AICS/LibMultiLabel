@@ -1,13 +1,67 @@
+from typing import Any
 from __future__ import annotations
 
 import re
 
+import numpy
 import numpy as np
+
+from ..common_utils import argsort_top_k
 
 __all__ = ['get_metrics',
            'compute_metrics',
            'tabulate_metrics',
            'MetricCollection']
+
+
+def _DCG(
+        preds: np.ndarray,
+        target: np.ndarray,
+        k=5,
+) -> numpy.ndarray:
+    k = min(preds.shape[-1], k)
+    order = argsort_top_k(preds, k)
+    true_sorted_by_preds = np.take_along_axis(target, order, -1)
+
+    # pow rank
+    # reference: https://nlp.stanford.edu/IR-book/pdf/08eval.pdf p.163 (8.9)
+    gain_function = lambda x: 2 ** x - 1
+    gains = np.apply_along_axis(gain_function, -1, true_sorted_by_preds)
+    discounts = np.array(1) / np.log2(np.arange(1, true_sorted_by_preds.shape[1] + 1, dtype=np.float) + 1)
+    discounted_gains = (gains * discounts)
+
+    sum_dcg = np.sum(discounted_gains, dim=1)
+    return sum_dcg
+
+
+class NDCG:
+    def __init__(
+            self,
+            top_k: int,
+    ) -> None:
+        self.top_k = top_k
+        self.score = 0
+        self.num_sample = 0
+
+    def update(
+            self,
+            preds: np.ndarray,
+            target: np.ndarray
+    ) -> None:
+        assert preds.shape == target.shape  # (batch_size, num_classes)
+        ideal_dcgs = _DCG(target, target, self.top_k)
+        predicted_dcgs = _DCG(preds, target, self.top_k)
+        ndcg_score = predicted_dcgs / ideal_dcgs
+        # deal with data points with none labels
+        self.score += np.nan_to_num(ndcg_score, posinf=0.0)
+        self.num_sample += preds.shape[0]
+
+    def compute(self) -> float:
+        return self.score / self.num_sample
+
+    def reset(self) -> None:
+        self.score = 0
+        self.num_sample = 0
 
 
 class RPrecision:
@@ -85,10 +139,10 @@ class F1:
 
         if self.average == 'macro':
             score = np.nansum(
-                2*self.tp / (2*self.tp + self.fp + self.fn)) / self.num_classes
+                2 * self.tp / (2 * self.tp + self.fp + self.fn)) / self.num_classes
         elif self.average == 'micro':
-            score = np.nan_to_num(2*np.sum(self.tp) /
-                                  np.sum(2*self.tp + self.fp + self.fn))
+            score = np.nan_to_num(2 * np.sum(self.tp) /
+                                  np.sum(2 * self.tp + self.fp + self.fn))
         elif self.average == 'another-macro':
             macro_prec = np.nansum(
                 self.tp / (self.tp + self.fp)) / self.num_classes
@@ -143,6 +197,14 @@ class MetricCollection(dict):
             metric.reset()
 
 
+# str_to_metric = {
+#     'P': Precision,
+#     'RP': RPrecision,
+#     'NDCG': NDCG,
+#     'F1': F1
+# }
+
+
 def get_metrics(monitor_metrics: list[str],
                 num_classes: int,
                 multiclass: bool = False
@@ -161,12 +223,18 @@ def get_metrics(monitor_metrics: list[str],
     if monitor_metrics is None:
         monitor_metrics = []
     metrics = {}
+
+    def get_k_from_metric(x):
+        return int(re.search('[^@]*$', x).group())
+
     for metric in monitor_metrics:
         if re.match('P@\d+', metric):
             metrics[metric] = Precision(
                 num_classes, average='samples', top_k=int(metric[2:]))
         elif re.match('RP@\d+', metric):
             metrics[metric] = RPrecision(top_k=int(metric[3:]))
+        elif re.match('NDCG@\d+', metric):
+            metrics[metric] = NDCG(top_k=get_k_from_metric(metric))
         elif metric in {'Another-Macro-F1', 'Macro-F1', 'Micro-F1'}:
             metrics[metric] = F1(num_classes,
                                  average=metric[:-3].lower(),
@@ -216,6 +284,6 @@ def tabulate_metrics(metric_dict: dict[str, float], split: str) -> str:
     msg = f'====== {split} dataset evaluation result =======\n'
     header = '|'.join([f'{k:^18}' for k in metric_dict.keys()])
     values = '|'.join([f'{x:^18.4f}' if isinstance(x, (np.floating,
-                      float)) else f'{x:^18}' for x in metric_dict.values()])
+                                                       float)) else f'{x:^18}' for x in metric_dict.values()])
     msg += f"|{header}|\n|{'-----------------:|' * len(metric_dict)}\n|{values}|\n"
     return msg
