@@ -33,7 +33,7 @@ goto end
 %SPHINXBUILD% -M help %SOURCEDIR% %BUILDDIR% %SPHINXOPTS% %O%
 
 :html-noplot
-%SPHINXBUILD% -b html %SOURCEDIR% %BUILDDIR/html% %SPHINXOPTS% %O%
+%SPHINXBUILD% -b html %SOURCEDIR% %BUILDDIR%\html %SPHINXOPTS% %O%
 goto end
 
 :end
