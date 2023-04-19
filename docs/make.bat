@@ -11,6 +11,7 @@ set SOURCEDIR=.
 set BUILDDIR=_build
 
 if "%1" == "" goto help
+if "%1" == "html-noplot" goto html-noplot
 
 %SPHINXBUILD% >NUL 2>NUL
 if errorlevel 9009 (
@@ -30,6 +31,10 @@ goto end
 
 :help
 %SPHINXBUILD% -M help %SOURCEDIR% %BUILDDIR% %SPHINXOPTS% %O%
+
+:html-noplot
+%SPHINXBUILD% -b html %SOURCEDIR% %BUILDDIR%\html %SPHINXOPTS% %O%
+goto end
 
 :end
 popd
