@@ -1,9 +1,7 @@
 from __future__ import annotations
-from typing import Any
 
 import re
 
-import numpy
 import numpy as np
 
 from ..common_utils import argsort_top_k
@@ -17,27 +15,22 @@ __all__ = ['get_metrics',
 def _DCG(
         preds: np.ndarray,
         target: np.ndarray,
-        k: int = 5,
-        gain_func: str = 'linear'
-) -> numpy.ndarray:
+        k: int = 5
+) -> np.ndarray:
+    """
+    Calculate the Discounted cumulative gains (DCG).
+    """
     k = min(preds.shape[-1], k)
+
+    # find the indices of the top-k predicted values in descending order
     order = argsort_top_k(preds, k)
-    true_sorted_by_preds = np.take_along_axis(target, order, -1)
+    # also known as target sorted by the top-k preds
+    gains = np.take_along_axis(target, order, -1)
 
-    # pow rank
-    # reference: https://nlp.stanford.edu/IR-book/pdf/08eval.pdf p.163 (8.9)
-    def gain_function(x, gain='linear'):
-        if gain == 'linear':
-            return x
-        elif gain == 'exponential':
-            return 2 ** x - 1
-        else:
-            raise ValueError(f'Unexpected gain function.')
+    # the discount factor
+    discount = 1 / (np.log2(np.arange(gains.shape[1]) + 2))
 
-    gains = np.apply_along_axis(gain_function, -1, true_sorted_by_preds)
-
-    discount = 1 / (np.log2(np.arange(true_sorted_by_preds.shape[1]) + 2))
-
+    # get the sum product over the last axis of gains and discount.
     dcg = gains.dot(discount)
 
     return dcg
@@ -46,13 +39,16 @@ def _DCG(
 class NDCG:
     def __init__(
             self,
-            top_k: int,
-            gain_func: str = 'linear'
+            top_k: int
     ) -> None:
+        """
+        Calculate the Normalized DCG (nDCG).
+        Args:
+            top_k: consider only the top k elements for each instance
+        """
         self.top_k = top_k
         self.score = 0
         self.num_sample = 0
-        self.gain_func = gain_func
 
     def update(
             self,
@@ -60,15 +56,21 @@ class NDCG:
             target: np.ndarray
     ) -> None:
         assert preds.shape == target.shape  # (batch_size, num_classes)
-        ideal_dcgs = _DCG(target, target, self.top_k, self.gain_func)
-        predicted_dcgs = _DCG(preds, target, self.top_k, self.gain_func)
-        ndcg_score = predicted_dcgs / ideal_dcgs
-        # deal with data points with none labels
-        self.score += np.nan_to_num(ndcg_score, posinf=0.0)
+
+        # the vanilla DCG
+        dcgs = _DCG(preds, target, self.top_k)
+        # the maximum possible DCG, also called Ideal DCG
+        idcgs = _DCG(target, target, self.top_k)
+        # the normalized DCG
+        ndcg_score = dcgs / idcgs
+
+        # deal with instances with all 0 labels and add up the results
+        self.score += np.sum(np.nan_to_num(ndcg_score, posinf=0.0))
+        # remember the total number of instances
         self.num_sample += preds.shape[0]
 
     def compute(self) -> float:
-        return np.sum(self.score / self.num_sample)
+        return self.score / self.num_sample
 
     def reset(self) -> None:
         self.score = 0
@@ -208,14 +210,6 @@ class MetricCollection(dict):
             metric.reset()
 
 
-# str_to_metric = {
-#     'P': Precision,
-#     'RP': RPrecision,
-#     'NDCG': NDCG,
-#     'F1': F1
-# }
-
-
 def get_metrics(monitor_metrics: list[str],
                 num_classes: int,
                 multiclass: bool = False
@@ -295,6 +289,6 @@ def tabulate_metrics(metric_dict: dict[str, float], split: str) -> str:
     msg = f'====== {split} dataset evaluation result =======\n'
     header = '|'.join([f'{k:^18}' for k in metric_dict.keys()])
     values = '|'.join([f'{x:^18.4f}' if isinstance(x, (np.floating,
-                                                       float)) else f'{x:^18}' for x in metric_dict.values()])
+                      float)) else f'{x:^18}' for x in metric_dict.values()])
     msg += f"|{header}|\n|{'-----------------:|' * len(metric_dict)}\n|{values}|\n"
     return msg
