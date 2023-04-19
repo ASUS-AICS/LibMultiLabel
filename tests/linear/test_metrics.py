@@ -55,12 +55,8 @@ def test_bactched_ndcg():
 
     # test the same assertion with increasing k
     for k in list(range(1, num_labels, step)):
-        scores = 0
-        num_sklearn_instances = 0
         ndcg = NDCG(k)
         for p, t in zip(batched_preds, batched_target):
             ndcg.update(p, t)
-            scores += len(p) * ndcg_score(t, p, k=k)
-            num_sklearn_instances += len(p)
-        assert num_sklearn_instances == num_instances
-        assert approx(ndcg.compute()) == scores / num_sklearn_instances
+        # batch shouldn't change the original result
+        assert ndcg_score(target, preds, k=k) == approx(ndcg.compute())
