@@ -7,6 +7,7 @@ import numpy as np
 import scipy.sparse as sparse
 from liblinear.liblinearutil import train
 from tqdm import tqdm
+
 from libmultilabel.common_utils import argsort_top_k
 
 __all__ = ['train_1vsrest',
@@ -16,7 +17,7 @@ __all__ = ['train_1vsrest',
            'train_binary_and_multiclass',
            'predict_values',
            'get_topk_labels',
-           'get_labels']
+           'get_positive_labels']
 
 
 class FlatModel:
@@ -620,54 +621,39 @@ def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
     return model.predict_values(x)
 
 
-def get_topk_labels(label_mapping: np.ndarray,
-                    preds: np.ndarray,
+def get_topk_labels(preds: np.ndarray,
                     top_k: int = 5
-                    ) -> list[list[str]]:
-    """Get top k predictions from decision values.
+                    ) -> tuple[np.ndarray, np.ndarray]:
+    """Get label IDs and scores of top k predictions from decision values.
 
     Args:
-        label_mapping (np.ndarray): A ndarray of class labels that maps each index (from 0 to ``num_class-1``) to its label.
         preds (np.ndarray): A matrix of decision values with dimension number of instances * number of classes.
         top_k (int): Determine how many classes per instance should be predicted.
 
     Returns:
-        list of lists which contain top k labels.
+        Two 2d ndarray with first one containing predicted class and the other containing corresponding score.
+        Both have dimension num_instances * top_k 
     """
-    top_k_ind = np.argpartition(preds, -top_k)[:, :-top_k-1:-1]
-    return label_mapping[top_k_ind].tolist()
+    num_instance = preds.shape[0]
+    idx = np.zeros((num_instance, top_k), dtype='i')
+    scores = np.zeros((num_instance, top_k), dtype='d')
+    idx = argsort_top_k(preds, top_k, axis=1)
+    scores = np.take_along_axis(preds, idx, axis=1)
+    return idx, scores
 
-def get_labels(preds: np.ndarray,
-               save_pos: bool,
-               top_k: int = 5
-               ):
-    """Get top k predictions from decision values or get all predictions with positive decision value.
+def get_positive_labels(preds: np.ndarray) -> tuple[list[list[int]], list[list[float]]]:
+    """Get all predictions with positive decision value.
 
     Args:
         preds (np.ndarray): A matrix of decision values with dimension number of instances * number of classes.
-        top_k (int): Determine how many classes per instance should be predicted. Must be set to 0 when using save_pos to get predictions with positive decision value.
-        save_pos (bool): Determin whether to save all predictions with positive decision value. Must be set to False when using top_k to get top k predictions.
+    
     Returns:
-        two ndarray with one containing index 
+        Two 2d lists with first one containing predicted class and the other containing corresponding score.
     """
-    assert not (save_pos and top_k > 0), """
-        If top_k is larger than 0, only top k labels are saved.
-        Save all labels with decision value larger than 0 by using save_pos and top_k=0."""
-    if top_k > 0:
-        num_instance = preds.shape[0]
-        idx = np.zeros((num_instance, top_k), dtype='i')
-        scores = np.zeros((num_instance, top_k), dtype='d')
-    elif save_pos:
-        idx = []
-        scores = []
-    else:
-        raise ValueError("At least a top_k value or save_pos must be given.")
-    if top_k > 0:
-        idx = argsort_top_k(preds, top_k, axis=1)
-        scores = np.take_along_axis(preds, idx, axis=1)
-    elif save_pos:
-        for ipred in preds:
-            pos_idx = np.where(ipred > 0)
-            idx.append(pos_idx)
-            scores.append(ipred[pos_idx])
+    idx = []
+    scores = []
+    for ipred in preds:
+        pos_idx = np.where(ipred > 0)
+        idx.append(pos_idx[0].tolist())
+        scores.append(ipred[pos_idx].tolist())
     return idx, scores
