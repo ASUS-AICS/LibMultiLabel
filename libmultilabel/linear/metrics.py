@@ -152,7 +152,7 @@ class F1:
 
         if self.average == 'macro':
             score = np.nansum(
-                2 * self.tp / (2*self.tp + self.fp + self.fn)) / self.num_classes
+                2*self.tp / (2*self.tp + self.fp + self.fn)) / self.num_classes
         elif self.average == 'micro':
             score = np.nan_to_num(2*np.sum(self.tp) /
                                   np.sum(2*self.tp + self.fp + self.fn))
