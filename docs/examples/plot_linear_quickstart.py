@@ -52,24 +52,27 @@ preds = linear.predict_values(model, datasets['test']['x'])
 ######################################################################
 # ``preds`` holds the decision values, i.e. the raw values
 # outputted by the model. To transform it into predictions,
-# the simplest way is to take the positive values as the labels predicted
-# to be associated with the sample, i.e. ``preds > 0``.
+# You can use the api ``get_labels`` to generate predicted class IDs and their corresponding scores. 
 
-label_mask = preds > 0
+pred_res = linear.get_labels(preds, save_pos=True, top_k=0) # Since we are not using top k predicting, pass zero to top_k.  
+pred_idx = pred_res[0]
+pred_scores = pred_res[1]
 
 ######################################################################
-# We now have the label mask. Next,
+# We now have the predicted class IDs (``pred_idx``) and scores (``pred_scores``).
 # we use ``label_mapping`` in ``Preprocessor`` to get the original labels.
+# You can use the following code to save the prediction with label and score to list.
 
 label_mapping = preprocessor.label_mapping
-prediction = [label_mapping[row].tolist() for row in label_mask]
+prediction = []
+for idx, score in zip(pred_idx, pred_scores):
+    prediction.append([f"{i}:{s:.4}" for i, s in zip(label_mapping[idx], score)])
 
 ######################################################################
-# The result of first instance looks like:
-#
-#   >>> print(prediction[0])
+# The first instance looks like:
+#   >>> print([ f"{i}:{s:.4}" for i, s in zip(label_mapping[pred_idx[0]], pred_scores[0])])
 #   ...
-#       ['GCAT', 'GSPO']
+#       ['GCAT:1.345', 'GSPO:1.519']
 #
 # To see how well we performed, we may want to check various
 # metrics with the test set.
