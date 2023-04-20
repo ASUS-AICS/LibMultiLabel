@@ -28,6 +28,9 @@ The simplest usage is::
 
 .. autofunction:: predict_values
 
+.. autofunction:: get_topk_labels
+
+.. autofunction:: get_positive_labels
 
 Preprocessor
 ^^^^^^^^^^^^
