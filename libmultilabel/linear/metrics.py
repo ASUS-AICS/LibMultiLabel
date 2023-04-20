@@ -18,7 +18,7 @@ def _DCG(
         k: int = 5
 ) -> np.ndarray:
     """
-    Calculate the Discounted cumulative gains (DCG).
+    Calculate the discounted cumulative gains (DCG).
     """
     k = min(preds.shape[-1], k)
 
@@ -42,9 +42,9 @@ class NDCG:
             top_k: int
     ) -> None:
         """
-        Calculate the Normalized DCG (nDCG).
+        Calculate the normalized DCG (nDCG).
         Args:
-            top_k: consider only the top k elements for each instance
+            top_k: consider only the top k elements for each instance.
         """
         self.top_k = top_k
         self.score = 0
@@ -152,10 +152,10 @@ class F1:
 
         if self.average == 'macro':
             score = np.nansum(
-                2 * self.tp / (2 * self.tp + self.fp + self.fn)) / self.num_classes
+                2 * self.tp / (2*self.tp + self.fp + self.fn)) / self.num_classes
         elif self.average == 'micro':
-            score = np.nan_to_num(2 * np.sum(self.tp) /
-                                  np.sum(2 * self.tp + self.fp + self.fn))
+            score = np.nan_to_num(2*np.sum(self.tp) /
+                                  np.sum(2*self.tp + self.fp + self.fn))
         elif self.average == 'another-macro':
             macro_prec = np.nansum(
                 self.tp / (self.tp + self.fp)) / self.num_classes
