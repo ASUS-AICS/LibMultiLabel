@@ -60,8 +60,8 @@ pred_scores = pred_res[1]
 
 ######################################################################
 # We now have the predicted class IDs (``pred_idx``) and scores (``pred_scores``).
-# we use ``label_mapping`` in ``Preprocessor`` to get the original labels.
-# You can use the following code to save the prediction with label and score to list.
+# Then we will use ``label_mapping`` in ``Preprocessor`` to get the original labels.
+# You can use the following code to save the prediction with label and corresponding score to a list.
 
 label_mapping = preprocessor.label_mapping
 prediction = []
@@ -70,6 +70,7 @@ for idx, score in zip(pred_idx, pred_scores):
 
 ######################################################################
 # The first instance looks like:
+#
 #   >>> print([ f"{i}:{s:.4}" for i, s in zip(label_mapping[pred_idx[0]], pred_scores[0])])
 #   ...
 #       ['GCAT:1.345', 'GSPO:1.519']
