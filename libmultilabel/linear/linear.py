@@ -641,12 +641,13 @@ def get_topk_labels(preds: np.ndarray,
     scores = np.take_along_axis(preds, idx, axis=1)
     return idx, scores
 
+
 def get_positive_labels(preds: np.ndarray) -> tuple[list[list[int]], list[list[float]]]:
     """Get all predictions with positive decision value.
 
     Args:
         preds (np.ndarray): A matrix of decision values with dimension number of instances * number of classes.
-    
+
     Returns:
         Two 2d lists with first one containing predicted class and the other containing corresponding score.
     """
