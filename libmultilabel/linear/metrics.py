@@ -12,13 +12,10 @@ __all__ = ['get_metrics',
            'MetricCollection']
 
 
-def _DCG(
-        preds: np.ndarray,
-        target: np.ndarray,
-        k: int = 5
-) -> np.ndarray:
+def _DCG(preds: np.ndarray, target: np.ndarray, k: int = 5) -> np.ndarray:
     """
-    Calculate the discounted cumulative gains (DCG).
+    Calculate the discounted cumulative gains (DCG). When k << #labels, scikit-learn's implementation of DCG has
+    a worst time complexity O(N^2), while we constrain the worst time complexity to O(N) through partitioning.
     """
     k = min(preds.shape[-1], k)
 
@@ -37,13 +34,9 @@ def _DCG(
 
 
 class NDCG:
-    def __init__(
-            self,
-            top_k: int
-    ) -> None:
+    def __init__(self, top_k: int):
         """
-        Calculate the normalized DCG (nDCG). When k << #labels, scikit-learn's implementation of nDCG has a worst time
-        complexity O(N^2), while we constrain the worst time complexity to O(N) through partitioning.
+        Calculate the normalized DCG (nDCG).
         Args:
             top_k: consider only the top k elements for each instance.
         """
@@ -51,11 +44,7 @@ class NDCG:
         self.score = 0
         self.num_sample = 0
 
-    def update(
-            self,
-            preds: np.ndarray,
-            target: np.ndarray
-    ) -> None:
+    def update(self, preds: np.ndarray, target: np.ndarray):
         assert preds.shape == target.shape  # (batch_size, num_classes)
 
         # the vanilla DCG
@@ -73,7 +62,7 @@ class NDCG:
     def compute(self) -> float:
         return self.score / self.num_sample
 
-    def reset(self) -> None:
+    def reset(self):
         self.score = 0
         self.num_sample = 0
 
