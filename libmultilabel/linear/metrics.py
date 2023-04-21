@@ -42,7 +42,8 @@ class NDCG:
             top_k: int
     ) -> None:
         """
-        Calculate the normalized DCG (nDCG).
+        Calculate the normalized DCG (nDCG). When k << #labels, scikit-learn's implementation of nDCG has a worst time
+        complexity O(N^2), while we constrain the worst time complexity to O(N) through partitioning.
         Args:
             top_k: consider only the top k elements for each instance.
         """
