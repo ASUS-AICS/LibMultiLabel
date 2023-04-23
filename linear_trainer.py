@@ -9,19 +9,16 @@ from libmultilabel.common_utils import dump_log
 from libmultilabel.linear.utils import LINEAR_TECHNIQUES
 
 
-def linear_test(config, model, datasets):
+def linear_test(config, model, datasets, label_mapping):
     metrics = linear.get_metrics(
         config.monitor_metrics,
         datasets['test']['y'].shape[1],
         multiclass=model.name == 'binary_and_multiclass'
     )
     num_instance = datasets['test']['x'].shape[0]
-    assert not (config.save_positive_predictions and config.save_k_predictions > 0), """
-        If save_k_predictions is larger than 0, only top k labels are saved.
-        Save all labels with decision value larger than 0 by using save_positive_predictions and save_k_predictions=0."""
     k = config.save_k_predictions
     if k > 0:
-        idx = np.zeros((num_instance, k), dtype='i')
+        idx = np.zeros((num_instance, k), dtype=object)
         scores = np.zeros((num_instance, k), dtype='d')
     else:
         idx = []
@@ -32,12 +29,10 @@ def linear_test(config, model, datasets):
         target = datasets['test']['y'][slice].toarray()
         metrics.update(preds, target)
         if k > 0:
-            res = linear.get_topk_labels(
-                preds, config.save_k_predictions)
-            idx[slice] = res[0]
-            scores[slice] = res[1]
+            idx[slice], scores[slice] = linear.get_topk_labels(
+                preds, label_mapping, config.save_k_predictions)
         elif config.save_positive_predictions:
-            res = linear.get_positive_labels(preds)
+            res = linear.get_positive_labels(preds, label_mapping)
             idx.append(res[0])
             scores.append(res[1])
     metric_dict = metrics.compute()
@@ -83,24 +78,26 @@ def linear_run(config):
         linear.save_pipeline(config.checkpoint_dir, preprocessor, model)
 
     if config.test_file is not None:
-        metric_dict, idx, scores = linear_test(
-            config, model, datasets)
-
+        assert not (config.save_positive_predictions and config.save_k_predictions > 0), """
+            If save_k_predictions is larger than 0, only top k labels are saved.
+            Save all labels with decision value larger than 0 by using save_positive_predictions and save_k_predictions=0."""
+        metric_dict, ind, scores = linear_test(
+            config, model, datasets, preprocessor.label_mapping)
         dump_log(config=config, metrics=metric_dict,
                  split='test', log_path=config.log_path)
         print(linear.tabulate_metrics(metric_dict, 'test'))
         if config.save_k_predictions > 0:
             with open(config.predict_out_path, 'w') as fp:
-                for idx, score in zip(idx, scores):
-                    out_str = ' '.join([f'{i}:{s:.4}' for i, s in zip(
-                        preprocessor.label_mapping[idx], score)])
+                for idx, score in zip(ind, scores):
+                    out_str = ' '.join(
+                        [f'{i}:{s:.4}' for i, s in zip(idx, score)])
                     fp.write(out_str+'\n')
             logging.info(f'Saved predictions to: {config.predict_out_path}')
-        if config.save_positive_predictions:
+        elif config.save_positive_predictions:
             with open(config.predict_out_path, 'w') as fp:
-                for b_idx, b_score in zip(idx, scores):
+                for b_idx, b_score in zip(ind, scores):
                     for idx, score in zip(b_idx, b_score):
-                        out_str = ' '.join([f'{i}:{s:.4}' for i, s in zip(
-                            preprocessor.label_mapping[idx], score)])
+                        out_str = ' '.join(
+                            [f'{i}:{s:.4}' for i, s in zip(idx, score)])
                         fp.write(out_str+'\n')
             logging.info(f'Saved predictions to: {config.predict_out_path}')

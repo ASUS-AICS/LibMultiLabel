@@ -8,8 +8,6 @@ import scipy.sparse as sparse
 from liblinear.liblinearutil import train
 from tqdm import tqdm
 
-from libmultilabel.common_utils import argsort_top_k
-
 __all__ = ['train_1vsrest',
            'train_thresholding',
            'train_cost_sensitive',
@@ -622,39 +620,42 @@ def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
 
 
 def get_topk_labels(preds: np.ndarray,
+                    label_mapping: np.ndarray,
                     top_k: int = 5
-                    ) -> tuple[np.ndarray, np.ndarray]:
-    """Get label IDs and scores of top k predictions from decision values.
+                    ):
+    """Get predicted labels and scores of top k predictions from decision values.
 
     Args:
         preds (np.ndarray): A matrix of decision values with dimension number of instances * number of classes.
+        label_mapping (np.ndarray): A ndarray of class labels that maps each index (from 0 to ``num_class-1``) to its label.
         top_k (int): Determine how many classes per instance should be predicted.
 
     Returns:
-        Two 2d ndarray with first one containing predicted class and the other containing corresponding score.
+        Two 2d ndarray with first one containing predicted labels and the other containing corresponding score.
         Both have dimension num_instances * top_k 
     """
     num_instance = preds.shape[0]
     idx = np.zeros((num_instance, top_k), dtype='i')
     scores = np.zeros((num_instance, top_k), dtype='d')
-    idx = argsort_top_k(preds, top_k, axis=1)
+    idx = np.argpartition(preds, range(-1, -top_k-1, -1))[:, :-top_k-1:-1]
     scores = np.take_along_axis(preds, idx, axis=1)
-    return idx, scores
+    return label_mapping[idx], scores
 
 
-def get_positive_labels(preds: np.ndarray) -> tuple[list[list[int]], list[list[float]]]:
-    """Get all predictions with positive decision value.
+def get_positive_labels(preds: np.ndarray, label_mapping: np.ndarray) -> tuple[list[list[int]], list[list[float]]]:
+    """Get all predicted labels and scores with positive decision value.
 
     Args:
         preds (np.ndarray): A matrix of decision values with dimension number of instances * number of classes.
+        label_mapping (np.ndarray): A ndarray of class labels that maps each index (from 0 to ``num_class-1``) to its label.
 
     Returns:
-        Two 2d lists with first one containing predicted class and the other containing corresponding score.
+        Two 2d lists with first one containing predicted labels and the other containing corresponding score.
     """
     idx = []
     scores = []
     for ipred in preds:
         pos_idx = np.where(ipred > 0)
-        idx.append(pos_idx[0].tolist())
+        idx.append(label_mapping[pos_idx[0]].tolist())
         scores.append(ipred[pos_idx].tolist())
     return idx, scores
