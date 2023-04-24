@@ -90,13 +90,13 @@ def dump_log(log_path, metrics=None, split=None, config=None):
 
 def argsort_top_k(vals, k, axis=-1):
     """
-        Get the indices of the top-k largest elements. Partitioning first can save time.
+        Get the indices of the top-k elements in a 2D array.
     Args:
         vals: Array to sort.
         k: Only consider the highest k scores in the ranking.
         axis: Axis along which to sort. The default is -1 (the last axis).
 
-    Returns: Array of indices that sort vals along the specified axis in non-increasing order
+    Returns: Array of indices that sort a along the specified axis.
     """
     unsorted_top_k_idx = np.argpartition(vals, -k, axis=axis)[:, -k:]
     unsorted_top_k_scores = np.take_along_axis(
