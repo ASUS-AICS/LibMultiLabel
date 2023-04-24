@@ -14,15 +14,14 @@ __all__ = ['get_metrics',
 
 def _DCG(preds: np.ndarray, target: np.ndarray, k: int = 5) -> np.ndarray:
     """
-    Calculate the discounted cumulative gains (DCG). When k << #labels, scikit-learn's implementation of DCG has
-    a worst time complexity O(N^2), while we constrain the worst time complexity to O(N) through partitioning.
+    Calculate the discounted cumulative gains (DCG).
     """
     k = min(preds.shape[-1], k)
 
-    # find the indices of the top-k predicted values in descending order
-    order = argsort_top_k(preds, k)
-    # also known as target sorted by the top-k preds
-    gains = np.take_along_axis(target, order, -1)
+    # the indices of the top-k preds in non-increasing order
+    top_k_idx = argsort_top_k(preds, k)
+    # target sorted by the top-k preds in non-increasing order
+    gains = np.take_along_axis(target, top_k_idx, -1)
 
     # the discount factor
     discount = 1 / (np.log2(np.arange(gains.shape[1]) + 2))
@@ -47,11 +46,11 @@ class NDCG:
     def update(self, preds: np.ndarray, target: np.ndarray):
         assert preds.shape == target.shape  # (batch_size, num_classes)
 
-        # the vanilla DCG
+        # DCG
         dcgs = _DCG(preds, target, self.top_k)
-        # the maximum possible DCG, also called Ideal DCG
+        # ideal DCG
         idcgs = _DCG(target, target, self.top_k)
-        # the normalized DCG
+        # normalized DCG
         ndcg_score = dcgs / idcgs
 
         # deal with instances with all 0 labels and add up the results
@@ -219,9 +218,6 @@ def get_metrics(monitor_metrics: list[str],
         monitor_metrics = []
     metrics = {}
 
-    def get_k_from_metric(x):
-        return int(re.search('[^@]*$', x).group())
-
     for metric in monitor_metrics:
         if re.match('P@\d+', metric):
             metrics[metric] = Precision(
@@ -229,7 +225,7 @@ def get_metrics(monitor_metrics: list[str],
         elif re.match('RP@\d+', metric):
             metrics[metric] = RPrecision(top_k=int(metric[3:]))
         elif re.match('NDCG@\d+', metric):
-            metrics[metric] = NDCG(top_k=get_k_from_metric(metric))
+            metrics[metric] = NDCG(top_k=int(metric[5:]))
         elif metric in {'Another-Macro-F1', 'Macro-F1', 'Micro-F1'}:
             metrics[metric] = F1(num_classes,
                                  average=metric[:-3].lower(),
