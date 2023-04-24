@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+import array
+import collections
 import csv
 import logging
-import re
-from array import array
-from collections import defaultdict
 import pathlib
+import re
 
 import numpy as np
 import pandas as pd
@@ -92,7 +92,7 @@ class Preprocessor:
                    test_data: str | pathlib.Path | pd.DataFrame,
                    eval: bool
                    ) -> dict[str, dict[str, sparse.csr_matrix]]:
-        datasets = defaultdict(dict)
+        datasets = collections.defaultdict(dict)
         if test_data is not None:
             test = read_libmultilabel_format(test_data)
 
@@ -119,7 +119,7 @@ class Preprocessor:
                   test_data: str | pathlib.Path,
                   eval: bool
                   ) -> dict[str, dict[str, sparse.csr_matrix]]:
-        datasets = defaultdict(dict)
+        datasets = collections.defaultdict(dict)
         if test_data is not None:
             ty, tx = read_libsvm_format(test_data)
 
@@ -185,9 +185,9 @@ def read_libsvm_format(file_path: str | pathlib.Path) -> tuple[list[list[int]], 
         return [int(s) for s in str.split(',')]
 
     prob_y = []
-    prob_x = array('d')
-    row_ptr = array('l', [0])
-    col_idx = array('l')
+    prob_x = array.array('d')
+    row_ptr = array.array('l', [0])
+    col_idx = array.array('l')
 
     pattern = re.compile(r'(?!^$)([+\-0-9,]+\s+)?(.*\n?)')
     for i, line in enumerate(open(file_path)):
