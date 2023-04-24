@@ -101,6 +101,7 @@ def argsort_top_k(vals, k, axis=-1):
     unsorted_top_k_idx = np.argpartition(vals, -k, axis=axis)[:, -k:]
     unsorted_top_k_scores = np.take_along_axis(
         vals, unsorted_top_k_idx, axis=axis)
+    # the minus sign denotes the sorting order is non-increasing
     sorted_order = np.argsort(-unsorted_top_k_scores, axis=axis)
     sorted_top_k_idx = np.take_along_axis(
         unsorted_top_k_idx, sorted_order, axis=axis)
