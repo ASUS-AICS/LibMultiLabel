@@ -5,6 +5,7 @@ import logging
 import re
 from array import array
 from collections import defaultdict
+import pathlib
 
 import numpy as np
 import pandas as pd
@@ -33,20 +34,20 @@ class Preprocessor:
 
         self.data_format = data_format
 
-    def load_data(self, training_data: str | pd.DataFrame = None,
-                  test_data: str | pd.DataFrame = None,
+    def load_data(self, training_data: str | pathlib.Path | pd.DataFrame = None,
+                  test_data: str | pathlib.Path | pd.DataFrame = None,
                   eval: bool = False,
-                  label_file: str = None,
+                  label_file: str | pathlib.Path = None,
                   include_test_labels: bool = False,
                   remove_no_label_data: bool = False
                   ) -> dict[str, dict[str, sparse.csr_matrix]]:
         """Loads and preprocesses data.
 
         Args:
-            training_data (str | pd.DataFrame, optional): Training data file or dataframe in LibMultiLabel format. Ignored if eval is True. Defaults to None.
-            test_data (str | pd.DataFrame, optional): Test data file or dataframe in LibMultiLabel format. Ignored if test_data doesn't exist. Defaults to None.
+            training_data (str | pathlib.Path | pd.DataFrame, optional): Training data file or dataframe in LibMultiLabel format. Ignored if eval is True. Defaults to None.
+            test_data (str | pathlib.Path | pd.DataFrame, optional): Test data file or dataframe in LibMultiLabel format. Ignored if test_data doesn't exist. Defaults to None.
             eval (bool, optional): If True, ignores training data and uses previously loaded state to preprocess test data. Defaults to False.
-            label_file (str, optional): Path to a file holding all labels. Defaults to None.
+            label_file (str | pathlib.Path, optional): Path to a file holding all labels. Defaults to None.
             include_test_labels (bool, optional): Whether to include labels in the test dataset. Defaults to False.
             remove_no_label_data (bool, optional): Whether to remove training instances that have no labels. Defaults to False.
 
@@ -87,8 +88,8 @@ class Preprocessor:
 
         return data
 
-    def _load_text(self, training_data: str | pd.Dataframe,
-                   test_data: str | pd.Dataframe,
+    def _load_text(self, training_data: str | pathlib.Path | pd.Dataframe,
+                   test_data: str | pathlib.Path | pd.Dataframe,
                    eval: bool
                    ) -> dict[str, dict[str, sparse.csr_matrix]]:
         datasets = defaultdict(dict)
@@ -114,8 +115,8 @@ class Preprocessor:
 
         return dict(datasets)
 
-    def _load_svm(self, training_data: str,
-                  test_data: str,
+    def _load_svm(self, training_data: str | pathlib.Path,
+                  test_data: str | pathlib.Path,
                   eval: bool
                   ) -> dict[str, dict[str, sparse.csr_matrix]]:
         datasets = defaultdict(dict)
@@ -147,17 +148,16 @@ class Preprocessor:
         self.label_mapping = self.binarizer.classes_
 
 
-def read_libmultilabel_format(data: str | pd.Dataframe) -> dict[str,list[str]]:
+def read_libmultilabel_format(data: str | pathlib.Path | pd.Dataframe) -> dict[str,list[str]]:
     """Read multi-label text data from file or pandas dataframe.
 
     Args:
-        data ('str | pd.Dataframe'): A file path to data in `LibMultiLabel format <https://www.csie.ntu.edu.tw/~cjlin/libmultilabel/cli/ov_data_format.html#libmultilabel-format>`_
+        data ('str | pathlib.Path | pd.Dataframe'): A file path to data in `LibMultiLabel format <https://www.csie.ntu.edu.tw/~cjlin/libmultilabel/cli/ov_data_format.html#libmultilabel-format>`_
             or a pandas dataframe contains index (optional), label, and text.
     Returns:
         dict[str,list[str]]: A dictionary with a list of index (optional), label, and text.
     """
-    assert isinstance(data, str) or isinstance(data, pd.DataFrame), "Data must be from a file or pandas dataframe."
-    if isinstance(data, str):
+    if not isinstance(data, pd.Dataframe):
         data = pd.read_csv(data, sep='\t', header=None,
                            on_bad_lines='warn', quoting=csv.QUOTE_NONE).fillna('')
     data = data.astype(str)
@@ -172,11 +172,11 @@ def read_libmultilabel_format(data: str | pd.Dataframe) -> dict[str,list[str]]:
     return data.to_dict('list')
 
 
-def read_libsvm_format(file_path: str) -> tuple[list[list[int]], sparse.csr_matrix]:
+def read_libsvm_format(file_path: str | pathlib.Path) -> tuple[list[list[int]], sparse.csr_matrix]:
     """Read multi-label LIBSVM-format data.
 
     Args:
-        file_path (str): Path to file.
+        file_path (str | pathlib.Path): Path to file.
 
     Returns:
         tuple[list[list[int]], sparse.csr_matrix]: A tuple of labels and features.
