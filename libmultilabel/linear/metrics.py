@@ -217,7 +217,6 @@ def get_metrics(monitor_metrics: list[str],
     if monitor_metrics is None:
         monitor_metrics = []
     metrics = {}
-
     for metric in monitor_metrics:
         if re.match('P@\d+', metric):
             metrics[metric] = Precision(
