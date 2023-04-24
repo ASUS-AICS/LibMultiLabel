@@ -88,8 +88,8 @@ class Preprocessor:
 
         return data
 
-    def _load_text(self, training_data: str | pathlib.Path | pd.Dataframe,
-                   test_data: str | pathlib.Path | pd.Dataframe,
+    def _load_text(self, training_data: str | pathlib.Path | pd.DataFrame,
+                   test_data: str | pathlib.Path | pd.DataFrame,
                    eval: bool
                    ) -> dict[str, dict[str, sparse.csr_matrix]]:
         datasets = defaultdict(dict)
@@ -148,16 +148,16 @@ class Preprocessor:
         self.label_mapping = self.binarizer.classes_
 
 
-def read_libmultilabel_format(data: str | pathlib.Path | pd.Dataframe) -> dict[str,list[str]]:
+def read_libmultilabel_format(data: str | pathlib.Path | pd.DataFrame) -> dict[str,list[str]]:
     """Read multi-label text data from file or pandas dataframe.
 
     Args:
-        data ('str | pathlib.Path | pd.Dataframe'): A file path to data in `LibMultiLabel format <https://www.csie.ntu.edu.tw/~cjlin/libmultilabel/cli/ov_data_format.html#libmultilabel-format>`_
+        data ('str | pathlib.Path | pd.DataFrame'): A file path to data in `LibMultiLabel format <https://www.csie.ntu.edu.tw/~cjlin/libmultilabel/cli/ov_data_format.html#libmultilabel-format>`_
             or a pandas dataframe contains index (optional), label, and text.
     Returns:
         dict[str,list[str]]: A dictionary with a list of index (optional), label, and text.
     """
-    if not isinstance(data, pd.Dataframe):
+    if not isinstance(data, pd.DataFrame):
         data = pd.read_csv(data, sep='\t', header=None,
                            on_bad_lines='warn', quoting=csv.QUOTE_NONE).fillna('')
     data = data.astype(str)
