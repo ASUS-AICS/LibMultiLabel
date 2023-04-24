@@ -1,6 +1,7 @@
 import csv
 import gc
 import logging
+import pathlib
 import warnings
 
 import pandas as pd
@@ -160,7 +161,7 @@ def _load_raw_data(data, is_test=False, tokenize_text=True, remove_no_label_data
     """Load and tokenize raw data in file or dataframe.
 
     Args:
-        data (Union[str, pandas,.Dataframe]): Training, test, or validation data in file or dataframe.
+        data (Union[str, pathlib.Path, pandas.DataFrame]): Training, test, or validation data in file or dataframe.
         is_test (bool, optional): Whether the data is for test or not. Defaults to False.
         remove_no_label_data (bool, optional): Whether to remove training/validation instances that have no labels.
             This is effective only when is_test=False. Defaults to False.
@@ -168,8 +169,8 @@ def _load_raw_data(data, is_test=False, tokenize_text=True, remove_no_label_data
     Returns:
         pandas.DataFrame: Data composed of index, label, and tokenized text.
     """
-    assert isinstance(data, str) or isinstance(data, pd.DataFrame), "Data must be from a file or pandas dataframe."
-    if isinstance(data, str):
+    assert isinstance(data, (str, pathlib.Path, pd.DataFrame)), "Data must be from a file or pandas dataframe."
+    if isinstance(data, (str, pathlib.Path)):
         logging.info(f'Load data from {data}.')
         data = pd.read_csv(data, sep='\t', header=None,
                            on_bad_lines='warn', quoting=csv.QUOTE_NONE).fillna('')
@@ -214,9 +215,9 @@ def load_datasets(
     If `val_data` does not exist but `val_size` > 0, the validation set will be split from the training dataset.
 
     Args:
-        training_data (Union[str, pandas,.Dataframe], optional): Path to training data or a dataframe.
-        test_data (Union[str, pandas,.Dataframe], optional): Path to test data or a dataframe.
-        val_data (Union[str, pandas,.Dataframe], optional): Path to validation data or a dataframe.
+        training_data (Union[str, pathlib.Path, pandas.DataFrame], optional): Path to training data or a dataframe.
+        test_data (Union[str, pathlib.Path, pandas.DataFrame], optional): Path to test data or a dataframe.
+        val_data (Union[str, pathlib.Path, pandas.DataFrame], optional): Path to validation data or a dataframe.
         val_size (float, optional): Training-validation split: a ratio in [0, 1] or an integer for the size of the validation set.
             Defaults to 0.2.
         merge_train_val (bool, optional): Whether to merge the training and validation data.
@@ -228,7 +229,7 @@ def load_datasets(
     Returns:
         dict: A dictionary of datasets.
     """
-    if isinstance(training_data, str) or isinstance(test_data, str):
+    if isinstance(training_data, (str, pathlib.Path)) or isinstance(test_data, (str, pathlib.Path)):
         assert training_data or test_data, "At least one of `training_data` and `test_data` must be specified."
     elif isinstance(training_data, pd.DataFrame) or isinstance(test_data, pd.DataFrame):
         assert not training_data.empty or not test_data.empty, "At least one of `training_data` and `test_data` must be specified."
@@ -277,10 +278,10 @@ def load_or_build_text_dict(
 
     Args:
         dataset (list): List of training instances with index, label, and tokenized text.
-        vocab_file (str, optional): Path to a file holding vocabuaries. Defaults to None.
+        vocab_file (Union[str, pathlib.Path], optional): Path to a file holding vocabuaries. Defaults to None.
         min_vocab_freq (int, optional): The minimum frequency needed to include a token in the vocabulary. Defaults to 1.
-        embed_file (str): Path to a file holding pre-trained embeddings.
-        embed_cache_dir (str, optional): Path to a directory for storing cached embeddings. Defaults to None.
+        embed_file (Union[str, pathlib.Path], optional): Path to a file holding pre-trained embeddings.
+        embed_cache_dir (Union[str, pathlib.Path], optional): Path to a directory for storing cached embeddings. Defaults to None.
         silent (bool, optional): Enable silent mode. Defaults to False.
         normalize_embed (bool, optional): Whether the embeddings of each word is normalized to a unit vector. Defaults to False.
 
@@ -328,7 +329,7 @@ def load_or_build_label(datasets, label_file=None, include_test_labels=False):
     Args:
         datasets (dict): A dictionary of datasets. Each dataset contains list of instances
             with index, label, and tokenized text.
-        label_file (str, optional): Path to a file holding all labels.
+        label_file (Union[str, pathlib.Path], optional): Path to a file holding all labels.
         include_test_labels (bool, optional): Whether to include labels in the test dataset.
             Defaults to False.
 
@@ -362,9 +363,9 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, cache=N
 
     Args:
         word_dict (torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
-        embed_file (str): Path to a file holding pre-trained embeddings.
+        embed_file (Union[str, pathlib.Path]): Path to a file holding pre-trained embeddings.
         silent (bool, optional): Enable silent mode. Defaults to False.
-        cache (str, optional): Path to a directory for storing cached embeddings. Defaults to None.
+        cache (Union[str, pathlib.Path], optional): Path to a directory for storing cached embeddings. Defaults to None.
 
     Returns:
         torch.Tensor: Embedding weights (vocab_size, embed_size)
@@ -389,7 +390,7 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, cache=N
                 "Got embed_file {}, but allowed pretrained "
                 "vectors are {}".format(
                     embed_file, list(pretrained_aliases.keys())))
-        vector_dict = pretrained_aliases[embed_file](cache=cache)
+        vector_dict = pretrained_aliases[embed_file](cache=str(cache))
         embed_size = vector_dict.dim
 
     embedding_weights = torch.zeros(len(word_dict), embed_size)
