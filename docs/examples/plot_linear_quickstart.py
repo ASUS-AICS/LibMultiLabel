@@ -9,6 +9,7 @@ For this guide, we will only need the linear module:
 """
 
 import libmultilabel.linear as linear
+from libmultilabel.common_utils import argsort_top_k
 
 ######################################################################
 # To start, we need to read and preprocess the input data:
@@ -54,9 +55,7 @@ preds = linear.predict_values(model, datasets['test']['x'])
 # outputted by the model. To transform it into predictions,
 # you can use the API ``get_positive_labels`` to get class IDs and their corresponding scores.
 
-pred_res = linear.get_positive_labels(preds)
-pred_idx = pred_res[0]
-pred_scores = pred_res[1]
+pred_idx, pred_scores = linear.get_positive_labels(preds)
 
 ######################################################################
 # We now have the class IDs (``pred_idx``) and scores (``pred_scores``).
