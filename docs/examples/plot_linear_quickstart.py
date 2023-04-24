@@ -9,7 +9,6 @@ For this guide, we will only need the linear module:
 """
 
 import libmultilabel.linear as linear
-from libmultilabel.common_utils import argsort_top_k
 
 ######################################################################
 # To start, we need to read and preprocess the input data:
@@ -53,25 +52,24 @@ preds = linear.predict_values(model, datasets['test']['x'])
 ######################################################################
 # ``preds`` holds the decision values, i.e. the raw values
 # outputted by the model. To transform it into predictions,
-# you can use the API ``get_positive_labels`` to get class IDs and their corresponding scores.
+# you can use the API ``get_positive_labels`` to get predicted labels and their corresponding scores
+# using ``label_mapping`` in ``preprocessor`` and ``preds`` from the last step.
 
-pred_idx, pred_scores = linear.get_positive_labels(preds)
+pred_idx, pred_scores = linear.get_positive_labels(preds, preprocessor.label_mapping)
 
 ######################################################################
-# We now have the class IDs (``pred_idx``) and scores (``pred_scores``).
-# Then we will use ``label_mapping`` in ``Preprocessor`` to get the original labels.
-# You can use the following code to save the prediction with label and corresponding score to a list.
+# We now have the labels (``pred_idx``) and scores (``pred_scores``).
+# You can use the following code to save the prediction to a list.
 
-label_mapping = preprocessor.label_mapping
 prediction = []
 for idx, score in zip(pred_idx, pred_scores):
     prediction.append(
-        [f"{i}:{s:.4}" for i, s in zip(label_mapping[idx], score)])
-
+        [f"{i}:{s:.4}" for i, s in zip(idx, score)])
+print(prediction[0])
 ######################################################################
 # The first instance looks like:
 #
-#   >>> print([f"{i}:{s:.4}" for i, s in zip(label_mapping[pred_idx[0]], pred_scores[0])])
+#   >>> print(prediction[0])
 #   ...
 #       ['GCAT:1.345', 'GSPO:1.519']
 #
