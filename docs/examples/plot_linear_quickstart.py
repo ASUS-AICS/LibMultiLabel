@@ -65,7 +65,7 @@ prediction = []
 for idx, score in zip(pred_idx, pred_scores):
     prediction.append(
         [f"{i}:{s:.4}" for i, s in zip(idx, score)])
-print(prediction[0])
+
 ######################################################################
 # The first instance looks like:
 #
