@@ -1,4 +1,6 @@
+import pathlib
 from abc import abstractmethod
+from typing import Union
 
 import numpy as np
 import pytorch_lightning as pl
@@ -6,7 +8,7 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
-from ..common_utils import dump_log, argsort_top_k
+from ..common_utils import argsort_top_k, dump_log
 from ..nn.metrics import get_metrics, tabulate_metrics
 
 
@@ -21,7 +23,7 @@ class MultiLabelModel(pl.LightningModule):
         weight_decay (int, optional): Weight decay factor. Defaults to 0.
         metric_threshold (float, optional): The decision value threshold over which a label is predicted as positive. Defaults to 0.5.
         monitor_metrics (list, optional): Metrics to monitor while validating. Defaults to None.
-        log_path (str): Path to a directory holding the log files and models.
+        log_path (Union[str, pathlib.Path]): Path to a directory holding the log files and models.
         multiclass (bool, optional): Enable multiclass mode. Defaults to False.
         silent (bool, optional): Enable silent mode. Defaults to False.
         save_k_predictions (int, optional): Save top k predictions on test set. Defaults to 0.
@@ -191,7 +193,7 @@ class Model(MultiLabelModel):
         network (nn.Module): Network (i.e., CAML, KimCNN, or XMLCNN).
         loss_function (str, optional): Loss function name (i.e., binary_cross_entropy_with_logits,
             cross_entropy). Defaults to 'binary_cross_entropy_with_logits'.
-        log_path (str): Path to a directory holding the log files and models.
+        log_path (Union[str, pathlib.Path]): Path to a directory holding the log files and models.
     """
 
     def __init__(

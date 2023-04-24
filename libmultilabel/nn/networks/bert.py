@@ -1,3 +1,6 @@
+import pathlib
+from typing import Union
+
 import torch.nn as nn
 from transformers import AutoModelForSequenceClassification
 
@@ -8,7 +11,7 @@ class BERT(nn.Module):
     Args:
         num_classes (int): Total number of classes.
         dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
-        lm_weight (str): Pretrained model name or path. Defaults to 'bert-base-cased'.
+        lm_weight (Union[str, pathlib.Path]): Pretrained model name or path. Defaults to 'bert-base-cased'.
         lm_window (int): Length of the subsequences to be split before feeding them to
             the language model. Defaults to 512.
     """

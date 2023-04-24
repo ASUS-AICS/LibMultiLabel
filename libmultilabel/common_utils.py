@@ -2,7 +2,9 @@ import copy
 import json
 import logging
 import os
+import pathlib
 import time
+from typing import Union
 
 import numpy as np
 
@@ -60,7 +62,7 @@ def dump_log(log_path, metrics=None, split=None, config=None):
     """Write log including config and the evaluation scores.
 
     Args:
-        log_path(str): path to log path
+        log_path(Union[str, pathlib.Path]): path to log path
         metrics (dict): metric and scores in dictionary format, defaults to None
         split (str): val or test, defaults to None
         config (dict): config to save, defaults to None

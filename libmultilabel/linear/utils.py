@@ -31,11 +31,11 @@ LINEAR_TECHNIQUES = {
 }
 
 
-def save_pipeline(checkpoint_dir: str, preprocessor: Preprocessor, model):
+def save_pipeline(checkpoint_dir: str | pathlib.Path, preprocessor: Preprocessor, model):
     """Saves preprocessor and model to checkpoint_dir/linear_pipline.pickle.
 
     Args:
-        checkpoint_dir (str): The directory to save to.
+        checkpoint_dir (str | pathlib.Path): The directory to save to.
         preprocessor (Preprocessor): A Preprocessor.
         model: A model returned from one of the training functions.
     """
@@ -49,11 +49,11 @@ def save_pipeline(checkpoint_dir: str, preprocessor: Preprocessor, model):
         }, f)
 
 
-def load_pipeline(checkpoint_path: str) -> tuple[Preprocessor, Any]:
+def load_pipeline(checkpoint_path: str | pathlib.Path) -> tuple[Preprocessor, Any]:
     """Loads preprocessor and model from checkpoint_path.
 
     Args:
-        checkpoint_path (str): The path to a previously saved pipeline.
+        checkpoint_path (str | pathlib.Path): The path to a previously saved pipeline.
 
     Returns:
         tuple[Preprocessor, Any]: A tuple of the preprocessor and model.
