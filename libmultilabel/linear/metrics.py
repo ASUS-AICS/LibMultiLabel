@@ -149,7 +149,7 @@ class F1:
         Args:
             num_classes: The number of labels.
             average: Defines the reduction that is applied over labels. Should be one of 'macro', 'micro',
-            and 'another-macro'
+            and 'another-macro'.
             multiclass: Whether the tasks is a multiclass task.
         """
         self.num_classes = num_classes
