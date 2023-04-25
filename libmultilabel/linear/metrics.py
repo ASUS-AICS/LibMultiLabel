@@ -18,10 +18,11 @@ def _DCG(preds: np.ndarray, target: np.ndarray, k: int = 5) -> np.ndarray:
     """
     Compute the discounted cumulative gains (DCG).
     """
-    # Here we used self-implemented metric because scikit-learn's implementation of DCG has
-    # an average time complexity O(NlogN) as they apply quickselect regardless of k.
-    # The average time complexity is reduced to O(N + klogk) by first partitioning off
-    # the k largest elements and then applying quickselect to them.
+    # Self-implemented dcg is used here. scikit-learn's implementation has
+    # an average time complexity O(NlogN) as it directly applies quicksort
+    # to preds regardless of k. Here the average time complexity is reduced to
+    # O(N + klogk) by first partitioning off the k largest elements and then
+    # applying quicksort to the subarray.
     unsorted_top_k_idx = np.argpartition(preds, -k)[:, -k:]
     unsorted_top_k_scores = np.take_along_axis(
         preds, unsorted_top_k_idx, -1)
