@@ -96,12 +96,12 @@ def argsort_top_k(vals, k, axis=-1):
         k: Only consider the highest k scores in the ranking.
         axis: Axis along which to sort. The default is -1 (the last axis).
 
-    Returns: Array of indices that sort a along the specified axis.
+    Returns: Array of indices that sort vals along the specified axis.
     """
+    # sort the array in non-increasing order
     unsorted_top_k_idx = np.argpartition(vals, -k, axis=axis)[:, -k:]
     unsorted_top_k_scores = np.take_along_axis(
         vals, unsorted_top_k_idx, axis=axis)
-    # the minus sign denotes the sorting order is non-increasing
     sorted_order = np.argsort(-unsorted_top_k_scores, axis=axis)
     sorted_top_k_idx = np.take_along_axis(
         unsorted_top_k_idx, sorted_order, axis=axis)
