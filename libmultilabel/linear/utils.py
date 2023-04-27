@@ -110,7 +110,7 @@ class MultiLabelEstimator(sklearn.base.BaseEstimator):
 
 class GridSearchCV(sklearn.model_selection.GridSearchCV):
     """A customized `sklearn.model_selection.GridSearchCV`` class for Liblinear.
-    The usage is similar to sklearn's, except for ``scoring``.
+    The usage is similar to sklearn's, except that the parameter ``scoring`` is unavailable. Instead, specify ``scoring_metric`` in ``MultiLabelEstimator`` in the Pipeline.
 
     Args:
         pipeline (sklearn.pipeline.Pipeline): A sklearn Pipeline for grid search.
