@@ -53,7 +53,7 @@ from sklearn.pipeline import Pipeline
 pipeline = Pipeline([
     ('tfidf', TfidfVectorizer(max_features=20000, min_df=3)),
     ('clf', linear.MultiLabelEstimator(
-        options='-s 2 -m 4', linear_technique='1vsrest'))
+        options='-s 2 -m 4', linear_technique='1vsrest', scoring_metric='P@1'))
 ])
 
 ######################################################################
@@ -71,6 +71,8 @@ pipeline.fit(train_data['text'], y)
 # Grid Search over Feature Generations and LIBLINEAR Options
 # -----------------------------------------------------------
 # To search for the best setting, we can employ ``GridSearchCV``.
+# The usage is similar to sklearn's except that the parameter ``scoring`` is not available.  Please specify
+# ``scoring_metric`` in ``linear.MultiLabelEstimator`` instead.
 liblinear_options = ['-s 2 -c 0.5', '-s 2 -c 1', '-s 2 -c 2']
 parameters = {
     'clf__options': liblinear_options,
