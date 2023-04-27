@@ -328,6 +328,9 @@ def _do_train(y: np.ndarray,
     Returns:
         np.matrix: the weights.
     """
+    if y.shape[0] == 0:
+        return np.matrix(np.zeros((x.shape[1], 1)))
+
     with silent_stderr():
         model = train(y, x, options)
 

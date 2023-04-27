@@ -175,7 +175,7 @@ def _build_tree(label_representation: sparse.csr_matrix,
 
     metalabels = sklearn.cluster.KMeans(
         K,
-        random_state=np.random.randint(2**32),
+        random_state=np.random.randint(2**31 - 1),
         n_init=1,
         max_iter=300,
         tol=0.0001,
