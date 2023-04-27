@@ -126,7 +126,7 @@ class GridSearchCV(sklearn.model_selection.GridSearchCV):
             param_grid = self._set_singlecore_options(pipeline, param_grid)
         if 'scoring' in kwargs.keys():
             raise ValueError(
-                'Please specify metric with `MultiLabelEstimator.scoring_metric` instead of `scoring`.')
+                'Please specify the validation metric with `MultiLabelEstimator.scoring_metric` in the Pipeline instead of using the parameter `scoring`.')
 
         super().__init__(
             estimator=pipeline,
