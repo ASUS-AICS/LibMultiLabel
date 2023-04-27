@@ -71,7 +71,7 @@ pipeline.fit(train_data['text'], y)
 # Grid Search over Feature Generations and LIBLINEAR Options
 # -----------------------------------------------------------
 # To search for the best setting, we can employ ``GridSearchCV``.
-# The parameter ``scoring`` is not available; please specify
+# The usage is similar to sklearn's except that the parameter ``scoring`` is not available.  Please specify
 # ``scoring_metric`` in ``linear.MultiLabelEstimator`` instead.
 liblinear_options = ['-s 2 -c 0.5', '-s 2 -c 1', '-s 2 -c 2']
 parameters = {
