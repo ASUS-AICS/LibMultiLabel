@@ -634,9 +634,10 @@ def get_topk_labels(preds: np.ndarray,
         Two 2d ndarray with first one containing predicted labels and the other containing corresponding score.
         Both have dimension (num_instances * top_k). 
     """
-    idx = np.argpartition(preds, range(-1, -top_k-1, -1))[:, :-top_k-1:-1]
-    scores = np.take_along_axis(preds, idx, axis=1)
-    return label_mapping[idx], scores
+    idx = np.argpartition(preds, -top_k)[:, :-top_k-1:-1]
+    sorted_idx = np.take_along_axis(idx, np.argsort(preds[np.arange(preds.shape[0])[:, None], idx]))
+    scores = np.take_along_axis(preds, sorted_idx, axis=-1)
+    return label_mapping[sorted_idx], scores
 
 
 def get_positive_labels(preds: np.ndarray, label_mapping: np.ndarray) -> tuple[list[list[int]], list[list[float]]]:
