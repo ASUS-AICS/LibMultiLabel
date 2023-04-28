@@ -47,6 +47,7 @@ Next, the ``learning rate`` is changed to 0.003 while other parameters are kept 
 By the same training command, the P@1 score of the second parameter set is about 78.14%, which is
 4% lower than the first one. This demonstrates the importance of parameter selection.
 
+For more striking examples on the importance of parameter selection, you can see `this paper <https://www.csie.ntu.edu.tw/~cjlin/papers/parameter_selection/acl2021_parameter_selection.pdf>`_ .
 
 .. _Parameter Selection for Neural Networks:
 
@@ -91,9 +92,9 @@ Early Stopping of the Parameter Search
 ----------------------------
 
 It is time consuming to search over the entire parameter space.
-To save time, LibMultiLabel has incorporated some early stopping techniques.
+To save time, LibMultiLabel has incorporated some early stopping techniques implemented in `Ray <https://arxiv.org/abs/1807.05118>`_ .
 
-Here we demonstrate an example of applying an ASHA (Asynchronous Successive Halving Algorithm) Scheduler .
+Here we demonstrate an example of applying an `ASHA (Asynchronous Successive Halving Algorithm) Scheduler <https://arxiv.org/abs/1810.05934>`_ .
 
 First, uncomment the following lines in the 
 `bigru_lwan_tune configuration file <https://github.com/ASUS-AICS/LibMultiLabel/blob/master/example_config/EUR-Lex/bigru_lwan_tune.yml>`_
