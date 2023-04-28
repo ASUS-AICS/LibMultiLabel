@@ -109,7 +109,8 @@ Under the same computing environment and the same command, the best parameter se
 ``embed_dropout=0.4``, ``encoder_dropout=0.2``, and ``rnn_dim=512`` is found in 47% of the time compared to the
 grid search, while the average test P@1 score = 82.90% is similar to the result without early stopping. 
 
-For more complete results of the above examples, please refer to the table below.
+A summary of results is in the following table.
+
 
 .. list-table:: Neural networks (BiGRU) Experiments on the EUR-Lex data set
    :widths: 50 25 25 25 25 50
