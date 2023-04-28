@@ -142,7 +142,3 @@ A summary of results is in the following table.
      - 56.38
      - 11.6 hours
 
-
-
-
-
