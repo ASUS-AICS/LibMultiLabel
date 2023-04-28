@@ -77,7 +77,8 @@ The process finds the best parameter set of ``learning_rate=0.0003``, ``embed_dr
 
 
 Details of other parameters are in the 
-`bigru_lwan configuration file <https://github.com/ASUS-AICS/LibMultiLabel/blob/master/example_config/EUR-Lex/bigru_lwan.yml>`_
+`bigru_lwan configuration file <https://github.com/ASUS-AICS/LibMultiLabel/blob/master/example_config/EUR-Lex/bigru_lwan.yml>`_.
+
 After the search process, the program applies the best parameters to obtain the final model by adding 
 
 the validation set for training. The average P@1 score is 83.65% on the test set.
