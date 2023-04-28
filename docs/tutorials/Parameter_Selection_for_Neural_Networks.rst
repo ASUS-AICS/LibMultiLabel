@@ -42,7 +42,8 @@ Next, the ``learning rate`` is changed to 0.003 while other parameters are kept 
       rnn_layers: 1
 
 By the same training command, the P@1 score of the second parameter set is about 78.14%, which is
-4% lower than the first one.This demonstrates the importance of parameter selection.
+4% lower than the first one. This demonstrates the importance of parameter selection.
+
 
 .. _Parameter Selection for Neural Networks:
 
