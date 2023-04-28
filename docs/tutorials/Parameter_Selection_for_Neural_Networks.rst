@@ -73,7 +73,8 @@ Then the training command is:
 
     python3  search_params.py --config example_config/EUR-Lex/bigru_lwan_tune.yml
 
-The process find the best parameter set of ``learning_rate=0.0003``, ``embed_dropout=0.4``, ``encoder_dropout=0.4``, and ``rnn_dim=512``. 
+The process finds the best parameter set of ``learning_rate=0.0003``, ``embed_dropout=0.4``, ``encoder_dropout=0.4``, and ``rnn_dim=512``. 
+
 
 Details of other parameters are in the 
 `bigru_lwan configuration file <https://github.com/ASUS-AICS/LibMultiLabel/blob/master/example_config/EUR-Lex/bigru_lwan.yml>`_
