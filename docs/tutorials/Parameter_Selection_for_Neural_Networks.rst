@@ -120,7 +120,8 @@ For more complete results of the above examples, please refer to the table below
      - Micro-F1
      - P@1
      - P@5
-     - Training Time(GPU)
+     - Training Time (GPU)
+
    * - wo/ parameter selection
      - 20.48
      - 51.56
