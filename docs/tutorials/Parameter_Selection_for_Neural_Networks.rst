@@ -46,7 +46,8 @@ By the same training command, the P@1 score of the second parameter set is about
 
 .. _Parameter Selection for Neural Networks:
 
-grid search for parameters
+Grid Search over Parameters
+
 ------------------------------------------
 
 First in the configuration file, we specify a grid search on the following parameters to get the best BiGRU model
