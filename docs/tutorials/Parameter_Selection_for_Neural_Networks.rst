@@ -3,6 +3,8 @@ Parameter Selection for Neural Networks
 
 The performance of a model depends on the choice of hyper-parameters.
 The following example demonstrates how the BiGRU model performs differently on the EUR-Lex data set with two parameter sets.
+Datasets can be downloaded from the 
+`LIBSVM datasets <https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel.html>`_.
 
 Direct Trying Some Parameters
 
