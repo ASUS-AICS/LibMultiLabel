@@ -109,12 +109,24 @@ class MultiLabelEstimator(sklearn.base.BaseEstimator):
 
 
 class GridSearchCV(sklearn.model_selection.GridSearchCV):
+    """A customized `sklearn.model_selection.GridSearchCV`` class for Liblinear.
+    The usage is similar to sklearn's, except that the parameter ``scoring`` is unavailable. Instead, specify ``scoring_metric`` in ``MultiLabelEstimator`` in the Pipeline.
+
+    Args:
+        pipeline (sklearn.pipeline.Pipeline): A sklearn Pipeline for grid search.
+        param_grid (dict): Search space for a grid search containing a dictionary of
+            parameters and their corresponding list of candidate values.
+        n_jobs (int, optional): Number of CPU cores run in parallel. Defaults to None.
+    """
     _required_parameters = ['pipeline', 'param_grid']
 
     def __init__(self, pipeline: sklearn.pipeline.Pipeline, param_grid: dict, n_jobs=None, **kwargs):
         assert isinstance(pipeline, sklearn.pipeline.Pipeline)
         if n_jobs is not None and n_jobs > 1:
             param_grid = self._set_singlecore_options(pipeline, param_grid)
+        if 'scoring' in kwargs.keys():
+            raise ValueError(
+                'Please specify the validation metric with `MultiLabelEstimator.scoring_metric` in the Pipeline instead of using the parameter `scoring`.')
 
         super().__init__(
             estimator=pipeline,
