@@ -84,7 +84,8 @@ After the search process, the program applies the best parameters to obtain the 
 
 the validation set for training. The average P@1 score is 83.65% on the test set.
 
-early stopping techniques
+Early Stopping of the Parameter Search 
+
 ----------------------------
 
 It is time consuming to search over the entire parameter space.
