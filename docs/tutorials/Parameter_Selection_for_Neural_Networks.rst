@@ -53,7 +53,6 @@ Grid Search over Parameters
 
 In the configuration file, we specify a grid search on the following parameters.
 
-on the EUR-Lex data set.
 
 .. code-block:: bash
 
