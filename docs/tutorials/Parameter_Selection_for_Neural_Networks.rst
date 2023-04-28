@@ -51,7 +51,8 @@ Grid Search over Parameters
 
 ------------------------------------------
 
-First in the configuration file, we specify a grid search on the following parameters to get the best BiGRU model
+In the configuration file, we specify a grid search on the following parameters.
+
 on the EUR-Lex data set.
 
 .. code-block:: bash
