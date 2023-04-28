@@ -64,7 +64,8 @@ In the configuration file, we specify a grid search on the following parameters.
       rnn_layers: 1
     embed_cache_dir: .vector_cache
 
-Here We set the embed cache dir to .vector cache to avoid downloading pre-trained embeddings repeatedly for each configuration.
+We set the embed cache dir to .vector cache to avoid downloading pre-trained embeddings repeatedly for each configuration.
+
 
 Then the training command is:
 
