@@ -635,8 +635,9 @@ def get_topk_labels(preds: np.ndarray,
         Both have dimension (num_instances * top_k). 
     """
     idx = np.argpartition(preds, -top_k)[:, :-top_k-1:-1]
-    sorted_idx = np.take_along_axis(idx, np.argsort(-preds[np.arange(preds.shape[0])[:, None], idx]), axis=-1)
-    scores = np.take_along_axis(preds, sorted_idx, axis=-1)
+    row_idx = np.arange(preds.shape[0])[:, None]
+    sorted_idx = idx[row_idx, np.argsort(-preds[row_idx, idx])]
+    scores = preds[row_idx, sorted_idx]
     return label_mapping[sorted_idx], scores
 
 
