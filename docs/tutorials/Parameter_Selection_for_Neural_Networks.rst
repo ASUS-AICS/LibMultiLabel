@@ -114,7 +114,7 @@ grid search, while the average test P@1 score = 82.90% is similar to the result 
 A summary of results is in the following table.
 
 
-.. list-table:: Neural networks (BiGRU) Experiments on the EUR-Lex data set
+.. list-table::  
    :widths: 50 25 25 25 25 50
    :header-rows: 1
 
