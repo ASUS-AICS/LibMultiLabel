@@ -10,13 +10,8 @@ __all__ = ['get_metrics',
            'MetricCollection']
 
 
-def _check_top_k(k):
-    if not (isinstance(k, int) and k > 0):
-        raise ValueError('"k" has to be a positive integer')
-
 def _DCG(preds: np.ndarray, target: np.ndarray, k: int = 5) -> np.ndarray:
-    """
-    Compute the discounted cumulative gains (DCG).
+    """Compute the discounted cumulative gains (DCG).
     """
     # Self-implemented dcg is used here. scikit-learn's implementation has
     # an average time complexity O(NlogN) as it directly applies quicksort
@@ -27,7 +22,7 @@ def _DCG(preds: np.ndarray, target: np.ndarray, k: int = 5) -> np.ndarray:
     preds_unsorted_idx = np.argpartition(preds, -k)[:, -k:]
     preds_sorted_idx = preds_unsorted_idx[row_idx, np.argsort(-preds[row_idx, preds_unsorted_idx])]
 
-    # target sorted by the top-k preds in non-increasing order
+    # target sorted by the top k preds in non-increasing order
     gains = target[row_idx, preds_sorted_idx]
 
     # the discount factor
@@ -40,10 +35,10 @@ def _DCG(preds: np.ndarray, target: np.ndarray, k: int = 5) -> np.ndarray:
 
 class NDCG:
     def __init__(self, top_k: int):
-        """
-        Compute the normalized DCG@k (nDCG@k).
+        """Compute the normalized DCG@k (nDCG@k).
+
         Args:
-            top_k: Consider only the top k elements for each instance.
+            top_k: Consider only the top k elements for each query.
         """
         _check_top_k(top_k)
 
@@ -76,10 +71,10 @@ class NDCG:
 
 class RPrecision:
     def __init__(self, top_k: int):
-        """
-        Compute the R-Precision@K.
+        """Compute the R-Precision@K.
+
         Args:
-            top_k: Consider only the top k elements for each instance.
+            top_k: Consider only the top k elements for each query.
         """
         _check_top_k(top_k)
 
@@ -108,12 +103,12 @@ class RPrecision:
 
 class Precision:
     def __init__(self, num_classes: int, average: str, top_k: int):
-        """
-        Compute the Precision@K.
+        """Compute the Precision@K.
+
         Args:
             num_classes: The number of classes.
-            average: Defines the reduction that is applied over labels. Currently only samples is supported.
-            top_k: Consider only the top k elements for each instance.
+            average: Define the reduction that is applied over labels. Currently only "samples" is supported.
+            top_k: Consider only the top k elements for each query.
         """
         if average != 'samples':
             raise ValueError('unsupported average')
@@ -141,13 +136,13 @@ class Precision:
 
 class F1:
     def __init__(self, num_classes: int, average: str, multiclass=False):
-        """
-        Compute the F1 score.
+        """Compute the F1 score.
+
         Args:
             num_classes: The number of labels.
-            average: Defines the reduction that is applied over labels. Should be one of 'macro', 'micro',
-            and 'another-macro'.
-            multiclass: Whether the tasks is a multiclass task.
+            average: Define the reduction that is applied over labels. Should be one of "macro", "micro",
+            "another-macro".
+            multiclass: Whether the task is a multiclass task.
         """
         self.num_classes = num_classes
         if average not in {'macro', 'micro', 'another-macro'}:
@@ -309,3 +304,8 @@ def tabulate_metrics(metric_dict: dict[str, float], split: str) -> str:
                       float)) else f'{x:^18}' for x in metric_dict.values()])
     msg += f"|{header}|\n|{'-----------------:|' * len(metric_dict)}\n|{values}|\n"
     return msg
+
+
+def _check_top_k(k):
+    if not (isinstance(k, int) and k > 0):
+        raise ValueError('"k" has to be a positive integer')
