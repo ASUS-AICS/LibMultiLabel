@@ -23,15 +23,12 @@ def _DCG(preds: np.ndarray, target: np.ndarray, k: int = 5) -> np.ndarray:
     # to preds regardless of k. Here the average time complexity is reduced to
     # O(N + klogk) by first partitioning off the k largest elements and then
     # applying quicksort to the subarray.
-    unsorted_top_k_idx = np.argpartition(preds, -k)[:, -k:]
-    unsorted_top_k_scores = np.take_along_axis(
-        preds, unsorted_top_k_idx, -1)
-    sorted_order = np.argsort(-unsorted_top_k_scores)
-    sorted_top_k_idx = np.take_along_axis(
-        unsorted_top_k_idx, sorted_order, -1)
+    row_idx = np.arange(preds.shape[0])[:, np.newaxis]
+    preds_unsorted_idx = np.argpartition(preds, -k)[:, -k:]
+    preds_sorted_idx = preds_unsorted_idx[row_idx, np.argsort(-preds[row_idx, preds_unsorted_idx])]
 
     # target sorted by the top-k preds in non-increasing order
-    gains = np.take_along_axis(target, sorted_top_k_idx, -1)
+    gains = target[row_idx, preds_sorted_idx]
 
     # the discount factor
     discount = 1 / (np.log2(np.arange(gains.shape[1]) + 2))
