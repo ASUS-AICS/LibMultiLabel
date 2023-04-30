@@ -112,7 +112,8 @@ Under the same computing environment and the same command, the best parameter se
 ``embed_dropout=0.4``, ``encoder_dropout=0.2``, and ``rnn_dim=512`` is found in 47% of the time compared to the
 grid search, while the average test P@1 score = 82.90% is similar to the result without early stopping. 
 
-A summary of results is in the following table.Four Nvidia Tesla V100 GPUs are used in this experiment.
+A summary of results is in the following table. Four Nvidia Tesla V100 GPUs were used in this experiment.
+
 
 
 .. list-table::  
