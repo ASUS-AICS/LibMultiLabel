@@ -57,6 +57,7 @@ The possible metric names are:
 
 * ``'P@K'``, where ``K`` is a positive integer
 * ``'RP@K'``, where ``K`` is a positive integer
+* ``'NDCG@K'``, where ``K`` is a positive integer
 * ``'Macro-F1'``
 * ``'Micro-F1'``
 
