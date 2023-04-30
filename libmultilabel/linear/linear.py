@@ -623,7 +623,7 @@ def get_topk_labels(preds: np.ndarray,
                     label_mapping: np.ndarray,
                     top_k: int = 5
                     ):
-    """Get predicted labels and scores of top k predictions from decision values.
+    """Get labels and scores of top k predictions from decision values.
 
     Args:
         preds (np.ndarray): A matrix of decision values with dimension (number of instances * number of classes).
