@@ -631,7 +631,7 @@ def get_topk_labels(preds: np.ndarray,
         top_k (int): Determine how many classes per instance should be predicted.
 
     Returns:
-        Two 2d ndarray with first one containing predicted labels and the other containing corresponding score.
+        Two 2d ndarray with first one containing predicted labels and the other containing corresponding scores.
         Both have dimension (num_instances * top_k). 
     """
     idx = np.argpartition(preds, -top_k)[:, :-top_k-1:-1]
