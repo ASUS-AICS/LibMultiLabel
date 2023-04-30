@@ -650,10 +650,10 @@ def get_positive_labels(preds: np.ndarray, label_mapping: np.ndarray) -> tuple[l
     Returns:
         Two 2d lists with first one containing predicted labels and the other containing corresponding score.
     """
-    idx = []
+    labels = []
     scores = []
     for ipred in preds:
         pos_idx = np.where(ipred > 0)
-        idx.append(label_mapping[pos_idx[0]].tolist())
+        labels.append(label_mapping[pos_idx[0]].tolist())
         scores.append(ipred[pos_idx].tolist())
-    return idx, scores
+    return labels, scores
