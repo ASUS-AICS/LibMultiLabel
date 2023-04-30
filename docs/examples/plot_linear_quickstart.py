@@ -52,7 +52,7 @@ preds = linear.predict_values(model, datasets['test']['x'])
 ######################################################################
 # ``preds`` holds the decision values, i.e. the raw values
 # outputted by the model. To transform it into predictions,
-# you can use the API ``get_positive_labels`` to get predicted labels and their corresponding scores
+# you can apply the API ``get_positive_labels`` to get predicted labels and their corresponding scores
 # using ``label_mapping`` in ``preprocessor`` and ``preds`` from the last step.
 
 pred_idx, pred_scores = linear.get_positive_labels(preds, preprocessor.label_mapping)
