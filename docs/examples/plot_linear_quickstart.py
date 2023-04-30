@@ -55,16 +55,16 @@ preds = linear.predict_values(model, datasets['test']['x'])
 # you can apply the API ``get_positive_labels`` to get predicted labels and their corresponding scores
 # by using ``label_mapping`` in ``preprocessor`` and ``preds`` from the last step.
 
-pred_idx, pred_scores = linear.get_positive_labels(preds, preprocessor.label_mapping)
+pred_labels, pred_scores = linear.get_positive_labels(preds, preprocessor.label_mapping)
 
 ######################################################################
 # We now have the labels (``pred_idx``) and scores (``pred_scores``).
 # You can use the following code to save the prediction to a list.
 
 prediction = []
-for idx, score in zip(pred_idx, pred_scores):
+for label, score in zip(pred_labels, pred_scores):
     prediction.append(
-        [f"{i}:{s:.4}" for i, s in zip(idx, score)])
+        [f"{i}:{s:.4}" for i, s in zip(label, score)])
 
 ######################################################################
 # The first instance looks like:

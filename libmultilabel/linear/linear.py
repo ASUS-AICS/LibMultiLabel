@@ -622,7 +622,7 @@ def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
 def get_topk_labels(preds: np.ndarray,
                     label_mapping: np.ndarray,
                     top_k: int = 5
-                    ):
+                    ) -> tuple[np.ndarray, np.ndarray]:
     """Get labels and scores of top k predictions from decision values.
 
     Args:
@@ -641,15 +641,15 @@ def get_topk_labels(preds: np.ndarray,
     return label_mapping[sorted_idx], scores
 
 
-def get_positive_labels(preds: np.ndarray, label_mapping: np.ndarray) -> tuple[list[list[int]], list[list[float]]]:
-    """Get all predicted labels and scores with positive decision value.
+def get_positive_labels(preds: np.ndarray, label_mapping: np.ndarray) -> tuple[list[list[str]], list[list[float]]]:
+    """Get all labels and scores with positive decision value.
 
     Args:
         preds (np.ndarray): A matrix of decision values with dimension number of instances * number of classes.
         label_mapping (np.ndarray): A ndarray of class labels that maps each index (from 0 to ``num_class-1``) to its label.
 
     Returns:
-        Two 2d lists with first one containing predicted labels and the other containing corresponding score.
+        Two 2d lists with first one containing predicted labels and the other containing corresponding scores.
     """
     labels = []
     scores = []
