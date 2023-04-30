@@ -623,7 +623,7 @@ def get_topk_labels(preds: np.ndarray,
                     label_mapping: np.ndarray,
                     top_k: int = 5
                     ):
-    """Get predicted labels and scores of top k predictions from decision values.
+    """Get labels and scores of top k predictions from decision values.
 
     Args:
         preds (np.ndarray): A matrix of decision values with dimension (number of instances * number of classes).
@@ -631,12 +631,13 @@ def get_topk_labels(preds: np.ndarray,
         top_k (int): Determine how many classes per instance should be predicted.
 
     Returns:
-        Two 2d ndarray with first one containing predicted labels and the other containing corresponding score.
+        Two 2d ndarray with first one containing predicted labels and the other containing corresponding scores.
         Both have dimension (num_instances * top_k). 
     """
     idx = np.argpartition(preds, -top_k)[:, :-top_k-1:-1]
-    sorted_idx = np.take_along_axis(idx, np.argsort(-preds[np.arange(preds.shape[0])[:, None], idx]), axis=-1)
-    scores = np.take_along_axis(preds, sorted_idx, axis=-1)
+    row_idx = np.arange(preds.shape[0])[:, None]
+    sorted_idx = idx[row_idx, np.argsort(-preds[row_idx, idx])]
+    scores = preds[row_idx, sorted_idx]
     return label_mapping[sorted_idx], scores
 
 
