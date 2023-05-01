@@ -32,7 +32,7 @@ The training command is:
 After training for 50 epochs, the checkpoint with the best validation performance is stored for testing. The
 average P@1 score on the test data set is 81.40%.
 
-Next, the ``learning rate`` is changed to 0.003 while other parameters are kept the same.
+Next, the ``learning_rate`` is changed to 0.003 while other parameters are kept the same.
 
 .. code-block:: bash
 
@@ -76,10 +76,6 @@ Then the training command is:
     python3 search_params.py --config example_config/EUR-Lex/bigru_lwan_tune.yml
 
 The process finds the best parameter set of ``learning_rate=0.0003``, ``embed_dropout=0.4``, ``encoder_dropout=0.4``, and ``rnn_dim=512``.
-
-
-Details of other parameters are in the
-`bigru_lwan configuration file <https://github.com/ASUS-AICS/LibMultiLabel/blob/master/example_config/EUR-Lex/bigru_lwan.yml>`_.
 
 After the search process, the program applies the best parameters to obtain the final model by adding
 the validation set for training. The average P@1 score is 83.65% on the test set.
