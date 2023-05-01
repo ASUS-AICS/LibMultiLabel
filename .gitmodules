@@ -1,0 +1,3 @@
+[submodule "docs/sdp"]
+	path = docs/sdp
+	url = https://github.com/ntumlgroup/sdp.git

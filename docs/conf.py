@@ -29,6 +29,7 @@ author = 'LibMultiLabel Authors'
 # ones.
 extensions = [
     'sphinx.ext.napoleon',
+    'sphinxcontrib.bibtex',
     'sphinx_gallery.gen_gallery',
     'sphinx.ext.autodoc', 
     'sphinx.ext.viewcode',
@@ -49,6 +50,8 @@ sphinx_gallery_conf = {
     "plot_gallery": False,
 }
 
+# bibtex files
+bibtex_bibfiles = ['sdp/sdp.bib']
 
 # -- Options for HTML output -------------------------------------------------
 

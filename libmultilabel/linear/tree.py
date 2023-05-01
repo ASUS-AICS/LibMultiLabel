@@ -108,7 +108,7 @@ class TreeModel:
 
 def train_tree(y: sparse.csr_matrix,
                x: sparse.csr_matrix,
-               options: str,
+               options: str = '',
                K=100, dmax=10,
                verbose: bool = True,
                ) -> TreeModel:
@@ -175,7 +175,7 @@ def _build_tree(label_representation: sparse.csr_matrix,
 
     metalabels = sklearn.cluster.KMeans(
         K,
-        random_state=np.random.randint(2**32),
+        random_state=np.random.randint(2**31 - 1),
         n_init=1,
         max_iter=300,
         tol=0.0001,
@@ -224,6 +224,8 @@ def _train_node(y: sparse.csr_matrix,
             meta_y, x, options, False
         )
 
+    node.model.weights = sparse.csr_matrix(node.model.weights)
+
 
 def _flatten_model(root: Node) -> tuple[linear.FlatModel, np.ndarray]:
     """Flattens tree weight matrices into a single weight matrix. The flattened weight
@@ -257,7 +259,7 @@ def _flatten_model(root: Node) -> tuple[linear.FlatModel, np.ndarray]:
 
     model = linear.FlatModel(
         name='flattened-tree',
-        weights=np.hstack(weights),
+        weights=sparse.hstack(weights, 'csr'),
         bias=bias,
         thresholds=0,
     )
