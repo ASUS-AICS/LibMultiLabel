@@ -89,7 +89,7 @@ To save time, LibMultiLabel has incorporated some early stopping techniques impl
 Here we demonstrate an example of applying an `ASHA (Asynchronous Successive Halving Algorithm) Scheduler <https://arxiv.org/abs/1810.05934>`_.
 
 First, uncomment the following lines in the
-`bigru_lwan_tune configuration file <https://github.com/ASUS-AICS/LibMultiLabel/blob/master/example_config/EUR-Lex/bigru_lwan_tune.yml>`_:
+`configuration file <https://github.com/ASUS-AICS/LibMultiLabel/blob/master/example_config/EUR-Lex/bigru_lwan_tune.yml>`_:
 
 .. code-block:: bash
 
