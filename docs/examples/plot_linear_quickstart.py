@@ -52,24 +52,26 @@ preds = linear.predict_values(model, datasets['test']['x'])
 ######################################################################
 # ``preds`` holds the decision values, i.e. the raw values
 # outputted by the model. To transform it into predictions,
-# the simplest way is to take the positive values as the labels predicted
-# to be associated with the sample, i.e. ``preds > 0``.
+# you can apply the API ``get_positive_labels`` to get predicted labels and their corresponding scores
+# by using ``label_mapping`` in ``preprocessor`` and ``preds`` from the last step.
 
-label_mask = preds > 0
-
-######################################################################
-# We now have the label mask. Next,
-# we use ``label_mapping`` in ``Preprocessor`` to get the original labels.
-
-label_mapping = preprocessor.label_mapping
-prediction = [label_mapping[row].tolist() for row in label_mask]
+pred_labels, pred_scores = linear.get_positive_labels(preds, preprocessor.label_mapping)
 
 ######################################################################
-# The result of first instance looks like:
+# We now have the labels (``pred_labels``) and scores (``pred_scores``).
+# You can use the following code to save the prediction to a list.
+
+prediction = []
+for label, score in zip(pred_labels, pred_scores):
+    prediction.append(
+        [f"{i}:{s:.4}" for i, s in zip(label, score)])
+
+######################################################################
+# The first instance looks like:
 #
 #   >>> print(prediction[0])
 #   ...
-#       ['GCAT', 'GSPO']
+#       ['GCAT:1.345', 'GSPO:1.519']
 #
 # To see how well we performed, we may want to check various
 # metrics with the test set.

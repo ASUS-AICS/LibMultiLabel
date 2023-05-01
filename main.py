@@ -92,8 +92,8 @@ def add_all_arguments(parser):
     # log
     parser.add_argument('--save_k_predictions', type=int, nargs='?', const=100, default=0,
                         help='Save top k predictions on test set. k=%(const)s if not specified. (default: %(default)s)')
-    parser.add_argument('--predict_out_path',
-                        help='Path to the an output file holding top k label results (default: %(default)s)')
+    parser.add_argument('--predict_out_path', default='./predictions.txt',
+                        help='Path to the output file holding label results (default: %(default)s)')
 
     # auto-test
     parser.add_argument('--limit_train_batches', type=float, default=1.0,
@@ -129,13 +129,14 @@ def add_all_arguments(parser):
                                  'cost_sensitive_micro', 'binary_and_multiclass',
                                  'tree'],
                         help='Technique for linear classification (default: %(default)s)')
+    parser.add_argument('--save_positive_predictions', action='store_true',
+                        help='Save all the predictions with decision value larger then 0. If used, the save_k_predictions must be set to 0')
 
     # tree options
     parser.add_argument('--tree_degree', type=int, default=100,
                         help='Degree of the tree (default: %(default)s)')
     parser.add_argument('--tree_max_depth', type=int, default=10,
                         help='Maximum depth of the tree (default: %(default)s)')
-
     parser.add_argument('-h', '--help', action='help',
                         help="If you are trying to specify network config such as dropout or activation, use a yaml file instead. "
                              "See example configs in example_config")

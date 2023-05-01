@@ -14,7 +14,8 @@ __all__ = ['train_1vsrest',
            'train_cost_sensitive_micro',
            'train_binary_and_multiclass',
            'predict_values',
-           'get_topk_labels']
+           'get_topk_labels',
+           'get_positive_labels']
 
 
 class FlatModel:
@@ -621,19 +622,42 @@ def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
     return model.predict_values(x)
 
 
-def get_topk_labels(label_mapping: np.ndarray,
-                    preds: np.ndarray,
+def get_topk_labels(preds: np.ndarray,
+                    label_mapping: np.ndarray,
                     top_k: int = 5
-                    ) -> list[list[str]]:
-    """Get top k predictions from decision values.
+                    ) -> tuple[np.ndarray, np.ndarray]:
+    """Get labels and scores of top k predictions from decision values.
 
     Args:
+        preds (np.ndarray): A matrix of decision values with dimension (number of instances * number of classes).
         label_mapping (np.ndarray): A ndarray of class labels that maps each index (from 0 to ``num_class-1``) to its label.
-        preds (np.ndarray): A matrix of decision values with dimension number of instances * number of classes.
         top_k (int): Determine how many classes per instance should be predicted.
 
     Returns:
-        list of lists which contain top k labels.
+        Two 2d ndarray with first one containing predicted labels and the other containing corresponding scores.
+        Both have dimension (num_instances * top_k). 
     """
-    top_k_ind = np.argpartition(preds, -top_k)[:, :-top_k-1:-1]
-    return label_mapping[top_k_ind].tolist()
+    idx = np.argpartition(preds, -top_k)[:, :-top_k-1:-1]
+    row_idx = np.arange(preds.shape[0])[:, None]
+    sorted_idx = idx[row_idx, np.argsort(-preds[row_idx, idx])]
+    scores = preds[row_idx, sorted_idx]
+    return label_mapping[sorted_idx], scores
+
+
+def get_positive_labels(preds: np.ndarray, label_mapping: np.ndarray) -> tuple[list[list[str]], list[list[float]]]:
+    """Get all labels and scores with positive decision value.
+
+    Args:
+        preds (np.ndarray): A matrix of decision values with dimension number of instances * number of classes.
+        label_mapping (np.ndarray): A ndarray of class labels that maps each index (from 0 to ``num_class-1``) to its label.
+
+    Returns:
+        Two 2d lists with first one containing predicted labels and the other containing corresponding scores.
+    """
+    labels = []
+    scores = []
+    for ipred in preds:
+        pos_idx = np.where(ipred > 0)
+        labels.append(label_mapping[pos_idx[0]].tolist())
+        scores.append(ipred[pos_idx].tolist())
+    return labels, scores
