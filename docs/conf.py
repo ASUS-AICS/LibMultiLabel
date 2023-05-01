@@ -31,6 +31,8 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinxcontrib.bibtex',
     'sphinx_gallery.gen_gallery',
+    'sphinx.ext.autodoc', 
+    'sphinx.ext.viewcode',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
