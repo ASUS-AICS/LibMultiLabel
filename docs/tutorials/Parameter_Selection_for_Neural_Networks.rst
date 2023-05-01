@@ -3,15 +3,14 @@ Parameter Selection for Neural Networks
 
 The performance of a model depends on the choice of hyper-parameters.
 The following example demonstrates how the BiGRU model performs differently on the EUR-Lex data set with two parameter sets.
-Datasets can be downloaded from the 
+Datasets can be downloaded from the
 `LIBSVM datasets <https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel.html>`_.
 
 Direct Trying Some Parameters
+-----------------------------
 
-----------------------------
-
-First, train a BiGRU model with the 
-`default configuration file <https://github.com/ASUS-AICS/LibMultiLabel/blob/master/example_config/EUR-Lex/bigru_lwan.yml>`_ 
+First, train a BiGRU model with the
+`default configuration file <https://github.com/ASUS-AICS/LibMultiLabel/blob/master/example_config/EUR-Lex/bigru_lwan.yml>`_
 with a little modification on the learning rate.
 Some important parameters are listed as follows.
 
@@ -47,13 +46,12 @@ Next, the ``learning rate`` is changed to 0.003 while other parameters are kept 
 By the same training command, the P@1 score of the second parameter set is about 78.14%, which is
 4% lower than the first one. This demonstrates the importance of parameter selection.
 
-For more striking examples on the importance of parameter selection, you can see `this paper <https://www.csie.ntu.edu.tw/~cjlin/papers/parameter_selection/acl2021_parameter_selection.pdf>`_ .
+For more striking examples on the importance of parameter selection, you can see `this paper <https://www.csie.ntu.edu.tw/~cjlin/papers/parameter_selection/acl2021_parameter_selection.pdf>`_.
 
 .. _Parameter Selection for Neural Networks:
 
 Grid Search over Parameters
-
-------------------------------------------
+---------------------------
 
 In the configuration file, we specify a grid search on the following parameters.
 
@@ -75,29 +73,27 @@ Then the training command is:
 
 .. code-block:: bash
 
-    python3  search_params.py --config example_config/EUR-Lex/bigru_lwan_tune.yml
+    python3 search_params.py --config example_config/EUR-Lex/bigru_lwan_tune.yml
 
-The process finds the best parameter set of ``learning_rate=0.0003``, ``embed_dropout=0.4``, ``encoder_dropout=0.4``, and ``rnn_dim=512``. 
+The process finds the best parameter set of ``learning_rate=0.0003``, ``embed_dropout=0.4``, ``encoder_dropout=0.4``, and ``rnn_dim=512``.
 
 
-Details of other parameters are in the 
+Details of other parameters are in the
 `bigru_lwan configuration file <https://github.com/ASUS-AICS/LibMultiLabel/blob/master/example_config/EUR-Lex/bigru_lwan.yml>`_.
 
-After the search process, the program applies the best parameters to obtain the final model by adding 
-
+After the search process, the program applies the best parameters to obtain the final model by adding
 the validation set for training. The average P@1 score is 83.65% on the test set.
 
-Early Stopping of the Parameter Search 
-
-----------------------------
+Early Stopping of the Parameter Search
+--------------------------------------
 
 It is time consuming to search over the entire parameter space.
-To save time, LibMultiLabel has incorporated some early stopping techniques implemented in `Ray <https://arxiv.org/abs/1807.05118>`_ .
+To save time, LibMultiLabel has incorporated some early stopping techniques implemented in `Ray <https://arxiv.org/abs/1807.05118>`_.
 
-Here we demonstrate an example of applying an `ASHA (Asynchronous Successive Halving Algorithm) Scheduler <https://arxiv.org/abs/1810.05934>`_ .
+Here we demonstrate an example of applying an `ASHA (Asynchronous Successive Halving Algorithm) Scheduler <https://arxiv.org/abs/1810.05934>`_.
 
-First, uncomment the following lines in the 
-`bigru_lwan_tune configuration file <https://github.com/ASUS-AICS/LibMultiLabel/blob/master/example_config/EUR-Lex/bigru_lwan_tune.yml>`_
+First, uncomment the following lines in the
+`bigru_lwan_tune configuration file <https://github.com/ASUS-AICS/LibMultiLabel/blob/master/example_config/EUR-Lex/bigru_lwan_tune.yml>`_:
 
 .. code-block:: bash
 
@@ -110,13 +106,12 @@ First, uncomment the following lines in the
 
 Under the same computing environment and the same command, the best parameter set of ``learning_rate=0.001``,
 ``embed_dropout=0.4``, ``encoder_dropout=0.2``, and ``rnn_dim=512`` is found in 47% of the time compared to the
-grid search, while the average test P@1 score = 82.90% is similar to the result without early stopping. 
+grid search, while the average test P@1 score = 82.90% is similar to the result without early stopping.
 
 A summary of results is in the following table. Four Nvidia Tesla V100 GPUs were used in this experiment.
 
 
-
-.. list-table::  
+.. list-table::
    :widths: 50 25 25 25 25 50
    :header-rows: 1
 
@@ -145,4 +140,3 @@ A summary of results is in the following table. Four Nvidia Tesla V100 GPUs were
      - 82.90
      - 56.38
      - 11.6 hours
-
