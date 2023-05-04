@@ -94,7 +94,7 @@ for param_name in sorted(parameters.keys()):
     print("%s: %r" % (param_name, clf.best_params_[param_name]))
 
 ######################################################################
-# The best parameters are:
+# The best parameters are::
 #  
 #   clf__options: '-s 2 -c 0.5 -m 1'
 #   tfidf__max_features: 20000
@@ -119,7 +119,7 @@ metrics = linear.compute_metrics(
 print(metrics)
 
 ######################################################################
-# The result of the best parameters will look similar to:
+# The result of the best parameters will look similar to::
 #
 #   {'Macro-F1': 0.4965720851051106, 'Micro-F1': 0.8004678830627301, 'P@1': 0.9587412721675744, 'P@3': 0.8021469454453142, 'P@5': 0.5605401496291271}
 
