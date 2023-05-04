@@ -34,7 +34,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 vectorizer = TfidfVectorizer(max_features=20000, min_df=3)
 vectorizer.fit(train_data['text'])
 x = vectorizer.transform(train_data['text'])
-model = linear.train_1vsrest(y, x, '-s 2 -c 0.5 -m 1')
+model = linear.train_1vsrest(y, x, '-s 2 -m 4')
 
 #######################################################################
 # We use the generated numerical features ``x`` as the input of
@@ -73,7 +73,6 @@ pipeline.fit(train_data['text'], y)
 # To search for the best setting, we can employ ``GridSearchCV``.
 # The usage is similar to sklearn's except that the parameter ``scoring`` is not available.  Please specify
 # ``scoring_metric`` in ``linear.MultiLabelEstimator`` instead.
-
 liblinear_options = ['-s 2 -c 0.5', '-s 2 -c 1', '-s 2 -c 2']
 parameters = {
     'clf__options': liblinear_options,
