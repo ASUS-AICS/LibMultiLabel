@@ -90,7 +90,7 @@ clf = clf.fit(train_data['text'], y)
 # After finishing gridsearch, we can get the best parameters by following code:
 
 for param_name in sorted(parameters.keys()):
-    print("%s: %r" % (param_name, clf.best_params_[param_name]))
+    print(f'{param_name}: {clf.best_params_[param_name]}')
 
 ######################################################################
 # The best parameters are::
