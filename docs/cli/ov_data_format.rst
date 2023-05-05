@@ -24,7 +24,7 @@ Install LibMultiLabel from Source
 
 * Environment
 
-    * Python: 3.7+
+    * Python: 3.8+
     * CUDA: 11.6 (if training neural networks by GPU)
     * Pytorch 1.13.1+
 
@@ -37,7 +37,7 @@ and then create a virtual enviroment as follows.
 
 .. code-block:: bash
 
-    conda create -n LibMultiLabel python=3.7
+    conda create -n LibMultiLabel python=3.8
     conda activate LibMultiLabel
 
 * Clone `LibMultiLabel <https://github.com/ASUS-AICS/LibMultiLabel>`_.
