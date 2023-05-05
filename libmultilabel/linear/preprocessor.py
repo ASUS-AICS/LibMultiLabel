@@ -41,7 +41,8 @@ class Preprocessor:
         label_file: str = None,
         include_test_labels: bool = False,
         remove_no_label_data: bool = False,
-    ) -> dict[str, dict[str, sparse.csr_matrix]]:
+        return_raw: bool = False,
+    ) -> dict[str, dict[str, sparse.csr_matrix | str]]:
         """Loads and preprocesses data.
 
         Args:
@@ -51,9 +52,10 @@ class Preprocessor:
             label_file (str, optional): Path to a file holding all labels. Defaults to None.
             include_test_labels (bool, optional): Whether to include labels in the test dataset. Defaults to False.
             remove_no_label_data (bool, optional): Whether to remove training instances that have no labels. Defaults to False.
+            return_raw (bool): Whether to return raw data for libmultilabel format data.
 
         Returns:
-            dict[str, dict[str, sparse.csr_matrix]]: The training and test data, with keys 'train' and 'test' respectively.
+            dict[str, dict[str, sparse.csr_matrix | str]]: The training and/or test data, with keys 'train' and 'test' respectively.
             The data has keys 'x' for input features and 'y' for labels.
         """
         if label_file is not None:
@@ -67,7 +69,9 @@ class Preprocessor:
             self.include_test_labels = include_test_labels
 
         if self.data_format in {"txt", "dataframe"}:
-            data = self._load_text(training_data, test_data, eval)
+            data = self._load_text(training_data, test_data, eval, return_raw)
+            if return_raw:
+                return data
         elif self.data_format == "svm":
             data = self._load_svm(training_data, test_data, eval)
 
@@ -89,7 +93,7 @@ class Preprocessor:
         return data
 
     def _load_text(
-        self, training_data: str | pd.Dataframe, test_data: str | pd.Dataframe, eval: bool
+        self, training_data: str | pd.Dataframe, test_data: str | pd.Dataframe, eval: bool, return_raw: bool
     ) -> dict[str, dict[str, sparse.csr_matrix]]:
         datasets = defaultdict(dict)
         if test_data is not None:
@@ -97,18 +101,24 @@ class Preprocessor:
 
         if not eval:
             train = read_libmultilabel_format(training_data)
-            self._generate_tfidf(train["text"])
+            if not return_raw:
+                self._generate_tfidf(train["text"])
 
-            if self.classes or not self.include_test_labels:
-                self._generate_label_mapping(train["label"], self.classes)
-            else:
-                self._generate_label_mapping(train["label"] + test["label"])
-            datasets["train"]["x"] = self.vectorizer.transform(train["text"])
-            datasets["train"]["y"] = self.binarizer.transform(train["label"]).astype("d")
+                if self.classes or not self.include_test_labels:
+                    self._generate_label_mapping(train["label"], self.classes)
+                else:
+                    self._generate_label_mapping(train["label"] + test["label"])
+                train["text"] = self.vectorizer.transform(train["text"])
+                train["label"] = self.binarizer.transform(train["label"]).astype("d")
+            datasets["train"]["x"] = train["text"]
+            datasets["train"]["y"] = train["label"]
 
         if test_data is not None:
-            datasets["test"]["x"] = self.vectorizer.transform(test["text"])
-            datasets["test"]["y"] = self.binarizer.transform(test["label"]).astype("d")
+            if not return_raw:
+                test["text"] = self.vectorizer.transform(test["text"])
+                test["label"] = self.binarizer.transform(test["label"]).astype("d")
+            datasets["test"]["x"] = test["text"]
+            datasets["test"]["y"] = test["label"]
 
         return dict(datasets)
 
