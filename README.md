@@ -9,7 +9,7 @@ LibMultiLabel is a library for binary, multi-class, and multi-label classificati
 This is an on-going development so many improvements are still being made. Comments are very welcome.
 
 ## Environments
-- Python: 3.7+
+- Python: 3.8+
 - CUDA: 11.6 (if training neural networks by GPU)
 - Pytorch 1.13.1+
 
