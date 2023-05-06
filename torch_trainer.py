@@ -132,16 +132,9 @@ class TorchTrainer:
             if self.config.overwrite_ckpt_config:
                 logging.info('Using new configuration to load the module')
                 self.model = Model.load_from_checkpoint(checkpoint_path,
-                                                        network_config=dict(
-                                                            self.config.network_config),
                                                         log_path=log_path,
-                                                        learning_rate=self.config.learning_rate,
-                                                        optimizer=self.config.optimizer,
-                                                        momentum=self.config.momentum,
-                                                        weight_decay=self.config.weight_decay,
                                                         metric_threshold=self.config.metric_threshold,
                                                         monitor_metrics=self.config.monitor_metrics,
-                                                        loss_function=self.config.loss_function,
                                                         silent=self.config.silent,
                                                         save_k_predictions=self.config.save_k_predictions)
             else:
