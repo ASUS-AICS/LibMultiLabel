@@ -116,7 +116,9 @@ def add_all_arguments(parser):
                         help='Only run evaluation on the test set (default: %(default)s)')
     parser.add_argument('--checkpoint_path',
                         help='The checkpoint to warm-up with (default: %(default)s)')
-
+    parser.add_argument('--overwrite_ckpt_config', action='store_true',
+                        help='Enable to overwrite configurations in the checkpoint pl module')
+    
     # linear options
     parser.add_argument('--linear', action='store_true',
                         help='Train linear model')

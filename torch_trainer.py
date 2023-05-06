@@ -115,10 +115,37 @@ class TorchTrainer:
         """
         if 'checkpoint_path' in self.config and self.config.checkpoint_path is not None:
             checkpoint_path = self.config.checkpoint_path
-
+        if self.config.early_stopping_metric not in self.config.monitor_metrics:
+            logging.warn(
+                f'{self.config.early_stopping_metric} is not in `monitor_metrics`. '
+                f'Add {self.config.early_stopping_metric} to `monitor_metrics`.'
+            )
+            self.config.monitor_metrics += [
+                self.config.early_stopping_metric]
+        if self.config.val_metric not in self.config.monitor_metrics:
+            logging.warn(
+                f'{self.config.val_metric} is not in `monitor_metrics`. '
+                f'Add {self.config.val_metric} to `monitor_metrics`.')
+            self.config.monitor_metrics += [self.config.val_metric]
         if checkpoint_path is not None:
             logging.info(f'Loading model from `{checkpoint_path}`...')
-            self.model = Model.load_from_checkpoint(checkpoint_path)
+            if self.config.overwrite_ckpt_config:
+                logging.info('Using new configuration to load the module')
+                self.model = Model.load_from_checkpoint(checkpoint_path,
+                                                        network_config=dict(
+                                                            self.config.network_config),
+                                                        log_path=log_path,
+                                                        learning_rate=self.config.learning_rate,
+                                                        optimizer=self.config.optimizer,
+                                                        momentum=self.config.momentum,
+                                                        weight_decay=self.config.weight_decay,
+                                                        metric_threshold=self.config.metric_threshold,
+                                                        monitor_metrics=self.config.monitor_metrics,
+                                                        loss_function=self.config.loss_function,
+                                                        silent=self.config.silent,
+                                                        save_k_predictions=self.config.save_k_predictions)
+            else:
+                self.model = Model.load_from_checkpoint(checkpoint_path)
         else:
             logging.info('Initialize model from scratch.')
             if self.config.embed_file is not None:
@@ -135,20 +162,6 @@ class TorchTrainer:
             if not classes:
                 classes = data_utils.load_or_build_label(
                     self.datasets, self.config.label_file, self.config.include_test_labels)
-
-            if self.config.early_stopping_metric not in self.config.monitor_metrics:
-                logging.warn(
-                    f'{self.config.early_stopping_metric} is not in `monitor_metrics`. '
-                    f'Add {self.config.early_stopping_metric} to `monitor_metrics`.'
-                )
-                self.config.monitor_metrics += [
-                    self.config.early_stopping_metric]
-
-            if self.config.val_metric not in self.config.monitor_metrics:
-                logging.warn(
-                    f'{self.config.val_metric} is not in `monitor_metrics`. '
-                    f'Add {self.config.val_metric} to `monitor_metrics`.')
-                self.config.monitor_metrics += [self.config.val_metric]
 
             self.model = init_model(model_name=self.config.model_name,
                                     network_config=dict(
@@ -234,7 +247,8 @@ class TorchTrainer:
 
         logging.info(f'Testing on {split} set.')
         test_loader = self._get_dataset_loader(split=split)
-        metric_dict = self.trainer.test(self.model, dataloaders=test_loader, verbose=False)[0]
+        metric_dict = self.trainer.test(
+            self.model, dataloaders=test_loader, verbose=False)[0]
 
         if self.config.save_k_predictions > 0:
             self._save_predictions(test_loader, self.config.predict_out_path)
