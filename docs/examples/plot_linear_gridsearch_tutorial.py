@@ -105,7 +105,7 @@ test_data = linear.read_libmultilabel_format('data/rcv1/test.txt')
 y = binarizer.transform(test_data['label']).astype('d').toarray()
 
 ######################################################################
-# After preprocessing test data, use ``predict`` function of ``GridSearchCV`` object.
+# Applying the``predict`` function of ``GridSearchCV`` object to use the
 # The function will use the estimator with the best result to predict.
 # As for the result, use ``linear.compute_metrics`` to calculate metrics. 
 
