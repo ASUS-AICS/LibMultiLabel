@@ -87,7 +87,7 @@ clf = clf.fit(train_data['text'], y)
 # in the linear classifier. The key in ``parameters`` should follow the sklearn's coding rule
 # starting with the estimator's alias and two underscores (i.e., ``clf__``).
 # We specify ``n_jobs=4`` to run four tasks in parallel.
-# After finishing gridsearch, we can get the best parameters by following code:
+# After finishing gridsearch, we can get the best parameters by the following code:
 
 for param_name in sorted(parameters.keys()):
     print(f'{param_name}: {clf.best_params_[param_name]}')
