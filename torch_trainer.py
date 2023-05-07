@@ -148,8 +148,6 @@ class TorchTrainer:
                     f'Add {self.config.val_metric} to `monitor_metrics`.')
                 self.config.monitor_metrics += [self.config.val_metric]
 
-            self.config.multiclass = is_multiclass_dataset(
-                self.datasets['train']+self.datasets.get('val', list()))
             self.model = init_model(model_name=self.config.model_name,
                                     network_config=dict(
                                         self.config.network_config),
@@ -164,7 +162,8 @@ class TorchTrainer:
                                     weight_decay=self.config.weight_decay,
                                     metric_threshold=self.config.metric_threshold,
                                     monitor_metrics=self.config.monitor_metrics,
-                                    multiclass=self.config.multiclass,
+                                    multiclass=is_multiclass_dataset(
+                                        self.datasets['train']+self.datasets.get('val', list())),
                                     loss_function=self.config.loss_function,
                                     silent=self.config.silent,
                                     save_k_predictions=self.config.save_k_predictions
