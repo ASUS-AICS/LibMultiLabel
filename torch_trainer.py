@@ -67,8 +67,6 @@ class TorchTrainer:
         else:
             self.datasets = datasets
 
-        self.config.multiclass = is_multiclass_dataset(
-            self.datasets['train']+self.datasets.get('val', list()))
         self._setup_model(classes=classes,
                           word_dict=word_dict,
                           embed_vecs=embed_vecs,
@@ -150,6 +148,8 @@ class TorchTrainer:
                     f'Add {self.config.val_metric} to `monitor_metrics`.')
                 self.config.monitor_metrics += [self.config.val_metric]
 
+            self.config.multiclass = is_multiclass_dataset(
+                self.datasets['train']+self.datasets.get('val', list()))
             self.model = init_model(model_name=self.config.model_name,
                                     network_config=dict(
                                         self.config.network_config),
