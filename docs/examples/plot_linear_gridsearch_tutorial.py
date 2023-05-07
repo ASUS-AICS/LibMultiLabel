@@ -107,7 +107,7 @@ y = binarizer.transform(test_data['label']).astype('d').toarray()
 ######################################################################
 # Applying the``predict`` function of ``GridSearchCV`` object to use the
 # estimator trained under the best hyper-parameters for prediction.
-# As for the result, use ``linear.compute_metrics`` to calculate metrics. 
+# Then use ``linear.compute_metrics`` to calculate the test performance.
 
 preds = clf.predict(test_data['text'])
 metrics = linear.compute_metrics(
