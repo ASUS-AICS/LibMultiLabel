@@ -215,7 +215,7 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes, top_k=None):
         if match_top_k:
             metric_abbr = match_top_k.group(1)  # P, R, PR, or nDCG
             matched_top_k = int(match_top_k.group(2))
-            if matched_top_k > min(top_k, num_classes):
+            if matched_top_k > num_classes or (top_k is not None and matched_top_k > top_k):
                 raise ValueError(
                     f'Invalid metric: {metric}. top_k ({matched_top_k}) is greater than {top_k} or num_classes({num_classes}).')
             if metric_abbr == 'P':
