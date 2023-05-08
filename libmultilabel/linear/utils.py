@@ -17,17 +17,16 @@ import libmultilabel.linear as linear
 
 from .preprocessor import Preprocessor
 
-__all__ = ['save_pipeline', 'load_pipeline',
-           'MultiLabelEstimator', 'GridSearchCV']
+__all__ = ["save_pipeline", "load_pipeline", "MultiLabelEstimator", "GridSearchCV"]
 
 
 LINEAR_TECHNIQUES = {
-    '1vsrest': linear.train_1vsrest,
-    'thresholding': linear.train_thresholding,
-    'cost_sensitive': linear.train_cost_sensitive,
-    'cost_sensitive_micro': linear.train_cost_sensitive_micro,
-    'binary_and_multiclass': linear.train_binary_and_multiclass,
-    'tree': linear.train_tree,
+    "1vsrest": linear.train_1vsrest,
+    "thresholding": linear.train_thresholding,
+    "cost_sensitive": linear.train_cost_sensitive,
+    "cost_sensitive_micro": linear.train_cost_sensitive_micro,
+    "binary_and_multiclass": linear.train_binary_and_multiclass,
+    "tree": linear.train_tree,
 }
 
 
@@ -40,13 +39,16 @@ def save_pipeline(checkpoint_dir: str, preprocessor: Preprocessor, model):
         model: A model returned from one of the training functions.
     """
     pathlib.Path(checkpoint_dir).mkdir(parents=True, exist_ok=True)
-    checkpoint_path = os.path.join(checkpoint_dir, 'linear_pipeline.pickle')
+    checkpoint_path = os.path.join(checkpoint_dir, "linear_pipeline.pickle")
 
-    with open(checkpoint_path, 'wb') as f:
-        pickle.dump({
-            'preprocessor': preprocessor,
-            'model': model,
-        }, f)
+    with open(checkpoint_path, "wb") as f:
+        pickle.dump(
+            {
+                "preprocessor": preprocessor,
+                "model": model,
+            },
+            f,
+        )
 
 
 def load_pipeline(checkpoint_path: str) -> tuple[Preprocessor, Any]:
@@ -58,9 +60,9 @@ def load_pipeline(checkpoint_path: str) -> tuple[Preprocessor, Any]:
     Returns:
         tuple[Preprocessor, Any]: A tuple of the preprocessor and model.
     """
-    with open(checkpoint_path, 'rb') as f:
+    with open(checkpoint_path, "rb") as f:
         pipeline = pickle.load(f)
-    return (pipeline['preprocessor'], pipeline['model'])
+    return (pipeline["preprocessor"], pipeline["model"])
 
 
 class MultiLabelEstimator(sklearn.base.BaseEstimator):
@@ -73,10 +75,7 @@ class MultiLabelEstimator(sklearn.base.BaseEstimator):
         scoring_metric (str, optional): The scoring metric. Defaults to 'P@1'.
     """
 
-    def __init__(self, options: str = '',
-                 linear_technique: str = '1vsrest',
-                 scoring_metric: str = 'P@1'
-                 ):
+    def __init__(self, options: str = "", linear_technique: str = "1vsrest", scoring_metric: str = "P@1"):
         super().__init__()
         self.options = options
         self.linear_technique = linear_technique
@@ -84,16 +83,13 @@ class MultiLabelEstimator(sklearn.base.BaseEstimator):
         self._is_fitted = False
 
     def fit(self, X: sparse.csr_matrix, y: sparse.csr_matrix):
-        X, y = sklearn.utils.validation.check_X_y(
-            X, y, accept_sparse=True, multi_output=True)
+        X, y = sklearn.utils.validation.check_X_y(X, y, accept_sparse=True, multi_output=True)
         self._is_fitted = True
-        self.model = LINEAR_TECHNIQUES[self.linear_technique](
-            y, X, self.options)
+        self.model = LINEAR_TECHNIQUES[self.linear_technique](y, X, self.options)
         return self
 
     def predict(self, X: sparse.csr_matrix) -> np.ndarray:
-        sklearn.utils.validation.check_is_fitted(
-            self, attributes=['_is_fitted'])
+        sklearn.utils.validation.check_is_fitted(self, attributes=["_is_fitted"])
         preds = linear.predict_values(self.model, X)
         return preds
 
@@ -118,22 +114,19 @@ class GridSearchCV(sklearn.model_selection.GridSearchCV):
             parameters and their corresponding list of candidate values.
         n_jobs (int, optional): Number of CPU cores run in parallel. Defaults to None.
     """
-    _required_parameters = ['pipeline', 'param_grid']
+
+    _required_parameters = ["pipeline", "param_grid"]
 
     def __init__(self, pipeline: sklearn.pipeline.Pipeline, param_grid: dict, n_jobs=None, **kwargs):
         assert isinstance(pipeline, sklearn.pipeline.Pipeline)
         if n_jobs is not None and n_jobs > 1:
             param_grid = self._set_singlecore_options(pipeline, param_grid)
-        if 'scoring' in kwargs.keys():
+        if "scoring" in kwargs.keys():
             raise ValueError(
-                'Please specify the validation metric with `MultiLabelEstimator.scoring_metric` in the Pipeline instead of using the parameter `scoring`.')
+                "Please specify the validation metric with `MultiLabelEstimator.scoring_metric` in the Pipeline instead of using the parameter `scoring`."
+            )
 
-        super().__init__(
-            estimator=pipeline,
-            n_jobs=n_jobs,
-            param_grid=param_grid,
-            **kwargs
-        )
+        super().__init__(estimator=pipeline, n_jobs=n_jobs, param_grid=param_grid, **kwargs)
 
     def _set_singlecore_options(self, pipeline: sklearn.pipeline.Pipeline, param_grid: dict):
         """Set liblinear options to `-m 1`. The grid search option `n_jobs`
@@ -144,8 +137,7 @@ class GridSearchCV(sklearn.model_selection.GridSearchCV):
         params = pipeline.get_params()
         for name, transform in params.items():
             if isinstance(transform, MultiLabelEstimator):
-                regex = r'-m \d+'
-                key = f'{name}__options'
-                param_grid[key] = [
-                    f"{re.sub(regex, '', v)} -m 1" for v in param_grid[key]]
+                regex = r"-m \d+"
+                key = f"{name}__options"
+                param_grid[key] = [f"{re.sub(regex, '', v)} -m 1" for v in param_grid[key]]
         return param_grid

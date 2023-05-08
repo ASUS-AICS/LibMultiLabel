@@ -30,13 +30,11 @@ class XMLCNN(nn.Module):
         hidden_dim=512,
         num_filter_per_size=256,
         num_pool=2,
-        activation='relu'
+        activation="relu",
     ):
         super(XMLCNN, self).__init__()
         self.embedding = Embedding(embed_vecs, embed_dropout)
-        self.encoder = CNNEncoder(embed_vecs.shape[1], filter_sizes,
-                                  num_filter_per_size, activation,
-                                  num_pool=num_pool)
+        self.encoder = CNNEncoder(embed_vecs.shape[1], filter_sizes, num_filter_per_size, activation, num_pool=num_pool)
         total_output_size = len(filter_sizes) * num_filter_per_size * num_pool
         self.dropout = nn.Dropout(encoder_dropout)
         self.linear1 = nn.Linear(total_output_size, hidden_dim)
@@ -44,10 +42,10 @@ class XMLCNN(nn.Module):
         self.activation = getattr(torch, activation, getattr(F, activation))
 
     def forward(self, input):
-        x = self.embedding(input['text'])  # (batch_size, length, embed_dim)
+        x = self.embedding(input["text"])  # (batch_size, length, embed_dim)
         x = self.encoder(x)  # (batch_size, num_filter, num_pool)
         x = x.view(x.shape[0], -1)  # (batch_size, num_filter * num_pool)
         x = self.activation(self.linear1(x))
         x = self.dropout(x)
         x = self.linear2(x)
-        return {'logits': x}
+        return {"logits": x}

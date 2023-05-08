@@ -12,10 +12,10 @@ Then you can read and preprocess the data as follows
 from sklearn.preprocessing import MultiLabelBinarizer
 import libmultilabel.linear as linear
 
-train_data = linear.read_libmultilabel_format('data/rcv1/train.txt')
+train_data = linear.read_libmultilabel_format("data/rcv1/train.txt")
 binarizer = MultiLabelBinarizer(sparse_output=True)
-binarizer.fit(train_data['label'])
-y = binarizer.transform(train_data['label']).astype('d')
+binarizer.fit(train_data["label"])
+y = binarizer.transform(train_data["label"]).astype("d")
 
 ######################################################################
 # We format labels into a 0/1 sparse matrix with ``MultiLabelBinarizer``.
@@ -32,9 +32,9 @@ y = binarizer.transform(train_data['label']).astype('d')
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 vectorizer = TfidfVectorizer(max_features=20000, min_df=3)
-vectorizer.fit(train_data['text'])
-x = vectorizer.transform(train_data['text'])
-model = linear.train_1vsrest(y, x, '-s 2 -m 4')
+vectorizer.fit(train_data["text"])
+x = vectorizer.transform(train_data["text"])
+model = linear.train_1vsrest(y, x, "-s 2 -m 4")
 
 #######################################################################
 # We use the generated numerical features ``x`` as the input of
@@ -50,11 +50,12 @@ model = linear.train_1vsrest(y, x, '-s 2 -m 4')
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.pipeline import Pipeline
 
-pipeline = Pipeline([
-    ('tfidf', TfidfVectorizer(max_features=20000, min_df=3)),
-    ('clf', linear.MultiLabelEstimator(
-        options='-s 2 -m 4', linear_technique='1vsrest', scoring_metric='P@1'))
-])
+pipeline = Pipeline(
+    [
+        ("tfidf", TfidfVectorizer(max_features=20000, min_df=3)),
+        ("clf", linear.MultiLabelEstimator(options="-s 2 -m 4", linear_technique="1vsrest", scoring_metric="P@1")),
+    ]
+)
 
 ######################################################################
 # For the estimator ``MultiLabelEstimator``, arguments ``options`` is a LIBLINEAR option
@@ -65,7 +66,7 @@ pipeline = Pipeline([
 # For example, ``tfidf`` is the alias of ``TfidfVectorizer`` and ``clf`` is the alias of the estimator.
 #
 # We can then use the following code for training.
-pipeline.fit(train_data['text'], y)
+pipeline.fit(train_data["text"], y)
 
 ######################################################################
 # Grid Search over Feature Generations and LIBLINEAR Options
@@ -73,14 +74,10 @@ pipeline.fit(train_data['text'], y)
 # To search for the best setting, we can employ ``GridSearchCV``.
 # The usage is similar to sklearn's except that the parameter ``scoring`` is not available.  Please specify
 # ``scoring_metric`` in ``linear.MultiLabelEstimator`` instead.
-liblinear_options = ['-s 2 -c 0.5', '-s 2 -c 1', '-s 2 -c 2']
-parameters = {
-    'clf__options': liblinear_options,
-    'tfidf__max_features': [10000, 20000, 40000],
-    'tfidf__min_df': [3, 5]
-}
+liblinear_options = ["-s 2 -c 0.5", "-s 2 -c 1", "-s 2 -c 2"]
+parameters = {"clf__options": liblinear_options, "tfidf__max_features": [10000, 20000, 40000], "tfidf__min_df": [3, 5]}
 clf = linear.GridSearchCV(pipeline, parameters, cv=5, n_jobs=4, verbose=1)
-clf = clf.fit(train_data['text'], y)
+clf = clf.fit(train_data["text"], y)
 
 ######################################################################
 # Here we check the combinations of six feature generations and three regularization parameters

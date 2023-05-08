@@ -29,18 +29,17 @@ class CAML(nn.Module):
     ):
         super(CAML, self).__init__()
         if not filter_sizes and len(filter_sizes) != 1:
-            raise ValueError(
-                f'CAML expect 1 filter size. Got filter_sizes={filter_sizes}')
+            raise ValueError(f"CAML expect 1 filter size. Got filter_sizes={filter_sizes}")
         filter_size = filter_sizes[0]
 
-        self.embedding = nn.Embedding(
-            len(embed_vecs), embed_vecs.shape[1], padding_idx=0)
+        self.embedding = nn.Embedding(len(embed_vecs), embed_vecs.shape[1], padding_idx=0)
         self.embedding.weight.data = embed_vecs.clone()
         self.embed_drop = nn.Dropout(p=dropout)
 
         # Initialize conv layer
-        self.conv = nn.Conv1d(embed_vecs.shape[1], num_filter_per_size,
-                              kernel_size=filter_size, padding=int(floor(filter_size/2)))
+        self.conv = nn.Conv1d(
+            embed_vecs.shape[1], num_filter_per_size, kernel_size=filter_size, padding=int(floor(filter_size / 2))
+        )
         xavier_uniform_(self.conv.weight)
 
         """Context vectors for computing attention with
@@ -55,7 +54,7 @@ class CAML(nn.Module):
 
     def forward(self, input):
         # Get embeddings and apply dropout
-        x = self.embedding(input['text'])  # (batch_size, length, embed_dim)
+        x = self.embedding(input["text"])  # (batch_size, length, embed_dim)
         x = self.embed_drop(x)
         x = x.transpose(1, 2)  # (batch_size, embed_dim, length)
 
@@ -77,7 +76,6 @@ class CAML(nn.Module):
         E = alpha.matmul(Z)  # (batch_size, num_classes, num_filter_per_size)
 
         # Compute a probability for each label
-        logits = self.output.weight.mul(E).sum(dim=2).add(
-            self.output.bias)  # (batch_size, num_classes)
+        logits = self.output.weight.mul(E).sum(dim=2).add(self.output.bias)  # (batch_size, num_classes)
 
-        return {'logits': logits, 'attention': alpha}
+        return {"logits": logits, "attention": alpha}

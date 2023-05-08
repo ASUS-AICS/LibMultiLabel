@@ -2,7 +2,15 @@ from abc import ABC, abstractmethod
 
 import torch.nn as nn
 
-from .modules import Embedding, GRUEncoder, LSTMEncoder, CNNEncoder, LabelwiseAttention, LabelwiseMultiHeadAttention, LabelwiseLinearOutput
+from .modules import (
+    Embedding,
+    GRUEncoder,
+    LSTMEncoder,
+    CNNEncoder,
+    LabelwiseAttention,
+    LabelwiseMultiHeadAttention,
+    LabelwiseLinearOutput,
+)
 
 
 class LabelwiseAttentionNetwork(ABC, nn.Module):
@@ -37,17 +45,16 @@ class LabelwiseAttentionNetwork(ABC, nn.Module):
 
 
 class RNNLWAN(LabelwiseAttentionNetwork):
-    """Base class for RNN Labelwise Attention Network
-    """
+    """Base class for RNN Labelwise Attention Network"""
 
     def forward(self, input):
         # (batch_size, sequence_length, embed_dim)
-        x = self.embedding(input['text'])
+        x = self.embedding(input["text"])
         # (batch_size, sequence_length, hidden_dim)
-        x = self.encoder(x, input['length'])
+        x = self.encoder(x, input["length"])
         x, _ = self.attention(x)  # (batch_size, num_classes, hidden_dim)
         x = self.output(x)  # (batch_size, num_classes)
-        return {'logits': x}
+        return {"logits": x}
 
 
 class BiGRULWAN(RNNLWAN):
@@ -63,20 +70,11 @@ class BiGRULWAN(RNNLWAN):
         encoder_dropout (float): The dropout rate of the encoder output. Defaults to 0.
     """
 
-    def __init__(
-        self,
-        embed_vecs,
-        num_classes,
-        rnn_dim=512,
-        rnn_layers=1,
-        embed_dropout=0.2,
-        encoder_dropout=0
-    ):
+    def __init__(self, embed_vecs, num_classes, rnn_dim=512, rnn_layers=1, embed_dropout=0.2, encoder_dropout=0):
         self.num_classes = num_classes
         self.rnn_dim = rnn_dim
         self.rnn_layers = rnn_layers
-        super(BiGRULWAN, self).__init__(embed_vecs, num_classes, embed_dropout,
-                                        encoder_dropout, rnn_dim)
+        super(BiGRULWAN, self).__init__(embed_vecs, num_classes, embed_dropout, encoder_dropout, rnn_dim)
 
     def _get_encoder(self, input_size, dropout):
         assert self.rnn_dim % 2 == 0, """`rnn_dim` should be even."""
@@ -99,20 +97,11 @@ class BiLSTMLWAN(RNNLWAN):
         encoder_dropout (float): The dropout rate of the encoder output. Defaults to 0.
     """
 
-    def __init__(
-        self,
-        embed_vecs,
-        num_classes,
-        rnn_dim=512,
-        rnn_layers=1,
-        embed_dropout=0.2,
-        encoder_dropout=0
-    ):
+    def __init__(self, embed_vecs, num_classes, rnn_dim=512, rnn_layers=1, embed_dropout=0.2, encoder_dropout=0):
         self.num_classes = num_classes
         self.rnn_dim = rnn_dim
         self.rnn_layers = rnn_layers
-        super(BiLSTMLWAN, self).__init__(embed_vecs, num_classes, embed_dropout,
-                                         encoder_dropout, rnn_dim)
+        super(BiLSTMLWAN, self).__init__(embed_vecs, num_classes, embed_dropout, encoder_dropout, rnn_dim)
 
     def _get_encoder(self, input_size, dropout):
         assert self.rnn_dim % 2 == 0, """`rnn_dim` should be even."""
@@ -146,33 +135,31 @@ class BiLSTMLWMHAN(LabelwiseAttentionNetwork):
         embed_dropout=0.2,
         encoder_dropout=0,
         num_heads=8,
-        attention_dropout=0.0
+        attention_dropout=0.0,
     ):
         self.num_classes = num_classes
         self.rnn_dim = rnn_dim
         self.rnn_layers = rnn_layers
         self.num_heads = num_heads
         self.attention_dropout = attention_dropout
-        super(BiLSTMLWMHAN, self).__init__(embed_vecs, num_classes, embed_dropout,
-                                           encoder_dropout, rnn_dim)
+        super(BiLSTMLWMHAN, self).__init__(embed_vecs, num_classes, embed_dropout, encoder_dropout, rnn_dim)
 
     def _get_encoder(self, input_size, dropout):
         assert self.rnn_dim % 2 == 0, """`rnn_dim` should be even."""
-        return LSTMEncoder(input_size, self.rnn_dim // 2,
-                           self.rnn_layers, dropout)
+        return LSTMEncoder(input_size, self.rnn_dim // 2, self.rnn_layers, dropout)
 
     def _get_attention(self):
         return LabelwiseMultiHeadAttention(self.rnn_dim, self.num_classes, self.num_heads, self.attention_dropout)
 
     def forward(self, input):
         # (batch_size, sequence_length, embed_dim)
-        x = self.embedding(input['text'])
+        x = self.embedding(input["text"])
         # (batch_size, sequence_length, hidden_dim)
-        x = self.encoder(x, input['length'])
+        x = self.encoder(x, input["length"])
         # (batch_size, num_classes, hidden_dim)
-        x, _ = self.attention(x, attention_mask=input['text'] == 0)
+        x, _ = self.attention(x, attention_mask=input["text"] == 0)
         x = self.output(x)  # (batch_size, num_classes)
-        return {'logits': x}
+        return {"logits": x}
 
 
 class CNNLWAN(LabelwiseAttentionNetwork):
@@ -196,28 +183,27 @@ class CNNLWAN(LabelwiseAttentionNetwork):
         num_filter_per_size=50,
         embed_dropout=0.2,
         encoder_dropout=0,
-        activation='tanh'
+        activation="tanh",
     ):
         self.num_classes = num_classes
         self.filter_sizes = filter_sizes
         self.num_filter_per_size = num_filter_per_size
         self.activation = activation
         self.hidden_dim = num_filter_per_size * len(filter_sizes)
-        super(CNNLWAN, self).__init__(embed_vecs, num_classes, embed_dropout,
-                                      encoder_dropout, self.hidden_dim)
+        super(CNNLWAN, self).__init__(embed_vecs, num_classes, embed_dropout, encoder_dropout, self.hidden_dim)
 
     def _get_encoder(self, input_size, dropout):
-        return CNNEncoder(input_size, self.filter_sizes,
-                          self.num_filter_per_size, self.activation, dropout,
-                          channel_last=True)
+        return CNNEncoder(
+            input_size, self.filter_sizes, self.num_filter_per_size, self.activation, dropout, channel_last=True
+        )
 
     def _get_attention(self):
         return LabelwiseAttention(self.hidden_dim, self.num_classes)
 
     def forward(self, input):
         # (batch_size, sequence_length, embed_dim)
-        x = self.embedding(input['text'])
+        x = self.embedding(input["text"])
         x = self.encoder(x)  # (batch_size, sequence_length, hidden_dim)
         x, _ = self.attention(x)  # (batch_size, num_classes, hidden_dim)
         x = self.output(x)  # (batch_size, num_classes)
-        return {'logits': x}
+        return {"logits": x}

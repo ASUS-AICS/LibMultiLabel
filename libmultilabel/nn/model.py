@@ -31,7 +31,7 @@ class MultiLabelModel(pl.LightningModule):
         self,
         num_classes,
         learning_rate=0.0001,
-        optimizer='adam',
+        optimizer="adam",
         momentum=0.9,
         weight_decay=0,
         metric_threshold=0.5,
@@ -58,8 +58,7 @@ class MultiLabelModel(pl.LightningModule):
         # metrics for evaluation
         self.multiclass = multiclass
         top_k = 1 if self.multiclass else None
-        self.eval_metric = get_metrics(
-            metric_threshold, monitor_metrics, num_classes, top_k=top_k)
+        self.eval_metric = get_metrics(metric_threshold, monitor_metrics, num_classes, top_k=top_k)
 
     @abstractmethod
     def shared_step(self, batch):
@@ -67,29 +66,21 @@ class MultiLabelModel(pl.LightningModule):
         return NotImplemented
 
     def configure_optimizers(self):
-        """Initialize an optimizer for the free parameters of the network.
-        """
+        """Initialize an optimizer for the free parameters of the network."""
         parameters = [p for p in self.parameters() if p.requires_grad]
         optimizer_name = self.optimizer
-        if optimizer_name == 'sgd':
-            optimizer = optim.SGD(parameters, self.learning_rate,
-                                  momentum=self.momentum,
-                                  weight_decay=self.weight_decay)
-        elif optimizer_name == 'adam':
-            optimizer = optim.Adam(parameters,
-                                   weight_decay=self.weight_decay,
-                                   lr=self.learning_rate)
-        elif optimizer_name == 'adamw':
-            optimizer = optim.AdamW(parameters,
-                                    weight_decay=self.weight_decay,
-                                    lr=self.learning_rate)
-        elif optimizer_name == 'adamax':
-            optimizer = optim.Adamax(parameters,
-                                     weight_decay=self.weight_decay,
-                                     lr=self.learning_rate)
+        if optimizer_name == "sgd":
+            optimizer = optim.SGD(
+                parameters, self.learning_rate, momentum=self.momentum, weight_decay=self.weight_decay
+            )
+        elif optimizer_name == "adam":
+            optimizer = optim.Adam(parameters, weight_decay=self.weight_decay, lr=self.learning_rate)
+        elif optimizer_name == "adamw":
+            optimizer = optim.AdamW(parameters, weight_decay=self.weight_decay, lr=self.learning_rate)
+        elif optimizer_name == "adamax":
+            optimizer = optim.Adamax(parameters, weight_decay=self.weight_decay, lr=self.learning_rate)
         else:
-            raise RuntimeError(
-                'Unsupported optimizer: {self.optimizer}')
+            raise RuntimeError("Unsupported optimizer: {self.optimizer}")
 
         torch.nn.utils.clip_grad_value_(parameters, 0.5)
 
@@ -106,7 +97,7 @@ class MultiLabelModel(pl.LightningModule):
         return self._shared_eval_step_end(batch_parts)
 
     def validation_epoch_end(self, step_outputs):
-        return self._shared_eval_epoch_end(step_outputs, 'val')
+        return self._shared_eval_epoch_end(step_outputs, "val")
 
     def test_step(self, batch, batch_idx):
         return self._shared_eval_step(batch, batch_idx)
@@ -115,20 +106,20 @@ class MultiLabelModel(pl.LightningModule):
         return self._shared_eval_step_end(batch_parts)
 
     def test_epoch_end(self, step_outputs):
-        return self._shared_eval_epoch_end(step_outputs, 'test')
+        return self._shared_eval_epoch_end(step_outputs, "test")
 
     def _shared_eval_step(self, batch, batch_idx):
         loss, pred_logits = self.shared_step(batch)
-        return {'batch_idx': batch_idx,
-                'loss': loss,
-                'pred_scores': torch.sigmoid(pred_logits),
-                'target': batch['label']}
+        return {
+            "batch_idx": batch_idx,
+            "loss": loss,
+            "pred_scores": torch.sigmoid(pred_logits),
+            "target": batch["label"],
+        }
 
     def _shared_eval_step_end(self, batch_parts):
         return self.eval_metric.update(
-            preds=batch_parts['pred_scores'],
-            target=batch_parts['target'],
-            loss=batch_parts['loss']
+            preds=batch_parts["pred_scores"], target=batch_parts["target"], loss=batch_parts["loss"]
         )
 
     def _shared_eval_epoch_end(self, step_outputs, split):
@@ -169,8 +160,7 @@ class MultiLabelModel(pl.LightningModule):
         top_k_idx = argsort_top_k(pred_scores, k, axis=1)
         top_k_scores = np.take_along_axis(pred_scores, top_k_idx, axis=1)
 
-        return {'top_k_pred': top_k_idx,
-                'top_k_pred_scores': top_k_scores}
+        return {"top_k_pred": top_k_idx, "top_k_pred_scores": top_k_scores}
 
     def print(self, *args, **kwargs):
         """Prints only from process 0 and not in silent mode. Use this in any
@@ -200,7 +190,7 @@ class Model(MultiLabelModel):
         word_dict,
         embed_vecs,
         network,
-        loss_function='binary_cross_entropy_with_logits',
+        loss_function="binary_cross_entropy_with_logits",
         log_path=None,
         **kwargs
     ):
@@ -213,7 +203,9 @@ class Model(MultiLabelModel):
         self.configure_loss_function(loss_function)
 
     def configure_loss_function(self, loss_function):
-        assert hasattr(F, loss_function), """
+        assert hasattr(
+            F, loss_function
+        ), """
             Invalid `loss_function`. Make sure the loss function is defined here:
             https://pytorch.org/docs/stable/nn.functional.html#loss-functions"""
         self.loss_function = getattr(F, loss_function)
@@ -228,9 +220,9 @@ class Model(MultiLabelModel):
             loss (torch.Tensor): Loss between target and predict logits.
             pred_logits (torch.Tensor): The predict logits (batch_size, num_classes).
         """
-        target_labels = batch['label']
+        target_labels = batch["label"]
         outputs = self.network(batch)
-        pred_logits = outputs['logits']
+        pred_logits = outputs["logits"]
         loss = self.loss_function(pred_logits, target_labels.float())
 
         return loss, pred_logits

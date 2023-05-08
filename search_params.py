@@ -17,8 +17,7 @@ from libmultilabel.nn.nn_utils import set_seed
 from libmultilabel.common_utils import AttributeDict, Timer
 from torch_trainer import TorchTrainer
 
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s %(levelname)s:%(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s:%(message)s")
 
 
 def train_libmultilabel_tune(config, datasets, classes, word_dict):
@@ -32,16 +31,18 @@ def train_libmultilabel_tune(config, datasets, classes, word_dict):
     """
     set_seed(seed=config.seed)
     config.run_name = tune.get_trial_dir()
-    logging.info(f'Run name: {config.run_name}')
+    logging.info(f"Run name: {config.run_name}")
     config.checkpoint_dir = os.path.join(config.result_dir, config.run_name)
-    config.log_path = os.path.join(config.checkpoint_dir, 'logs.json')
+    config.log_path = os.path.join(config.checkpoint_dir, "logs.json")
 
-    trainer = TorchTrainer(config=config,
-                           datasets=datasets,
-                           classes=classes,
-                           word_dict=word_dict,
-                           search_params=True,
-                           save_checkpoints=True)
+    trainer = TorchTrainer(
+        config=config,
+        datasets=datasets,
+        classes=classes,
+        word_dict=word_dict,
+        search_params=True,
+        save_checkpoints=True,
+    )
     trainer.train()
 
 
@@ -58,9 +59,9 @@ def load_config_from_file(config_path):
         config = yaml.safe_load(fp)
 
     # create directories that hold the shared data
-    os.makedirs(config['result_dir'], exist_ok=True)
-    if config['embed_cache_dir']:
-        os.makedirs(config['embed_cache_dir'], exist_ok=True)
+    os.makedirs(config["result_dir"], exist_ok=True)
+    if config["embed_cache_dir"]:
+        os.makedirs(config["embed_cache_dir"], exist_ok=True)
 
     # set relative path to absolute path (_path, _file, _dir)
     for k, v in config.items():
@@ -83,23 +84,37 @@ def init_search_params_spaces(config, parameter_columns, prefix):
     Returns:
         dict: Config with parsed sample spaces.
     """
-    search_spaces = ['choice', 'grid_search', 'uniform', 'quniform', 'loguniform',
-                     'qloguniform', 'randn', 'qrandn', 'randint', 'qrandint']
+    search_spaces = [
+        "choice",
+        "grid_search",
+        "uniform",
+        "quniform",
+        "loguniform",
+        "qloguniform",
+        "randn",
+        "qrandn",
+        "randint",
+        "qrandint",
+    ]
     for key, value in config.items():
         if isinstance(value, list) and len(value) >= 2 and value[0] in search_spaces:
             search_space, search_args = value[0], value[1:]
-            if isinstance(search_args[0], list) and any(isinstance(x, list) for x in search_args[0]) and search_space != 'grid_search':
+            if (
+                isinstance(search_args[0], list)
+                and any(isinstance(x, list) for x in search_args[0])
+                and search_space != "grid_search"
+            ):
                 raise ValueError(
                     """If the search values are lists, the search space must be `grid_search`.
                     Take `filter_sizes: ['grid_search', [[2,4,8], [4,6]]]` for example, the program will grid search over
                     [2,4,8] and [4,6]. This is the same as assigning `filter_sizes` to either [2,4,8] or [4,6] in two runs.
-                    """)
+                    """
+                )
             else:
                 config[key] = getattr(tune, search_space)(*search_args)
-                parameter_columns[prefix+key] = key
+                parameter_columns[prefix + key] = key
         elif isinstance(value, dict):
-            config[key] = init_search_params_spaces(
-                value, parameter_columns, f'{prefix}{key}/')
+            config[key] = init_search_params_spaces(value, parameter_columns, f"{prefix}{key}/")
 
     return config
 
@@ -114,15 +129,17 @@ def init_search_algorithm(search_alg, metric=None, mode=None):
         metric (str): The metric to monitor for early stopping.
         mode (str): One of 'min' or 'max' to determine whether to minimize or maximize the metric.
     """
-    if search_alg == 'optuna':
+    if search_alg == "optuna":
         assert metric and mode, "Metric and mode cannot be None for optuna."
         from ray.tune.suggest.optuna import OptunaSearch
+
         return OptunaSearch(metric=metric, mode=mode)
-    elif search_alg == 'bayesopt':
+    elif search_alg == "bayesopt":
         assert metric and mode, "Metric and mode cannot be None for bayesian optimization."
         from ray.tune.suggest.bayesopt import BayesOptSearch
+
         return BayesOptSearch(metric=metric, mode=mode)
-    logging.info(f'{search_alg} search is found, run BasicVariantGenerator().')
+    logging.info(f"{search_alg} search is found, run BasicVariantGenerator().")
 
 
 def prepare_retrain_config(best_config, best_log_dir, merge_train_val):
@@ -136,18 +153,17 @@ def prepare_retrain_config(best_config, best_log_dir, merge_train_val):
     if merge_train_val:
         best_config.merge_train_val = True
 
-        log_path = os.path.join(best_log_dir, 'logs.json')
+        log_path = os.path.join(best_log_dir, "logs.json")
         if os.path.isfile(log_path):
             with open(log_path) as fp:
                 log = json.load(fp)
         else:
-            raise FileNotFoundError(
-                "The log directory does not contain a log.")
+            raise FileNotFoundError("The log directory does not contain a log.")
 
         # For re-training with validation data,
         # we use the number of epochs at the point of optimal validation performance.
-        log_metric = np.array([l[best_config.val_metric] for l in log['val']])
-        optimal_idx = log_metric.argmax() if best_config.mode == 'max' else log_metric.argmin()
+        log_metric = np.array([l[best_config.val_metric] for l in log["val"]])
+        optimal_idx = log_metric.argmax() if best_config.mode == "max" else log_metric.argmin()
         best_config.epochs = optimal_idx.item() + 1  # plus 1 for epochs
     else:
         best_config.merge_train_val = False
@@ -164,26 +180,29 @@ def load_static_data(config, merge_train_val=False):
     Returns:
         dict: A dict of static data containing datasets, classes, and word_dict.
     """
-    datasets = data_utils.load_datasets(training_data=config.training_file,
-                                        test_data=config.test_file,
-                                        val_data=config.val_file,
-                                        val_size=config.val_size,
-                                        merge_train_val=merge_train_val,
-                                        tokenize_text='lm_weight' not in config['network_config'],
-                                        remove_no_label_data=config.remove_no_label_data
-                                        )
+    datasets = data_utils.load_datasets(
+        training_data=config.training_file,
+        test_data=config.test_file,
+        val_data=config.val_file,
+        val_size=config.val_size,
+        merge_train_val=merge_train_val,
+        tokenize_text="lm_weight" not in config["network_config"],
+        remove_no_label_data=config.remove_no_label_data,
+    )
     return {
         "datasets": datasets,
-        "word_dict": None if config.embed_file is None else data_utils.load_or_build_text_dict(
-            dataset=datasets['train'],
+        "word_dict": None
+        if config.embed_file is None
+        else data_utils.load_or_build_text_dict(
+            dataset=datasets["train"],
             vocab_file=config.vocab_file,
             min_vocab_freq=config.min_vocab_freq,
             embed_file=config.embed_file,
             embed_cache_dir=config.embed_cache_dir,
             silent=config.silent,
-            normalize_embed=config.normalize_embed
+            normalize_embed=config.normalize_embed,
         ),
-        "classes": data_utils.load_or_build_label(datasets, config.label_file, config.include_test_labels)
+        "classes": data_utils.load_or_build_label(datasets, config.label_file, config.include_test_labels),
     }
 
 
@@ -199,73 +218,83 @@ def retrain_best_model(exp_name, best_config, best_log_dir, merge_train_val):
         merge_train_val (bool): Whether to merge the training and validation data.
     """
     best_config.silent = False
-    checkpoint_dir = os.path.join(
-        best_config.result_dir, exp_name, 'trial_best_params')
+    checkpoint_dir = os.path.join(best_config.result_dir, exp_name, "trial_best_params")
     os.makedirs(checkpoint_dir, exist_ok=True)
-    with open(os.path.join(checkpoint_dir, 'params.yml'), 'w') as fp:
+    with open(os.path.join(checkpoint_dir, "params.yml"), "w") as fp:
         yaml.dump(dict(best_config), fp)
-    best_config.run_name = '_'.join(exp_name.split('_')[:-1]) + '_best'
+    best_config.run_name = "_".join(exp_name.split("_")[:-1]) + "_best"
     best_config.checkpoint_dir = checkpoint_dir
-    best_config.log_path = os.path.join(
-        best_config.checkpoint_dir, 'logs.json')
+    best_config.log_path = os.path.join(best_config.checkpoint_dir, "logs.json")
     prepare_retrain_config(best_config, best_log_dir, merge_train_val)
     set_seed(seed=best_config.seed)
 
-    data = load_static_data(
-        best_config, merge_train_val=best_config.merge_train_val)
-    
+    data = load_static_data(best_config, merge_train_val=best_config.merge_train_val)
+
     if merge_train_val:
-        logging.info(f'Re-training with best config: \n{best_config}')
+        logging.info(f"Re-training with best config: \n{best_config}")
         trainer = TorchTrainer(config=best_config, **data)
         trainer.train()
     else:
         # If not merging training and validation data, load the best result from tune experiments.
-        logging.info(f'Loading best model with best config: \n{best_config}')
+        logging.info(f"Loading best model with best config: \n{best_config}")
         trainer = TorchTrainer(config=best_config, **data)
-        best_checkpoint = os.path.join(best_log_dir, 'best_model.ckpt')
-        last_checkpoint = os.path.join(best_log_dir, 'last.ckpt')
+        best_checkpoint = os.path.join(best_log_dir, "best_model.ckpt")
+        last_checkpoint = os.path.join(best_log_dir, "last.ckpt")
         trainer._setup_model(checkpoint_path=best_checkpoint)
         os.popen(f"cp {best_checkpoint} {os.path.join(checkpoint_dir, 'best_model.ckpt')}")
         os.popen(f"cp {last_checkpoint} {os.path.join(checkpoint_dir, 'last.ckpt')}")
 
-    if 'test' in data['datasets']:
+    if "test" in data["datasets"]:
         test_results = trainer.test()
-        logging.info(f'Test results after re-training: {test_results}')
+        logging.info(f"Test results after re-training: {test_results}")
     logging.info(
-        f'Best model saved to {trainer.checkpoint_callback.best_model_path or trainer.checkpoint_callback.last_model_path}.')
+        f"Best model saved to {trainer.checkpoint_callback.best_model_path or trainer.checkpoint_callback.last_model_path}."
+    )
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--config', help='Path to configuration file (default: %(default)s). Please specify a config with all arguments in LibMultiLabel/main.py::get_config.')
-    parser.add_argument('--cpu_count', type=int, default=4,
-                        help='Number of CPU per trial (default: %(default)s)')
-    parser.add_argument('--gpu_count', type=int, default=1,
-                        help='Number of GPU per trial (default: %(default)s)')
-    parser.add_argument('--num_samples', type=int, default=50,
-                        help='Number of running trials. If the search space is `grid_search`, the same grid will be repeated `num_samples` times. (default: %(default)s)')
-    parser.add_argument('--search_alg', default=None, choices=['basic_variant', 'bayesopt', 'optuna'],
-                        help='Search algorithms (default: %(default)s)')
-    parser.add_argument('--no_merge_train_val', action='store_true',
-                        help='Do not add the validation set in re-training the final model after hyper-parameter search.')
+        "--config",
+        help="Path to configuration file (default: %(default)s). Please specify a config with all arguments in LibMultiLabel/main.py::get_config.",
+    )
+    parser.add_argument("--cpu_count", type=int, default=4, help="Number of CPU per trial (default: %(default)s)")
+    parser.add_argument("--gpu_count", type=int, default=1, help="Number of GPU per trial (default: %(default)s)")
+    parser.add_argument(
+        "--num_samples",
+        type=int,
+        default=50,
+        help="Number of running trials. If the search space is `grid_search`, the same grid will be repeated `num_samples` times. (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--search_alg",
+        default=None,
+        choices=["basic_variant", "bayesopt", "optuna"],
+        help="Search algorithms (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--no_merge_train_val",
+        action="store_true",
+        help="Do not add the validation set in re-training the final model after hyper-parameter search.",
+    )
     args, _ = parser.parse_known_args()
 
     # Load config from the config file and overwrite values specified in CLI.
     parameter_columns = dict()  # parameters to include in progress table of CLIReporter
     config = load_config_from_file(args.config)
-    config = init_search_params_spaces(config, parameter_columns, prefix='')
+    config = init_search_params_spaces(config, parameter_columns, prefix="")
     parser.set_defaults(**config)
     config = AttributeDict(vars(parser.parse_args()))
     # no need to include validation during parameter search
     config.merge_train_val = False
-    config.mode = 'min' if config.val_metric == 'Loss' else 'max'
+    config.mode = "min" if config.val_metric == "Loss" else "max"
 
     # Check if the validation set is provided.
-    if 'val_file' not in config:
+    if "val_file" not in config:
         config.val_file = None
-    assert config.val_size > 0 or config.val_file is not None, \
-        "You should specify either a positive `val_size` or a `val_file` for parameter search."
+    assert (
+        config.val_size > 0 or config.val_file is not None
+    ), "You should specify either a positive `val_size` or a `val_file` for parameter search."
 
     """Run tune analysis.
     - If no search algorithm is specified, the default search algorighm is BasicVariantGenerator.
@@ -275,54 +304,48 @@ def main():
       so we parse the whole config to `tune.run` here for simplicity.
     """
     data = load_static_data(config)
-    reporter = tune.CLIReporter(metric_columns=[f'val_{metric}' for metric in config.monitor_metrics],
-                                parameter_columns=parameter_columns,
-                                metric=f'val_{config.val_metric}',
-                                mode=config.mode,
-                                sort_by_metric=True)
+    reporter = tune.CLIReporter(
+        metric_columns=[f"val_{metric}" for metric in config.monitor_metrics],
+        parameter_columns=parameter_columns,
+        metric=f"val_{config.val_metric}",
+        mode=config.mode,
+        sort_by_metric=True,
+    )
     if config.scheduler is not None:
-        scheduler = ASHAScheduler(metric=f'val_{config.val_metric}',
-                                  mode=config.mode,
-                                  **config.scheduler)
+        scheduler = ASHAScheduler(metric=f"val_{config.val_metric}", mode=config.mode, **config.scheduler)
     else:
         scheduler = None
 
     # Fix issue: https://github.com/ray-project/ray/issues/28197
     import ray
+
     ray.init(runtime_env={"env_vars": {"PL_DISABLE_FORK": "1"}})
 
-    exp_name = '{}_{}_{}'.format(
+    exp_name = "{}_{}_{}".format(
         config.data_name,
         Path(config.config).stem if config.config else config.model_name,
-        datetime.now().strftime('%Y%m%d%H%M%S'),
+        datetime.now().strftime("%Y%m%d%H%M%S"),
     )
     analysis = tune.run(
-        tune.with_parameters(
-            train_libmultilabel_tune,
-            **data),
-        search_alg=init_search_algorithm(
-            config.search_alg, metric=config.val_metric, mode=config.mode),
+        tune.with_parameters(train_libmultilabel_tune, **data),
+        search_alg=init_search_algorithm(config.search_alg, metric=config.val_metric, mode=config.mode),
         scheduler=scheduler,
         local_dir=config.result_dir,
         num_samples=config.num_samples,
-        resources_per_trial={
-            'cpu': args.cpu_count, 'gpu': args.gpu_count},
+        resources_per_trial={"cpu": args.cpu_count, "gpu": args.gpu_count},
         progress_reporter=reporter,
         config=config,
         name=exp_name,
     )
 
     # Save best model after parameter search.
-    best_config = analysis.get_best_config(
-        f'val_{config.val_metric}', config.mode, scope='all')
-    best_log_dir = analysis.get_best_logdir(
-        f'val_{config.val_metric}', config.mode, scope='all')
-    retrain_best_model(exp_name, best_config, best_log_dir,
-                       merge_train_val=not args.no_merge_train_val)
+    best_config = analysis.get_best_config(f"val_{config.val_metric}", config.mode, scope="all")
+    best_log_dir = analysis.get_best_logdir(f"val_{config.val_metric}", config.mode, scope="all")
+    retrain_best_model(exp_name, best_config, best_log_dir, merge_train_val=not args.no_merge_train_val)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # calculate wall time.
     wall_time = Timer()
     main()
-    print(f'Wall time: {wall_time.time():.2f} (s)')
+    print(f"Wall time: {wall_time.time():.2f} (s)")
