@@ -87,3 +87,37 @@ clf = clf.fit(train_data['text'], y)
 # in the linear classifier. The key in ``parameters`` should follow the sklearn's coding rule
 # starting with the estimator's alias and two underscores (i.e., ``clf__``).
 # We specify ``n_jobs=4`` to run four tasks in parallel.
+# After finishing gridsearch, we can get the best parameters by the following code:
+
+for param_name in sorted(parameters.keys()):
+    print(f'{param_name}: {clf.best_params_[param_name]}')
+
+######################################################################
+# The best parameters are::
+#  
+#   clf__options: '-s 2 -c 0.5 -m 1'
+#   tfidf__max_features: 20000
+#   tfidf__min_df: 3
+#
+# For testing, we also need to read in data first and format test labels into a 0/1 sparse matrix. 
+
+test_data = linear.read_libmultilabel_format('data/rcv1/test.txt')
+y = binarizer.transform(test_data['label']).astype('d').toarray()
+
+######################################################################
+# Applying the ``predict`` function of ``GridSearchCV`` object to use the
+# estimator trained under the best hyper-parameters for prediction.
+# Then use ``linear.compute_metrics`` to calculate the test performance.
+
+preds = clf.predict(test_data['text'])
+metrics = linear.compute_metrics(
+    preds,
+    y,
+    monitor_metrics=['Macro-F1', 'Micro-F1', 'P@1', 'P@3', 'P@5'],
+)
+print(metrics)
+
+######################################################################
+# The result of the best parameters will look similar to::
+#
+#   {'Macro-F1': 0.4965720851051106, 'Micro-F1': 0.8004678830627301, 'P@1': 0.9587412721675744, 'P@3': 0.8021469454453142, 'P@5': 0.5605401496291271}
