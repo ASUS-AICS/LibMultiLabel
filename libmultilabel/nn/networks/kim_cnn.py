@@ -25,19 +25,19 @@ class KimCNN(nn.Module):
         num_filter_per_size=128,
         embed_dropout=0.2,
         encoder_dropout=0,
-        activation='relu'
+        activation="relu",
     ):
         super(KimCNN, self).__init__()
         self.embedding = Embedding(embed_vecs, embed_dropout)
-        self.encoder = CNNEncoder(embed_vecs.shape[1], filter_sizes,
-                                  num_filter_per_size, activation,
-                                  encoder_dropout, num_pool=1)
+        self.encoder = CNNEncoder(
+            embed_vecs.shape[1], filter_sizes, num_filter_per_size, activation, encoder_dropout, num_pool=1
+        )
         conv_output_size = num_filter_per_size * len(filter_sizes)
         self.linear = nn.Linear(conv_output_size, num_classes)
 
     def forward(self, input):
-        x = self.embedding(input['text'])  # (batch_size, length, embed_dim)
+        x = self.embedding(input["text"])  # (batch_size, length, embed_dim)
         x = self.encoder(x)  # (batch_size, num_filter, 1)
         x = torch.squeeze(x, 2)  # (batch_size, num_filter)
         x = self.linear(x)  # (batch_size, num_classes)
-        return {'logits': x}
+        return {"logits": x}

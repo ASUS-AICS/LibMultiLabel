@@ -3,7 +3,7 @@ class datasets(object):
         pass
 
     def get_name(self):
-        return 'datasets'
+        return "datasets"
 
     def get_from_trainer(self, trainer):
         return trainer.datasets
@@ -17,7 +17,7 @@ class token_to_id(object):
         pass
 
     def get_name(self):
-        return 'token_to_id'
+        return "token_to_id"
 
     def get_from_trainer(self, trainer):
         return trainer.model.word_dict.get_stoi()
@@ -31,7 +31,7 @@ class embed_vecs(object):
         pass
 
     def get_name(self):
-        return 'embed_vecs'
+        return "embed_vecs"
 
     def get_from_trainer(self, trainer):
         return trainer.model.embed_vecs
@@ -45,7 +45,7 @@ class classes(object):
         pass
 
     def get_name(self):
-        return 'classes'
+        return "classes"
 
     def get_from_trainer(self, trainer):
         return trainer.model.classes
@@ -59,7 +59,7 @@ class network(object):
         pass
 
     def get_name(self):
-        return 'network'
+        return "network"
 
     def get_from_trainer(self, trainer):
         return trainer.model.network.state_dict()
