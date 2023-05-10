@@ -10,12 +10,12 @@ Then you can read and preprocess the data as follows
 """
 
 from sklearn.preprocessing import MultiLabelBinarizer
-import libmultilabel.linear as linear
+from libmultilabel import linear
 
-train_data = linear.read_libmultilabel_format("data/rcv1/train.txt")
+data_loader = linear.Preprocessor("txt")
+data = data_loader.load_data("data/rcv1/train.txt", "data/rcv1/test.txt", return_raw=True)
 binarizer = MultiLabelBinarizer(sparse_output=True)
-binarizer.fit(train_data["label"])
-y = binarizer.transform(train_data["label"]).astype("d")
+y = binarizer.fit_transform(data["train"]["y"]).astype("d")
 
 ######################################################################
 # We format labels into a 0/1 sparse matrix with ``MultiLabelBinarizer``.
@@ -32,8 +32,7 @@ y = binarizer.transform(train_data["label"]).astype("d")
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 vectorizer = TfidfVectorizer(max_features=20000, min_df=3)
-vectorizer.fit(train_data["text"])
-x = vectorizer.transform(train_data["text"])
+x = vectorizer.fit_transform(data["train"]["x"])
 model = linear.train_1vsrest(y, x, "-s 2 -m 4")
 
 #######################################################################
@@ -66,7 +65,7 @@ pipeline = Pipeline(
 # For example, ``tfidf`` is the alias of ``TfidfVectorizer`` and ``clf`` is the alias of the estimator.
 #
 # We can then use the following code for training.
-pipeline.fit(train_data["text"], y)
+pipeline.fit(data["train"]["x"], y)
 
 ######################################################################
 # Grid Search over Feature Generations and LIBLINEAR Options
@@ -77,7 +76,7 @@ pipeline.fit(train_data["text"], y)
 liblinear_options = ["-s 2 -c 0.5", "-s 2 -c 1", "-s 2 -c 2"]
 parameters = {"clf__options": liblinear_options, "tfidf__max_features": [10000, 20000, 40000], "tfidf__min_df": [3, 5]}
 clf = linear.GridSearchCV(pipeline, parameters, cv=5, n_jobs=4, verbose=1)
-clf = clf.fit(train_data["text"], y)
+clf = clf.fit(data["train"]["x"], y)
 
 ######################################################################
 # Here we check the combinations of six feature generations and three regularization parameters
@@ -87,30 +86,29 @@ clf = clf.fit(train_data["text"], y)
 # After finishing gridsearch, we can get the best parameters by the following code:
 
 for param_name in sorted(parameters.keys()):
-    print(f'{param_name}: {clf.best_params_[param_name]}')
+    print(f"{param_name}: {clf.best_params_[param_name]}")
 
 ######################################################################
 # The best parameters are::
-#  
+#
 #   clf__options: '-s 2 -c 0.5 -m 1'
 #   tfidf__max_features: 20000
 #   tfidf__min_df: 3
 #
-# For testing, we also need to read in data first and format test labels into a 0/1 sparse matrix. 
+# For testing, we also need to read in data first and format test labels into a 0/1 sparse matrix.
 
-test_data = linear.read_libmultilabel_format('data/rcv1/test.txt')
-y = binarizer.transform(test_data['label']).astype('d').toarray()
+y = binarizer.transform(data["test"]["y"]).astype("d").toarray()
 
 ######################################################################
 # Applying the ``predict`` function of ``GridSearchCV`` object to use the
 # estimator trained under the best hyper-parameters for prediction.
 # Then use ``linear.compute_metrics`` to calculate the test performance.
 
-preds = clf.predict(test_data['text'])
+preds = clf.predict(data["test"]["x"])
 metrics = linear.compute_metrics(
     preds,
     y,
-    monitor_metrics=['Macro-F1', 'Micro-F1', 'P@1', 'P@3', 'P@5'],
+    monitor_metrics=["Macro-F1", "Micro-F1", "P@1", "P@3", "P@5"],
 )
 print(metrics)
 
