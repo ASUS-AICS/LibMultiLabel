@@ -28,7 +28,7 @@ class Preprocessor:
         Args:
             data_format (str): The data format used. 'svm' for LibSVM format, 'txt' for LibMultiLabel format in file and 'dataframe' for LibMultiLabel format in dataframe .
         """
-        if not data_format in {"txt", "svm", "dataframe"}:
+        if data_format not in {"txt", "svm", "dataframe"}:
             raise ValueError(f"unsupported data format {data_format}")
 
         self.data_format = data_format
