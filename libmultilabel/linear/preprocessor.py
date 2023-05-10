@@ -102,7 +102,8 @@ class Preprocessor:
         if not eval:
             train = _read_libmultilabel_format(training_data)
             if not return_raw:
-                self._generate_tfidf(train["x"])
+                self.vectorizer = TfidfVectorizer()
+                self.vectorizer.fit(train["x"])
 
                 if self.classes or not self.include_test_labels:
                     self._generate_label_mapping(train["y"], self.classes)
@@ -140,10 +141,6 @@ class Preprocessor:
             datasets["test"]["x"] = tx
             datasets["test"]["y"] = self.binarizer.transform(ty).astype("d")
         return dict(datasets)
-
-    def _generate_tfidf(self, texts: list[str]):
-        self.vectorizer = TfidfVectorizer()
-        self.vectorizer.fit(texts)
 
     def _generate_label_mapping(self, labels: list[list[str]], classes: list[str] = None):
         self.binarizer = MultiLabelBinarizer(sparse_output=True, classes=classes)
@@ -184,10 +181,6 @@ def _read_libsvm_format(file_path: str) -> tuple[list[list[int]], sparse.csr_mat
     Returns:
         tuple[list[list[int]], sparse.csr_matrix]: A tuple of labels and features.
     """
-
-    def as_ints(str):
-        return [int(s) for s in str.split(",")]
-
     prob_y = []
     prob_x = array("d")
     row_ptr = array("l", [0])
@@ -198,7 +191,8 @@ def _read_libsvm_format(file_path: str) -> tuple[list[list[int]], sparse.csr_mat
         m = pattern.fullmatch(line)
         try:
             labels = m[1]
-            prob_y.append(as_ints(labels) if labels else [])
+            int_labels = [int(s) for s in labels.split(",")]
+            prob_y.append(int_labels if labels else [])
             features = m[2] or ""
             nz = 0
             for e in features.split():
