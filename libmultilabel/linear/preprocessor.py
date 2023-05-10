@@ -102,23 +102,23 @@ class Preprocessor:
         if not eval:
             train = _read_libmultilabel_format(training_data)
             if not return_raw:
-                self._generate_tfidf(train["text"])
+                self._generate_tfidf(train["x"])
 
                 if self.classes or not self.include_test_labels:
-                    self._generate_label_mapping(train["label"], self.classes)
+                    self._generate_label_mapping(train["y"], self.classes)
                 else:
-                    self._generate_label_mapping(train["label"] + test["label"])
-                train["text"] = self.vectorizer.transform(train["text"])
-                train["label"] = self.binarizer.transform(train["label"]).astype("d")
-            datasets["train"]["x"] = train["text"]
-            datasets["train"]["y"] = train["label"]
+                    self._generate_label_mapping(train["y"] + test["y"])
+                train["x"] = self.vectorizer.transform(train["x"])
+                train["y"] = self.binarizer.transform(train["y"]).astype("d")
+            datasets["train"]["x"] = train["x"]
+            datasets["train"]["y"] = train["y"]
 
         if test_data is not None:
             if not return_raw:
-                test["text"] = self.vectorizer.transform(test["text"])
-                test["label"] = self.binarizer.transform(test["label"]).astype("d")
-            datasets["test"]["x"] = test["text"]
-            datasets["test"]["y"] = test["label"]
+                test["x"] = self.vectorizer.transform(test["x"])
+                test["y"] = self.binarizer.transform(test["y"]).astype("d")
+            datasets["test"]["x"] = test["x"]
+            datasets["test"]["y"] = test["y"]
 
         return dict(datasets)
 
@@ -165,13 +165,13 @@ def _read_libmultilabel_format(data: str | pd.Dataframe) -> dict[str, list[str]]
         data = pd.read_csv(data, sep="\t", header=None, on_bad_lines="warn", quoting=csv.QUOTE_NONE).fillna("")
     data = data.astype(str)
     if data.shape[1] == 2:
-        data.columns = ["label", "text"]
+        data.columns = ["y", "x"]
         data = data.reset_index()
     elif data.shape[1] == 3:
-        data.columns = ["index", "label", "text"]
+        data.columns = ["idx", "y", "x"]
     else:
         raise ValueError(f"Expected 2 or 3 columns, got {data.shape[1]}.")
-    data["label"] = data["label"].map(lambda s: s.split())
+    data["y"] = data["y"].map(lambda s: s.split())
     return data.to_dict("list")
 
 
@@ -202,14 +202,14 @@ def _read_libsvm_format(file_path: str) -> tuple[list[list[int]], sparse.csr_mat
             features = m[2] or ""
             nz = 0
             for e in features.split():
-                ind, val = e.split(":")
-                ind, val = int(ind), float(val)
-                if ind < 1:
+                idx, val = e.split(":")
+                idx, val = int(idx), float(val)
+                if idx < 1:
                     raise IndexError(
                         f"invalid svm format at line {i+1} of the file '{file_path}' --> Indices should start from one."
                     )
                 if val != 0:
-                    col_idx.append(ind - 1)
+                    col_idx.append(idx - 1)
                     prob_x.append(val)
                     nz += 1
             row_ptr.append(row_ptr[-1] + nz)
