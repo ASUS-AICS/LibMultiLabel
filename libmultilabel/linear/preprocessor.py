@@ -32,6 +32,10 @@ class Preprocessor:
             raise ValueError(f"unsupported data format {data_format}")
 
         self.data_format = data_format
+        self.classes = None
+        self.include_test_labels = None
+        self.vectorizer = None
+        self.binarizer = None
 
     def load_data(
         self,
