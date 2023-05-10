@@ -13,7 +13,7 @@ import scipy.sparse as sparse
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import MultiLabelBinarizer
 
-__all__ = ["Preprocessor", "read_libmultilabel_format", "read_libsvm_format"]
+__all__ = ["Preprocessor"]
 
 
 class Preprocessor:
@@ -97,10 +97,10 @@ class Preprocessor:
     ) -> dict[str, dict[str, sparse.csr_matrix]]:
         datasets = defaultdict(dict)
         if test_data is not None:
-            test = read_libmultilabel_format(test_data)
+            test = _read_libmultilabel_format(test_data)
 
         if not eval:
-            train = read_libmultilabel_format(training_data)
+            train = _read_libmultilabel_format(training_data)
             if not return_raw:
                 self._generate_tfidf(train["text"])
 
@@ -125,10 +125,10 @@ class Preprocessor:
     def _load_svm(self, training_data: str, test_data: str, eval: bool) -> dict[str, dict[str, sparse.csr_matrix]]:
         datasets = defaultdict(dict)
         if test_data is not None:
-            ty, tx = read_libsvm_format(test_data)
+            ty, tx = _read_libsvm_format(test_data)
 
         if not eval:
-            y, x = read_libsvm_format(training_data)
+            y, x = _read_libsvm_format(training_data)
             if self.classes or not self.include_test_labels:
                 self._generate_label_mapping(y, self.classes)
             else:
@@ -151,7 +151,7 @@ class Preprocessor:
         self.label_mapping = self.binarizer.classes_
 
 
-def read_libmultilabel_format(data: str | pd.Dataframe) -> dict[str, list[str]]:
+def _read_libmultilabel_format(data: str | pd.Dataframe) -> dict[str, list[str]]:
     """Read multi-label text data from file or pandas dataframe.
 
     Args:
@@ -175,7 +175,7 @@ def read_libmultilabel_format(data: str | pd.Dataframe) -> dict[str, list[str]]:
     return data.to_dict("list")
 
 
-def read_libsvm_format(file_path: str) -> tuple[list[list[int]], sparse.csr_matrix]:
+def _read_libsvm_format(file_path: str) -> tuple[list[list[int]], sparse.csr_matrix]:
     """Read multi-label LIBSVM-format data.
 
     Args:

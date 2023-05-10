@@ -40,18 +40,12 @@ Preprocessor
 
    .. automethod:: __init__
 
-
-.. autofunction:: read_libmultilabel_format
-
-.. autofunction:: read_libsvm_format
-
 Load and Save Pipeline
 ^^^^^^^^^^^^^^^^^^^^^^
 
 .. autofunction:: save_pipeline
 
 .. autofunction:: load_pipeline
-
 
 Metrics
 ^^^^^^^
