@@ -8,22 +8,26 @@ import scipy.sparse as sparse
 from liblinear.liblinearutil import train
 from tqdm import tqdm
 
-__all__ = ['train_1vsrest',
-           'train_thresholding',
-           'train_cost_sensitive',
-           'train_cost_sensitive_micro',
-           'train_binary_and_multiclass',
-           'predict_values',
-           'get_topk_labels',
-           'get_positive_labels']
+__all__ = [
+    "train_1vsrest",
+    "train_thresholding",
+    "train_cost_sensitive",
+    "train_cost_sensitive_micro",
+    "train_binary_and_multiclass",
+    "predict_values",
+    "get_topk_labels",
+    "get_positive_labels",
+]
 
 
 class FlatModel:
-    def __init__(self, name: str,
-                 weights: np.matrix,
-                 bias: float,
-                 thresholds: float | np.ndarray,
-                 ):
+    def __init__(
+        self,
+        name: str,
+        weights: np.matrix,
+        bias: float,
+        thresholds: float | np.ndarray,
+    ):
         self.name = name
         self.weights = weights
         self.bias = bias
@@ -43,25 +47,27 @@ class FlatModel:
         num_feature = self.weights.shape[0]
         num_feature -= 1 if bias > 0 else 0
         if x.shape[1] < num_feature:
-            x = sparse.hstack([
-                x,
-                np.zeros((x.shape[0], num_feature - x.shape[1])),
-                bias_col,
-            ], 'csr')
+            x = sparse.hstack(
+                [
+                    x,
+                    np.zeros((x.shape[0], num_feature - x.shape[1])),
+                    bias_col,
+                ],
+                "csr",
+            )
         else:
-            x = sparse.hstack([
-                x[:, :num_feature],
-                bias_col,
-            ], 'csr')
+            x = sparse.hstack(
+                [
+                    x[:, :num_feature],
+                    bias_col,
+                ],
+                "csr",
+            )
 
         return (x * self.weights).A + self.thresholds
 
 
-def train_1vsrest(y: sparse.csr_matrix,
-                  x: sparse.csr_matrix,
-                  options: str = '',
-                  verbose: bool = True
-                  ) -> FlatModel:
+def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str = "", verbose: bool = True) -> FlatModel:
     """Trains a linear model for multiabel data using a one-vs-rest strategy.
 
     Args:
@@ -79,18 +85,15 @@ def train_1vsrest(y: sparse.csr_matrix,
     y = y.tocsc()
     num_class = y.shape[1]
     num_feature = x.shape[1]
-    weights = np.zeros((num_feature, num_class), order='F')
+    weights = np.zeros((num_feature, num_class), order="F")
 
     if verbose:
-        logging.info(f'Training one-vs-rest model on {num_class} labels')
+        logging.info(f"Training one-vs-rest model on {num_class} labels")
     for i in tqdm(range(num_class), disable=not verbose):
         yi = y[:, i].toarray().reshape(-1)
-        weights[:, i] = _do_train(2*yi - 1, x, options).ravel()
+        weights[:, i] = _do_train(2 * yi - 1, x, options).ravel()
 
-    return FlatModel(name='1vsrest',
-                     weights=np.asmatrix(weights),
-                     bias=bias,
-                     thresholds=0)
+    return FlatModel(name="1vsrest", weights=np.asmatrix(weights), bias=bias, thresholds=0)
 
 
 def _prepare_options(x: sparse.csr_matrix, options: str) -> tuple[sparse.csr_matrix, str, float]:
@@ -106,44 +109,44 @@ def _prepare_options(x: sparse.csr_matrix, options: str) -> tuple[sparse.csr_mat
         bias parsed from options.
     """
     if options is None:
-        options = ''
-    if any(o in options for o in ['-R', '-C', '-v']):
-        raise ValueError('-R, -C and -v are not supported')
+        options = ""
+    if any(o in options for o in ["-R", "-C", "-v"]):
+        raise ValueError("-R, -C and -v are not supported")
 
     options_split = options.split()
-    if '-s' in options_split:
-        i = options_split.index('-s')
-        solver_type = int(options_split[i+1])
+    if "-s" in options_split:
+        i = options_split.index("-s")
+        solver_type = int(options_split[i + 1])
         if solver_type < 0 or solver_type > 7:
-            raise ValueError(
-                "Invalid LIBLINEAR solver type. Only classification solvers are allowed.")
+            raise ValueError("Invalid LIBLINEAR solver type. Only classification solvers are allowed.")
     else:
         # workaround for liblinear warning about unspecified solver
-        options_split.extend(['-s', '2'])
+        options_split.extend(["-s", "2"])
 
-    bias = -1.
-    if '-B' in options_split:
-        i = options_split.index('-B')
-        bias = float(options_split[i+1])
-        options_split = options_split[:i] + options_split[i+2:]
-        x = sparse.hstack([
-            x,
-            np.full((x.shape[0], 1), bias),
-        ], 'csr')
-    if not '-q' in options_split:
-        options_split.append('-q')
-    if not '-m' in options:
-        options_split.append(f'-m {int(os.cpu_count() / 2)}')
+    bias = -1.0
+    if "-B" in options_split:
+        i = options_split.index("-B")
+        bias = float(options_split[i + 1])
+        options_split = options_split[:i] + options_split[i + 2 :]
+        x = sparse.hstack(
+            [
+                x,
+                np.full((x.shape[0], 1), bias),
+            ],
+            "csr",
+        )
+    if not "-q" in options_split:
+        options_split.append("-q")
+    if not "-m" in options:
+        options_split.append(f"-m {int(os.cpu_count() / 2)}")
 
-    options = ' '.join(options_split)
+    options = " ".join(options_split)
     return x, options, bias
 
 
-def train_thresholding(y: sparse.csr_matrix,
-                       x: sparse.csr_matrix,
-                       options: str = '',
-                       verbose: bool = True
-                       ) -> FlatModel:
+def train_thresholding(
+    y: sparse.csr_matrix, x: sparse.csr_matrix, options: str = "", verbose: bool = True
+) -> FlatModel:
     """Trains a linear model for multilabel data using a one-vs-rest strategy
     and cross-validation to pick optimal decision thresholds for Macro-F1.
     Outperforms train_1vsrest in most aspects at the cost of higher
@@ -165,27 +168,21 @@ def train_thresholding(y: sparse.csr_matrix,
     y = y.tocsc()
     num_class = y.shape[1]
     num_feature = x.shape[1]
-    weights = np.zeros((num_feature, num_class), order='F')
+    weights = np.zeros((num_feature, num_class), order="F")
     thresholds = np.zeros(num_class)
 
     if verbose:
-        logging.info(f'Training thresholding model on {num_class} labels')
+        logging.info(f"Training thresholding model on {num_class} labels")
     for i in tqdm(range(num_class), disable=not verbose):
         yi = y[:, i].toarray().reshape(-1)
-        w, t = _thresholding_one_label(2*yi - 1, x, options)
+        w, t = _thresholding_one_label(2 * yi - 1, x, options)
         weights[:, i] = w.ravel()
         thresholds[i] = t
 
-    return FlatModel(name='thresholding',
-                     weights=np.asmatrix(weights),
-                     bias=bias,
-                     thresholds=thresholds)
+    return FlatModel(name="thresholding", weights=np.asmatrix(weights), bias=bias, thresholds=thresholds)
 
 
-def _thresholding_one_label(y: np.ndarray,
-                            x: sparse.csr_matrix,
-                            options: str
-                            ) -> tuple[np.ndarray, float]:
+def _thresholding_one_label(y: np.ndarray, x: sparse.csr_matrix, options: str) -> tuple[np.ndarray, float]:
     """Outer cross-validation for thresholding on a single label.
 
     Args:
@@ -207,17 +204,16 @@ def _thresholding_one_label(y: np.ndarray,
     f_list = np.zeros_like(fbr_list)
 
     for fold in range(nr_fold):
-        mask = np.zeros_like(perm, dtype='?')
-        mask[np.arange(int(fold*l/nr_fold), int((fold+1)*l/nr_fold))] = 1
+        mask = np.zeros_like(perm, dtype="?")
+        mask[np.arange(int(fold * l / nr_fold), int((fold + 1) * l / nr_fold))] = 1
         val_idx = perm[mask]
         train_idx = perm[mask != True]
 
-        scutfbr_w, scutfbr_b_list = _scutfbr(
-            y[train_idx], x[train_idx], fbr_list, options)
+        scutfbr_w, scutfbr_b_list = _scutfbr(y[train_idx], x[train_idx], fbr_list, options)
         wTx = (x[val_idx] * scutfbr_w).A1
 
         for i in range(fbr_list.size):
-            F = _fmeasure(y[val_idx], 2*(wTx > -scutfbr_b_list[i]) - 1)
+            F = _fmeasure(y[val_idx], 2 * (wTx > -scutfbr_b_list[i]) - 1)
             f_list[i] += F
 
     best_fbr = fbr_list[::-1][np.argmax(f_list[::-1])]  # last largest
@@ -230,11 +226,7 @@ def _thresholding_one_label(y: np.ndarray,
     return w, b_list[0]
 
 
-def _scutfbr(y: np.ndarray,
-             x: sparse.csr_matrix,
-             fbr_list: list[float],
-             options: str
-             ) -> tuple[np.matrix, np.ndarray]:
+def _scutfbr(y: np.ndarray, x: sparse.csr_matrix, fbr_list: list[float], options: str) -> tuple[np.matrix, np.ndarray]:
     """Inner cross-validation for SCutfbr heuristic.
 
     Args:
@@ -256,29 +248,29 @@ def _scutfbr(y: np.ndarray,
     perm = np.random.permutation(l)
 
     for fold in range(nr_fold):
-        mask = np.zeros_like(perm, dtype='?')
-        mask[np.arange(int(fold*l/nr_fold), int((fold+1)*l/nr_fold))] = 1
+        mask = np.zeros_like(perm, dtype="?")
+        mask[np.arange(int(fold * l / nr_fold), int((fold + 1) * l / nr_fold))] = 1
         val_idx = perm[mask]
         train_idx = perm[mask != True]
 
         w = _do_train(y[train_idx], x[train_idx], options)
         wTx = (x[val_idx] * w).A1
-        scut_b = 0.
-        start_F = _fmeasure(y[val_idx], 2*(wTx > -scut_b) - 1)
+        scut_b = 0.0
+        start_F = _fmeasure(y[val_idx], 2 * (wTx > -scut_b) - 1)
 
         # stableness to match the MATLAB implementation
-        sorted_wTx_index = np.argsort(wTx, kind='stable')
+        sorted_wTx_index = np.argsort(wTx, kind="stable")
         sorted_wTx = wTx[sorted_wTx_index]
 
         tp = np.sum(y[val_idx] == 1)
         fp = val_idx.size - tp
         fn = 0
         cut = -1
-        best_F = 2*tp / (2*tp + fp + fn)
+        best_F = 2 * tp / (2 * tp + fp + fn)
         y_val = y[val_idx]
 
         # following MATLAB implementation to suppress NaNs
-        prev_settings = np.seterr('ignore')
+        prev_settings = np.seterr("ignore")
         for i in range(val_idx.size):
             if y_val[sorted_wTx_index[i]] == -1:
                 fp -= 1
@@ -287,7 +279,7 @@ def _scutfbr(y: np.ndarray,
                 fn += 1
 
             # There will be NaNs, but the behaviour is correct
-            F = 2*tp / (2*tp + fp + fn)
+            F = 2 * tp / (2 * tp + fp + fn)
 
             if F >= best_F:
                 best_F = F
@@ -302,7 +294,7 @@ def _scutfbr(y: np.ndarray,
             else:
                 scut_b = -(sorted_wTx[cut] + sorted_wTx[cut + 1]) / 2
 
-        F = _fmeasure(y_val, 2*(wTx > -scut_b) - 1)
+        F = _fmeasure(y_val, 2 * (wTx > -scut_b) - 1)
 
         for i in range(fbr_list.size):
             if F > fbr_list[i]:
@@ -314,10 +306,7 @@ def _scutfbr(y: np.ndarray,
     return _do_train(y, x, options), b_list
 
 
-def _do_train(y: np.ndarray,
-              x: sparse.csr_matrix,
-              options: str
-              ) -> np.matrix:
+def _do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> np.matrix:
     """Wrapper around liblinear.liblinearutil.train.
     Forcibly suppresses all IO regardless of options.
 
@@ -384,15 +373,13 @@ def _fmeasure(y_true: np.ndarray, y_pred: np.ndarray) -> float:
 
     F = 0
     if tp != 0 or fp != 0 or fn != 0:
-        F = 2*tp / (2*tp + fp + fn)
+        F = 2 * tp / (2 * tp + fp + fn)
     return F
 
 
-def train_cost_sensitive(y: sparse.csr_matrix,
-                         x: sparse.csr_matrix,
-                         options: str = '',
-                         verbose: bool = True
-                         ) -> FlatModel:
+def train_cost_sensitive(
+    y: sparse.csr_matrix, x: sparse.csr_matrix, options: str = "", verbose: bool = True
+) -> FlatModel:
     """Trains a linear model for multilabel data using a one-vs-rest strategy
     and cross-validation to pick an optimal asymmetric misclassification cost
     for Macro-F1.
@@ -415,26 +402,19 @@ def train_cost_sensitive(y: sparse.csr_matrix,
     y = y.tocsc()
     num_class = y.shape[1]
     num_feature = x.shape[1]
-    weights = np.zeros((num_feature, num_class), order='F')
+    weights = np.zeros((num_feature, num_class), order="F")
 
     if verbose:
-        logging.info(
-            f'Training cost-sensitive model for Macro-F1 on {num_class} labels')
+        logging.info(f"Training cost-sensitive model for Macro-F1 on {num_class} labels")
     for i in tqdm(range(num_class), disable=not verbose):
         yi = y[:, i].toarray().reshape(-1)
-        w = _cost_sensitive_one_label(2*yi - 1, x, options)
+        w = _cost_sensitive_one_label(2 * yi - 1, x, options)
         weights[:, i] = w.ravel()
 
-    return FlatModel(name='cost_sensitive',
-                     weights=np.asmatrix(weights),
-                     bias=bias,
-                     thresholds=0)
+    return FlatModel(name="cost_sensitive", weights=np.asmatrix(weights), bias=bias, thresholds=0)
 
 
-def _cost_sensitive_one_label(y: np.ndarray,
-                              x: sparse.csr_matrix,
-                              options: str
-                              ) -> np.ndarray:
+def _cost_sensitive_one_label(y: np.ndarray, x: sparse.csr_matrix, options: str) -> np.ndarray:
     """Loop over parameter space for cost-sensitive on a single label.
 
     Args:
@@ -453,22 +433,18 @@ def _cost_sensitive_one_label(y: np.ndarray,
 
     bestScore = -np.Inf
     for a in param_space:
-        cv_options = f'{options} -w1 {a}'
+        cv_options = f"{options} -w1 {a}"
         pred = _cross_validate(y, x, cv_options, perm)
         score = _fmeasure(y, pred)
         if bestScore < score:
             bestScore = score
             bestA = a
 
-    final_options = f'{options} -w1 {bestA}'
+    final_options = f"{options} -w1 {bestA}"
     return _do_train(y, x, final_options)
 
 
-def _cross_validate(y: np.ndarray,
-                    x: sparse.csr_matrix,
-                    options: str,
-                    perm: np.ndarray
-                    ) -> np.ndarray:
+def _cross_validate(y: np.ndarray, x: sparse.csr_matrix, options: str, perm: np.ndarray) -> np.ndarray:
     """Cross-validation for cost-sensitive.
 
     Args:
@@ -483,22 +459,20 @@ def _cross_validate(y: np.ndarray,
     nr_fold = 3
     pred = np.zeros_like(y)
     for fold in range(nr_fold):
-        mask = np.zeros_like(perm, dtype='?')
-        mask[np.arange(int(fold*l/nr_fold), int((fold+1)*l/nr_fold))] = 1
+        mask = np.zeros_like(perm, dtype="?")
+        mask[np.arange(int(fold * l / nr_fold), int((fold + 1) * l / nr_fold))] = 1
         val_idx = perm[mask]
         train_idx = perm[mask != True]
 
         w = _do_train(y[train_idx], x[train_idx], options)
         pred[val_idx] = (x[val_idx] * w).A1 > 0
 
-    return 2*pred - 1
+    return 2 * pred - 1
 
 
-def train_cost_sensitive_micro(y: sparse.csr_matrix,
-                               x: sparse.csr_matrix,
-                               options: str = '',
-                               verbose: bool = True
-                               ) -> FlatModel:
+def train_cost_sensitive_micro(
+    y: sparse.csr_matrix, x: sparse.csr_matrix, options: str = "", verbose: bool = True
+) -> FlatModel:
     """Trains a linear model for multilabel data using a one-vs-rest strategy
     and cross-validation to pick an optimal asymmetric misclassification cost
     for Micro-F1.
@@ -521,7 +495,7 @@ def train_cost_sensitive_micro(y: sparse.csr_matrix,
     y = y.tocsc()
     num_class = y.shape[1]
     num_feature = x.shape[1]
-    weights = np.zeros((num_feature, num_class), order='F')
+    weights = np.zeros((num_feature, num_class), order="F")
 
     l = y.shape[0]
     perm = np.random.permutation(l)
@@ -529,42 +503,36 @@ def train_cost_sensitive_micro(y: sparse.csr_matrix,
     bestScore = -np.Inf
 
     if verbose:
-        logging.info(
-            f'Training cost-sensitive model for Micro-F1 on {num_class} labels')
+        logging.info(f"Training cost-sensitive model for Micro-F1 on {num_class} labels")
     for a in param_space:
         tp = fn = fp = 0
         for i in tqdm(range(num_class), disable=not verbose):
             yi = y[:, i].toarray().reshape(-1)
-            yi = 2*yi - 1
+            yi = 2 * yi - 1
 
-            cv_options = f'{options} -w1 {a}'
+            cv_options = f"{options} -w1 {a}"
             pred = _cross_validate(yi, x, cv_options, perm)
             tp = tp + np.sum(np.logical_and(yi == 1, pred == 1))
             fn = fn + np.sum(np.logical_and(yi == 1, pred == -1))
             fp = fp + np.sum(np.logical_and(yi == -1, pred == 1))
 
-        score = 2*tp / (2*tp + fn + fp)
+        score = 2 * tp / (2 * tp + fn + fp)
         if bestScore < score:
             bestScore = score
             bestA = a
 
-    final_options = f'{options} -w1 {bestA}'
+    final_options = f"{options} -w1 {bestA}"
     for i in range(num_class):
         yi = y[:, i].toarray().reshape(-1)
-        w = _do_train(2*yi - 1, x, final_options)
+        w = _do_train(2 * yi - 1, x, final_options)
         weights[:, i] = w.ravel()
 
-    return FlatModel(name='cost_sensitive_micro',
-                     weights=np.asmatrix(weights),
-                     bias=bias,
-                     thresholds=0)
+    return FlatModel(name="cost_sensitive_micro", weights=np.asmatrix(weights), bias=bias, thresholds=0)
 
 
-def train_binary_and_multiclass(y: sparse.csr_matrix,
-                                x: sparse.csr_matrix,
-                                options: str = '',
-                                verbose: bool = True
-                                ) -> FlatModel:
+def train_binary_and_multiclass(
+    y: sparse.csr_matrix, x: sparse.csr_matrix, options: str = "", verbose: bool = True
+) -> FlatModel:
     """Trains a linear model for binary and multi-class data.
 
     Args:
@@ -579,7 +547,9 @@ def train_binary_and_multiclass(y: sparse.csr_matrix,
     x, options, bias = _prepare_options(x, options)
     num_instances, num_labels = y.shape
     nonzero_instance_ids, nonzero_label_ids = y.nonzero()
-    assert len(set(nonzero_instance_ids)) == num_instances, """
+    assert (
+        len(set(nonzero_instance_ids)) == num_instances
+    ), """
         Invalid dataset. Only multi-class dataset is allowed."""
     y = np.squeeze(nonzero_label_ids)
 
@@ -587,9 +557,9 @@ def train_binary_and_multiclass(y: sparse.csr_matrix,
         model = train(y, x, options)
 
     # Labels appeared in training set; length may be smaller than num_labels
-    train_labels = np.array(model.get_labels(), dtype='int')
+    train_labels = np.array(model.get_labels(), dtype="int")
     weights = np.zeros((x.shape[1], num_labels))
-    if num_labels == 2 and '-s 4' not in options:
+    if num_labels == 2 and "-s 4" not in options:
         # For binary classification, liblinear returns weights
         # with shape (number of features * 1) except '-s 4'.
         w = np.ctypeslib.as_array(model.w, (x.shape[1], 1))
@@ -603,10 +573,7 @@ def train_binary_and_multiclass(y: sparse.csr_matrix,
     # For labels not appeared in training, assign thresholds to -inf so they won't be predicted.
     thresholds = np.full(num_labels, -np.inf)
     thresholds[train_labels] = 0
-    return FlatModel(name='binary_and_multiclass',
-                     weights=np.asmatrix(weights),
-                     bias=bias,
-                     thresholds=thresholds)
+    return FlatModel(name="binary_and_multiclass", weights=np.asmatrix(weights), bias=bias, thresholds=thresholds)
 
 
 def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
@@ -622,10 +589,7 @@ def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
     return model.predict_values(x)
 
 
-def get_topk_labels(preds: np.ndarray,
-                    label_mapping: np.ndarray,
-                    top_k: int = 5
-                    ) -> tuple[np.ndarray, np.ndarray]:
+def get_topk_labels(preds: np.ndarray, label_mapping: np.ndarray, top_k: int = 5) -> tuple[np.ndarray, np.ndarray]:
     """Get labels and scores of top k predictions from decision values.
 
     Args:
@@ -635,9 +599,9 @@ def get_topk_labels(preds: np.ndarray,
 
     Returns:
         Two 2d ndarray with first one containing predicted labels and the other containing corresponding scores.
-        Both have dimension (num_instances * top_k). 
+        Both have dimension (num_instances * top_k).
     """
-    idx = np.argpartition(preds, -top_k)[:, :-top_k-1:-1]
+    idx = np.argpartition(preds, -top_k)[:, : -top_k - 1 : -1]
     row_idx = np.arange(preds.shape[0])[:, None]
     sorted_idx = idx[row_idx, np.argsort(-preds[row_idx, idx])]
     scores = preds[row_idx, sorted_idx]

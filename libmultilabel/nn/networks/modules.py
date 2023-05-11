@@ -16,8 +16,7 @@ class Embedding(nn.Module):
 
     def __init__(self, embed_vecs, dropout=0.2):
         super(Embedding, self).__init__()
-        self.embedding = nn.Embedding.from_pretrained(
-            embed_vecs, freeze=False, padding_idx=0)
+        self.embedding = nn.Embedding.from_pretrained(embed_vecs, freeze=False, padding_idx=0)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, input):
@@ -42,12 +41,9 @@ class RNNEncoder(ABC, nn.Module):
     def forward(self, input, length, **kwargs):
         self.rnn.flatten_parameters()
         idx = torch.argsort(length, descending=True)
-        length_clamped = length[idx].cpu().clamp(
-            min=1)  # avoid the empty text with length 0
-        packed_input = pack_padded_sequence(
-            input[idx], length_clamped, batch_first=True)
-        outputs, _ = pad_packed_sequence(
-            self.rnn(packed_input)[0], batch_first=True)
+        length_clamped = length[idx].cpu().clamp(min=1)  # avoid the empty text with length 0
+        packed_input = pack_padded_sequence(input[idx], length_clamped, batch_first=True)
+        outputs, _ = pad_packed_sequence(self.rnn(packed_input)[0], batch_first=True)
         return self.dropout(outputs[torch.argsort(idx)])
 
     @abstractmethod
@@ -66,12 +62,10 @@ class GRUEncoder(RNNEncoder):
     """
 
     def __init__(self, input_size, hidden_size, num_layers, dropout=0):
-        super(GRUEncoder, self).__init__(input_size, hidden_size, num_layers,
-                                         dropout)
+        super(GRUEncoder, self).__init__(input_size, hidden_size, num_layers, dropout)
 
     def _get_rnn(self, input_size, hidden_size, num_layers):
-        return nn.GRU(input_size, hidden_size, num_layers,
-                      batch_first=True, bidirectional=True)
+        return nn.GRU(input_size, hidden_size, num_layers, batch_first=True, bidirectional=True)
 
 
 class LSTMEncoder(RNNEncoder):
@@ -85,12 +79,10 @@ class LSTMEncoder(RNNEncoder):
     """
 
     def __init__(self, input_size, hidden_size, num_layers, dropout=0):
-        super(LSTMEncoder, self).__init__(input_size, hidden_size, num_layers,
-                                          dropout)
+        super(LSTMEncoder, self).__init__(input_size, hidden_size, num_layers, dropout)
 
     def _get_rnn(self, input_size, hidden_size, num_layers):
-        return nn.LSTM(input_size, hidden_size, num_layers,
-                       batch_first=True, bidirectional=True)
+        return nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, bidirectional=True)
 
 
 class CNNEncoder(nn.Module):
@@ -109,19 +101,16 @@ class CNNEncoder(nn.Module):
         channel_last (bool): Whether to transpose the dimension from (batch_size, num_channel, length) to (batch_size, length, num_channel)
     """
 
-    def __init__(self, input_size, filter_sizes, num_filter_per_size,
-                 activation, dropout=0, num_pool=0, channel_last=False):
+    def __init__(
+        self, input_size, filter_sizes, num_filter_per_size, activation, dropout=0, num_pool=0, channel_last=False
+    ):
         super(CNNEncoder, self).__init__()
         if not filter_sizes:
-            raise ValueError(f'CNNEncoder expect non-empty filter_sizes. '
-                             f'Got: {filter_sizes}')
+            raise ValueError(f"CNNEncoder expect non-empty filter_sizes. " f"Got: {filter_sizes}")
         self.channel_last = channel_last
         self.convs = nn.ModuleList()
         for filter_size in filter_sizes:
-            conv = nn.Conv1d(
-                in_channels=input_size,
-                out_channels=num_filter_per_size,
-                kernel_size=filter_size)
+            conv = nn.Conv1d(in_channels=input_size, out_channels=num_filter_per_size, kernel_size=filter_size)
             self.convs.append(conv)
         self.num_pool = num_pool
         if num_pool > 1:
@@ -181,18 +170,15 @@ class LabelwiseMultiHeadAttention(nn.Module):
 
     def __init__(self, input_size, num_classes, num_heads, attention_dropout=0.0):
         super(LabelwiseMultiHeadAttention, self).__init__()
-        self.attention = nn.MultiheadAttention(
-            embed_dim=input_size, num_heads=num_heads, dropout=attention_dropout)
+        self.attention = nn.MultiheadAttention(embed_dim=input_size, num_heads=num_heads, dropout=attention_dropout)
         self.Q = nn.Linear(input_size, num_classes)
 
     def forward(self, input, attention_mask=None):
         # (sequence_length, batch_size, hidden_dim)
         key = value = input.permute(1, 0, 2)
-        query = self.Q.weight.repeat(input.size(0), 1, 1).transpose(
-            0, 1)  # (num_classes, batch_size, hidden_dim)
+        query = self.Q.weight.repeat(input.size(0), 1, 1).transpose(0, 1)  # (num_classes, batch_size, hidden_dim)
 
-        logits, attention = self.attention(
-            query, key, value, key_padding_mask=attention_mask)
+        logits, attention = self.attention(query, key, value, key_padding_mask=attention_mask)
         # (batch_size, num_classes, hidden_dim)
         logits = logits.permute(1, 0, 2)
         return logits, attention
