@@ -233,6 +233,7 @@ def retrain_best_model(exp_name, best_config, best_log_dir, merge_train_val):
         logging.info(f"Re-training with best config: \n{best_config}")
         trainer = TorchTrainer(config=best_config, **data)
         trainer.train()
+        best_checkpoint = trainer.checkpoint_callback.best_model_path or trainer.checkpoint_callback.last_model_path
     else:
         # If not merging training and validation data, load the best result from tune experiments.
         logging.info(f"Loading best model with best config: \n{best_config}")
@@ -246,9 +247,7 @@ def retrain_best_model(exp_name, best_config, best_log_dir, merge_train_val):
     if "test" in data["datasets"]:
         test_results = trainer.test()
         logging.info(f"Test results after re-training: {test_results}")
-    logging.info(
-        f"Best model saved to {trainer.checkpoint_callback.best_model_path or trainer.checkpoint_callback.last_model_path}."
-    )
+    logging.info(f"Best model saved to {best_checkpoint}.")
 
 
 def main():
