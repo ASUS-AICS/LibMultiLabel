@@ -13,10 +13,9 @@ import libmultilabel.linear as linear
 ######################################################################
 # To start, we need to read and preprocess the input data:
 
-preprocessor = linear.Preprocessor(data_format='txt')
+preprocessor = linear.Preprocessor(data_format="txt")
 
-datasets = preprocessor.load_data('data/rcv1/train.txt',
-                                  'data/rcv1/test.txt')
+datasets = preprocessor.load_data("data/rcv1/train.txt", "data/rcv1/test.txt")
 
 ######################################################################
 # The preprocessor handles many issues such as: mapping
@@ -36,9 +35,7 @@ datasets = preprocessor.load_data('data/rcv1/train.txt',
 #
 # Next we train the model:
 
-model = linear.train_1vsrest(datasets['train']['y'],
-                             datasets['train']['x'],
-                             '')
+model = linear.train_1vsrest(datasets["train"]["y"], datasets["train"]["x"], "")
 
 ######################################################################
 # The third argument is the options string for
@@ -47,7 +44,7 @@ model = linear.train_1vsrest(datasets['train']['y'],
 #
 # Once we have the model, we may predict with it:
 
-preds = linear.predict_values(model, datasets['test']['x'])
+preds = linear.predict_values(model, datasets["test"]["x"])
 
 ######################################################################
 # ``preds`` holds the decision values, i.e. the raw values
@@ -63,8 +60,7 @@ pred_labels, pred_scores = linear.get_positive_labels(preds, preprocessor.label_
 
 prediction = []
 for label, score in zip(pred_labels, pred_scores):
-    prediction.append(
-        [f"{i}:{s:.4}" for i, s in zip(label, score)])
+    prediction.append([f"{i}:{s:.4}" for i, s in zip(label, score)])
 
 ######################################################################
 # The first instance looks like:
@@ -78,7 +74,7 @@ for label, score in zip(pred_labels, pred_scores):
 # Since the dataset we loaded are stored as ``scipy.sparse.csr_matrix``,
 # we will first transform the dataset to ``np.array``.
 
-target = datasets['test']['y'].toarray()
+target = datasets["test"]["y"].toarray()
 
 ##############################################################################
 # Then we will compute the metrics with ``compute_metrics``.
@@ -86,7 +82,7 @@ target = datasets['test']['y'].toarray()
 metrics = linear.compute_metrics(
     preds,
     target,
-    monitor_metrics=['Macro-F1', 'Micro-F1', 'P@1', 'P@3', 'P@5'],
+    monitor_metrics=["Macro-F1", "Micro-F1", "P@1", "P@3", "P@5"],
 )
 
 print(metrics)

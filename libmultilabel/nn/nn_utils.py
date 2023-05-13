@@ -24,33 +24,35 @@ def init_device(use_cpu=False):
     if not use_cpu and torch.cuda.is_available():
         # Set a debug environment variable CUBLAS_WORKSPACE_CONFIG to ":16:8" (may limit overall performance) or ":4096:8" (will increase library footprint in GPU memory by approximately 24MiB).
         # https://docs.nvidia.com/cuda/cublas/index.html
-        os.environ['CUBLAS_WORKSPACE_CONFIG'] = ":4096:8"
-        device = torch.device('cuda')
+        os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+        device = torch.device("cuda")
     else:
-        device = torch.device('cpu')
+        device = torch.device("cpu")
         # https://github.com/pytorch/pytorch/issues/11201
-        torch.multiprocessing.set_sharing_strategy('file_system')
-    logging.info(f'Using device: {device}')
+        torch.multiprocessing.set_sharing_strategy("file_system")
+    logging.info(f"Using device: {device}")
     return device
 
 
-def init_model(model_name,
-               network_config,
-               classes,
-               word_dict=None,
-               embed_vecs=None,
-               init_weight=None,
-               log_path=None,
-               learning_rate=0.0001,
-               optimizer='adam',
-               momentum=0.9,
-               weight_decay=0,
-               metric_threshold=0.5,
-               monitor_metrics=None,
-               multiclass=False,
-               loss_function='binary_cross_entropy_with_logits',
-               silent=False,
-               save_k_predictions=0):
+def init_model(
+    model_name,
+    network_config,
+    classes,
+    word_dict=None,
+    embed_vecs=None,
+    init_weight=None,
+    log_path=None,
+    learning_rate=0.0001,
+    optimizer="adam",
+    momentum=0.9,
+    weight_decay=0,
+    metric_threshold=0.5,
+    monitor_metrics=None,
+    multiclass=False,
+    loss_function="binary_cross_entropy_with_logits",
+    silent=False,
+    save_k_predictions=0,
+):
     """Initialize a `Model` class for initializing and training a neural network.
 
     Args:
@@ -82,17 +84,12 @@ def init_model(model_name,
     """
 
     try:
-        network = getattr(networks, model_name)(
-            embed_vecs=embed_vecs,
-            num_classes=len(classes),
-            **dict(network_config)
-        )
+        network = getattr(networks, model_name)(embed_vecs=embed_vecs, num_classes=len(classes), **dict(network_config))
     except:
-        raise AttributeError(f'Failed to initialize {model_name}.')
+        raise AttributeError(f"Failed to initialize {model_name}.")
 
     if init_weight is not None:
-        init_weight = networks.get_init_weight_func(
-            init_weight=init_weight)
+        init_weight = networks.get_init_weight_func(init_weight=init_weight)
         network.apply(init_weight)
 
     model = Model(
@@ -110,23 +107,25 @@ def init_model(model_name,
         multiclass=multiclass,
         loss_function=loss_function,
         silent=silent,
-        save_k_predictions=save_k_predictions
+        save_k_predictions=save_k_predictions,
     )
     return model
 
 
-def init_trainer(checkpoint_dir,
-                 epochs=10000,
-                 patience=5,
-                 early_stopping_metric='P@1',
-                 val_metric='P@1',
-                 silent=False,
-                 use_cpu=False,
-                 limit_train_batches=1.0,
-                 limit_val_batches=1.0,
-                 limit_test_batches=1.0,
-                 search_params=False,
-                 save_checkpoints=True):
+def init_trainer(
+    checkpoint_dir,
+    epochs=10000,
+    patience=5,
+    early_stopping_metric="P@1",
+    val_metric="P@1",
+    silent=False,
+    use_cpu=False,
+    limit_train_batches=1.0,
+    limit_val_batches=1.0,
+    limit_test_batches=1.0,
+    search_params=False,
+    save_checkpoints=True,
+):
     """Initialize a torch lightning trainer.
 
     Args:
@@ -153,31 +152,42 @@ def init_trainer(checkpoint_dir,
     # But if in the future, we further support other metrics that need to be minimized,
     # we may need a dictionary that records a metric-mode mapping for a better practice.
     # Set strict to False to prevent EarlyStopping from crashing the training if no validation data are provided
-    early_stopping_callback = EarlyStopping(patience=patience,
-                                            monitor=early_stopping_metric,
-                                            mode='min' if early_stopping_metric == 'Loss' else 'max',
-                                            strict=False)
+    early_stopping_callback = EarlyStopping(
+        patience=patience,
+        monitor=early_stopping_metric,
+        mode="min" if early_stopping_metric == "Loss" else "max",
+        strict=False,
+    )
     callbacks = [early_stopping_callback]
     if save_checkpoints:
-        callbacks += [ModelCheckpoint(dirpath=checkpoint_dir, filename='best_model',
-                                      save_last=True, save_top_k=1,
-                                      monitor=val_metric,
-                                      mode='min' if val_metric == 'Loss' else 'max')]
+        callbacks += [
+            ModelCheckpoint(
+                dirpath=checkpoint_dir,
+                filename="best_model",
+                save_last=True,
+                save_top_k=1,
+                monitor=val_metric,
+                mode="min" if val_metric == "Loss" else "max",
+            )
+        ]
     if search_params:
         from ray.tune.integration.pytorch_lightning import TuneReportCallback
-        callbacks += [TuneReportCallback(
-            {f'val_{val_metric}': val_metric}, on="validation_end")]
 
-    trainer = pl.Trainer(logger=False, num_sanity_val_steps=0,
-                         accelerator='cpu' if use_cpu else 'gpu',
-                         devices=None if use_cpu else 1,
-                         enable_progress_bar=False if silent else True,
-                         max_epochs=epochs,
-                         callbacks=callbacks,
-                         limit_train_batches=limit_train_batches,
-                         limit_val_batches=limit_val_batches,
-                         limit_test_batches=limit_test_batches,
-                         deterministic='warn')
+        callbacks += [TuneReportCallback({f"val_{val_metric}": val_metric}, on="validation_end")]
+
+    trainer = pl.Trainer(
+        logger=False,
+        num_sanity_val_steps=0,
+        accelerator="cpu" if use_cpu else "gpu",
+        devices=None if use_cpu else 1,
+        enable_progress_bar=False if silent else True,
+        max_epochs=epochs,
+        callbacks=callbacks,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=limit_val_batches,
+        limit_test_batches=limit_test_batches,
+        deterministic="warn",
+    )
     return trainer
 
 
@@ -192,4 +202,4 @@ def set_seed(seed):
         if seed >= 0:
             seed_everything(seed=seed, workers=True)
         else:
-            logging.warning('the random seed should be a non-negative integer')
+            logging.warning("the random seed should be a non-negative integer")

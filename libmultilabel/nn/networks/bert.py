@@ -13,24 +13,16 @@ class BERT(nn.Module):
             the language model. Defaults to 512.
     """
 
-    def __init__(
-        self,
-        num_classes,
-        dropout=0.2,
-        lm_weight='bert-base-cased',
-        lm_window=512,
-        **kwargs
-    ):
+    def __init__(self, num_classes, dropout=0.2, lm_weight="bert-base-cased", lm_window=512, **kwargs):
         super().__init__()
         self.lm_window = lm_window
 
-        self.lm = AutoModelForSequenceClassification.from_pretrained(lm_weight,
-                                                                     num_labels=num_classes,
-                                                                     hidden_dropout_prob=dropout,
-                                                                     torchscript=True)
+        self.lm = AutoModelForSequenceClassification.from_pretrained(
+            lm_weight, num_labels=num_classes, hidden_dropout_prob=dropout, torchscript=True
+        )
 
     def forward(self, input):
-        input_ids = input['text']  # (batch_size, sequence_length)
+        input_ids = input["text"]  # (batch_size, sequence_length)
         if input_ids.size(-1) > self.lm.config.max_position_embeddings:
             # Support for sequence length greater than 512 is not available yet
             raise ValueError(
@@ -38,6 +30,5 @@ class BERT(nn.Module):
                 f"please set max_seq_length to a value less than or equal to "
                 f"{self.lm.config.max_position_embeddings}"
             )
-        x = self.lm(
-            input_ids, attention_mask=input_ids != self.lm.config.pad_token_id)[0]  # (batch_size, num_classes)
-        return {'logits': x}
+        x = self.lm(input_ids, attention_mask=input_ids != self.lm.config.pad_token_id)[0]  # (batch_size, num_classes)
+        return {"logits": x}

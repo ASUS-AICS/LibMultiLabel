@@ -1,11 +1,7 @@
 from .components import datasets, token_to_id, embed_vecs, classes, network
 
 
-test_components = [datasets(),
-                   token_to_id(),
-                   embed_vecs(),
-                   classes(),
-                   network()]
+test_components = [datasets(), token_to_id(), embed_vecs(), classes(), network()]
 
 test_components_mapping = {c.get_name(): c for c in test_components}
 
