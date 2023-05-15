@@ -1,0 +1,65 @@
+# data
+training_file: data/MIMICIV-ICD9-50/train.txt
+val_file: data/MIMICIV-ICD9-50/valid.txt
+test_file: data/MIMICIV-ICD9-50/test.txt
+data_name: MIMICIV-ICD9-50
+min_vocab_freq: 1
+max_seq_length: 4000
+include_test_labels: true
+remove_no_label_data: true
+add_special_tokens: false
+
+# train
+seed: 0
+epochs: 50
+batch_size: 8
+optimizer: adamw
+learning_rate: 0.001
+momentum: 0.9
+weight_decay: 0
+patience: 6
+early_stopping_metric: Micro-F1
+shuffle: true
+
+# eval
+eval_batch_size: 8
+monitor_metrics: ['Loss', 'Another-Macro-F1', 'Macro-F1', 'Micro-F1', 'P@5', 'P@8', 'P@15']
+val_metric: Micro-F1
+
+# model
+model_name: LAAT
+loss_function: binary_cross_entropy_with_logits
+init_weight: kaiming_uniform
+network_config:
+  embed_dropout: 0.3
+  encoder_dropout: 0
+  rnn_dim: ['grid_search', [512, 1024, 256]]
+  num_layers: 1
+  d_a: ['grid_search', [256, 512, 128]]
+
+# pretrained vocab / embeddings
+vocab_file: data/MIMICIV-ICD9-50/vocab.csv # 282,173, min_vocab_freq=1
+embed_file: data/MIMICIV-ICD9-50/processed_full.embed
+normalize_embed: false
+
+# hyperparamter search
+search_alg: basic_variant
+embed_cache_dir: null
+num_samples: 1
+scheduler: null
+no_merge_train_val: true # do not retrain
+
+# other parameters specified in main.py::get_args
+checkpoint_path: null
+cpu: false
+data_workers: 8
+eval: false
+label_file: null
+limit_train_batches: 1.0
+limit_val_batches: 1.0
+limit_test_batches: 1.0
+metric_threshold: 0.5
+result_dir: runs
+save_k_predictions: 0
+silent: true
+val_size: 0.2
