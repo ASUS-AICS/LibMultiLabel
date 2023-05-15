@@ -40,6 +40,7 @@ class MultiLabelModel(pl.LightningModule):
         multiclass=False,
         silent=False,
         save_k_predictions=0,
+        val_metric='Micro-F1', # LAAT
         **kwargs
     ):
         super().__init__()
@@ -59,6 +60,7 @@ class MultiLabelModel(pl.LightningModule):
         self.multiclass = multiclass
         top_k = 1 if self.multiclass else None
         self.eval_metric = get_metrics(metric_threshold, monitor_metrics, num_classes, top_k=top_k)
+        self.val_metric = val_metric # LAAT
 
     @abstractmethod
     def shared_step(self, batch):
@@ -82,8 +84,20 @@ class MultiLabelModel(pl.LightningModule):
         else:
             raise RuntimeError("Unsupported optimizer: {self.optimizer}")
 
-        torch.nn.utils.clip_grad_value_(parameters, 0.5)
-
+        # torch.nn.utils.clip_grad_value_(parameters, 0.5)
+        # LAAT hard code
+        if self.val_metric is not None:
+            return {
+                "optimizer": optimizer,
+                "lr_scheduler": {
+                    "scheduler": optim.lr_scheduler.ReduceLROnPlateau(
+                        optimizer, mode="max",
+                        factor=0.9,
+                        patience=5,
+                        min_lr=0.0001),
+                    "monitor": self.val_metric,
+                },
+            }
         return optimizer
 
     def training_step(self, batch, batch_idx):

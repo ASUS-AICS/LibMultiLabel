@@ -16,7 +16,7 @@ class Embedding(nn.Module):
 
     def __init__(self, embed_vecs, dropout=0.2):
         super(Embedding, self).__init__()
-        self.embedding = nn.Embedding.from_pretrained(embed_vecs, freeze=False, padding_idx=0)
+        self.embedding = nn.Embedding.from_pretrained(embed_vecs, freeze=True, padding_idx=0) # LAAT
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, input):

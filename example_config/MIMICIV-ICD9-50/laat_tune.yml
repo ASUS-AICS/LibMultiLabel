@@ -33,9 +33,9 @@ init_weight: kaiming_uniform
 network_config:
   embed_dropout: 0.3
   encoder_dropout: 0
-  rnn_dim: ['grid_search', [512, 1024, 256]]
+  rnn_dim: ['grid_search', [512, 1024, 768, 256]] # 2u
   num_layers: 1
-  d_a: ['grid_search', [256, 512, 128]]
+  d_a: ['grid_search', [256, 512, 384, 128]]
 
 # pretrained vocab / embeddings
 vocab_file: data/MIMICIV-ICD9-50/vocab.csv # 282,173, min_vocab_freq=1
