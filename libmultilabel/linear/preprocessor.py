@@ -1,216 +1,190 @@
 from __future__ import annotations
 
-import csv
+import copy
 import logging
-import re
-from array import array
 from collections import defaultdict
 
 import numpy as np
-import pandas as pd
-import scipy
-import scipy.sparse as sparse
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import MultiLabelBinarizer
 
-__all__ = ["Preprocessor", "read_libmultilabel_format", "read_libsvm_format"]
+__all__ = ["Preprocessor"]
 
 
 class Preprocessor:
-    """Preprocessor is used to load and preprocess input data in LibSVM and LibMultiLabel formats.
+    """Preprocessor is used to preprocess input data in LibSVM or LibMultiLabel formats.
     The same Preprocessor has to be used for both training and testing data;
-    see save_pipeline and load_pipeline.
+    see save_pipeline and load_pipeline for more details.
     """
 
-    def __init__(self, data_format: str) -> None:
+    tfidf_params_constraints = {
+        "strip_accents",
+        "stop_words",
+        "ngram_range",
+        "max_df",
+        "min_df",
+        "max_features",
+        "vocabulary",
+    }
+
+    def __init__(self, include_test_labels: bool = False, remove_no_label_data: bool = False, tfidf_params: dict = {}):
         """Initializes the preprocessor.
 
         Args:
-            data_format (str): The data format used. 'svm' for LibSVM format, 'txt' for LibMultiLabel format in file and 'dataframe' for LibMultiLabel format in dataframe .
-        """
-        if not data_format in {"txt", "svm", "dataframe"}:
-            raise ValueError(f"unsupported data format {data_format}")
-
-        self.data_format = data_format
-
-    def load_data(
-        self,
-        training_data: str | pd.DataFrame = None,
-        test_data: str | pd.DataFrame = None,
-        eval: bool = False,
-        label_file: str = None,
-        include_test_labels: bool = False,
-        remove_no_label_data: bool = False,
-    ) -> dict[str, dict[str, sparse.csr_matrix]]:
-        """Loads and preprocesses data.
-
-        Args:
-            training_data (str | pd.DataFrame, optional): Training data file or dataframe in LibMultiLabel format. Ignored if eval is True. Defaults to None.
-            test_data (str | pd.DataFrame, optional): Test data file or dataframe in LibMultiLabel format. Ignored if test_data doesn't exist. Defaults to None.
-            eval (bool, optional): If True, ignores training data and uses previously loaded state to preprocess test data. Defaults to False.
-            label_file (str, optional): Path to a file holding all labels. Defaults to None.
             include_test_labels (bool, optional): Whether to include labels in the test dataset. Defaults to False.
             remove_no_label_data (bool, optional): Whether to remove training instances that have no labels. Defaults to False.
+            tfidf_params (dict, optional): A selected group of parameters for sklearn.TfidfVectorizer. Available arguments are
+                strip_accents : {‘ascii’, ‘unicode’} or callable, default=None
+                    Remove accents and perform other character normalization during the preprocessing step. ‘ascii’ is
+                    a fast method that only works on characters that have a direct ASCII mapping. ‘unicode’ is a
+                    slightly slower method that works on any characters. None (default) does nothing. Defaults to {}.
+
+                stop_words : {‘english’}, list, default=None
+                    If a string, it is passed to _check_stop_list and the appropriate stop list is returned. ‘english’
+                    is currently the only supported string value. There are several known issues with ‘english’ and you
+                    should consider an alternative (see Using stop words).
+
+                    If a list, that list is assumed to contain stop words, all of which will be removed from the
+                    resulting tokens. Only applies if analyzer == 'word'.
+
+                    If None, no stop words will be used. In this case, setting max_df to a higher value, such as in the
+                    range (0.7, 1.0), can automatically detect and filter stop words based on intra corpus document
+                    frequency of terms.
+
+                ngram_range : tuple (min_n, max_n), default=(1, 1)
+                    The lower and upper boundary of the range of n-values for different n-grams to be extracted. All
+                    values of n such that min_n <= n <= max_n will be used. For example an ngram_range of (1, 1) means
+                    only unigrams, (1, 2) means unigrams and bigrams, and (2, 2) means only bigrams. Only applies if
+                    analyzer is not callable.
+
+                max_df: float or int, default=1.0
+                    When building the vocabulary ignore terms that have a document frequency strictly higher than the
+                    given threshold (corpus-specific stop words). If float in range [0.0, 1.0], the parameter represents
+                    a proportion of documents, integer absolute counts. This parameter is ignored if vocabulary is not
+                    None.
+
+                min_df: float or int, default=1
+                    When building the vocabulary ignore terms that have a document frequency strictly lower than the
+                    given threshold. This value is also called cut-off in the literature. If float in range of
+                    [0.0, 1.0], the parameter represents a proportion of documents, integer absolute counts. This
+                    parameter is ignored if vocabulary is not None.
+
+                max_features : int, default=None
+                    If not None, build a vocabulary that only consider the top max_features ordered by term frequency
+                    across the corpus. Otherwise, all features are used.
+
+                    This parameter is ignored if vocabulary is not None.
+
+                vocabulary : Mapping or iterable, default=None
+                    Either a Mapping (e.g., a dict) where keys are terms and values are indices in the feature matrix,
+                    or an iterable over terms. If not given, a vocabulary is determined from the input documents.
+        """
+        self.include_test_labels = include_test_labels
+        self.remove_no_label_data = remove_no_label_data
+        if not set(tfidf_params.keys()).issubset(self.tfidf_params_constraints):
+            logging.warning(
+                "Some of the parameters in tfidf_params are not supported. " "Supported parameters are: %s",
+                self.tfidf_params_constraints,
+            )
+        self.tfidf_params = tfidf_params
+        self.data_format = None
+        self.vectorizer = None
+        self.binarizer = None
+        self.label_mapping = None
+
+    def fit(self, dataset):
+        """Fit the preprocessor according to the training and test datasets, and pre-defined labels if given.
+
+        Parameters
+        ----------
+        dataset : The training and test datasets along with possibly pre-defined labels with keys 'train', 'test', and
+            "labels" respectively. The dataset must have keys 'x' for input features, and 'y' for actual labels. It also
+            contains 'data_format' to indicate the data format used.
+
+        Returns
+        -------
+        self : object
+            An instance of the fitted preprocessor.
+        """
+        self.data_format = dataset["data_format"]
+        # learn vocabulary and idf from training dataset
+        if dataset["data_format"] in {"txt", "dataframe"}:
+            self.vectorizer = TfidfVectorizer(**self.tfidf_params)
+            self.vectorizer.fit(dataset["train"]["x"])
+
+        # learn label mapping from training and test datasets
+        self.binarizer = MultiLabelBinarizer(classes=dataset.get("classes"), sparse_output=True)
+        if not self.include_test_labels:
+            self.binarizer.fit(dataset["train"]["y"])
+        else:
+            self.binarizer.fit(dataset["train"]["y"] + dataset["test"]["y"])
+        self.label_mapping = self.binarizer.classes_
+        return self
+
+    def transform(self, dataset):
+        """Convert x and y in the training and test datasets according to the fitted preprocessor.
+
+        Args:
+            dataset : The training and test datasets along with labels with keys 'train', 'test', and labels respectively.
+            The dataset has keys 'x' for input features and 'y' for labels. It also contains 'data_format' to indicate
+            the data format used.
 
         Returns:
-            dict[str, dict[str, sparse.csr_matrix]]: The training and test data, with keys 'train' and 'test' respectively.
-            The data has keys 'x' for input features and 'y' for labels.
+            dict[str, dict[str, sparse.csr_matrix]]: The transformed dataset.
         """
-        if label_file is not None:
-            logging.info(f"Load labels from {label_file}.")
-            with open(label_file, "r") as fp:
-                self.classes = sorted([s.strip() for s in fp.readlines()])
-        else:
-            if test_data is None and include_test_labels:
-                raise ValueError(f"Specified the inclusion of test labels but test file does not exist")
-            self.classes = None
-            self.include_test_labels = include_test_labels
+        if self.binarizer is None:
+            raise AttributeError("Preprecessor has not been fitted.")
 
-        if self.data_format in {"txt", "dataframe"}:
-            data = self._load_text(training_data, test_data, eval)
-        elif self.data_format == "svm":
-            data = self._load_svm(training_data, test_data, eval)
+        dataset_t = defaultdict(dict)
+        dataset_t["data_format"] = dataset["data_format"]
+        if "classes" in dataset:
+            dataset_t["classes"] = dataset["classes"]
+        # transform a collection of raw text to a matrix of TF-IDF features
+        if {self.data_format, dataset["data_format"]}.issubset({"txt", "dataframe"}):
+            try:
+                if "train" in dataset:
+                    dataset_t["train"]["x"] = self.vectorizer.transform(dataset["train"]["x"])
+                if "test" in dataset:
+                    dataset_t["test"]["x"] = self.vectorizer.transform(dataset["test"]["x"])
+            except AttributeError:
+                raise AttributeError("Tfidf vectorizer has not been fitted.")
 
-        if "train" in data:
-            num_labels = data["train"]["y"].getnnz(axis=1)
+        # transform a collection of raw labels to a binary matrix
+        if "train" in dataset:
+            dataset_t["train"]["y"] = self.binarizer.transform(dataset["train"]["y"]).astype("d")
+        if "test" in dataset:
+            dataset_t["test"]["y"] = self.binarizer.transform(dataset["test"]["y"]).astype("d")
+
+        # remove data points with no labels
+        if "train" in dataset_t:
+            num_labels = dataset_t["train"]["y"].getnnz(axis=1)
             num_no_label_data = np.count_nonzero(num_labels == 0)
             if num_no_label_data > 0:
-                if remove_no_label_data:
+                if self.remove_no_label_data:
                     logging.info(
-                        f"Remove {num_no_label_data} instances that have no labels from data.", extra={"collect": True}
+                        f"Remove {num_no_label_data} instances that have no labels in the dataset.",
+                        extra={"collect": True},
                     )
-                    data["train"]["x"] = data["train"]["x"][num_labels > 0]
-                    data["train"]["y"] = data["train"]["y"][num_labels > 0]
+                    dataset_t["train"]["x"] = dataset_t["train"]["x"][num_labels > 0]
+                    dataset_t["train"]["y"] = dataset_t["train"]["y"][num_labels > 0]
                 else:
                     logging.info(
-                        f"Keep {num_no_label_data} instances that have no labels from data.", extra={"collect": True}
+                        f"Keep {num_no_label_data} instances that have no labels in the dataset.",
+                        extra={"collect": True},
                     )
 
-        return data
+        return dict(dataset_t)
 
-    def _load_text(
-        self, training_data: str | pd.Dataframe, test_data: str | pd.Dataframe, eval: bool
-    ) -> dict[str, dict[str, sparse.csr_matrix]]:
-        datasets = defaultdict(dict)
-        if test_data is not None:
-            test = read_libmultilabel_format(test_data)
+    def fit_transform(self, dataset):
+        """Fit the preprocessor according to the training and test datasets, and pre-defined labels if given.
+        Then Convert x and y in the training and test datasets according to the fitted preprocessor.
 
-        if not eval:
-            train = read_libmultilabel_format(training_data)
-            self._generate_tfidf(train["text"])
+        Args:
+            dataset : The training and test datasets along with labels with keys 'train', 'test', and labels respectively.
+            The dataset has keys 'x' for input features and 'y' for labels. It also contains 'data_format' to indicate
+            the data format used.
 
-            if self.classes or not self.include_test_labels:
-                self._generate_label_mapping(train["label"], self.classes)
-            else:
-                self._generate_label_mapping(train["label"] + test["label"])
-            datasets["train"]["x"] = self.vectorizer.transform(train["text"])
-            datasets["train"]["y"] = self.binarizer.transform(train["label"]).astype("d")
-
-        if test_data is not None:
-            datasets["test"]["x"] = self.vectorizer.transform(test["text"])
-            datasets["test"]["y"] = self.binarizer.transform(test["label"]).astype("d")
-
-        return dict(datasets)
-
-    def _load_svm(self, training_data: str, test_data: str, eval: bool) -> dict[str, dict[str, sparse.csr_matrix]]:
-        datasets = defaultdict(dict)
-        if test_data is not None:
-            ty, tx = read_libsvm_format(test_data)
-
-        if not eval:
-            y, x = read_libsvm_format(training_data)
-            if self.classes or not self.include_test_labels:
-                self._generate_label_mapping(y, self.classes)
-            else:
-                self._generate_label_mapping(y + ty)
-            datasets["train"]["x"] = x
-            datasets["train"]["y"] = self.binarizer.transform(y).astype("d")
-
-        if test_data is not None:
-            datasets["test"]["x"] = tx
-            datasets["test"]["y"] = self.binarizer.transform(ty).astype("d")
-        return dict(datasets)
-
-    def _generate_tfidf(self, texts: list[str]):
-        self.vectorizer = TfidfVectorizer()
-        self.vectorizer.fit(texts)
-
-    def _generate_label_mapping(self, labels: list[list[str]], classes: list[str] = None):
-        self.binarizer = MultiLabelBinarizer(sparse_output=True, classes=classes)
-        self.binarizer.fit(labels)
-        self.label_mapping = self.binarizer.classes_
-
-
-def read_libmultilabel_format(data: str | pd.Dataframe) -> dict[str, list[str]]:
-    """Read multi-label text data from file or pandas dataframe.
-
-    Args:
-        data ('str | pd.Dataframe'): A file path to data in `LibMultiLabel format <https://www.csie.ntu.edu.tw/~cjlin/libmultilabel/cli/ov_data_format.html#libmultilabel-format>`_
-            or a pandas dataframe contains index (optional), label, and text.
-    Returns:
-        dict[str,list[str]]: A dictionary with a list of index (optional), label, and text.
-    """
-    assert isinstance(data, str) or isinstance(data, pd.DataFrame), "Data must be from a file or pandas dataframe."
-    if isinstance(data, str):
-        data = pd.read_csv(data, sep="\t", header=None, on_bad_lines="warn", quoting=csv.QUOTE_NONE).fillna("")
-    data = data.astype(str)
-    if data.shape[1] == 2:
-        data.columns = ["label", "text"]
-        data = data.reset_index()
-    elif data.shape[1] == 3:
-        data.columns = ["index", "label", "text"]
-    else:
-        raise ValueError(f"Expected 2 or 3 columns, got {data.shape[1]}.")
-    data["label"] = data["label"].map(lambda s: s.split())
-    return data.to_dict("list")
-
-
-def read_libsvm_format(file_path: str) -> tuple[list[list[int]], sparse.csr_matrix]:
-    """Read multi-label LIBSVM-format data.
-
-    Args:
-        file_path (str): Path to file.
-
-    Returns:
-        tuple[list[list[int]], sparse.csr_matrix]: A tuple of labels and features.
-    """
-
-    def as_ints(str):
-        return [int(s) for s in str.split(",")]
-
-    prob_y = []
-    prob_x = array("d")
-    row_ptr = array("l", [0])
-    col_idx = array("l")
-
-    pattern = re.compile(r"(?!^$)([+\-0-9,]+\s+)?(.*\n?)")
-    for i, line in enumerate(open(file_path)):
-        m = pattern.fullmatch(line)
-        try:
-            labels = m[1]
-            prob_y.append(as_ints(labels) if labels else [])
-            features = m[2] or ""
-            nz = 0
-            for e in features.split():
-                ind, val = e.split(":")
-                ind, val = int(ind), float(val)
-                if ind < 1:
-                    raise IndexError(
-                        f"invalid svm format at line {i+1} of the file '{file_path}' --> Indices should start from one."
-                    )
-                if val != 0:
-                    col_idx.append(ind - 1)
-                    prob_x.append(val)
-                    nz += 1
-            row_ptr.append(row_ptr[-1] + nz)
-        except IndexError:
-            raise
-        except:
-            raise ValueError(f"invalid svm format at line {i+1} of the file '{file_path}'")
-
-    prob_x = scipy.frombuffer(prob_x, dtype="d")
-    col_idx = scipy.frombuffer(col_idx, dtype="l")
-    row_ptr = scipy.frombuffer(row_ptr, dtype="l")
-    prob_x = sparse.csr_matrix((prob_x, col_idx, row_ptr))
-
-    return (prob_y, prob_x)
+        Returns:
+            dict[str, dict[str, sparse.csr_matrix]]: The transformed dataset.
+        """
+        return self.fit(dataset).transform(dataset)
