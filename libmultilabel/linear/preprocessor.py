@@ -34,13 +34,15 @@ class Preprocessor:
 
         self.data_format = data_format
 
-    def load_data(self, training_data: str | pathlib.Path | pd.DataFrame = None,
-                  test_data: str | pathlib.Path | pd.DataFrame = None,
-                  eval: bool = False,
-                  label_file: str | pathlib.Path = None,
-                  include_test_labels: bool = False,
-                  remove_no_label_data: bool = False
-                  ) -> dict[str, dict[str, sparse.csr_matrix]]:
+    def load_data(
+        self,
+        training_data: str | pathlib.Path | pd.DataFrame = None,
+        test_data: str | pathlib.Path | pd.DataFrame = None,
+        eval: bool = False,
+        label_file: str | pathlib.Path = None,
+        include_test_labels: bool = False,
+        remove_no_label_data: bool = False,
+    ) -> dict[str, dict[str, sparse.csr_matrix]]:
         """Loads and preprocesses data.
 
         Args:
@@ -87,10 +89,9 @@ class Preprocessor:
 
         return data
 
-    def _load_text(self, training_data: str | pathlib.Path | pd.DataFrame,
-                   test_data: str | pathlib.Path | pd.DataFrame,
-                   eval: bool
-                   ) -> dict[str, dict[str, sparse.csr_matrix]]:
+    def _load_text(
+        self, training_data: str | pathlib.Path | pd.DataFrame, test_data: str | pathlib.Path | pd.DataFrame, eval: bool
+    ) -> dict[str, dict[str, sparse.csr_matrix]]:
         datasets = collections.defaultdict(dict)
         if test_data is not None:
             test = read_libmultilabel_format(test_data)
@@ -112,10 +113,9 @@ class Preprocessor:
 
         return dict(datasets)
 
-    def _load_svm(self, training_data: str | pathlib.Path,
-                  test_data: str | pathlib.Path,
-                  eval: bool
-                  ) -> dict[str, dict[str, sparse.csr_matrix]]:
+    def _load_svm(
+        self, training_data: str | pathlib.Path, test_data: str | pathlib.Path, eval: bool
+    ) -> dict[str, dict[str, sparse.csr_matrix]]:
         datasets = collections.defaultdict(dict)
         if test_data is not None:
             ty, tx = read_libsvm_format(test_data)
@@ -144,7 +144,7 @@ class Preprocessor:
         self.label_mapping = self.binarizer.classes_
 
 
-def read_libmultilabel_format(data: str | pathlib.Path | pd.DataFrame) -> dict[str,list[str]]:
+def read_libmultilabel_format(data: str | pathlib.Path | pd.DataFrame) -> dict[str, list[str]]:
     """Read multi-label text data from file or pandas dataframe.
 
     Args:
@@ -154,8 +154,7 @@ def read_libmultilabel_format(data: str | pathlib.Path | pd.DataFrame) -> dict[s
         dict[str,list[str]]: A dictionary with a list of index (optional), label, and text.
     """
     if not isinstance(data, pd.DataFrame):
-        data = pd.read_csv(data, sep='\t', header=None,
-                           on_bad_lines='warn', quoting=csv.QUOTE_NONE).fillna('')
+        data = pd.read_csv(data, sep="\t", header=None, on_bad_lines="warn", quoting=csv.QUOTE_NONE).fillna("")
     data = data.astype(str)
     if data.shape[1] == 2:
         data.columns = ["label", "text"]
@@ -182,9 +181,9 @@ def read_libsvm_format(file_path: str | pathlib.Path) -> tuple[list[list[int]], 
         return [int(s) for s in str.split(",")]
 
     prob_y = []
-    prob_x = array.array('d')
-    row_ptr = array.array('l', [0])
-    col_idx = array.array('l')
+    prob_x = array.array("d")
+    row_ptr = array.array("l", [0])
+    col_idx = array.array("l")
 
     pattern = re.compile(r"(?!^$)([+\-0-9,]+\s+)?(.*\n?)")
     for i, line in enumerate(open(file_path)):

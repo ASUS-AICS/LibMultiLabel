@@ -163,9 +163,8 @@ def _load_raw_data(data, is_test=False, tokenize_text=True, remove_no_label_data
     """
     assert isinstance(data, (str, pathlib.Path, pd.DataFrame)), "Data must be from a file or pandas dataframe."
     if isinstance(data, (str, pathlib.Path)):
-        logging.info(f'Load data from {data}.')
-        data = pd.read_csv(data, sep='\t', header=None,
-                           on_bad_lines='warn', quoting=csv.QUOTE_NONE).fillna('')
+        logging.info(f"Load data from {data}.")
+        data = pd.read_csv(data, sep="\t", header=None, on_bad_lines="warn", quoting=csv.QUOTE_NONE).fillna("")
     data = data.astype(str)
     if data.shape[1] == 2:
         data.columns = ["label", "text"]
@@ -379,8 +378,8 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, cache=N
         if embed_file not in pretrained_aliases:
             raise ValueError(
                 "Got embed_file {}, but allowed pretrained "
-                "vectors are {}".format(
-                    embed_file, list(pretrained_aliases.keys())))
+                "vectors are {}".format(embed_file, list(pretrained_aliases.keys()))
+            )
         vector_dict = pretrained_aliases[embed_file](cache=str(cache))
         embed_size = vector_dict.dim
 
