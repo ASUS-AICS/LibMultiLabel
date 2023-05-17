@@ -28,6 +28,9 @@ The simplest usage is::
 
 .. autofunction:: predict_values
 
+.. autofunction:: get_topk_labels
+
+.. autofunction:: get_positive_labels
 
 Preprocessor
 ^^^^^^^^^^^^
@@ -57,6 +60,7 @@ The possible metric names are:
 
 * ``'P@K'``, where ``K`` is a positive integer
 * ``'RP@K'``, where ``K`` is a positive integer
+* ``'NDCG@K'``, where ``K`` is a positive integer
 * ``'Macro-F1'``
 * ``'Micro-F1'``
 

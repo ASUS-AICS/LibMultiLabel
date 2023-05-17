@@ -76,31 +76,38 @@ def dump_log(log_path, metrics=None, split=None, config=None):
 
     if config:
         config_to_save = copy.deepcopy(dict(config))
-        config_to_save.pop('device', None)  # delete if device exists
-        result['config'] = config_to_save
+        config_to_save.pop("device", None)  # delete if device exists
+        result["config"] = config_to_save
     if split and metrics:
         if split in result:
             result[split].append(metrics)
         else:
             result[split] = [metrics]
 
-    with open(log_path, 'w') as fp:
+    with open(log_path, "w") as fp:
         json.dump(result, fp)
 
-    logging.info(f'Finish writing log to {log_path}.')
+    logging.info(f"Finish writing log to {log_path}.")
 
 
 def argsort_top_k(vals, k, axis=-1):
+    """Get the indices of the top-k elements in a 2D array.
+
+    Args:
+        vals: Array to sort.
+        k: Consider only the top k elements for each query
+        axis: Axis along which to sort. The default is -1 (the last axis).
+
+    Returns: Array of indices that sort vals along the specified axis.
+    """
     unsorted_top_k_idx = np.argpartition(vals, -k, axis=axis)[:, -k:]
-    unsorted_top_k_scores = np.take_along_axis(
-        vals, unsorted_top_k_idx, axis=axis)
+    unsorted_top_k_scores = np.take_along_axis(vals, unsorted_top_k_idx, axis=axis)
     sorted_order = np.argsort(-unsorted_top_k_scores, axis=axis)
-    sorted_top_k_idx = np.take_along_axis(
-        unsorted_top_k_idx, sorted_order, axis=axis)
+    sorted_top_k_idx = np.take_along_axis(unsorted_top_k_idx, sorted_order, axis=axis)
     return sorted_top_k_idx
 
 
-def is_multiclass_dataset(dataset, label='label'):
+def is_multiclass_dataset(dataset, label="label"):
     """Determine whether the dataset is multi-class.
 
     Args:
@@ -121,5 +128,6 @@ def is_multiclass_dataset(dataset, label='label'):
         logging.info(
             f"""Only {(1-ratio)*100:.4f}% of training instances are multi-label.
             You may double check if your application should be a multi-label or
-            a multi-class problem.""")
+            a multi-class problem."""
+        )
     return ratio == 1.0

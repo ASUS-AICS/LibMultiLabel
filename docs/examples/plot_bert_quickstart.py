@@ -42,9 +42,9 @@ device = init_device()  # use gpu by default
 # For BERT, we utilize the API ``AutoTokenizer``, which is supported by ``Hugging Face``, for the word preprocessing setting.
 # We set other variables for word preprocessing as ``None``.
 
-datasets = load_datasets('data/rcv1/train.txt', 'data/rcv1/test.txt', tokenize_text=False)
+datasets = load_datasets("data/rcv1/train.txt", "data/rcv1/test.txt", tokenize_text=False)
 classes = load_or_build_label(datasets)
-tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
+tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
 
 ######################################################################
 # Initialize a model
@@ -52,10 +52,10 @@ tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
 #
 # We use the following code to initialize a model.
 
-model_name='BERT'
+model_name = "BERT"
 network_config = {
-    'dropout': 0.1,
-    'lm_weight': 'bert-base-uncased',
+    "dropout": 0.1,
+    "lm_weight": "bert-base-uncased",
 }
 learning_rate = 0.00003
 model = init_model(
@@ -63,7 +63,7 @@ model = init_model(
     network_config=network_config,
     classes=classes,
     learning_rate=learning_rate,
-    monitor_metrics=['Micro-F1', 'Macro-F1', 'P@1', 'P@3', 'P@5']
+    monitor_metrics=["Micro-F1", "Macro-F1", "P@1", "P@3", "P@5"],
 )
 
 ######################################################################
@@ -79,7 +79,7 @@ model = init_model(
 #
 # We use the function ``init_trainer`` to initialize a trainer.
 
-trainer = init_trainer(checkpoint_dir='runs/NN-example', epochs=15, val_metric='P@5')
+trainer = init_trainer(checkpoint_dir="runs/NN-example", epochs=15, val_metric="P@5")
 
 ######################################################################
 # In this example, ``checkpoint_dir`` is the place we save the best and the last models during the training. Furthermore, we set the number of training loops by ``epochs=15``, and the validation metric by ``val_metric='P@5'``.
@@ -91,15 +91,15 @@ trainer = init_trainer(checkpoint_dir='runs/NN-example', epochs=15, val_metric='
 # Therefore, a data loader can load a batch of samples each time.
 
 loaders = dict()
-for split in ['train', 'val', 'test']:
+for split in ["train", "val", "test"]:
     loaders[split] = get_dataset_loader(
         data=datasets[split],
         classes=classes,
         device=device,
         max_seq_length=512,
         batch_size=8,
-        shuffle=True if split == 'train' else False,
-        tokenizer=tokenizer
+        shuffle=True if split == "train" else False,
+        tokenizer=tokenizer,
     )
 
 ######################################################################
@@ -110,12 +110,12 @@ for split in ['train', 'val', 'test']:
 #
 # The bert model training process can be started via
 
-trainer.fit(model, loaders['train'], loaders['val'])
+trainer.fit(model, loaders["train"], loaders["val"])
 
 ######################################################################
 # After the training process is finished, we can then run the test process by
 
-trainer.test(model, dataloaders=loaders['test'])
+trainer.test(model, dataloaders=loaders["test"])
 
 ######################################################################
 # The results should be similar to::

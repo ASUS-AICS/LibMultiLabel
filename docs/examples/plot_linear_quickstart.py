@@ -13,10 +13,9 @@ import libmultilabel.linear as linear
 ######################################################################
 # To start, we need to read and preprocess the input data:
 
-preprocessor = linear.Preprocessor(data_format='txt')
+preprocessor = linear.Preprocessor(data_format="txt")
 
-datasets = preprocessor.load_data('data/rcv1/train.txt',
-                                  'data/rcv1/test.txt')
+datasets = preprocessor.load_data("data/rcv1/train.txt", "data/rcv1/test.txt")
 
 ######################################################################
 # The preprocessor handles many issues such as: mapping
@@ -36,9 +35,7 @@ datasets = preprocessor.load_data('data/rcv1/train.txt',
 #
 # Next we train the model:
 
-model = linear.train_1vsrest(datasets['train']['y'],
-                             datasets['train']['x'],
-                             '')
+model = linear.train_1vsrest(datasets["train"]["y"], datasets["train"]["x"], "")
 
 ######################################################################
 # The third argument is the options string for
@@ -47,36 +44,37 @@ model = linear.train_1vsrest(datasets['train']['y'],
 #
 # Once we have the model, we may predict with it:
 
-preds = linear.predict_values(model, datasets['test']['x'])
+preds = linear.predict_values(model, datasets["test"]["x"])
 
 ######################################################################
 # ``preds`` holds the decision values, i.e. the raw values
 # outputted by the model. To transform it into predictions,
-# the simplest way is to take the positive values as the labels predicted
-# to be associated with the sample, i.e. ``preds > 0``.
+# you can apply the API ``get_positive_labels`` to get predicted labels and their corresponding scores
+# by using ``label_mapping`` in ``preprocessor`` and ``preds`` from the last step.
 
-label_mask = preds > 0
-
-######################################################################
-# We now have the label mask. Next,
-# we use ``label_mapping`` in ``Preprocessor`` to get the original labels.
-
-label_mapping = preprocessor.label_mapping
-prediction = [label_mapping[row].tolist() for row in label_mask]
+pred_labels, pred_scores = linear.get_positive_labels(preds, preprocessor.label_mapping)
 
 ######################################################################
-# The result of first instance looks like:
+# We now have the labels (``pred_labels``) and scores (``pred_scores``).
+# You can use the following code to save the prediction to a list.
+
+prediction = []
+for label, score in zip(pred_labels, pred_scores):
+    prediction.append([f"{i}:{s:.4}" for i, s in zip(label, score)])
+
+######################################################################
+# The first instance looks like:
 #
 #   >>> print(prediction[0])
 #   ...
-#       ['GCAT', 'GSPO']
+#       ['GCAT:1.345', 'GSPO:1.519']
 #
 # To see how well we performed, we may want to check various
 # metrics with the test set.
 # Since the dataset we loaded are stored as ``scipy.sparse.csr_matrix``,
 # we will first transform the dataset to ``np.array``.
 
-target = datasets['test']['y'].toarray()
+target = datasets["test"]["y"].toarray()
 
 ##############################################################################
 # Then we will compute the metrics with ``compute_metrics``.
@@ -84,7 +82,7 @@ target = datasets['test']['y'].toarray()
 metrics = linear.compute_metrics(
     preds,
     target,
-    monitor_metrics=['Macro-F1', 'Micro-F1', 'P@1', 'P@3', 'P@5'],
+    monitor_metrics=["Macro-F1", "Micro-F1", "P@1", "P@3", "P@5"],
 )
 
 print(metrics)
