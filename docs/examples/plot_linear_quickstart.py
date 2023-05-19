@@ -13,11 +13,22 @@ import libmultilabel.linear as linear
 ######################################################################
 # To start, we need to read and preprocess the input data:
 
-preprocessor = linear.Preprocessor(data_format="txt")
+datasets = linear.load_dataset("txt", "data/rcv1/train.txt", "data/rcv1/test.txt")
+preprocessor = linear.Preprocessor()
+preprocessor.fit(datasets)
+datasets = preprocessor.transform(datasets)
 
-datasets = preprocessor.load_data("data/rcv1/train.txt", "data/rcv1/test.txt")
+# Alternatively, you can fit and transform the dataset at the same time:
+# datasets = preprocessor.fit_transform(datasets)
+
 
 ######################################################################
+# .. note::
+#   The ``fit`` method calculates the parameters (such as label mapping) that will be used for later transformation
+#   from the given dataset.
+#
+#   The ``transform`` method applies the learned parameters to the given dataset and returns a new transformed dataset.
+#
 # The preprocessor handles many issues such as: mapping
 # the labels into indices and transforming textual data to
 # numerical data. The loaded dataset has the structure::
