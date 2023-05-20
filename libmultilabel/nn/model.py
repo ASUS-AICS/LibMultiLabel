@@ -111,6 +111,10 @@ class MultiLabelModel(pl.LightningModule):
         return self._shared_eval_step_end(batch_parts)
 
     def validation_epoch_end(self, step_outputs):
+        # print learning rate (LAAT)
+        lightning_optimizer = self.optimizers()
+        for param_group in lightning_optimizer.optimizer.param_groups:
+            print(f"\nLearning Rate: {param_group['lr']}\n")
         return self._shared_eval_epoch_end(step_outputs, "val")
 
     def test_step(self, batch, batch_idx):
