@@ -37,7 +37,7 @@ class LAAT(nn.Module):
             hidden_size=rnn_dim//2, num_layers=num_layers, dropout=encoder_dropout)
 
         mean = 0.0
-        std = 0.3
+        std = 0.03
         # first linear
         # Z = tanh(WH), W: (d_a * 2u), H: (2u * N), Z: (d_a * N)
         self.W = nn.Linear(rnn_dim, d_a, bias=False)
