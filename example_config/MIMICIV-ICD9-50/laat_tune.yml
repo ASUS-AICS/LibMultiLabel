@@ -14,7 +14,7 @@ seed: 0
 epochs: 50
 batch_size: 8
 optimizer: adamw
-learning_rate: 0.001
+learning_rate: ['grid_search', [0.001, 0.0003]] # LAAT: 0.001
 momentum: 0.9
 weight_decay: 0
 patience: 6
@@ -32,10 +32,10 @@ loss_function: binary_cross_entropy_with_logits
 init_weight: kaiming_uniform
 network_config:
   embed_dropout: 0.3
-  encoder_dropout: 0
-  rnn_dim: ['grid_search', [512, 1024, 768, 256]] # 2u
+  encoder_dropout: ['grid_search', [0, 0.2, 0.4]] # LAAT: 0
+  rnn_dim: ['grid_search', [512, 768, 1024]] # LAAT: 512
   num_layers: 1
-  d_a: ['grid_search', [256, 512, 384, 128]]
+  d_a: ['grid_search', [256, 384, 512]] # LAAT: 256
 
 # pretrained vocab / embeddings
 vocab_file: data/MIMICIV-ICD9-50/vocab.csv # 282,173, min_vocab_freq=1
