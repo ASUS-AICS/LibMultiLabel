@@ -17,6 +17,7 @@ learning_rate: ['grid_search', [0.003, 0.001, 0.0003]]
 momentum: 0
 weight_decay: 0
 patience: 10
+# early_stopping_metric is different from val_metric. Further checks needed.
 early_stopping_metric: RP@5
 shuffle: true
 
