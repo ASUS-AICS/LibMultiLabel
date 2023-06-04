@@ -2,6 +2,7 @@ from abc import abstractmethod
 
 import numpy as np
 import pytorch_lightning as pl
+from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
@@ -41,6 +42,7 @@ class MultiLabelModel(pl.LightningModule):
         silent=False,
         save_k_predictions=0,
         val_metric='Micro-F1', # LAAT
+        shuffle=True,
         **kwargs
     ):
         super().__init__()
@@ -61,6 +63,8 @@ class MultiLabelModel(pl.LightningModule):
         top_k = 1 if self.multiclass else None
         self.eval_metric = get_metrics(metric_threshold, monitor_metrics, num_classes, top_k=top_k)
         self.val_metric = val_metric # LAAT
+        self.shuffle = shuffle # LAAT
+        self.num_classes = num_classes
 
     @abstractmethod
     def shared_step(self, batch):
@@ -78,7 +82,11 @@ class MultiLabelModel(pl.LightningModule):
         elif optimizer_name == "adam":
             optimizer = optim.Adam(parameters, weight_decay=self.weight_decay, lr=self.learning_rate)
         elif optimizer_name == "adamw":
-            optimizer = optim.AdamW(parameters, weight_decay=self.weight_decay, lr=self.learning_rate)
+            # optimizer = optim.AdamW(
+            #     parameters, weight_decay=self.weight_decay, lr=self.learning_rate)
+            from transformers import AdamW
+            optimizer = AdamW(filter(lambda p: p.requires_grad, self.parameters()),
+                              lr=self.learning_rate, weight_decay=self.weight_decay)
         elif optimizer_name == "adamax":
             optimizer = optim.Adamax(parameters, weight_decay=self.weight_decay, lr=self.learning_rate)
         else:
@@ -101,8 +109,19 @@ class MultiLabelModel(pl.LightningModule):
         return optimizer
 
     def training_step(self, batch, batch_idx):
-        loss, _ = self.shared_step(batch)
+        # LAAT
+        idx = torch.argsort(batch['length'], descending=True, stable=True)
+        sorted_batch = {k: v[idx] for k, v in batch.items()}
+        loss, _ = self.shared_step(sorted_batch)
+        loss = self.num_classes * loss  # LAAT
+        loss = loss / self.num_classes
         return loss
+
+    def training_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
+        print(f'Reshuffling the data')
+        if self.shuffle:
+            self.trainer.train_dataloader.dataset.datasets.shuffle_data()
+        return super().training_epoch_end(outputs)
 
     def validation_step(self, batch, batch_idx):
         return self._shared_eval_step(batch, batch_idx)

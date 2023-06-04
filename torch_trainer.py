@@ -124,7 +124,10 @@ class TorchTrainer:
             if self.config.embed_file is not None:
                 logging.info("Load word dictionary ")
                 word_dict, embed_vecs = data_utils.load_or_build_text_dict(
-                    dataset=self.datasets["train"],
+                    # dataset=self.datasets["train"],
+                    # LAAT
+                    dataset=self.datasets["train"] + \
+                    self.datasets["val"] + self.datasets["test"],
                     vocab_file=self.config.vocab_file,
                     min_vocab_freq=self.config.min_vocab_freq,
                     embed_file=self.config.embed_file,
@@ -169,6 +172,7 @@ class TorchTrainer:
                 loss_function=self.config.loss_function,
                 silent=self.config.silent,
                 save_k_predictions=self.config.save_k_predictions,
+                shuffle=self.config.shuffle, # LAAT
             )
 
     def _get_dataset_loader(self, split, shuffle=False):
@@ -208,6 +212,8 @@ class TorchTrainer:
             self.trainer.fit(self.model, train_loader)
         else:
             val_loader = self._get_dataset_loader(split="val")
+            if self.config.shuffle:
+                train_loader.dataset.shuffle_data()
             self.trainer.fit(self.model, train_loader, val_loader)
 
         # Set model to the best model. If the validation process is skipped during

@@ -24,10 +24,11 @@ class LAAT(nn.Module):
         d_a=512,
         embed_dropout=0.3,
         encoder_dropout=0,
+        freeze_embed=True,
     ):
         super(LAAT, self).__init__()
 
-        self.embedding = Embedding(embed_vecs, embed_dropout)
+        self.embedding = Embedding(embed_vecs, embed_dropout, freeze_embed)
         self.num_layers = num_layers
         self.rnn_dim = rnn_dim
 
@@ -39,34 +40,37 @@ class LAAT(nn.Module):
         mean = 0.0
         std = 0.03
         # first linear
-        # Z = tanh(WH), W: (d_a * 2u), H: (2u * N), Z: (d_a * N)
         self.W = nn.Linear(rnn_dim, d_a, bias=False)
-        torch.nn.init.normal(self.W.weight, mean, std)
 
         """Context vectors for computing attention with
         (in_features, out_features) = (d_a, num_classes)
         """
-        # second linear
-        # A = softmax(UZ), U: (|L| * d_a), Z: (d_a * N), A: |L| * N
+        # second linear (U in the paper)
         self.Q = nn.Linear(d_a, num_classes, bias=False)
-        torch.nn.init.normal(self.Q.weight, mean, std)
 
         # Final layer: create a matrix to use for the #labels binary classifiers
         self.output = nn.Linear(rnn_dim, num_classes, bias=True)
-        torch.nn.init.normal(self.output.weight, mean, std)
+
+        torch.nn.init.normal_(self.W.weight, mean, std)
+        torch.nn.init.normal_(self.Q.weight, mean, std)
+        torch.nn.init.normal_(self.output.weight, mean, std)
 
     def forward(self, input):
         # Get embeddings and apply dropout
         x = self.embedding(input['text'])  # (batch_size, length, embed_dim)
+        H = self.encoder(x, input['length'])  # (batch_size, length, rnn_dim)
 
-        x = self.encoder(x, input['length'])  # (batch_size, length, rnn_dim)
-        Z = torch.tanh(self.W(x))  # (batch_size, length, d_a)
+        # (4) Z = tanh(WH), W: (d_a * 2u), H: (2u * N), Z: (d_a * N)
+        Z = torch.tanh(self.W(H))  # (batch_size, length, d_a)
 
-        # (batch_size, class_num, length)
-        alpha = torch.softmax(self.Q.weight.matmul(Z.transpose(1, 2)), dim=2)
+        # (5) A = softmax(UZ), A: (batch_size, class_num, length)
+        #     Q: (|L| * d_a), Z: (d_a * N), A: |L| * N
+        alpha = self.Q(Z)
+        alpha = torch.softmax(alpha, 1).transpose(1, 2)
+        # alpha = torch.softmax(self.Q.weight.matmul(Z.transpose(1, 2)), dim=2)
 
         # Document representations are weighted sums using the attention
-        E = alpha.matmul(x)
+        E = alpha.matmul(H)
 
         # Compute a probability for each label
         logits = self.output.weight.mul(E).sum(dim=2).add(
