@@ -15,8 +15,10 @@ import math
 import libmultilabel.linear as linear
 import time
 
-preprocessor = linear.Preprocessor(data_format="txt")
-datasets = preprocessor.load_data("data/eur-lex/train.txt", "data/eur-lex/test.txt")
+datasets = linear.load_dataset("txt", "data/eurlex/train.txt", "data/eurlex/test.txt")
+preprocessor = linear.Preprocessor()
+datasets = preprocessor.fit_transform(datasets)
+
 
 training_start = time.time()
 # the standard one-vs-rest method for multi-label problems

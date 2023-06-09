@@ -24,10 +24,10 @@ from datasets import load_dataset
 # We choose a multi-label set ``emoji`` from ``tweet_eval`` in this example.
 # The data set can be loaded by the following code.
 
-data_sets = dict()
-data_sets["train"] = load_dataset("tweet_eval", "emoji", split="train")
-data_sets["val"] = load_dataset("tweet_eval", "emoji", split="validation")
-data_sets["test"] = load_dataset("tweet_eval", "emoji", split="test")
+hf_datasets = dict()
+hf_datasets["train"] = load_dataset("tweet_eval", "emoji", split="train")
+hf_datasets["val"] = load_dataset("tweet_eval", "emoji", split="validation")
+hf_datasets["test"] = load_dataset("tweet_eval", "emoji", split="test")
 
 ######################################################################
 # Convert to LibMultiLabel format
@@ -37,15 +37,15 @@ data_sets["test"] = load_dataset("tweet_eval", "emoji", split="test")
 # we use ``pandas.concat`` to merge training and validation sets and use ``reset_index`` to add the new indices to rows.
 
 for split in ["train", "val", "test"]:
-    data_sets[split] = pandas.DataFrame(data_sets[split], columns=["label", "text"])
-data_sets["train"] = pandas.concat([data_sets["train"], data_sets["val"]], axis=0, ignore_index=True)
-data_sets["train"] = data_sets["train"].reset_index()
-data_sets["test"] = data_sets["test"].reset_index()
+    hf_datasets[split] = pandas.DataFrame(hf_datasets[split], columns=["label", "text"])
+hf_datasets["train"] = pandas.concat([hf_datasets["train"], hf_datasets["val"]], axis=0, ignore_index=True)
+hf_datasets["train"] = hf_datasets["train"].reset_index()
+hf_datasets["test"] = hf_datasets["test"].reset_index()
 
 ###############################################################################
 # The format of the data set after conversion looks like below::
 #
-#   >>> print(data_sets['train'].loc[[0]]) #print first row
+#   >>> print(hf_datasets['train'].loc[[0]]) #print first row
 #   ...
 #   index  label                                               text
 #       0     12  Sunday afternoon walking through Venice in the...
@@ -55,8 +55,9 @@ data_sets["test"] = data_sets["test"].reset_index()
 
 import libmultilabel.linear as linear
 
-preprocessor = linear.Preprocessor(data_format="dataframe")
-datasets = preprocessor.load_data(data_sets["train"], data_sets["test"])
+datasets = linear.load_dataset("dataframe", hf_datasets["train"], hf_datasets["test"])
+preprocessor = linear.Preprocessor()
+datasets = preprocessor.fit_transform(datasets)
 
 ###############################################################################
 # Also, if you want to use a NN model,
@@ -65,4 +66,4 @@ datasets = preprocessor.load_data(data_sets["train"], data_sets["test"])
 
 from libmultilabel.nn.data_utils import load_datasets
 
-datasets = load_datasets(data_sets["train"], data_sets["test"], tokenize_text=False)
+datasets = load_datasets(hf_datasets["train"], hf_datasets["test"], tokenize_text=False)
