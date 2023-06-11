@@ -1,6 +1,6 @@
 # data
-training_file: data/rcv1/train.txt
-test_file: data/rcv1/test.txt
+training_file: data/rcv1/train.svm
+test_file: data/rcv1/test.svm
 data_name: rcv1
 
 # train
