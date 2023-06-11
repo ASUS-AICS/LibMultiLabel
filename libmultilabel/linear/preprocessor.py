@@ -98,6 +98,11 @@ class Preprocessor:
                     dataset_tf["test"]["x"] = self.vectorizer.transform(dataset["test"]["x"])
             except AttributeError:
                 raise AttributeError("Tfidf vectorizer has not been fitted.")
+        else:
+            if "train" in dataset:
+                dataset_tf["train"]["x"] = dataset["train"]["x"]
+            if "test" in dataset:
+                dataset_tf["test"]["x"] = dataset["test"]["x"]
 
         # transform a collection of raw labels to a binary matrix
         if "train" in dataset:
