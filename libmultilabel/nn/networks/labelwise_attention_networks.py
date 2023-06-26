@@ -20,8 +20,8 @@ class LabelwiseAttentionNetwork(ABC, nn.Module):
         embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
         num_classes (int): Total number of classes.
         embed_dropout (float): The dropout rate of the word embedding.
-        encoder_dropout (float): The dropout rate of the encoder model.
-        post_encoder_dropout (float): The dropout rate of the dropout layer after the encoder model.
+        encoder_dropout (float): The dropout rate of the encoder.
+        post_encoder_dropout (float): The dropout rate of the dropout layer after the encoder.
         hidden_dim (int): The output dimension of the encoder.
     """
 
@@ -68,8 +68,8 @@ class BiGRULWAN(RNNLWAN):
             is set to rnn_dim//2. Defaults to 512.
         rnn_layers (int): The number of recurrent layers. Defaults to 1.
         embed_dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
-        encoder_dropout (float): The dropout rate of the encoder model. Defaults to 0.
-        post_encoder_dropout (float): The dropout rate of the dropout layer after the encoder model. Defaults to 0.
+        encoder_dropout (float): The dropout rate of the encoder. Defaults to 0.
+        post_encoder_dropout (float): The dropout rate of the dropout layer after the encoder. Defaults to 0.
     """
 
     def __init__(
@@ -118,8 +118,8 @@ class BiLSTMLWAN(RNNLWAN):
             is set to rnn_dim//2. Defaults to 512.
         rnn_layers (int): The number of recurrent layers. Defaults to 1.
         embed_dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
-        encoder_dropout (float): The dropout rate of the encoder model. Defaults to 0.
-        post_encoder_dropout (float): The dropout rate of the dropout layer after the encoder model. Defaults to 0.
+        encoder_dropout (float): The dropout rate of the encoder. Defaults to 0.
+        post_encoder_dropout (float): The dropout rate of the dropout layer after the encoder. Defaults to 0.
     """
 
     def __init__(
@@ -162,8 +162,8 @@ class BiLSTMLWMHAN(LabelwiseAttentionNetwork):
             is set to rnn_dim//2. Defaults to 512.
         rnn_layers (int): The number of recurrent layers. Defaults to 1.
         embed_dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
-        encoder_dropout (float): The dropout rate of the encoder model. Defaults to 0.
-        post_encoder_dropout (float): The dropout rate of the dropout layer after the encoder model. Defaults to 0.
+        encoder_dropout (float): The dropout rate of the encoder. Defaults to 0.
+        post_encoder_dropout (float): The dropout rate of the dropout layer after the encoder. Defaults to 0.
         num_heads (int): The number of parallel attention heads. Defaults to 8.
         attention_dropout (float): The dropout rate for the attention. Defaults to 0.
     """
