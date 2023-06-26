@@ -59,14 +59,15 @@ class GRUEncoder(RNNEncoder):
         input_size (int): The number of expected features in the input.
         hidden_size (int): The number of features in the hidden state.
         num_layers (int): The number of recurrent layers.
-        dropout (float): The dropout rate of the encoder. Defaults to 0.
+        encoder_dropout (float): The dropout rate of the GRU encoder. Defaults to 0.
+        post_encoder_dropout (float): The dropout rate of the dropout layer after the GRU encoder. Defaults to 0.
     """
 
-    def __init__(self, input_size, hidden_size, num_layers, dropout=0):
-        super(GRUEncoder, self).__init__(input_size, hidden_size, num_layers, dropout)
+    def __init__(self, input_size, hidden_size, num_layers, encoder_dropout=0, post_encoder_dropout=0):
+        super(GRUEncoder, self).__init__(input_size, hidden_size, num_layers, encoder_dropout, post_encoder_dropout)
 
-    def _get_rnn(self, input_size, hidden_size, num_layers):
-        return nn.GRU(input_size, hidden_size, num_layers, batch_first=True, bidirectional=True)
+    def _get_rnn(self, input_size, hidden_size, num_layers, dropout):
+        return nn.GRU(input_size, hidden_size, num_layers, batch_first=True, dropout=dropout, bidirectional=True)
 
 
 class LSTMEncoder(RNNEncoder):
@@ -76,14 +77,15 @@ class LSTMEncoder(RNNEncoder):
         input_size (int): The number of expected features in the input.
         hidden_size (int): The number of features in the hidden state.
         num_layers (int): The number of recurrent layers.
-        dropout (float): The dropout rate of the encoder. Defaults to 0.
+        encoder_dropout (float): The dropout rate of the LSTM encoder. Defaults to 0.
+        post_encoder_dropout (float): The dropout rate of the dropout layer after the LSTM encoder. Defaults to 0.
     """
 
-    def __init__(self, input_size, hidden_size, num_layers, dropout=0):
-        super(LSTMEncoder, self).__init__(input_size, hidden_size, num_layers, dropout)
+    def __init__(self, input_size, hidden_size, num_layers, encoder_dropout=0, post_encoder_dropout=0):
+        super(LSTMEncoder, self).__init__(input_size, hidden_size, num_layers, encoder_dropout, post_encoder_dropout))
 
-    def _get_rnn(self, input_size, hidden_size, num_layers):
-        return nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, bidirectional=True)
+    def _get_rnn(self, input_size, hidden_size, num_layers, dropout):
+        return nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, dropout=dropout, bidirectional=True)
 
 
 class CNNEncoder(nn.Module):
