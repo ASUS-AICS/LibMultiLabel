@@ -10,32 +10,41 @@ class BERTAttention(nn.Module):
 
     Args:
         num_classes (int): Total number of classes.
-        dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
+        encoder_hidden_dropout (float): The dropout rate of the feed forward sublayer in each BERT layer. Defaults to 0.2.
+        encoder_attention_dropout (float): The dropout rate of the attention sublayer in each BERT layer. Defaults to 0.2.
+        post_encoder_dropout (float): The dropout rate of the dropout layer after the BERT model. Defaults to 0.2.
         lm_weight (str): Pretrained model name or path. Defaults to 'bert-base-cased'.
         lm_window (int): Length of the subsequences to be split before feeding them to
             the language model. Defaults to 512.
         num_heads (int): The number of parallel attention heads. Defaults to 8.
         attention_type (str): Type of attention to use (caml or multihead). Defaults to 'multihead'.
-        attention_dropout (float): The dropout rate for the attention. Defaults to 0.0.
+        labelwise_attention_dropout (float): The dropout rate for the labelwise attention. Defaults to 0.0.
     """
 
     def __init__(
         self,
         num_classes,
-        dropout=0.2,
+        encoder_hidden_dropout=0.2,
+        encoder_attention_dropout=0.2,
+        post_encoder_dropout=0.2,
         lm_weight="bert-base-cased",
         lm_window=512,
         num_heads=8,
         attention_type="multihead",
-        attention_dropout=0.0,
-        **kwargs
+        labelwise_attention_dropout=0.0,
+        **kwargs,
     ):
         super().__init__()
         self.lm_window = lm_window
         self.attention_type = attention_type
 
-        self.lm = AutoModel.from_pretrained(lm_weight, torchscript=True)
-        self.embed_drop = nn.Dropout(p=dropout)
+        self.lm = AutoModel.from_pretrained(
+            lm_weight,
+            torchscript=True,
+            hidden_dropout_prob=encoder_hidden_dropout,
+            attention_probs_dropout_prob=encoder_attention_dropout,
+        )
+        self.post_encoder_dropout = nn.Dropout(p=post_encoder_dropout)
 
         self.attention_type = attention_type
         assert attention_type in ["singlehead", "multihead"], "attention_type must be 'singlehead' or 'multihead'"
@@ -43,7 +52,10 @@ class BERTAttention(nn.Module):
             self.attention = LabelwiseAttention(self.lm.config.hidden_size, num_classes)
         else:
             self.attention = LabelwiseMultiHeadAttention(
-                self.lm.config.hidden_size, num_classes, num_heads, attention_dropout
+                self.lm.config.hidden_size,
+                num_classes,
+                num_heads,
+                labelwise_attention_dropout,
             )
 
         # Final layer: create a matrix to use for the #labels binary classifiers
@@ -89,7 +101,7 @@ class BERTAttention(nn.Module):
         attention_mask = input_ids == self.lm.config.pad_token_id
         # (batch_size, sequence_length, lm_hidden_size)
         x = self.lm_feature(input_ids)
-        x = self.embed_drop(x)
+        x = self.post_encoder_dropout(x)
 
         # Apply per-label attention.
         if self.attention_type == "singlehead":

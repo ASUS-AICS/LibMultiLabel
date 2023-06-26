@@ -13,7 +13,7 @@ class KimCNN(nn.Module):
         filter_sizes (list): The size of convolutional filters.
         num_filter_per_size (int): The number of filters in convolutional layers in each size. Defaults to 128.
         embed_dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
-        encoder_dropout (float): The dropout rate of the encoder output. Defaults to 0.
+        post_encoder_dropout (float): The dropout rate of the encoder output. Defaults to 0.
         activation (str): Activation function to be used. Defaults to 'relu'.
     """
 
@@ -24,13 +24,13 @@ class KimCNN(nn.Module):
         filter_sizes=None,
         num_filter_per_size=128,
         embed_dropout=0.2,
-        encoder_dropout=0,
+        post_encoder_dropout=0,
         activation="relu",
     ):
         super(KimCNN, self).__init__()
         self.embedding = Embedding(embed_vecs, embed_dropout)
         self.encoder = CNNEncoder(
-            embed_vecs.shape[1], filter_sizes, num_filter_per_size, activation, encoder_dropout, num_pool=1
+            embed_vecs.shape[1], filter_sizes, num_filter_per_size, activation, post_encoder_dropout, num_pool=1
         )
         conv_output_size = num_filter_per_size * len(filter_sizes)
         self.linear = nn.Linear(conv_output_size, num_classes)

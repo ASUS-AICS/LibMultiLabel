@@ -30,13 +30,14 @@ class RNNEncoder(ABC, nn.Module):
         input_size (int): The number of expected features in the input.
         hidden_size (int): The number of features in the hidden state.
         num_layers (int): The number of recurrent layers.
-        dropout (float): The dropout rate of the encoder. Defaults to 0.
+        encoder_dropout (float): The dropout rate of the RNN encoder. Defaults to 0.
+        post_encoder_dropout (float): The dropout rate of the dropout layer after the RNN encoder. Defaults to 0.
     """
 
-    def __init__(self, input_size, hidden_size, num_layers, dropout=0):
+    def __init__(self, input_size, hidden_size, num_layers, encoder_dropout=0, post_encoder_dropout=0):
         super(RNNEncoder, self).__init__()
-        self.rnn = self._get_rnn(input_size, hidden_size, num_layers)
-        self.dropout = nn.Dropout(dropout)
+        self.rnn = self._get_rnn(input_size, hidden_size, num_layers, encoder_dropout)
+        self.post_encoder_dropout = nn.Dropout(post_encoder_dropout)
 
     def forward(self, input, length, **kwargs):
         self.rnn.flatten_parameters()
@@ -44,7 +45,7 @@ class RNNEncoder(ABC, nn.Module):
         length_clamped = length[idx].cpu().clamp(min=1)  # avoid the empty text with length 0
         packed_input = pack_padded_sequence(input[idx], length_clamped, batch_first=True)
         outputs, _ = pad_packed_sequence(self.rnn(packed_input)[0], batch_first=True)
-        return self.dropout(outputs[torch.argsort(idx)])
+        return self.post_encoder_dropout(outputs[torch.argsort(idx)])
 
     @abstractmethod
     def _get_rnn(self, input_size, hidden_size, num_layers):
@@ -93,7 +94,7 @@ class CNNEncoder(nn.Module):
         filter_sizes (list): Size of convolutional filters.
         num_filter_per_size (int): The number of filters in convolutional layers in each size. Defaults to 128.
         activation (str): Activation function to be used. Defaults to 'relu'.
-        dropout (float): The dropout rate of the encoder. Defaults to 0.
+        post_encoder_dropout (float): The dropout rate of the dropout layer after the CNN encoder. Defaults to 0.
         num_pool (int): The number of pools for max-pooling.
                         If num_pool = 0, do nothing.
                         If num_pool = 1, do typical max-pooling.
@@ -102,7 +103,7 @@ class CNNEncoder(nn.Module):
     """
 
     def __init__(
-        self, input_size, filter_sizes, num_filter_per_size, activation, dropout=0, num_pool=0, channel_last=False
+        self, input_size, filter_sizes, num_filter_per_size, activation,  post_encoder_dropout=0, num_pool=0, channel_last=False
     ):
         super(CNNEncoder, self).__init__()
         if not filter_sizes:
@@ -116,7 +117,7 @@ class CNNEncoder(nn.Module):
         if num_pool > 1:
             self.pool = nn.AdaptiveMaxPool1d(num_pool)
         self.activation = getattr(torch, activation, getattr(F, activation))
-        self.dropout = nn.Dropout(dropout)
+        self.post_encoder_dropout = nn.Dropout(post_encoder_dropout)
 
     def forward(self, input):
         h = input.transpose(1, 2)  # (batch_size, input_size, length)
@@ -133,7 +134,7 @@ class CNNEncoder(nn.Module):
         if self.channel_last:
             h = h.transpose(1, 2)  # (batch_size, *, total_num_filter)
         h = self.activation(h)
-        return self.dropout(h)
+        return self.post_encoder_dropout(h)
 
 
 class LabelwiseAttention(nn.Module):
@@ -165,12 +166,12 @@ class LabelwiseMultiHeadAttention(nn.Module):
         input_size (int): The number of expected features in the input.
         num_classes (int): Total number of classes.
         num_heads (int): The number of parallel attention heads.
-        attention_dropout (float): The dropout rate for the attention. Defaults to 0.0.
+        dropout (float): The dropout rate for the attention. Defaults to 0.
     """
 
-    def __init__(self, input_size, num_classes, num_heads, attention_dropout=0.0):
+    def __init__(self, input_size, num_classes, num_heads, dropout=0):
         super(LabelwiseMultiHeadAttention, self).__init__()
-        self.attention = nn.MultiheadAttention(embed_dim=input_size, num_heads=num_heads, dropout=attention_dropout)
+        self.attention = nn.MultiheadAttention(embed_dim=input_size, num_heads=num_heads, dropout=dropout)
         self.Q = nn.Linear(input_size, num_classes)
 
     def forward(self, input, attention_mask=None):
