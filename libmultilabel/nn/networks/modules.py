@@ -82,7 +82,7 @@ class LSTMEncoder(RNNEncoder):
     """
 
     def __init__(self, input_size, hidden_size, num_layers, encoder_dropout=0, post_encoder_dropout=0):
-        super(LSTMEncoder, self).__init__(input_size, hidden_size, num_layers, encoder_dropout, post_encoder_dropout))
+        super(LSTMEncoder, self).__init__(input_size, hidden_size, num_layers, encoder_dropout, post_encoder_dropout)
 
     def _get_rnn(self, input_size, hidden_size, num_layers, dropout):
         return nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, dropout=dropout, bidirectional=True)
