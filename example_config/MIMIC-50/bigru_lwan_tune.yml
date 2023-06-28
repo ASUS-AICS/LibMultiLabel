@@ -34,7 +34,7 @@ loss_function: binary_cross_entropy_with_logits
 init_weight: ['grid_search', ['kaiming_uniform', 'xavier_uniform']]
 network_config:
   embed_dropout: ['grid_search', [0, 0.2, 0.4, 0.6, 0.8]]
-  encoder_dropout: ['grid_search', [0, 0.2, 0.4, 0.6, 0.8]]
+  post_encoder_dropout: ['grid_search', [0, 0.2, 0.4, 0.6, 0.8]]
   rnn_dim: ['grid_search', [256, 512, 1024, 2048]]
   rnn_layers: ['grid_search', [1, 2]]
 

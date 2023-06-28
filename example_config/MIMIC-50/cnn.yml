@@ -31,7 +31,7 @@ init_weight: xavier_uniform
 network_config:
   activation: tanh
   embed_dropout: 0.2
-  encoder_dropout: 0.2
+  post_encoder_dropout: 0.2
   filter_sizes: [4]
   num_filter_per_size: 500
 
