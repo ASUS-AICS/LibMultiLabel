@@ -27,7 +27,7 @@ val_metric: RP@5
 model_name: BERT
 init_weight: null
 network_config:
-  dropout: 0.1
+  encoder_hidden_dropout: 0.1
   lm_weight: bert-base-uncased
   lm_window: 512
 

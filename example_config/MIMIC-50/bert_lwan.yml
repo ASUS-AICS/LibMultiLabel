@@ -32,7 +32,7 @@ val_metric: P@5
 model_name: BERTAttention
 init_weight: null
 network_config:
-  dropout: 0.2
+  post_encoder_dropout: 0.2
   lm_weight: emilyalsentzer/Bio_ClinicalBERT
   lm_window: 512
   num_heads: 8
