@@ -165,7 +165,7 @@ class BiLSTMLWMHAN(LabelwiseAttentionNetwork):
         encoder_dropout (float): The dropout rate of the encoder. Defaults to 0.
         post_encoder_dropout (float): The dropout rate of the dropout layer after the encoder. Defaults to 0.
         num_heads (int): The number of parallel attention heads. Defaults to 8.
-        attention_dropout (float): The dropout rate for the attention. Defaults to 0.
+        labelwise_attention_dropout (float): The dropout rate for the attention. Defaults to 0.
     """
 
     def __init__(
@@ -178,13 +178,13 @@ class BiLSTMLWMHAN(LabelwiseAttentionNetwork):
         encoder_dropout=0,
         post_encoder_dropout=0,
         num_heads=8,
-        attention_dropout=0,
+        labelwise_attention_dropout=0,
     ):
         self.num_classes = num_classes
         self.rnn_dim = rnn_dim
         self.rnn_layers = rnn_layers
         self.num_heads = num_heads
-        self.attention_dropout = attention_dropout
+        self.labelwise_attention_dropout = labelwise_attention_dropout
         super(BiLSTMLWMHAN, self).__init__(
             embed_vecs,
             num_classes,
@@ -199,7 +199,7 @@ class BiLSTMLWMHAN(LabelwiseAttentionNetwork):
         return LSTMEncoder(input_size, self.rnn_dim // 2, self.rnn_layers, encoder_dropout, post_encoder_dropout)
 
     def _get_attention(self):
-        return LabelwiseMultiHeadAttention(self.rnn_dim, self.num_classes, self.num_heads, self.attention_dropout)
+        return LabelwiseMultiHeadAttention(self.rnn_dim, self.num_classes, self.num_heads, self.labelwise_attention_dropout)
 
     def forward(self, input):
         # (batch_size, sequence_length, embed_dim)

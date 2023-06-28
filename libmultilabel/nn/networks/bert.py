@@ -7,9 +7,9 @@ class BERT(nn.Module):
 
     Args:
         num_classes (int): Total number of classes.
-        encoder_hidden_dropout (float): The dropout rate of the feed forward sublayer in each BERT layer. Defaults to 0.2.
-        encoder_attention_dropout (float): The dropout rate of the attention sublayer in each BERT layer. Defaults to 0.2.
-        post_encoder_dropout (float): The dropout rate of the dropout layer after the BERT model. Defaults to 0.2.
+        encoder_hidden_dropout (float): The dropout rate of the feed forward sublayer in each BERT layer. Defaults to 0.1.
+        encoder_attention_dropout (float): The dropout rate of the attention sublayer in each BERT layer. Defaults to 0.1.
+        post_encoder_dropout (float): The dropout rate of the dropout layer after the BERT model. Defaults to 0.
         lm_weight (str): Pretrained model name or path. Defaults to 'bert-base-cased'.
         lm_window (int): Length of the subsequences to be split before feeding them to
             the language model. Defaults to 512.
@@ -18,9 +18,9 @@ class BERT(nn.Module):
     def __init__(
         self,
         num_classes,
-        encoder_hidden_dropout=0.2,
-        encoder_attention_dropout=0.2,
-        post_encoder_dropout=0.2,
+        encoder_hidden_dropout=0.1,
+        encoder_attention_dropout=0.1,
+        post_encoder_dropout=0,
         lm_weight="bert-base-cased",
         lm_window=512,
         **kwargs,
