@@ -60,17 +60,17 @@ def linear_run(config):
 
     if config.eval:
         preprocessor, model = linear.load_pipeline(config.checkpoint_path)
-        datasets = preprocessor.load_data(config.training_file, config.test_file, config.eval)
+        datasets = linear.load_dataset(config.data_format, config.training_file, config.test_file)
+        datasets = preprocessor.transform(datasets)
     else:
-        preprocessor = linear.Preprocessor(data_format=config.data_format)
-        datasets = preprocessor.load_data(
+        preprocessor = linear.Preprocessor(config.include_test_labels, config.remove_no_label_data)
+        datasets = linear.load_dataset(
+            config.data_format,
             config.training_file,
             config.test_file,
-            config.eval,
             config.label_file,
-            config.include_test_labels,
-            config.remove_no_label_data,
         )
+        datasets = preprocessor.fit_transform(datasets)
         model = linear_train(datasets, config)
         linear.save_pipeline(config.checkpoint_dir, preprocessor, model)
 

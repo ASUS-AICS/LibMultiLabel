@@ -32,18 +32,17 @@ The simplest usage is::
 
 .. autofunction:: get_positive_labels
 
+Load Dataset
+^^^^^^^^^^^^
+
+.. autofunction:: load_dataset
+
 Preprocessor
 ^^^^^^^^^^^^
 
 .. autoclass:: Preprocessor
    :members:
-
-   .. automethod:: __init__
-
-
-.. autofunction:: read_libmultilabel_format
-
-.. autofunction:: read_libsvm_format
+   :special-members: __init__
 
 Load and Save Pipeline
 ^^^^^^^^^^^^^^^^^^^^^^
