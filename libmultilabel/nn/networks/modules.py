@@ -17,12 +17,8 @@ class Embedding(nn.Module):
 
     def __init__(self, embed_vecs, dropout=0.2, freeze_embed=False):
         super(Embedding, self).__init__()
-        # self.embedding = nn.Embedding.from_pretrained(
-        #     embed_vecs, freeze=freeze_embed, padding_idx=0)  # LAAT
-
-        self.embedding = nn.Embedding(embed_vecs.shape[0], embed_vecs.shape[1])
-        self.embedding.weight = nn.Parameter(copy.deepcopy(
-            embed_vecs), requires_grad=False)
+        self.embedding = nn.Embedding.from_pretrained(
+            embed_vecs, freeze=freeze_embed, padding_idx=0)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, input):
@@ -41,6 +37,7 @@ class RNNEncoder(ABC, nn.Module):
 
     def __init__(self, input_size, hidden_size, num_layers, dropout=0):
         super(RNNEncoder, self).__init__()
+        # Li-Chung: PR316
         # self.rnn = self._get_rnn(input_size, hidden_size, num_layers)
         # self.dropout = nn.Dropout(dropout)
         self.rnn = self._get_rnn(input_size, hidden_size, num_layers, dropout)

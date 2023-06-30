@@ -1,7 +1,6 @@
 import csv
 import gc
 import logging
-import random
 import warnings
 
 import pandas as pd
@@ -46,13 +45,12 @@ class TextDataset(Dataset):
         tokenizer=None,
         word_dict=None,
     ):
-        # self.data = data
+        self.data = data
         self.classes = classes
         self.max_seq_length = max_seq_length
         self.word_dict = word_dict
         self.tokenizer = tokenizer
         self.add_special_tokens = add_special_tokens
-        self.data = self.sort_by_length(data)  # LAAT
 
         self.num_classes = len(self.classes)
         self.label_binarizer = MultiLabelBinarizer().fit([classes])
@@ -78,14 +76,6 @@ class TextDataset(Dataset):
             "text": torch.LongTensor(input_ids[: self.max_seq_length]),
             "label": torch.IntTensor(self.label_binarizer.transform([data["label"]])[0]),
         }
-
-    def sort_by_length(self, data):
-        # reverse for LAAT
-        return sorted(data, key=lambda x: -len(x['text'][:self.max_seq_length]))
-
-    def shuffle_data(self):
-        # LAAT
-        random.shuffle(self.data)
 
 
 def tokenize(text):
@@ -150,8 +140,7 @@ def get_dataset_loader(
     dataset_loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=batch_size,
-        # shuffle=shuffle,
-        shuffle=False, # use TextDataset.shuffle_data()
+        shuffle=shuffle,
         num_workers=data_workers,
         collate_fn=generate_batch,
         pin_memory="cuda" in device.type,
@@ -380,8 +369,7 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, cache=N
         vector_dict = {}
         for word_vector in tqdm(word_vectors, disable=silent):
             word, vector = word_vector.rstrip().split(" ", 1)
-            # vector = torch.Tensor(list(map(float, vector.split())))
-            vector = list(map(float, vector.split())) # LAAT
+            vector = torch.Tensor(list(map(float, vector.split())))
             vector_dict[word] = vector
     else:
         logging.info(f"Load pretrained embedding from torchtext.")
@@ -394,21 +382,15 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, cache=N
         vector_dict = pretrained_aliases[embed_file](cache=cache)
         embed_size = vector_dict.dim
 
-    # LAAT init: set default to UNK vector
-    import numpy as np
-    unk_vector = np.random.uniform(-0.25, 0.25, embed_size)
-    embedding_weights = [unk_vector] * (len(word_dict))
-    embedding_weights[0] = np.zeros(embed_size)
+    embedding_weights = torch.zeros(len(word_dict), embed_size)
 
-    # embedding_weights = torch.zeros(len(word_dict), embed_size)
-    # if load_embedding_from_file:
-    #     # Add UNK embedding
-    #     # AttentionXML: np.random.uniform(-1.0, 1.0, embed_size)
-    #     # LAAT: np.random.uniform(-0.25, 0.25, embedding_size)
-    #     # CAML: np.random.randn(embed_size)
-    #     import numpy as np
-    #     unk_vector = torch.tensor(np.random.uniform(-0.25, 0.25, embed_size))
-    #     embedding_weights[word_dict[UNK]] = unk_vector
+    if load_embedding_from_file:
+        # Add UNK embedding
+        # AttentionXML: np.random.uniform(-1.0, 1.0, embed_size)
+        # LAAT: np.random.uniform(-0.25, 0.25, embedding_size)
+        # CAML: np.random.randn(embed_size)
+        unk_vector = torch.randn(embed_size)
+        embedding_weights[word_dict[UNK]] = unk_vector
 
     # Store pretrained word embedding
     vec_counts = 0
@@ -422,9 +404,4 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, cache=N
 
     logging.info(f"loaded {vec_counts}/{len(word_dict)} word embeddings")
 
-    # For resolving `UserWarning: Creating a tensor from a list of numpy.ndarrays is
-    # extremely slow. Please consider converting the list to a single numpy.ndarray
-    # with numpy.array() before converting to a tensor.`
-    embedding_weights = np.array(embedding_weights, dtype=np.float32)
-    return torch.FloatTensor(embedding_weights) # LAAT
-    # return embedding_weights
+    return embedding_weights

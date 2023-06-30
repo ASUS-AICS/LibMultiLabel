@@ -2,7 +2,6 @@ from abc import abstractmethod
 
 import numpy as np
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
@@ -92,8 +91,8 @@ class MultiLabelModel(pl.LightningModule):
         else:
             raise RuntimeError("Unsupported optimizer: {self.optimizer}")
 
-        # torch.nn.utils.clip_grad_value_(parameters, 0.5)
-        # LAAT hard code
+        torch.nn.utils.clip_grad_value_(parameters, 0.5)
+        # LAAT hard code (Shao-Syuan)
         if self.val_metric is not None:
             return {
                 "optimizer": optimizer,
@@ -109,19 +108,8 @@ class MultiLabelModel(pl.LightningModule):
         return optimizer
 
     def training_step(self, batch, batch_idx):
-        # LAAT
-        idx = torch.argsort(batch['length'], descending=True, stable=True)
-        sorted_batch = {k: v[idx] for k, v in batch.items()}
-        loss, _ = self.shared_step(sorted_batch)
-        loss = self.num_classes * loss  # LAAT
-        loss = loss / self.num_classes
+        loss, _ = self.shared_step(batch)
         return loss
-
-    def training_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
-        print(f'Reshuffling the data')
-        if self.shuffle:
-            self.trainer.train_dataloader.dataset.datasets.shuffle_data()
-        return super().training_epoch_end(outputs)
 
     def validation_step(self, batch, batch_idx):
         return self._shared_eval_step(batch, batch_idx)
@@ -130,10 +118,6 @@ class MultiLabelModel(pl.LightningModule):
         return self._shared_eval_step_end(batch_parts)
 
     def validation_epoch_end(self, step_outputs):
-        # print learning rate (LAAT)
-        lightning_optimizer = self.optimizers()
-        for param_group in lightning_optimizer.optimizer.param_groups:
-            print(f"\nLearning Rate: {param_group['lr']}\n")
         return self._shared_eval_epoch_end(step_outputs, "val")
 
     def test_step(self, batch, batch_idx):

@@ -28,7 +28,8 @@ class LAAT(nn.Module):
     ):
         super(LAAT, self).__init__()
 
-        self.embedding = Embedding(embed_vecs, embed_dropout, freeze_embed)
+        self.embedding = Embedding(
+            embed_vecs, dropout=embed_dropout, freeze_embed=freeze_embed)
         self.num_layers = num_layers
         self.rnn_dim = rnn_dim
 
@@ -37,8 +38,8 @@ class LAAT(nn.Module):
             input_size=embed_vecs.shape[1],
             hidden_size=rnn_dim//2, num_layers=num_layers, dropout=encoder_dropout)
 
-        mean = 0.0
-        std = 0.03
+        # mean = 0.0
+        # std = 0.03
         # first linear
         self.W = nn.Linear(rnn_dim, d_a, bias=False)
 
@@ -51,9 +52,9 @@ class LAAT(nn.Module):
         # Final layer: create a matrix to use for the #labels binary classifiers
         self.output = nn.Linear(rnn_dim, num_classes, bias=True)
 
-        torch.nn.init.normal_(self.W.weight, mean, std)
-        torch.nn.init.normal_(self.Q.weight, mean, std)
-        torch.nn.init.normal_(self.output.weight, mean, std)
+        # torch.nn.init.normal_(self.W.weight, mean, std)
+        # torch.nn.init.normal_(self.Q.weight, mean, std)
+        # torch.nn.init.normal_(self.output.weight, mean, std)
 
     def forward(self, input):
         # Get embeddings and apply dropout
