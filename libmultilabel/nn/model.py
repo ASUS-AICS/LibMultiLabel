@@ -34,6 +34,7 @@ class MultiLabelModel(pl.LightningModule):
         optimizer="adam",
         momentum=0.9,
         weight_decay=0,
+        lr_scheduler=None,
         metric_threshold=0.5,
         monitor_metrics=None,
         log_path=None,
@@ -49,6 +50,9 @@ class MultiLabelModel(pl.LightningModule):
         self.optimizer = optimizer
         self.momentum = momentum
         self.weight_decay = weight_decay
+
+        # lr_scheduler
+        self.lr_scheduler = lr_scheduler
 
         # dump log
         self.log_path = log_path
@@ -84,7 +88,17 @@ class MultiLabelModel(pl.LightningModule):
 
         torch.nn.utils.clip_grad_value_(parameters, 0.5)
 
-        return optimizer
+        if self.lr_scheduler is not None:
+            if self.lr_scheduler["name"] == "ReduceLROnPlateau":
+                lr_scheduler_config = {
+                    "scheduler": optim.lr_scheduler.ReduceLROnPlateau(
+                        optimizer,
+                        mode="min" if self.lr_scheduler["monitor"] == "Loss" else "max",
+                        **dict(self.lr_scheduler["config"])
+                    ),
+                    "monitor": self.lr_scheduler["monitor"],
+                }
+        return {"optimizer": optimizer, "lr_scheduler": lr_scheduler_config} if self.lr_scheduler else optimizer
 
     def training_step(self, batch, batch_idx):
         loss, _ = self.shared_step(batch)
