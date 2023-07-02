@@ -19,6 +19,7 @@ class MultiLabelModel(pl.LightningModule):
         optimizer (str, optional): Optimizer name (i.e., sgd, adam, or adamw). Defaults to 'adam'.
         momentum (float, optional): Momentum factor for SGD only. Defaults to 0.9.
         weight_decay (int, optional): Weight decay factor. Defaults to 0.
+        eps (float, optional): Epsilon of Adam-based optimizer (e.g., adam, adamw, or adamax). Defaults to 1e-08.
         metric_threshold (float, optional): The decision value threshold over which a label is predicted as positive. Defaults to 0.5.
         monitor_metrics (list, optional): Metrics to monitor while validating. Defaults to None.
         log_path (str): Path to a directory holding the log files and models.
@@ -34,14 +35,14 @@ class MultiLabelModel(pl.LightningModule):
         optimizer="adam",
         momentum=0.9,
         weight_decay=0,
+        eps=1e-08,
         metric_threshold=0.5,
         monitor_metrics=None,
         log_path=None,
         multiclass=False,
         silent=False,
         save_k_predictions=0,
-        val_metric='Micro-F1', # LAAT
-        shuffle=True,
+        val_metric='Micro-F1',  # LAAT (remove after PR317 merged to master)
         **kwargs
     ):
         super().__init__()
@@ -51,6 +52,7 @@ class MultiLabelModel(pl.LightningModule):
         self.optimizer = optimizer
         self.momentum = momentum
         self.weight_decay = weight_decay
+        self.eps = eps
 
         # dump log
         self.log_path = log_path
@@ -61,8 +63,7 @@ class MultiLabelModel(pl.LightningModule):
         self.multiclass = multiclass
         top_k = 1 if self.multiclass else None
         self.eval_metric = get_metrics(metric_threshold, monitor_metrics, num_classes, top_k=top_k)
-        self.val_metric = val_metric # LAAT
-        self.shuffle = shuffle # LAAT
+        self.val_metric = val_metric # LAAT (remove after PR317 merged to master)
         self.num_classes = num_classes
 
     @abstractmethod
@@ -79,15 +80,13 @@ class MultiLabelModel(pl.LightningModule):
                 parameters, self.learning_rate, momentum=self.momentum, weight_decay=self.weight_decay
             )
         elif optimizer_name == "adam":
-            optimizer = optim.Adam(parameters, weight_decay=self.weight_decay, lr=self.learning_rate)
+            optimizer = optim.Adam(parameters, weight_decay=self.weight_decay, eps=self.eps, lr=self.learning_rate)
         elif optimizer_name == "adamw":
-            # optimizer = optim.AdamW(
-            #     parameters, weight_decay=self.weight_decay, lr=self.learning_rate)
-            from transformers import AdamW
-            optimizer = AdamW(filter(lambda p: p.requires_grad, self.parameters()),
-                              lr=self.learning_rate, weight_decay=self.weight_decay)
+            optimizer = optim.AdamW(
+                parameters, weight_decay=self.weight_decay, eps=self.eps, lr=self.learning_rate)
         elif optimizer_name == "adamax":
-            optimizer = optim.Adamax(parameters, weight_decay=self.weight_decay, lr=self.learning_rate)
+            optimizer = optim.Adamax(
+                parameters, weight_decay=self.weight_decay, eps=self.eps, lr=self.learning_rate)
         else:
             raise RuntimeError("Unsupported optimizer: {self.optimizer}")
 

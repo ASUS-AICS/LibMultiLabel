@@ -166,6 +166,7 @@ class TorchTrainer:
                 optimizer=self.config.optimizer,
                 momentum=self.config.momentum,
                 weight_decay=self.config.weight_decay,
+                eps=self.config.eps,
                 metric_threshold=self.config.metric_threshold,
                 monitor_metrics=self.config.monitor_metrics,
                 multiclass=self.config.multiclass,
