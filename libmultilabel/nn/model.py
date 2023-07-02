@@ -88,7 +88,7 @@ class MultiLabelModel(pl.LightningModule):
 
         torch.nn.utils.clip_grad_value_(parameters, 0.5)
 
-        if self.lr_scheduler is not None:
+        if self.lr_scheduler:
             if self.lr_scheduler["name"] == "ReduceLROnPlateau":
                 lr_scheduler_config = {
                     "scheduler": optim.lr_scheduler.ReduceLROnPlateau(
