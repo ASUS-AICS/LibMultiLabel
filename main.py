@@ -87,6 +87,12 @@ def add_all_arguments(parser):
         "--momentum", type=float, default=0.9, help="Momentum factor for SGD only (default: %(default)s)"
     )
     parser.add_argument(
+        "--lr_scheduler",
+        type=dict,
+        default=None,
+        help="The configuration for learning rate scheduler. The configuration should be like: {'name': name_of_scheduler, 'monitor': metric_to_monitor_if_any, 'config': other_params_for_scheduler_if_any} (default: %(default)s)",
+    )
+    parser.add_argument(
         "--patience",
         type=int,
         default=5,
