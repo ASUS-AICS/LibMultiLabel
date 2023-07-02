@@ -38,33 +38,25 @@ class LAAT(nn.Module):
             input_size=embed_vecs.shape[1],
             hidden_size=rnn_dim//2, num_layers=num_layers, dropout=encoder_dropout)
 
-        # mean = 0.0
-        # std = 0.03
-        # first linear
         self.W = nn.Linear(rnn_dim, d_a, bias=False)
 
         """Context vectors for computing attention with
         (in_features, out_features) = (d_a, num_classes)
         """
-        # second linear (U in the paper)
         self.Q = nn.Linear(d_a, num_classes, bias=False)
 
         # Final layer: create a matrix to use for the #labels binary classifiers
         self.output = nn.Linear(rnn_dim, num_classes, bias=True)
-
-        # torch.nn.init.normal_(self.W.weight, mean, std)
-        # torch.nn.init.normal_(self.Q.weight, mean, std)
-        # torch.nn.init.normal_(self.output.weight, mean, std)
 
     def forward(self, input):
         # Get embeddings and apply dropout
         x = self.embedding(input['text'])  # (batch_size, length, embed_dim)
         H = self.encoder(x, input['length'])  # (batch_size, length, rnn_dim)
 
-        # (4) Z = tanh(WH), W: (d_a * 2u), H: (2u * N), Z: (d_a * N)
+        # Equation (4) Z = tanh(WH), W: (d_a * 2u), H: (2u * N), Z: (d_a * N)
         Z = torch.tanh(self.W(H))  # (batch_size, length, d_a)
 
-        # (5) A = softmax(UZ), A: (batch_size, class_num, length)
+        # Equation (5) A = softmax(UZ), A: (batch_size, class_num, length)
         #     Q: (|L| * d_a), Z: (d_a * N), A: |L| * N
         alpha = self.Q(Z)
         alpha = torch.softmax(alpha, 1).transpose(1, 2)

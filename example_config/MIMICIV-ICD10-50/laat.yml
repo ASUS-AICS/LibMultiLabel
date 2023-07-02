@@ -26,7 +26,7 @@ val_metric: Micro-F1
 
 # model
 model_name: LAAT
-init_weight: kaiming_uniform
+init_weight: null
 network_config:
   embed_dropout: 0.3
   encoder_dropout: 0
