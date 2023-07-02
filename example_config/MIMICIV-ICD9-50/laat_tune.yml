@@ -17,6 +17,7 @@ optimizer: adamw
 learning_rate: ['grid_search', [0.001, 0.0003]] # LAAT: 0.001
 momentum: 0.9
 weight_decay: 0
+eps: 1e-06
 patience: 6
 early_stopping_metric: Micro-F1
 shuffle: true
