@@ -91,14 +91,16 @@ class MultiLabelModel(pl.LightningModule):
             raise RuntimeError("Unsupported optimizer: {self.optimizer}")
 
         torch.nn.utils.clip_grad_value_(parameters, 0.5)
-
-        if self.lr_scheduler == "ReduceLROnPlateau":
-            lr_scheduler_config = {
-                "scheduler": optim.lr_scheduler.ReduceLROnPlateau(
-                    optimizer, mode="min" if self.val_metric == "Loss" else "max", **dict(self.scheduler_config)
-                ),
-                "monitor": self.val_metric,
-            }
+        if self.lr_scheduler:
+            if self.lr_scheduler == "ReduceLROnPlateau":
+                lr_scheduler_config = {
+                    "scheduler": optim.lr_scheduler.ReduceLROnPlateau(
+                        optimizer, mode="min" if self.val_metric == "Loss" else "max", **dict(self.scheduler_config)
+                    ),
+                    "monitor": self.val_metric,
+                }
+            else:
+                raise RuntimeError("Unsupported learning rate scheduler: {self.lr_scheduler}")
         return {"optimizer": optimizer, "lr_scheduler": lr_scheduler_config} if self.lr_scheduler else optimizer
 
     def training_step(self, batch, batch_idx):
