@@ -117,11 +117,11 @@ class TorchTrainer:
             checkpoint_path = self.config.checkpoint_path
 
         if self.config.early_stopping_metric not in self.config.monitor_metrics:
-                logging.warn(
-                    f"{self.config.early_stopping_metric} is not in `monitor_metrics`. "
-                    f"Add {self.config.early_stopping_metric} to `monitor_metrics`."
-                )
-                self.config.monitor_metrics += [self.config.early_stopping_metric]
+            logging.warn(
+                f"{self.config.early_stopping_metric} is not in `monitor_metrics`. "
+                f"Add {self.config.early_stopping_metric} to `monitor_metrics`."
+            )
+            self.config.monitor_metrics += [self.config.early_stopping_metric]
 
         if self.config.val_metric not in self.config.monitor_metrics:
             logging.warn(
@@ -129,7 +129,7 @@ class TorchTrainer:
                 f"Add {self.config.val_metric} to `monitor_metrics`."
             )
             self.config.monitor_metrics += [self.config.val_metric]
-        
+
         if checkpoint_path is not None:
             logging.info(f"Loading model from `{checkpoint_path}` with the previously saved hyper-parameter...")
             self.model = Model.load_from_checkpoint(checkpoint_path, log_path=log_path)
