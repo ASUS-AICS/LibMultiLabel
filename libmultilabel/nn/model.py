@@ -99,7 +99,7 @@ class MultiLabelModel(pl.LightningModule):
                 ),
                 "monitor": self.val_metric,
             }
-        return {"optimizer": optimizer, "lr_scheduler": lr_scheduler_config} if self.lr_scheduler_config else optimizer
+        return {"optimizer": optimizer, "lr_scheduler": lr_scheduler_config} if self.lr_scheduler else optimizer
 
     def training_step(self, batch, batch_idx):
         loss, _ = self.shared_step(batch)
