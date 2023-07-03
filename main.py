@@ -88,9 +88,15 @@ def add_all_arguments(parser):
     )
     parser.add_argument(
         "--lr_scheduler",
+        type=str,
+        default=None,
+        help="Name of the learning rate scheduler (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--scheduler_config",
         type=dict,
         default=None,
-        help="The configuration for learning rate scheduler. The configuration should be like: {'name': name_of_scheduler, 'monitor': metric_to_monitor_if_any, 'config': other_params_for_scheduler_if_any} (default: %(default)s)",
+        help="The configuration for learning rate scheduler. (default: %(default)s)",
     )
     parser.add_argument(
         "--patience",

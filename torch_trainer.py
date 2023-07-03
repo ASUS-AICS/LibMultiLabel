@@ -164,6 +164,8 @@ class TorchTrainer:
                 momentum=self.config.momentum,
                 weight_decay=self.config.weight_decay,
                 lr_scheduler=self.config.lr_scheduler,
+                scheduler_config=self.config.scheduler_config,
+                val_metric=self.config.val_metric,
                 metric_threshold=self.config.metric_threshold,
                 monitor_metrics=self.config.monitor_metrics,
                 multiclass=self.config.multiclass,
