@@ -116,20 +116,6 @@ class TorchTrainer:
         if "checkpoint_path" in self.config and self.config.checkpoint_path is not None:
             checkpoint_path = self.config.checkpoint_path
 
-        if self.config.early_stopping_metric not in self.config.monitor_metrics:
-            logging.warn(
-                f"{self.config.early_stopping_metric} is not in `monitor_metrics`. "
-                f"Add {self.config.early_stopping_metric} to `monitor_metrics`."
-            )
-            self.config.monitor_metrics += [self.config.early_stopping_metric]
-
-        if self.config.val_metric not in self.config.monitor_metrics:
-            logging.warn(
-                f"{self.config.val_metric} is not in `monitor_metrics`. "
-                f"Add {self.config.val_metric} to `monitor_metrics`."
-            )
-            self.config.monitor_metrics += [self.config.val_metric]
-
         if checkpoint_path is not None:
             logging.info(f"Loading model from `{checkpoint_path}` with the previously saved hyper-parameter...")
             self.model = Model.load_from_checkpoint(checkpoint_path, log_path=log_path)
@@ -146,6 +132,20 @@ class TorchTrainer:
                     normalize_embed=self.config.normalize_embed,
                     embed_cache_dir=self.config.embed_cache_dir,
                 )
+            if self.config.early_stopping_metric not in self.config.monitor_metrics:
+                logging.warn(
+                    f"{self.config.early_stopping_metric} is not in `monitor_metrics`. "
+                    f"Add {self.config.early_stopping_metric} to `monitor_metrics`."
+                )
+                self.config.monitor_metrics += [self.config.early_stopping_metric]
+
+            if self.config.val_metric not in self.config.monitor_metrics:
+                logging.warn(
+                    f"{self.config.val_metric} is not in `monitor_metrics`. "
+                    f"Add {self.config.val_metric} to `monitor_metrics`."
+                )
+                self.config.monitor_metrics += [self.config.val_metric]
+
             if not classes:
                 classes = data_utils.load_or_build_label(
                     self.datasets, self.config.label_file, self.config.include_test_labels
