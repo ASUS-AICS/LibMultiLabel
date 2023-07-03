@@ -131,8 +131,8 @@ class TorchTrainer:
             self.config.monitor_metrics += [self.config.val_metric]
         
         if checkpoint_path is not None:
-            logging.info(f"Loading model from `{checkpoint_path}`...")
-            self.model = Model.load_from_checkpoint(checkpoint_path, log_path=log_path, metric_threshold=self.config.metric_threshold, monitor_metrics=self.config.monitor_metrics, silent=self.config.silent, save_k_predictions=self.config.save_k_predictions )
+            logging.info(f"Loading model from `{checkpoint_path}` with the previously saved hyper-parameter...")
+            self.model = Model.load_from_checkpoint(checkpoint_path, log_path=log_path)
         else:
             logging.info("Initialize model from scratch.")
             if self.config.embed_file is not None:

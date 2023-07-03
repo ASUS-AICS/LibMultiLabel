@@ -195,7 +195,7 @@ class Model(MultiLabelModel):
         **kwargs
     ):
         super().__init__(num_classes=len(classes), log_path=log_path, **kwargs)
-        self.save_hyperparameters(ignore=["log_path", "metric_threshold", "monitor_metrics", "silent", "save_k_predictions"])
+        self.save_hyperparameters(ignore=["log_path"])
         self.word_dict = word_dict
         self.embed_vecs = embed_vecs
         self.classes = classes
