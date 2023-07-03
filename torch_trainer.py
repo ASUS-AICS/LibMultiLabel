@@ -215,7 +215,7 @@ class TorchTrainer:
         model_path = self.checkpoint_callback.best_model_path or self.checkpoint_callback.last_model_path
         if model_path:
             logging.info(f"Finished training. Load best model from {model_path}.")
-            self._setup_model(checkpoint_path=model_path)
+            self._setup_model(checkpoint_path=model_path, log_path=self.log_path)
         else:
             logging.info(
                 "No model is saved during training. \
