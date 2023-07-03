@@ -56,8 +56,7 @@ class TextDataset(Dataset):
         self.label_binarizer = MultiLabelBinarizer().fit([classes])
 
         if not isinstance(self.word_dict, Vocab) ^ isinstance(self.tokenizer, transformers.PreTrainedTokenizerBase):
-            raise ValueError(
-                "Please specify exactly one of word_dict or tokenizer")
+            raise ValueError("Please specify exactly one of word_dict or tokenizer")
 
     def __len__(self):
         return len(self.data)
@@ -70,8 +69,7 @@ class TextDataset(Dataset):
                     data["text"], padding="max_length", max_length=self.max_seq_length, truncation=True
                 )
             else:
-                input_ids = self.tokenizer.encode(
-                    data["text"], add_special_tokens=False)
+                input_ids = self.tokenizer.encode(data["text"], add_special_tokens=False)
         else:
             input_ids = [self.word_dict[word] for word in data["text"]]
         return {
@@ -162,12 +160,10 @@ def _load_raw_data(data, is_test=False, tokenize_text=True, remove_no_label_data
     Returns:
         pandas.DataFrame: Data composed of index, label, and tokenized text.
     """
-    assert isinstance(data, str) or isinstance(
-        data, pd.DataFrame), "Data must be from a file or pandas dataframe."
+    assert isinstance(data, str) or isinstance(data, pd.DataFrame), "Data must be from a file or pandas dataframe."
     if isinstance(data, str):
         logging.info(f"Load data from {data}.")
-        data = pd.read_csv(data, sep="\t", header=None,
-                           on_bad_lines="warn", quoting=csv.QUOTE_NONE).fillna("")
+        data = pd.read_csv(data, sep="\t", header=None, on_bad_lines="warn", quoting=csv.QUOTE_NONE).fillna("")
     data = data.astype(str)
     if data.shape[1] == 2:
         data.columns = ["label", "text"]
@@ -241,8 +237,7 @@ def load_datasets(
             val_data, tokenize_text=tokenize_text, remove_no_label_data=remove_no_label_data
         )
     elif val_size > 0:
-        datasets["train"], datasets["val"] = train_test_split(
-            datasets["train"], test_size=val_size, random_state=42)
+        datasets["train"], datasets["val"] = train_test_split(datasets["train"], test_size=val_size, random_state=42)
 
     if test_data is not None:
         datasets["test"] = _load_raw_data(
@@ -293,17 +288,14 @@ def load_or_build_text_dict(
             vocab_list = [[vocab.strip() for vocab in fp.readlines()]]
         # Keep PAD index 0 to align `padding_idx` of
         # class Embedding in libmultilabel.nn.networks.modules.
-        vocabs = build_vocab_from_iterator(
-            vocab_list, min_freq=1, specials=[PAD, UNK])
+        vocabs = build_vocab_from_iterator(vocab_list, min_freq=1, specials=[PAD, UNK])
     else:
         vocab_list = [set(data["text"]) for data in dataset]
-        vocabs = build_vocab_from_iterator(
-            vocab_list, min_freq=min_vocab_freq, specials=[PAD, UNK])
+        vocabs = build_vocab_from_iterator(vocab_list, min_freq=min_vocab_freq, specials=[PAD, UNK])
     vocabs.set_default_index(vocabs[UNK])
     logging.info(f"Read {len(vocabs)} vocabularies.")
 
-    embedding_weights = get_embedding_weights_from_file(
-        vocabs, embed_file, silent, embed_cache_dir)
+    embedding_weights = get_embedding_weights_from_file(vocabs, embed_file, silent, embed_cache_dir)
 
     if normalize_embed:
         # To have better precision for calculating the normalization, we convert the original
@@ -313,8 +305,7 @@ def load_or_build_text_dict(
         for i, vector in enumerate(embedding_weights):
             # We use the constant 1e-6 by following https://github.com/jamesmullenbach/caml-mimic/blob/44a47455070d3d5c6ee69fb5305e32caec104960/dataproc/extract_wvs.py#L60
             # for an internal experiment of reproducing their results.
-            embedding_weights[i] = vector / \
-                float(torch.linalg.norm(vector) + 1e-6)
+            embedding_weights[i] = vector / float(torch.linalg.norm(vector) + 1e-6)
         embedding_weights = embedding_weights.float()
 
     return vocabs, embedding_weights
@@ -341,8 +332,7 @@ def load_or_build_label(datasets, label_file=None, include_test_labels=False):
             classes = sorted([s.strip() for s in fp.readlines()])
     else:
         if "test" not in datasets and include_test_labels:
-            raise ValueError(
-                f"Specified the inclusion of test labels but test file does not exist")
+            raise ValueError(f"Specified the inclusion of test labels but test file does not exist")
 
         classes = set()
 
@@ -387,8 +377,7 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, cache=N
         if embed_file not in pretrained_aliases:
             raise ValueError(
                 "Got embed_file {}, but allowed pretrained "
-                "vectors are {}".format(
-                    embed_file, list(pretrained_aliases.keys()))
+                "vectors are {}".format(embed_file, list(pretrained_aliases.keys()))
             )
 
         # Hotfix: Glove URLs are outdated in Torchtext
@@ -397,8 +386,7 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, cache=N
         if embed_file.startswith("glove"):
             for name, url in pretrained_cls.func.url.items():
                 file_name = url.split("/")[-1]
-                pretrained_cls.func.url[
-                    name] = f"https://huggingface.co/stanfordnlp/glove/resolve/main/{file_name}"
+                pretrained_cls.func.url[name] = f"https://huggingface.co/stanfordnlp/glove/resolve/main/{file_name}"
 
         vector_dict = pretrained_cls(cache=cache)
         embed_size = vector_dict.dim
@@ -408,7 +396,6 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, cache=N
     if load_embedding_from_file:
         # Add UNK embedding
         # AttentionXML: np.random.uniform(-1.0, 1.0, embed_size)
-        # LAAT: np.random.uniform(-0.25, 0.25, embedding_size)
         # CAML: np.random.randn(embed_size)
         unk_vector = torch.randn(embed_size)
         embedding_weights[word_dict[UNK]] = unk_vector
