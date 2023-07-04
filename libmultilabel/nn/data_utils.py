@@ -379,7 +379,16 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, cache=N
                 "Got embed_file {}, but allowed pretrained "
                 "vectors are {}".format(embed_file, list(pretrained_aliases.keys()))
             )
-        vector_dict = pretrained_aliases[embed_file](cache=cache)
+
+        # Hotfix: Glove URLs are outdated in Torchtext
+        # (https://github.com/pytorch/text/blob/main/torchtext/vocab/vectors.py#L213-L217)
+        pretrained_cls = pretrained_aliases[embed_file]
+        if embed_file.startswith("glove"):
+            for name, url in pretrained_cls.func.url.items():
+                file_name = url.split("/")[-1]
+                pretrained_cls.func.url[name] = f"https://huggingface.co/stanfordnlp/glove/resolve/main/{file_name}"
+
+        vector_dict = pretrained_cls(cache=cache)
         embed_size = vector_dict.dim
 
     embedding_weights = torch.zeros(len(word_dict), embed_size)
