@@ -46,6 +46,9 @@ def init_model(
     optimizer="adam",
     momentum=0.9,
     weight_decay=0,
+    lr_scheduler=None,
+    scheduler_config=None,
+    val_metric=None,
     metric_threshold=0.5,
     monitor_metrics=None,
     multiclass=False,
@@ -71,6 +74,9 @@ def init_model(
         optimizer (str, optional): Optimizer name (i.e., sgd, adam, or adamw). Defaults to 'adam'.
         momentum (float, optional): Momentum factor for SGD only. Defaults to 0.9.
         weight_decay (int, optional): Weight decay factor. Defaults to 0.
+        lr_scheduler (str, optional): Name of the learning rate scheduler. Defaults to None.
+        scheduler_config (dict, optional): The configuration for learning rate scheduler. Defaults to None.
+        val_metric (str, optional): The metric to select the best model for testing. Used by some of the schedulers. Defaults to None.
         metric_threshold (float, optional): The decision value threshold over which a label is predicted as positive. Defaults to 0.5.
         monitor_metrics (list, optional): Metrics to monitor while validating. Defaults to None.
         multiclass (bool, optional): Enable multiclass mode. Defaults to False.
@@ -102,6 +108,9 @@ def init_model(
         optimizer=optimizer,
         momentum=momentum,
         weight_decay=weight_decay,
+        lr_scheduler=lr_scheduler,
+        scheduler_config=scheduler_config,
+        val_metric=val_metric,
         metric_threshold=metric_threshold,
         monitor_metrics=monitor_metrics,
         multiclass=multiclass,
