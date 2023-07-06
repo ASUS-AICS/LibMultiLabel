@@ -87,7 +87,16 @@ def add_all_arguments(parser):
         "--momentum", type=float, default=0.9, help="Momentum factor for SGD only (default: %(default)s)"
     )
     parser.add_argument(
-        "--eps", type=float, default=1e-08, help="Epsilon of Adam-based optimizer (e.g., adam, adamw, or adamax) (default: %(default)s)"
+        "--eps",
+        type=float,
+        default=1e-08,
+        help="Epsilon of Adam-based optimizer (e.g., adam, adamw, or adamax) (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--lr_scheduler",
+        type=str,
+        default=None,
+        help="Name of the learning rate scheduler (default: %(default)s)",
     )
     parser.add_argument(
         "--patience",
@@ -224,7 +233,7 @@ def add_all_arguments(parser):
         "-h",
         "--help",
         action="help",
-        help="If you are trying to specify network config such as dropout or activation, use a yaml file instead. "
+        help="If you are trying to specify network config such as dropout or activation or config of the learning rate scheduler, use a yaml file instead. "
         "See example configs in example_config",
     )
 
@@ -247,6 +256,8 @@ def get_config():
     # set one argument with the value of another argument (not supported in argparse)
     if args.early_stopping_metric is None:
         args.early_stopping_metric = args.val_metric
+    if not hasattr(args, "scheduler_config"):
+        args.scheduler_config = None
     config = AttributeDict(vars(args))
 
     config.run_name = "{}_{}_{}".format(

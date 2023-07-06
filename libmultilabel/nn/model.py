@@ -36,13 +36,15 @@ class MultiLabelModel(pl.LightningModule):
         momentum=0.9,
         weight_decay=0,
         eps=1e-08,
+        lr_scheduler=None,
+        scheduler_config=None,
+        val_metric=None,
         metric_threshold=0.5,
         monitor_metrics=None,
         log_path=None,
         multiclass=False,
         silent=False,
         save_k_predictions=0,
-        val_metric='Micro-F1',  # LAAT (remove after PR317 merged to master)
         **kwargs
     ):
         super().__init__()
@@ -54,6 +56,11 @@ class MultiLabelModel(pl.LightningModule):
         self.weight_decay = weight_decay
         self.eps = eps
 
+        # lr_scheduler
+        self.lr_scheduler = lr_scheduler
+        self.scheduler_config = scheduler_config
+        self.val_metric = val_metric
+
         # dump log
         self.log_path = log_path
         self.silent = silent
@@ -63,7 +70,6 @@ class MultiLabelModel(pl.LightningModule):
         self.multiclass = multiclass
         top_k = 1 if self.multiclass else None
         self.eval_metric = get_metrics(metric_threshold, monitor_metrics, num_classes, top_k=top_k)
-        self.val_metric = val_metric # LAAT (remove after PR317 merged to master)
         self.num_classes = num_classes
 
     @abstractmethod
@@ -91,20 +97,17 @@ class MultiLabelModel(pl.LightningModule):
             raise RuntimeError("Unsupported optimizer: {self.optimizer}")
 
         torch.nn.utils.clip_grad_value_(parameters, 0.5)
-        # LAAT hard code (Shao-Syuan)
-        if self.val_metric is not None:
-            return {
-                "optimizer": optimizer,
-                "lr_scheduler": {
+        if self.lr_scheduler:
+            if self.lr_scheduler == "ReduceLROnPlateau":
+                lr_scheduler_config = {
                     "scheduler": optim.lr_scheduler.ReduceLROnPlateau(
-                        optimizer, mode="max",
-                        factor=0.9,
-                        patience=5,
-                        min_lr=0.0001),
+                        optimizer, mode="min" if self.val_metric == "Loss" else "max", **dict(self.scheduler_config)
+                    ),
                     "monitor": self.val_metric,
-                },
-            }
-        return optimizer
+                }
+            else:
+                raise RuntimeError("Unsupported learning rate scheduler: {self.lr_scheduler}")
+        return {"optimizer": optimizer, "lr_scheduler": lr_scheduler_config} if self.lr_scheduler else optimizer
 
     def training_step(self, batch, batch_idx):
         loss, _ = self.shared_step(batch)
@@ -215,7 +218,9 @@ class Model(MultiLabelModel):
         **kwargs
     ):
         super().__init__(num_classes=len(classes), log_path=log_path, **kwargs)
-        self.save_hyperparameters()
+        self.save_hyperparameters(
+            ignore=["log_path"]
+        )  # If log_path is saved, loading the checkpoint will cause an error since each experiment has unique log_path (result_dir).
         self.word_dict = word_dict
         self.embed_vecs = embed_vecs
         self.classes = classes

@@ -117,8 +117,8 @@ class TorchTrainer:
             checkpoint_path = self.config.checkpoint_path
 
         if checkpoint_path is not None:
-            logging.info(f"Loading model from `{checkpoint_path}`...")
-            self.model = Model.load_from_checkpoint(checkpoint_path)
+            logging.info(f"Loading model from `{checkpoint_path}` with the previously saved hyper-parameter...")
+            self.model = Model.load_from_checkpoint(checkpoint_path, log_path=log_path)
         else:
             logging.info("Initialize model from scratch.")
             if self.config.embed_file is not None:
@@ -167,6 +167,9 @@ class TorchTrainer:
                 momentum=self.config.momentum,
                 weight_decay=self.config.weight_decay,
                 eps=self.config.eps,
+                lr_scheduler=self.config.lr_scheduler,
+                scheduler_config=self.config.scheduler_config,
+                val_metric=self.config.val_metric,
                 metric_threshold=self.config.metric_threshold,
                 monitor_metrics=self.config.monitor_metrics,
                 multiclass=self.config.multiclass,
@@ -219,7 +222,7 @@ class TorchTrainer:
         model_path = self.checkpoint_callback.best_model_path or self.checkpoint_callback.last_model_path
         if model_path:
             logging.info(f"Finished training. Load best model from {model_path}.")
-            self._setup_model(checkpoint_path=model_path)
+            self._setup_model(checkpoint_path=model_path, log_path=self.log_path)
         else:
             logging.info(
                 "No model is saved during training. \

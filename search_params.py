@@ -241,7 +241,7 @@ def retrain_best_model(exp_name, best_config, best_log_dir, merge_train_val):
         best_checkpoint = os.path.join(best_log_dir, "best_model.ckpt")
         last_checkpoint = os.path.join(best_log_dir, "last.ckpt")
         trainer._setup_model(checkpoint_path=best_checkpoint)
-        best_model_path = os.path.join(checkpoint_dir, 'best_model.ckpt')
+        best_model_path = os.path.join(checkpoint_dir, "best_model.ckpt")
         os.popen(f"cp {best_checkpoint} {best_model_path}")
         os.popen(f"cp {last_checkpoint} {os.path.join(checkpoint_dir, 'last.ckpt')}")
 
