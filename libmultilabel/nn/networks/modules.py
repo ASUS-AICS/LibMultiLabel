@@ -4,7 +4,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
-import copy
 
 
 class Embedding(nn.Module):
@@ -44,7 +43,7 @@ class RNNEncoder(ABC, nn.Module):
 
     def forward(self, input, length, **kwargs):
         self.rnn.flatten_parameters()
-        idx = torch.argsort(length, descending=True, stable=True)
+        idx = torch.argsort(length, descending=True)
         length_clamped = length[idx].cpu().clamp(min=1)  # avoid the empty text with length 0
         packed_input = pack_padded_sequence(input[idx], length_clamped, batch_first=True)
         outputs, _ = pad_packed_sequence(self.rnn(packed_input)[0], batch_first=True)
@@ -86,8 +85,7 @@ class LSTMEncoder(RNNEncoder):
         super(LSTMEncoder, self).__init__(input_size, hidden_size, num_layers, dropout)
 
     def _get_rnn(self, input_size, hidden_size, num_layers, dropout):
-        return nn.LSTM(input_size, hidden_size, num_layers, bidirectional=True, dropout=dropout)
-        # return nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, bidirectional=True)
+        return nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, bidirectional=True, dropout=dropout)
 
 
 class CNNEncoder(nn.Module):

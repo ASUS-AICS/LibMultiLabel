@@ -70,7 +70,6 @@ class MultiLabelModel(pl.LightningModule):
         self.multiclass = multiclass
         top_k = 1 if self.multiclass else None
         self.eval_metric = get_metrics(metric_threshold, monitor_metrics, num_classes, top_k=top_k)
-        self.num_classes = num_classes
 
     @abstractmethod
     def shared_step(self, batch):
