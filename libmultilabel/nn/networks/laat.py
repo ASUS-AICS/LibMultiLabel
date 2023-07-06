@@ -58,9 +58,9 @@ class LAAT(nn.Module):
 
         # Equation (5) A = softmax(UZ), A: (batch_size, class_num, length)
         #     Q: (|L| * d_a), Z: (d_a * N), A: |L| * N
-        alpha = self.Q(Z)
-        alpha = torch.softmax(alpha, 1).transpose(1, 2)
-        # alpha = torch.softmax(self.Q.weight.matmul(Z.transpose(1, 2)), dim=2)
+        # alpha = self.Q(Z)
+        # alpha = torch.softmax(alpha, 1).transpose(1, 2)
+        alpha = torch.softmax(self.Q.weight.matmul(Z.transpose(1, 2)), dim=2)
 
         # Document representations are weighted sums using the attention
         E = alpha.matmul(H)
