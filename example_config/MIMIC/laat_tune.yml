@@ -45,13 +45,13 @@ network_config:
   freeze_embed: false
 
 # pretrained vocab / embeddings
-# vocab_file: data/MIMIC/vocab.csv
+vocab_file: null # generate min_vocab_freq=1 by LibMultiLabel
 embed_file: data/MIMIC-50/word2vec_sg0_100.embed
 normalize_embed: false
 
 # hyperparamter search
 search_alg: basic_variant
-embed_cache_dir: .vector_cache
+embed_cache_dir: null
 num_samples: 1
 scheduler: null
 no_merge_train_val: true # do not retrain

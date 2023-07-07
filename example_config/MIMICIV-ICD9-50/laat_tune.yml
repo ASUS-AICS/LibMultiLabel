@@ -51,7 +51,7 @@ normalize_embed: false
 
 # hyperparamter search
 search_alg: basic_variant
-embed_cache_dir: .vector_cache
+embed_cache_dir: null
 num_samples: 1
 scheduler: null
 no_merge_train_val: true # do not retrain
