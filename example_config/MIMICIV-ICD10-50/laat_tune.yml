@@ -15,28 +15,34 @@ epochs: 50
 batch_size: 8
 optimizer: adamw
 learning_rate: 0.001
+eps: 0.00000001 # 1e-08 (expand str for ray)
 momentum: 0.9
 weight_decay: 0
-eps: 1e-06
 patience: 6
 early_stopping_metric: Micro-F1
 shuffle: true
+lr_scheduler: ReduceLROnPlateau
+scheduler_config:
+  factor: 0.9
+  patience: 5
+  min_lr: 0.0001
 
 # eval
 eval_batch_size: 8
-monitor_metrics: ['Loss', 'Another-Macro-F1', 'Macro-F1', 'Micro-F1', 'P@5', 'P@8', 'P@15']
+monitor_metrics: ['Another-Macro-F1', 'Macro-F1', 'Micro-F1', 'P@5', 'P@8', 'P@15']
 val_metric: Micro-F1
 
 # model
 model_name: LAAT
 loss_function: binary_cross_entropy_with_logits
-init_weight: null
+init_weight: kaiming_uniform # null
 network_config:
   embed_dropout: 0.3
   encoder_dropout: 0
   rnn_dim: ['grid_search', [512, 1024, 768, 256]]  # 2u
   num_layers: 1
   d_a: ['grid_search', [256, 512, 384, 128]]
+  freeze_embed: false
 
 # pretrained vocab / embeddings
 vocab_file: data/MIMICIV-ICD10-50/vocab.csv # 179,131, min_vocab_freq=1
@@ -45,7 +51,7 @@ normalize_embed: false
 
 # hyperparamter search
 search_alg: basic_variant
-embed_cache_dir: null
+embed_cache_dir: .vector_cache
 num_samples: 1
 scheduler: null
 no_merge_train_val: true # do not retrain
