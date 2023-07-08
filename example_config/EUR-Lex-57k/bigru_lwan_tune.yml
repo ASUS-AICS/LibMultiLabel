@@ -71,3 +71,5 @@ result_dir: runs
 save_k_predictions: 0
 silent: true
 val_size: 0.2
+lr_scheduler: null
+scheduler_config: null
