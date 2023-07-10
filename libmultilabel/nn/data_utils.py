@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 import csv
 import gc
 import logging
 import warnings
+from typing import Iterable
 
+import numpy as np
 import pandas as pd
 import torch
 import transformers
@@ -78,7 +82,7 @@ class TextDataset(Dataset):
         }
 
 
-def tokenize(text):
+def tokenize(text: str) -> list[str]:
     """Tokenize text.
 
     Args:
@@ -114,7 +118,7 @@ def get_dataset_loader(
     *,
     tokenizer=None,
     word_dict=None,
-):
+) -> torch.utils.data.DataLoader:
     """Create a pytorch DataLoader.
 
     Args:
@@ -148,7 +152,12 @@ def get_dataset_loader(
     return dataset_loader
 
 
-def _load_raw_data(data, is_test=False, tokenize_text=True, remove_no_label_data=False):
+def _load_raw_data(
+    data: str | pd.DataFrame,
+    is_test: bool = False,
+    tokenize_text: bool = True,
+    remove_no_label_data: bool = False,
+) -> list[dict[str, list[str]]]:
     """Load and tokenize raw data in file or dataframe.
 
     Args:
@@ -158,7 +167,7 @@ def _load_raw_data(data, is_test=False, tokenize_text=True, remove_no_label_data
             This is effective only when is_test=False. Defaults to False.
 
     Returns:
-        pandas.DataFrame: Data composed of index, label, and tokenized text.
+        dict: [{(optional: "index": ..., )"label": ..., "text": ...}, ...]
     """
     assert isinstance(data, str) or isinstance(data, pd.DataFrame), "Data must be from a file or pandas dataframe."
     if isinstance(data, str):
@@ -200,7 +209,7 @@ def load_datasets(
     merge_train_val=False,
     tokenize_text=True,
     remove_no_label_data=False,
-):
+) -> dict:
     """Load data from the specified data paths or the given dataframe.
     If `val_data` does not exist but `val_size` > 0, the validation set will be split from the training dataset.
 
@@ -245,11 +254,17 @@ def load_datasets(
         )
 
     if merge_train_val:
-        datasets["train"] = datasets["train"] + datasets["val"]
-        for i in range(len(datasets["train"])):
-            datasets["train"][i]["index"] = i
-        del datasets["val"]
-        gc.collect()
+        try:
+            datasets["train"] = datasets["train"] + datasets["val"]
+            for i in range(len(datasets["train"])):
+                datasets["train"][i]["index"] = i
+            del datasets["val"]
+        except KeyError:
+            logging.warning(
+                f"Requesting merging training and val data. But no val dataset is not provided.\nSkip merging process"
+            )
+        finally:
+            gc.collect()
 
     msg = " / ".join(f"{k}: {len(v)}" for k, v in datasets.items())
     logging.info(f"Finish loading dataset ({msg})")
@@ -258,13 +273,15 @@ def load_datasets(
 
 def load_or_build_text_dict(
     dataset,
+    model_name: str,
     vocab_file=None,
+    vocab_size=None,
     min_vocab_freq=1,
     embed_file=None,
     embed_cache_dir=None,
     silent=False,
     normalize_embed=False,
-):
+) -> (Vocab, torch.Tensor):
     """Build or load the vocabulary from the training dataset or the predefined `vocab_file`.
     The pretrained embedding can be either from a self-defined `embed_file` or from one of
     the vectors defined in torchtext.vocab.pretrained_aliases
@@ -272,7 +289,9 @@ def load_or_build_text_dict(
 
     Args:
         dataset (list): List of training instances with index, label, and tokenized text.
+        model_name (str): The name of the model.
         vocab_file (str, optional): Path to a file holding vocabuaries. Defaults to None.
+        vocab_size: (int, optional): The maximum size of the vocabulary. Defaults to None.
         min_vocab_freq (int, optional): The minimum frequency needed to include a token in the vocabulary. Defaults to 1.
         embed_file (str): Path to a file holding pre-trained embeddings.
         embed_cache_dir (str, optional): Path to a directory for storing cached embeddings. Defaults to None.
@@ -291,11 +310,13 @@ def load_or_build_text_dict(
         vocabs = build_vocab_from_iterator(vocab_list, min_freq=1, specials=[PAD, UNK])
     else:
         vocab_list = [set(data["text"]) for data in dataset]
-        vocabs = build_vocab_from_iterator(vocab_list, min_freq=min_vocab_freq, specials=[PAD, UNK])
+        vocabs = build_vocab_from_iterator(
+            vocab_list, min_freq=min_vocab_freq, specials=[PAD, UNK], max_tokens=vocab_size
+        )
     vocabs.set_default_index(vocabs[UNK])
     logging.info(f"Read {len(vocabs)} vocabularies.")
 
-    embedding_weights = get_embedding_weights_from_file(vocabs, embed_file, silent, embed_cache_dir)
+    embedding_weights = get_embedding_weights_from_file(model_name, vocabs, embed_file, silent, embed_cache_dir)
 
     if normalize_embed:
         # To have better precision for calculating the normalization, we convert the original
@@ -346,11 +367,12 @@ def load_or_build_label(datasets, label_file=None, include_test_labels=False):
     return classes
 
 
-def get_embedding_weights_from_file(word_dict, embed_file, silent=False, cache=None):
+def get_embedding_weights_from_file(model_name, word_dict, embed_file, silent=False, cache=None) -> torch.Tensor:
     """If the word exists in the embedding file, load the pretrained word embedding.
     Otherwise, assign a zero vector to that word.
 
     Args:
+        model_name (str): The name of the model.
         word_dict (torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
         embed_file (str): Path to a file holding pre-trained embeddings.
         silent (bool, optional): Enable silent mode. Defaults to False.
@@ -367,7 +389,7 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, cache=N
             word_vectors = f.readlines()
         embed_size = len(word_vectors[0].split()) - 1
         vector_dict = {}
-        for word_vector in tqdm(word_vectors, disable=silent):
+        for word_vector in tqdm(word_vectors, disable=silent, desc="Building token-embedding map"):
             word, vector = word_vector.rstrip().split(" ", 1)
             vector = torch.Tensor(list(map(float, vector.split())))
             vector_dict[word] = vector
@@ -394,10 +416,14 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, cache=N
     embedding_weights = torch.zeros(len(word_dict), embed_size)
 
     if load_embedding_from_file:
-        # Add UNK embedding
-        # AttentionXML: np.random.uniform(-1.0, 1.0, embed_size)
+        # AttentionXML: Add UNK embedding
+        if model_name == "AttentionXML":
+            unk_vector = torch.zeros(embed_size).uniform_(-1, 1)
         # CAML: np.random.randn(embed_size)
-        unk_vector = torch.randn(embed_size)
+        else:
+            unk_vector = torch.randn(embed_size)
+
+        # PAD embedding is by default all 0s
         embedding_weights[word_dict[UNK]] = unk_vector
 
     # Store pretrained word embedding
@@ -405,7 +431,7 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, cache=N
     for word in word_dict.get_itos():
         # The condition can be used to process the word that does not in the embedding file.
         # Note that torchtext vector object has already dealt with this,
-        # so we can directly make a query without addtional handling.
+        # so we can directly make a query without additional handling.
         if (load_embedding_from_file and word in vector_dict) or not load_embedding_from_file:
             embedding_weights[word_dict[word]] = vector_dict[word]
             vec_counts += 1

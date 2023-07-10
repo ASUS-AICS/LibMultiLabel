@@ -26,6 +26,7 @@ def init_device(use_cpu=False):
         # https://docs.nvidia.com/cuda/cublas/index.html
         os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
         device = torch.device("cuda")
+        logging.info(f"Available GPUs: {torch.cuda.device_count()}")
     else:
         device = torch.device("cpu")
         # https://github.com/pytorch/pytorch/issues/11201
@@ -91,7 +92,8 @@ def init_model(
 
     try:
         network = getattr(networks, model_name)(embed_vecs=embed_vecs, num_classes=len(classes), **dict(network_config))
-    except:
+    except Exception as e:
+        logging.error(e)
         raise AttributeError(f"Failed to initialize {model_name}.")
 
     if init_weight is not None:
@@ -134,6 +136,7 @@ def init_trainer(
     limit_test_batches=1.0,
     search_params=False,
     save_checkpoints=True,
+    swa=False,
 ):
     """Initialize a torch lightning trainer.
 
@@ -184,6 +187,11 @@ def init_trainer(
 
         callbacks += [TuneReportCallback({f"val_{val_metric}": val_metric}, on="validation_end")]
 
+    if swa:
+        from pytorch_lightning.callbacks import StochasticWeightAveraging
+
+        callbacks += [StochasticWeightAveraging(device=None)]
+
     trainer = pl.Trainer(
         logger=False,
         num_sanity_val_steps=0,
@@ -202,7 +210,8 @@ def init_trainer(
 
 def set_seed(seed):
     """Set seeds for numpy and pytorch.
-
+    # Dongli Suggestion: Rename to setup_reproducibility
+    # random seed if not specified
     Args:
         seed (int): Random seed.
     """

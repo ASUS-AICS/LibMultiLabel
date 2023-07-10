@@ -124,6 +124,7 @@ class TorchTrainer:
             if self.config.embed_file is not None:
                 logging.info("Load word dictionary ")
                 word_dict, embed_vecs = data_utils.load_or_build_text_dict(
+                    model_name=self.config.model_name,
                     dataset=self.datasets["train"],
                     vocab_file=self.config.vocab_file,
                     min_vocab_freq=self.config.min_vocab_freq,

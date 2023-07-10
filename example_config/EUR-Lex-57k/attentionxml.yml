@@ -1,0 +1,40 @@
+# data
+training_file: data/EUR-Lex-57k/train.txt
+val_file: data/EUR-Lex-57k/valid.txt
+test_file: data/EUR-Lex-57k/test.txt
+data_name: EUR-Lex-57k
+min_vocab_freq: 1
+max_seq_length: 500
+# We set include_test_labels to true for comparison with Chalkidis et al. (2019),
+# which handles zero-shots and reports Micro-F1.
+include_test_labels: true
+vocab_size: 500000
+
+# train
+seed: 1337
+epochs: 30
+batch_size: 40
+optimizer: dense_sparse_adam
+learning_rate: 0.001
+weight_decay: 0
+patience: 10
+shuffle: true
+
+# eval
+eval_batch_size: 40
+monitor_metrics: ['P@1', 'P@3', 'P@5', 'RP@1', 'RP@3', 'RP@5', 'nDCG@1', 'nDCG@3', 'nDCG@5']
+val_metric: nDCG@5
+
+# model
+model_name: AttentionRNN
+loss_function: binary_cross_entropy_with_logits
+network_config:
+  embed_dropout: 0.2
+  encoder_dropout: 0.5
+  rnn_dim: 512
+  rnn_layers: 1
+  linear_size: [256]
+  freeze_embed_training: True
+
+# pretrained vocab / embeddings
+embed_file: glove.6B.200d

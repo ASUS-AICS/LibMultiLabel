@@ -1,4 +1,6 @@
+import logging
 from abc import abstractmethod
+from collections import deque
 
 import numpy as np
 import pytorch_lightning as pl
@@ -8,6 +10,8 @@ import torch.optim as optim
 
 from ..common_utils import dump_log, argsort_top_k
 from ..nn.metrics import get_metrics, tabulate_metrics
+from .optimizer import DenseSparseAdam
+from .networks.labelwise_attention_networks import AttentionRNN
 
 
 class MultiLabelModel(pl.LightningModule):
@@ -43,7 +47,7 @@ class MultiLabelModel(pl.LightningModule):
         multiclass=False,
         silent=False,
         save_k_predictions=0,
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
 
@@ -87,8 +91,10 @@ class MultiLabelModel(pl.LightningModule):
             optimizer = optim.AdamW(parameters, weight_decay=self.weight_decay, lr=self.learning_rate)
         elif optimizer_name == "adamax":
             optimizer = optim.Adamax(parameters, weight_decay=self.weight_decay, lr=self.learning_rate)
+        elif optimizer_name == "dense_sparse_adam":
+            optimizer = DenseSparseAdam(parameters, weight_decay=self.weight_decay, lr=self.learning_rate)
         else:
-            raise RuntimeError("Unsupported optimizer: {self.optimizer}")
+            raise RuntimeError(f"Unsupported optimizer: {self.optimizer}")
 
         torch.nn.utils.clip_grad_value_(parameters, 0.5)
         if self.lr_scheduler:
@@ -209,7 +215,7 @@ class Model(MultiLabelModel):
         network,
         loss_function="binary_cross_entropy_with_logits",
         log_path=None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(num_classes=len(classes), log_path=log_path, **kwargs)
         self.save_hyperparameters(
@@ -220,6 +226,9 @@ class Model(MultiLabelModel):
         self.classes = classes
         self.network = network
         self.configure_loss_function(loss_function)
+        # attxml
+        self._clip_grad = 5.0
+        self._grad_norm_queue = deque([np.inf], maxlen=5)
 
     def configure_loss_function(self, loss_function):
         assert hasattr(
@@ -243,5 +252,15 @@ class Model(MultiLabelModel):
         outputs = self.network(batch)
         pred_logits = outputs["logits"]
         loss = self.loss_function(pred_logits, target_labels.float())
-
         return loss, pred_logits
+
+    def on_after_backward(self):
+        if isinstance(self.network, AttentionRNN):
+            if self._clip_grad is not None:
+                max_norm = max(self._grad_norm_queue)
+                total_norm = torch.nn.utils.clip_grad_norm_(self.network.parameters(), max_norm * self._clip_grad)
+                self._grad_norm_queue.append(min(total_norm, max_norm * 2.0, torch.tensor(1.0)))
+                if total_norm > max_norm * self._clip_grad:
+                    logging.warning(
+                        f"Clipping gradients with total norm {round(total_norm, 5)} and max norm {round(max_norm, 5)}"
+                    )
