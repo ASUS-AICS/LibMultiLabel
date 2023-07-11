@@ -38,8 +38,8 @@ init_weight: kaiming_uniform
 network_config:
   embed_dropout: ['grid_search', [0, 0.2, 0.4]] # 0.3
   encoder_dropout: ['grid_search', [0, 0.2, 0.4, 0.6, 0.8]] # ['grid_search', [0, 0.2, 0.4]]
-  rnn_dim: ['grid_search', [256, 512, 1024]] # ['grid_search', [256, 512, 768, 1024]]
-  rnn_layers: 1
+  rnn_dim: ['grid_search', [1024, 512, 256]] # ['grid_search', [256, 512, 768, 1024]]
+  num_layers: 1
   d_a: ['grid_search', [128, 256, 512]]
   freeze_embed: false
 
