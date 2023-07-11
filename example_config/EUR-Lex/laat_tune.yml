@@ -1,0 +1,80 @@
+# data
+training_file: data/EUR-Lex/train.txt
+test_file: data/EUR-Lex/test.txt
+data_name: EUR-Lex
+min_vocab_freq: 1
+max_seq_length: 500
+include_test_labels: true # false
+remove_no_label_data: true # false
+add_special_tokens: false
+
+# train
+seed: 0 # 1337
+epochs: 50
+batch_size: 16
+optimizer: adamw
+learning_rate: ['grid_search', [0.001, 0.0003]]
+eps: 0.00000001 # 1e-08 (expand str for ray)
+momentum: 0.9 # not used
+weight_decay: 0
+patience: 10
+early_stopping_metric: RP@5
+shuffle: true
+lr_scheduler: ReduceLROnPlateau
+scheduler_config:
+  factor: 0.9
+  patience: 9
+  min_lr: 0.0001
+
+# eval
+eval_batch_size: 16
+monitor_metrics: ['Another-Macro-F1', 'Macro-F1', 'Micro-F1', 'P@1', 'P@5', 'RP@5', 'nDCG@5']
+val_metric: RP@5
+
+# model
+model_name: LAAT
+loss_function: binary_cross_entropy_with_logits
+init_weight: kaiming_uniform
+network_config:
+  embed_dropout: ['grid_search', [0, 0.2, 0.4]] # 0.3
+  encoder_dropout: ['grid_search', [0, 0.2, 0.4, 0.6, 0.8]] # ['grid_search', [0, 0.2, 0.4]]
+  rnn_dim: ['grid_search', [256, 512, 1024]] # ['grid_search', [256, 512, 768, 1024]]
+  rnn_layers: 1
+  d_a: ['grid_search', [128, 256, 512]]
+  freeze_embed: false
+
+# pretrained vocab / embeddings
+vocab_file: null
+embed_file: glove.6B.200d
+normalize_embed: false
+
+# hyperparamter search
+search_alg: basic_variant
+embed_cache_dir: .vector_cache
+num_samples: 1
+scheduler: null
+no_merge_train_val: true # do not retrain
+
+# Uncomment the following lines to enable the ASHAScheduler.
+# See the documentation here: https://docs.ray.io/en/latest/tune/api_docs/schedulers.html#asha-tune-schedulers-ashascheduler
+#scheduler:
+  #time_attr: training_iteration
+  #max_t: 50 # the maximum epochs to run for each config (parameter R in the ASHA paper)
+  #grace_period: 10 # the minimum epochs to run for each config (parameter r in the ASHA paper)
+  #reduction_factor: 3 # reduce the number of configuration to floor(1/reduction_factor) each round of successive halving (called rung in ASHA paper)
+  #brackets: 1 # number of brackets. A smaller bracket index (parameter s in the ASHA paper) means earlier stopping (i.e., less total resources used)
+
+# other parameters specified in main.py::get_args
+checkpoint_path: null
+cpu: false
+data_workers: 4
+eval: false
+label_file: null
+limit_train_batches: 1.0
+limit_val_batches: 1.0
+limit_test_batches: 1.0
+metric_threshold: 0.5
+result_dir: runs
+save_k_predictions: 0
+silent: true
+val_size: 0.2
