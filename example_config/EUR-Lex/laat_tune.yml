@@ -39,7 +39,7 @@ network_config:
   embed_dropout: ['grid_search', [0, 0.2, 0.4, 0.6, 0.8]]
   encoder_dropout: ['grid_search', [0, 0.2, 0.4]]
   rnn_dim: ['grid_search', [512, 768, 1024]] # 256, 512, 1024
-  rnn_layers: 1
+  num_layers: 1
   d_a: ['grid_search', [128, 256, 384, 512]] # add d_a = 128 in EUR-Lex
   freeze_embed: false
 
