@@ -87,6 +87,12 @@ def add_all_arguments(parser):
         "--momentum", type=float, default=0.9, help="Momentum factor for SGD only (default: %(default)s)"
     )
     parser.add_argument(
+        "--eps",
+        type=float,
+        default=1e-08,
+        help="Epsilon of Adam-based optimizer (e.g., adam, adamw, or adamax) (default: %(default)s)",
+    )
+    parser.add_argument(
         "--lr_scheduler",
         type=str,
         default=None,

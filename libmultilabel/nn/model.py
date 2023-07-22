@@ -19,6 +19,7 @@ class MultiLabelModel(pl.LightningModule):
         optimizer (str, optional): Optimizer name (i.e., sgd, adam, or adamw). Defaults to 'adam'.
         momentum (float, optional): Momentum factor for SGD only. Defaults to 0.9.
         weight_decay (int, optional): Weight decay factor. Defaults to 0.
+        eps (float, optional): Epsilon of Adam-based optimizer (e.g., adam, adamw, or adamax). Defaults to 1e-08.
         metric_threshold (float, optional): The decision value threshold over which a label is predicted as positive. Defaults to 0.5.
         monitor_metrics (list, optional): Metrics to monitor while validating. Defaults to None.
         log_path (str): Path to a directory holding the log files and models.
@@ -34,6 +35,7 @@ class MultiLabelModel(pl.LightningModule):
         optimizer="adam",
         momentum=0.9,
         weight_decay=0,
+        eps=1e-08,
         lr_scheduler=None,
         scheduler_config=None,
         val_metric=None,
@@ -52,6 +54,7 @@ class MultiLabelModel(pl.LightningModule):
         self.optimizer = optimizer
         self.momentum = momentum
         self.weight_decay = weight_decay
+        self.eps = eps
 
         # lr_scheduler
         self.lr_scheduler = lr_scheduler
@@ -82,11 +85,13 @@ class MultiLabelModel(pl.LightningModule):
                 parameters, self.learning_rate, momentum=self.momentum, weight_decay=self.weight_decay
             )
         elif optimizer_name == "adam":
-            optimizer = optim.Adam(parameters, weight_decay=self.weight_decay, lr=self.learning_rate)
+            optimizer = optim.Adam(parameters, weight_decay=self.weight_decay, eps=self.eps, lr=self.learning_rate)
         elif optimizer_name == "adamw":
-            optimizer = optim.AdamW(parameters, weight_decay=self.weight_decay, lr=self.learning_rate)
+            optimizer = optim.AdamW(
+                parameters, weight_decay=self.weight_decay, eps=self.eps, lr=self.learning_rate)
         elif optimizer_name == "adamax":
-            optimizer = optim.Adamax(parameters, weight_decay=self.weight_decay, lr=self.learning_rate)
+            optimizer = optim.Adamax(
+                parameters, weight_decay=self.weight_decay, eps=self.eps, lr=self.learning_rate)
         else:
             raise RuntimeError("Unsupported optimizer: {self.optimizer}")
 

@@ -396,6 +396,7 @@ def get_embedding_weights_from_file(word_dict, embed_file, silent=False, cache=N
     if load_embedding_from_file:
         # Add UNK embedding
         # AttentionXML: np.random.uniform(-1.0, 1.0, embed_size)
+        # LAAT: np.random.uniform(-0.25, 0.25, embedding_size)
         # CAML: np.random.randn(embed_size)
         unk_vector = torch.randn(embed_size)
         embedding_weights[word_dict[UNK]] = unk_vector

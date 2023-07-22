@@ -3,6 +3,7 @@ import torch.nn as nn
 from .bert import BERT
 from .bert_attention import BERTAttention
 from .caml import CAML
+from .laat import LAAT
 from .kim_cnn import KimCNN
 from .xml_cnn import XMLCNN
 from .labelwise_attention_networks import BiGRULWAN

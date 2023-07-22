@@ -124,7 +124,9 @@ class TorchTrainer:
             if self.config.embed_file is not None:
                 logging.info("Load word dictionary ")
                 word_dict, embed_vecs = data_utils.load_or_build_text_dict(
-                    dataset=self.datasets["train"],
+                    # add vocab in the validation set
+                    # CAML: train, LAAT: train, val, and test
+                    dataset=self.datasets["train"] + self.datasets.get("val", []),
                     vocab_file=self.config.vocab_file,
                     min_vocab_freq=self.config.min_vocab_freq,
                     embed_file=self.config.embed_file,
@@ -163,6 +165,7 @@ class TorchTrainer:
                 optimizer=self.config.optimizer,
                 momentum=self.config.momentum,
                 weight_decay=self.config.weight_decay,
+                eps=self.config.eps,
                 lr_scheduler=self.config.lr_scheduler,
                 scheduler_config=self.config.scheduler_config,
                 val_metric=self.config.val_metric,

@@ -1,0 +1,40 @@
+# data
+training_file: data/MIMICIV-ICD9-50/train.txt
+val_file: data/MIMICIV-ICD9-50/valid.txt
+test_file: data/MIMICIV-ICD9-50/test.txt
+data_name: MIMICIV-ICD9-50
+min_vocab_freq: 1
+max_seq_length: 4000
+include_test_labels: true
+remove_no_label_data: true
+
+# train
+seed: 0 # 1337
+epochs: 50
+batch_size: 8
+optimizer: adamw
+learning_rate: 0.001
+weight_decay: 0
+eps: 1e-06
+patience: 6
+shuffle: true
+
+# eval
+eval_batch_size: 8
+monitor_metrics: ['Loss', 'Another-Macro-F1', 'Macro-F1', 'Micro-F1', 'P@5', 'P@8', 'P@15']
+val_metric: Micro-F1
+
+# model
+model_name: LAAT
+init_weight: null
+network_config:
+  embed_dropout: 0.3
+  encoder_dropout: 0
+  rnn_dim: 512  # 512//2 = 256
+  num_layers: 1
+  d_a: 256
+
+# pretrained vocab / embeddings
+vocab_file: data/MIMICIV-ICD9-50/vocab.csv # 282,173, min_vocab_freq=1
+embed_file: data/MIMICIV-ICD9-50/processed_full.embed
+normalize_embed: false

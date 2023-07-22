@@ -14,9 +14,10 @@ class Embedding(nn.Module):
         dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
     """
 
-    def __init__(self, embed_vecs, dropout=0.2):
+    def __init__(self, embed_vecs, dropout=0.2, freeze_embed=False):
         super(Embedding, self).__init__()
-        self.embedding = nn.Embedding.from_pretrained(embed_vecs, freeze=False, padding_idx=0)
+        self.embedding = nn.Embedding.from_pretrained(
+            embed_vecs, freeze=freeze_embed, padding_idx=0)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, input):
@@ -35,8 +36,10 @@ class RNNEncoder(ABC, nn.Module):
 
     def __init__(self, input_size, hidden_size, num_layers, dropout=0):
         super(RNNEncoder, self).__init__()
-        self.rnn = self._get_rnn(input_size, hidden_size, num_layers)
-        self.dropout = nn.Dropout(dropout)
+        # Li-Chung: PR316
+        # self.rnn = self._get_rnn(input_size, hidden_size, num_layers)
+        # self.dropout = nn.Dropout(dropout)
+        self.rnn = self._get_rnn(input_size, hidden_size, num_layers, dropout)
 
     def forward(self, input, length, **kwargs):
         self.rnn.flatten_parameters()
@@ -44,10 +47,10 @@ class RNNEncoder(ABC, nn.Module):
         length_clamped = length[idx].cpu().clamp(min=1)  # avoid the empty text with length 0
         packed_input = pack_padded_sequence(input[idx], length_clamped, batch_first=True)
         outputs, _ = pad_packed_sequence(self.rnn(packed_input)[0], batch_first=True)
-        return self.dropout(outputs[torch.argsort(idx)])
+        return outputs[torch.argsort(idx)]
 
     @abstractmethod
-    def _get_rnn(self, input_size, hidden_size, num_layers):
+    def _get_rnn(self, input_size, hidden_size, num_layers, dropout):
         raise NotImplementedError
 
 
@@ -64,8 +67,8 @@ class GRUEncoder(RNNEncoder):
     def __init__(self, input_size, hidden_size, num_layers, dropout=0):
         super(GRUEncoder, self).__init__(input_size, hidden_size, num_layers, dropout)
 
-    def _get_rnn(self, input_size, hidden_size, num_layers):
-        return nn.GRU(input_size, hidden_size, num_layers, batch_first=True, bidirectional=True)
+    def _get_rnn(self, input_size, hidden_size, num_layers, dropout):
+        return nn.GRU(input_size, hidden_size, num_layers, batch_first=True, bidirectional=True, dropout=dropout)
 
 
 class LSTMEncoder(RNNEncoder):
@@ -81,8 +84,8 @@ class LSTMEncoder(RNNEncoder):
     def __init__(self, input_size, hidden_size, num_layers, dropout=0):
         super(LSTMEncoder, self).__init__(input_size, hidden_size, num_layers, dropout)
 
-    def _get_rnn(self, input_size, hidden_size, num_layers):
-        return nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, bidirectional=True)
+    def _get_rnn(self, input_size, hidden_size, num_layers, dropout):
+        return nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, bidirectional=True, dropout=dropout)
 
 
 class CNNEncoder(nn.Module):
