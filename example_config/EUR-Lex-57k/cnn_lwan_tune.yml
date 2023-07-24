@@ -35,7 +35,7 @@ init_weight: kaiming_uniform
 network_config:
   activation: tanh
   embed_dropout: ['grid_search', [0, 0.2, 0.4, 0.6, 0.8]]
-  encoder_dropout: ['grid_search', [0, 0.2, 0.4]]
+  post_encoder_dropout: ['grid_search', [0, 0.2, 0.4]]
   filter_sizes: [8]
   num_filter_per_size: ['grid_search', [32, 64, 128, 256, 512, 1024]]
 

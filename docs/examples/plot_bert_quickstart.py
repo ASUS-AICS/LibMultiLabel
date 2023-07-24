@@ -54,7 +54,7 @@ tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
 
 model_name = "BERT"
 network_config = {
-    "dropout": 0.1,
+    "encoder_hidden_dropout": 0.1,
     "lm_weight": "bert-base-uncased",
 }
 learning_rate = 0.00003

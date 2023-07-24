@@ -26,7 +26,7 @@ val_metric: RP@5
 model_name: BERTAttention
 init_weight: null
 network_config:
-  dropout: 0.1
+  post_encoder_dropout: 0.1
   lm_weight: bert-base-uncased
   lm_window: 512
   attention_type: singlehead

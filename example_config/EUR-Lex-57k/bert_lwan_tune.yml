@@ -31,7 +31,7 @@ model_name: BERTAttention
 loss_function: binary_cross_entropy_with_logits
 init_weight: null
 network_config:
-  dropout: ['grid_search', [0, 0.1, 0.2, 0.4]]
+  post_encoder_dropout: ['grid_search', [0, 0.1, 0.2, 0.4]]
   lm_weight: bert-base-uncased
   lm_window: 512
   attention_type: singlehead

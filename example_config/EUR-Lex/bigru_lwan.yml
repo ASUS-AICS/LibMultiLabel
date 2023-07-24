@@ -25,7 +25,7 @@ model_name: BiGRULWAN
 init_weight: kaiming_uniform
 network_config:
   embed_dropout: 0.4
-  encoder_dropout: 0.4
+  post_encoder_dropout: 0.4
   rnn_dim: 512
   rnn_layers: 1
 

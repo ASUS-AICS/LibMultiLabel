@@ -29,7 +29,7 @@ model_name: CNNLWAN
 init_weight: kaiming_uniform
 network_config:
   embed_dropout: 0.2
-  encoder_dropout: 0.4
+  post_encoder_dropout: 0.4
   filter_sizes: [8]
   num_filter_per_size: 256
 

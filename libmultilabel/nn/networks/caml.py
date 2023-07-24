@@ -16,7 +16,7 @@ class CAML(nn.Module):
         num_classes (int): Total number of classes.
         filter_sizes (list): Size of convolutional filters.
         num_filter_per_size (int): The number of filters in convolutional layers in each size. Defaults to 50.
-        dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
+        embed_dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
     """
 
     def __init__(
@@ -25,7 +25,7 @@ class CAML(nn.Module):
         num_classes,
         filter_sizes=None,
         num_filter_per_size=50,
-        dropout=0.2,
+        embed_dropout=0.2,
     ):
         super(CAML, self).__init__()
         if not filter_sizes and len(filter_sizes) != 1:
@@ -34,7 +34,7 @@ class CAML(nn.Module):
 
         self.embedding = nn.Embedding(len(embed_vecs), embed_vecs.shape[1], padding_idx=0)
         self.embedding.weight.data = embed_vecs.clone()
-        self.embed_drop = nn.Dropout(p=dropout)
+        self.embed_dropout = nn.Dropout(p=embed_dropout)
 
         # Initialize conv layer
         self.conv = nn.Conv1d(
@@ -55,7 +55,7 @@ class CAML(nn.Module):
     def forward(self, input):
         # Get embeddings and apply dropout
         x = self.embedding(input["text"])  # (batch_size, length, embed_dim)
-        x = self.embed_drop(x)
+        x = self.embed_dropout(x)
         x = x.transpose(1, 2)  # (batch_size, embed_dim, length)
 
         """ Apply convolution and nonlinearity (tanh). The shapes are:

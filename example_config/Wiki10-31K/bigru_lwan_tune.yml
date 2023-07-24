@@ -32,7 +32,7 @@ loss_function: binary_cross_entropy_with_logits
 init_weight: kaiming_uniform
 network_config:
   embed_dropout: ['grid_search', [0, 0.2, 0.4, 0.6, 0.8]]
-  encoder_dropout: ['grid_search', [0, 0.2, 0.4]]
+  post_encoder_dropout: ['grid_search', [0, 0.2, 0.4]]
   rnn_dim: ['grid_search', [256, 512, 1024]]
   rnn_layers: 1
 

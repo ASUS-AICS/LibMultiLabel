@@ -30,7 +30,7 @@ model_name: KimCNN
 init_weight: kaiming_uniform
 network_config:
   embed_dropout: 0.4
-  encoder_dropout: 0
+  post_encoder_dropout: 0
   filter_sizes: [10]
   num_filter_per_size: 768
 
