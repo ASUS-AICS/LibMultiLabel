@@ -147,11 +147,10 @@ def _prepare_options(x: sparse.csr_matrix, options: str) -> tuple[sparse.csr_mat
 def train_thresholding(
     y: sparse.csr_matrix, x: sparse.csr_matrix, options: str = "", verbose: bool = True
 ) -> FlatModel:
-    """Trains a linear model for multilabel data using a one-vs-rest strategy
-    and cross-validation to pick optimal decision thresholds for Macro-F1.
-    Outperforms train_1vsrest in most aspects at the cost of higher
-    time complexity.
-    See user guide for more details.
+    """Trains a linear model for multi-label data using a one-vs-rest strategy
+    and cross-validation to pick decision thresholds optimizing the sum of Macro-F1 and Micro-F1.
+    Outperforms train_1vsrest in most aspects at the cost of higher time complexity 
+    due to an internal cross-validation.
 
     Args:
         y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
@@ -162,7 +161,6 @@ def train_thresholding(
     Returns:
         A model which can be used in predict_values.
     """
-    # Follows the MATLAB implementation at https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/multilabel/
     x, options, bias = _prepare_options(x, options)
 
     y = y.tocsc()
@@ -173,75 +171,48 @@ def train_thresholding(
 
     if verbose:
         logging.info(f"Training thresholding model on {num_class} labels")
-    for i in tqdm(range(num_class), disable=not verbose):
+
+    num_positives = np.sum(y, 2)
+    order = np.flip(np.argsort(num_positives))
+
+    # accumulated count for micro
+    stats = {"tp": 0, "fp": 0, "fn": 0, "labels": 0}
+    for i in tqdm(order.flat, disable=not verbose):
         yi = y[:, i].toarray().reshape(-1)
-        w, t = _thresholding_one_label(2 * yi - 1, x, options)
+        w, t, stats = _micromacro_one_label(2 * yi - 1, x, options, stats)
         weights[:, i] = w.ravel()
         thresholds[i] = t
 
     return FlatModel(name="thresholding", weights=np.asmatrix(weights), bias=bias, thresholds=thresholds)
 
-
-def _thresholding_one_label(y: np.ndarray, x: sparse.csr_matrix, options: str) -> tuple[np.ndarray, float]:
-    """Outer cross-validation for thresholding on a single label.
+def _micromacro_one_label(y: np.ndarray, x: sparse.csr_matrix, options: str, stats: dict) -> tuple[np.ndarray, float, dict]:
+    """Perform cross-validation to select the threshold for a label.
 
     Args:
         y (np.ndarray): A +1/-1 array with dimensions number of instances * 1.
         x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
         options (str): The option string passed to liblinear.
+        stats (dict): A dictionary containing information needed to calculated Micro-F1.
+            It includes the accumulated number of true positives, false positives, false 
+            negatives, and the number of labels processed. 
 
     Returns:
-        tuple[np.ndarray, float]: tuple of the weights and threshold.
-    """
-    fbr_list = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8])
-
-    nr_fold = 3
-
-    l = y.shape[0]
-
-    perm = np.random.permutation(l)
-
-    f_list = np.zeros_like(fbr_list)
-
-    for fold in range(nr_fold):
-        mask = np.zeros_like(perm, dtype="?")
-        mask[np.arange(int(fold * l / nr_fold), int((fold + 1) * l / nr_fold))] = 1
-        val_idx = perm[mask]
-        train_idx = perm[mask != True]
-
-        scutfbr_w, scutfbr_b_list = _scutfbr(y[train_idx], x[train_idx], fbr_list, options)
-        wTx = (x[val_idx] * scutfbr_w).A1
-
-        for i in range(fbr_list.size):
-            F = _fmeasure(y[val_idx], 2 * (wTx > -scutfbr_b_list[i]) - 1)
-            f_list[i] += F
-
-    best_fbr = fbr_list[::-1][np.argmax(f_list[::-1])]  # last largest
-    if np.max(f_list) == 0:
-        best_fbr = np.min(fbr_list)
-
-    # final model
-    w, b_list = _scutfbr(y, x, np.array([best_fbr]), options)
-
-    return w, b_list[0]
-
-
-def _scutfbr(y: np.ndarray, x: sparse.csr_matrix, fbr_list: list[float], options: str) -> tuple[np.matrix, np.ndarray]:
-    """Inner cross-validation for SCutfbr heuristic.
-
-    Args:
-        y (np.ndarray): A +1/-1 array with dimensions number of instances * 1.
-        x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
-        fbr_list (list[float]): list of fbr values.
-        options (str): The option string passed to liblinear.
-
-    Returns:
-        tuple[np.matrix, np.ndarray]: tuple of weights and threshold candidates.
+        tuple[np.ndarray, float, dict]: the weights, threshold, and the updated stats for calculating
+        Micro-F1.
     """
 
-    b_list = np.zeros_like(fbr_list)
-
     nr_fold = 3
+    T_sum = 0
+
+    new_tp = stats['tp']
+    new_fp = stats['fp']
+    new_fn = stats['fn']
+    stats['labels'] += 1
+
+    def metric(tp, fp, fn):
+        F = np.nan_to_num((2 * tp) / (2 * tp + fp + fn))
+        micro = np.nan_to_num((2*(tp + stats["tp"])) / (2 * (tp + stats["tp"]) + fp + fn + stats["fp"] + stats["fn"]))
+        return micro + F / stats['labels']
 
     l = y.shape[0]
 
@@ -249,28 +220,28 @@ def _scutfbr(y: np.ndarray, x: sparse.csr_matrix, fbr_list: list[float], options
 
     for fold in range(nr_fold):
         mask = np.zeros_like(perm, dtype="?")
-        mask[np.arange(int(fold * l / nr_fold), int((fold + 1) * l / nr_fold))] = 1
+        mask[np.arange(int(fold * l / nr_fold), int((fold + 1) * l / nr_fold))] = True
         val_idx = perm[mask]
-        train_idx = perm[mask != True]
+        train_idx = perm[np.logical_not(mask)]
 
         w = _do_train(y[train_idx], x[train_idx], options)
         wTx = (x[val_idx] * w).A1
-        scut_b = 0.0
-        start_F = _fmeasure(y[val_idx], 2 * (wTx > -scut_b) - 1)
 
-        # stableness to match the MATLAB implementation
-        sorted_wTx_index = np.argsort(wTx, kind="stable")
+        sorted_wTx_index = np.argsort(wTx)
         sorted_wTx = wTx[sorted_wTx_index]
+
+        # ignore warning for 0/0 when calculating F-measures
+        prev_settings = np.seterr("ignore")
 
         tp = np.sum(y[val_idx] == 1)
         fp = val_idx.size - tp
         fn = 0
+        best_obj = metric(tp, fp, fn)
+        best_tp, best_fp, best_fn = tp, fp, fn
         cut = -1
-        best_F = 2 * tp / (2 * tp + fp + fn)
+
         y_val = y[val_idx]
 
-        # following MATLAB implementation to suppress NaNs
-        prev_settings = np.seterr("ignore")
         for i in range(val_idx.size):
             if y_val[sorted_wTx_index[i]] == -1:
                 fp -= 1
@@ -278,32 +249,29 @@ def _scutfbr(y: np.ndarray, x: sparse.csr_matrix, fbr_list: list[float], options
                 tp -= 1
                 fn += 1
 
-            # There will be NaNs, but the behaviour is correct
-            F = 2 * tp / (2 * tp + fp + fn)
+            obj = metric(tp,fp,fn)
 
-            if F >= best_F:
-                best_F = F
+            if obj >= best_obj:
+                best_obj = obj
+                best_tp, best_fp, best_fn = tp, fp, fn
                 cut = i
         np.seterr(**prev_settings)
 
-        if best_F > start_F:
-            if cut == -1:  # i.e. all 1 in scut
-                scut_b = np.nextafter(-sorted_wTx[0], np.inf)  # predict all 1
-            elif cut == val_idx.size - 1:
-                scut_b = np.nextafter(-sorted_wTx[-1], np.inf)
-            else:
-                scut_b = -(sorted_wTx[cut] + sorted_wTx[cut + 1]) / 2
+        if cut == -1:  # i.e. all 1 in scut
+            T_sum += np.nextafter(sorted_wTx[0], -np.inf)  # predict all 1
+        elif cut == val_idx.size - 1:
+            T_sum += np.nextafter(sorted_wTx[-1], np.inf)
+        else:
+            T_sum += (sorted_wTx[cut] + sorted_wTx[cut + 1]) / 2
 
-        F = _fmeasure(y_val, 2 * (wTx > -scut_b) - 1)
+        new_tp = new_tp + best_tp
+        new_fp = new_fp + best_fp
+        new_fn = new_fn + best_fn
 
-        for i in range(fbr_list.size):
-            if F > fbr_list[i]:
-                b_list[i] += scut_b
-            else:
-                b_list[i] -= np.max(wTx)
-
-    b_list = b_list / nr_fold
-    return _do_train(y, x, options), b_list
+    T = -T_sum / nr_fold
+    stats["tp"], stats["fp"], stats["fn"] = new_tp, new_fp, new_fn
+    
+    return _do_train(y, x, options), T, stats
 
 
 def _do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> np.matrix:
