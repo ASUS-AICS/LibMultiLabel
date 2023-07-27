@@ -170,7 +170,7 @@ def train_thresholding(
     thresholds = np.zeros(num_class)
 
     if verbose:
-        logging.info(f"Training thresholding model on {num_class} labels")
+        logging.info("Training thresholding model on %s labels", num_class)
 
     num_positives = np.sum(y, 2)
     order = np.flip(np.argsort(num_positives))
@@ -183,9 +183,12 @@ def train_thresholding(
         weights[:, i] = w.ravel()
         thresholds[i] = t
 
-    return FlatModel(name="thresholding", weights=np.asmatrix(weights), bias=bias, thresholds=thresholds)
+    return FlatModel(name="thresholding", weights=np.asmatrix(weights), bias=bias, 
+                     thresholds=thresholds)
 
-def _micromacro_one_label(y: np.ndarray, x: sparse.csr_matrix, options: str, stats: dict) -> tuple[np.ndarray, float, dict]:
+
+def _micromacro_one_label(y: np.ndarray, x: sparse.csr_matrix, options: str, stats: dict
+    ) -> tuple[np.ndarray, float, dict]:
     """Perform cross-validation to select the threshold for a label.
 
     Args:
@@ -270,7 +273,7 @@ def _micromacro_one_label(y: np.ndarray, x: sparse.csr_matrix, options: str, sta
 
     T = -T_sum / nr_fold
     stats["tp"], stats["fp"], stats["fn"] = new_tp, new_fp, new_fn
-    
+
     return _do_train(y, x, options), T, stats
 
 
