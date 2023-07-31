@@ -1,0 +1,55 @@
+# data
+training_file: /l/users/dongli.he/libml/data/Wiki-500K/train.txt
+training_sparse_file: /l/users/dongli.he/libml/data/Wiki-500K/train_v1.txt
+test_file: /l/users/dongli.he/libml/data/Wiki-500K/test.txt
+data_name: Wiki-500K
+lowercase: false
+min_vocab_freq: 1
+max_seq_length: 500
+# We set include_test_labels to true for comparison with Chalkidis et al. (2019),
+# which handles zero-shots and reports Micro-F1.
+include_test_labels: false
+vocab_size: 500000
+
+# trainer params
+accelerator: gpu
+devices: 4
+num_nodes: 1
+
+# model
+model_name: FastAttentionXML
+loss_fn: binary_cross_entropy_with_logits
+network_config:
+  embed_dropout: 0.2
+  encoder_dropout: 0.5
+  rnn_dim: 1024
+  rnn_layers: 1
+  linear_size: [512, 256]
+  freeze_embed_training: False
+
+# label tree related parameters
+num_levels: 2
+cluster_size: 64
+
+top_k: 15
+
+# train
+seed: 1337
+epochs: 5
+batch_size: 64
+optimizer: Adam
+patience: 999
+shuffle: true
+val_size: 4000
+swa_lr: 1e-2
+swa_epoch_start: [2, 1]
+
+# eval
+eval_batch_size: 32
+monitor_metrics: ['P@1', 'p@3', 'P@5', "RP@1", "RP@3", "RP@5", "nDCG@1", "nDcg@3", "ndCG@5"]  # "TP@1", "TP@3", "TP@5",
+val_metric: ndcg@5
+
+# pretrained vocab / embeddings
+embed_file: /l/users/dongli.he/libml/data/glove/glove.840B.300d.txt
+
+path: models

@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8
 """
 Created on 2019/3/7
 @author yrh
@@ -24,10 +26,8 @@ class DenseSparseAdam(Optimizer):
             raise ValueError("Invalid beta parameter at index 0: {}".format(betas[0]))
         if not 0.0 <= betas[1] < 1.0:
             raise ValueError("Invalid beta parameter at index 1: {}".format(betas[1]))
-        if not 0.0 <= weight_decay:
-            raise ValueError("Invalid weight_decay value: {}".format(weight_decay))
         defaults = dict(lr=lr, betas=betas, eps=eps, weight_decay=weight_decay)
-        super().__init__(params, defaults)
+        super(DenseSparseAdam, self).__init__(params, defaults)
 
     def step(self, closure=None):
         """
@@ -38,11 +38,9 @@ class DenseSparseAdam(Optimizer):
         closure : ``callable``, optional.
             A closure that reevaluates the model and returns the loss.
         """
-
         loss = None
         if closure is not None:
-            with torch.enable_grad():
-                loss = closure()
+            loss = closure()
 
         for group in self.param_groups:
             for p in group["params"]:

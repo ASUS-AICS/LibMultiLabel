@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import Callable
 
@@ -12,39 +13,21 @@ from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 class Embedding(nn.Module):
     """Embedding layer with dropout
-
     Args:
         embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
-        freeze (bool): Whether to freeze the embedding layer. Defaults to False.
-        use_sparse_embed (bool): Whether the network is AttentionRNN. Defaults to False.
+        freeze (bool): If True, the tensor does not get updated in the learning process.
+            Equivalent to embedding.weight.requires_grad = False. Default: False.
+        sparse (bool): If True, gradient w.r.t. weight matrix will be a sparse tensor. Default: False.
         dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
     """
 
-    def __init__(
-        self,
-        embed_vecs: Tensor,
-        dropout: float = 0.2,
-        use_sparse_embed: bool = False,
-        freeze: bool = False,
-    ):
+    def __init__(self, embed_vecs, freeze=False, dropout=0.2):
         super(Embedding, self).__init__()
-        self.padding_idx = 0
-        self.use_sparse_embed = use_sparse_embed
+        self.embedding = nn.Embedding.from_pretrained(embed_vecs, freeze=freeze, padding_idx=0)
         self.dropout = nn.Dropout(dropout)
-        self.embedding = nn.Embedding.from_pretrained(
-            embed_vecs,
-            freeze=freeze,
-            padding_idx=self.padding_idx,
-            sparse=True if self.use_sparse_embed else False,
-        )
 
-    def forward(self, inputs: Tensor) -> Tensor | tuple[Tensor, Tensor, Tensor]:
-        embed_out = self.dropout(self.embedding(inputs))
-        if self.use_sparse_embed:
-            lengths = (inputs != self.padding_idx).sum(dim=-1)
-            masks = inputs != self.padding_idx
-            return embed_out[:, : lengths.max()], lengths, masks[:, : lengths.max()]
-        return embed_out
+    def forward(self, input):
+        return self.dropout(self.embedding(input))
 
 
 class RNNEncoder(ABC, nn.Module):
@@ -62,7 +45,7 @@ class RNNEncoder(ABC, nn.Module):
         self.rnn = self._get_rnn(input_size, hidden_size, num_layers)
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, inputs, lengths):
+    def forward(self, input, length):
         """
             N = batch size.
             L = (max) sequence length.
@@ -70,18 +53,16 @@ class RNNEncoder(ABC, nn.Module):
             H_in = embedding size.
             H_out = hidden size.
         Args:
-            inputs: (N, L, H_in) tensor of input sequences.
-            lengths: tensor of sequence lengths.
+            input: (N, L, H_in) tensor of input sequences.
+            length: tensor of sequence lengths.
 
         Returns:
             Output shape for:
                 LSTM - (N, L, D * H_out)
         """
         self.rnn.flatten_parameters()
-        idx = torch.argsort(lengths, descending=True)
-        # how to deal with text with length 0?
-        lengths_clamped = lengths[idx].cpu().clamp(min=1)  # avoid the empty text with length 0
-        packed_input = pack_padded_sequence(inputs[idx], lengths_clamped, batch_first=True)
+        idx = torch.argsort(length, descending=True)
+        packed_input = pack_padded_sequence(input[idx], length[idx].cpu(), batch_first=True)
         outputs, _ = pad_packed_sequence(self.rnn(packed_input)[0], batch_first=True)
         return self.dropout(outputs[torch.argsort(idx)])
 
@@ -100,8 +81,8 @@ class GRUEncoder(RNNEncoder):
         dropout (float): The dropout rate of the encoder. Defaults to 0.
     """
 
-    def __init__(self, input_size: int, hidden_size: int, num_layers: int, dropout: float = 0.0):
-        super(GRUEncoder, self).__init__(input_size, hidden_size, num_layers, dropout)
+    def __init__(self, input_size, hidden_size, num_layers, encoder_dropout=0, post_encoder_dropout=0):
+        super(GRUEncoder, self).__init__(input_size, hidden_size, num_layers, encoder_dropout, post_encoder_dropout)
 
     def _get_rnn(self, input_size, hidden_size, num_layers):
         return nn.GRU(input_size, hidden_size, num_layers, batch_first=True, bidirectional=True)
@@ -197,9 +178,9 @@ class LabelwiseAttention(nn.Module):
             masks = torch.unsqueeze(masks, 1)  # num_batches, 1, length
             attention = (
                 self.attention(inputs).transpose(1, 2).masked_fill(~masks, -np.inf)
-            )  # num_batches, num_labels, length
+            )  # num_batches, num_classes, length
         attention = F.softmax(attention, -1)
-        logits = torch.bmm(attention, inputs)  # (batch_size, num_classes, hidden_dim)
+        logits = attention @ inputs  # (batch_size, num_classes, hidden_dim)
         return logits, attention
 
 
@@ -245,59 +226,33 @@ class LabelwiseLinearOutput(nn.Module):
         return (self.output.weight * input).sum(dim=-1) + self.output.bias
 
 
-class AttentionWeights(nn.Module):
-    """ """
-
-    def __init__(self, labels_num, hidden_size, device_ids=None):
-        super().__init__()
-        if device_ids is None:
-            device_ids = list(range(1, torch.cuda.device_count()))
-        assert labels_num >= len(device_ids)
-        group_size, plus_num = labels_num // len(device_ids), labels_num % len(device_ids)
-        self.group = [group_size + 1] * plus_num + [group_size] * (len(device_ids) - plus_num)
-        assert sum(self.group) == labels_num
-        self.emb = nn.ModuleList(nn.Embedding(size, hidden_size, sparse=True) for i, size in enumerate(self.group))
-        std = (6.0 / (labels_num + hidden_size)) ** 0.5
-        with torch.no_grad():
-            for emb in self.emb:
-                emb.weight.data.uniform_(-std, std)
-        self.group_offset, self.hidden_size = np.cumsum([0] + self.group), hidden_size
-
-    def forward(self, inputs: Tensor):
-        outputs = torch.zeros(*inputs.size(), self.hidden_size)
-        for left, right, emb in zip(self.group_offset[:-1], self.group_offset[1:], self.emb):
-            index = (left <= inputs) & (inputs < right)
-            group_inputs = (inputs[index] - left).to(emb.weight.device)
-            outputs[index] = emb(group_inputs).to(inputs.device)
-        return outputs
-
-
 class FastLabelwiseAttention(nn.Module):
     """ """
 
-    def __init__(self, hidden_size, num_labels, parallel_attn=False):
+    def __init__(self, hidden_size, num_labels):
         super().__init__()
-        if parallel_attn:
-            self.attention = nn.Embedding(num_labels + 1, hidden_size, sparse=True)
-            nn.init.xavier_uniform_(self.attention.weight)
+        self.attention = nn.Embedding(num_labels + 1, hidden_size)
+        nn.init.xavier_uniform_(self.attention.weight)
 
-    def forward(self, inputs, masks, candidates, attn_weights: nn.Module):
+    def forward(self, inputs, masks, candidates):
         masks = torch.unsqueeze(masks, 1)  # num_batches, 1, length
         attn_inputs = inputs.transpose(1, 2)  # num_batches, hidden, length
-        attn_weights = self.attention(candidates) if hasattr(self, "attention") else attn_weights(candidates)
+        attn_weights = self.attention(candidates)  # num_batches, sample_size, hidden
         attention = (attn_weights @ attn_inputs).masked_fill(~masks, -np.inf)  # num_batches, sampled_size, length
         attention = F.softmax(attention, -1)  # num_batches, sampled_size, length
-        logits = torch.bmm(attention, inputs)  # (batch_size, num_classes, hidden_dim)
+        logits = attention @ inputs  # (batch_size, sample_size, hidden_dim)
         return logits, attention
 
 
-class AttentionRNNLinearOutput(nn.Module):
-    def __init__(self, linear_size: list[int, ...], output_size: int):
+class MultilayerLinearOutput(nn.Module):
+    def __init__(self, linear_size: list[int], output_size: int):
         super().__init__()
         self.linears = nn.ModuleList(nn.Linear(in_s, out_s) for in_s, out_s in zip(linear_size[:-1], linear_size[1:]))
+        self.output = nn.Linear(linear_size[-1], output_size)
+
+        # init weights
         for linear in self.linears:
             nn.init.xavier_uniform_(linear.weight)
-        self.output = nn.Linear(linear_size[-1], output_size)
         nn.init.xavier_uniform_(self.output.weight)
 
     def forward(self, inputs):

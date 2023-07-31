@@ -1,13 +1,67 @@
 from __future__ import annotations
 
+import logging
 import re
 
 import numpy as np
 import torch
 import torchmetrics.classification
-from torchmetrics import Metric, MetricCollection, Precision, Recall
+from torch import Tensor
+from torchmetrics import Metric, MetricCollection, Precision, Recall, RetrievalPrecision
 from torchmetrics.functional.retrieval.ndcg import retrieval_normalized_dcg
-from torchmetrics.utilities.data import select_topk
+from torchmetrics.utilities.data import select_topk, dim_zero_cat
+
+AVAILABLE_METRICS_ABBR = ["p", "r", "rp", "ndcg"]
+
+
+def list2metrics(
+    metrics: list[str],
+    num_labels: int,
+) -> MetricCollection:
+    """A wrapper function that converts a list of strings to a MetricCollection object.
+
+    Args:
+        metrics:
+        num_labels:
+        threshold:
+
+    Returns:
+
+    """
+
+    def _str2metric(
+        metric: str,
+    ) -> Metric:
+        """A wrapper function that converts a string to a Metric object.
+
+        Args:
+            metric:
+
+        Returns:
+
+        """
+        # TODO: sanity check
+        metric_info = metric.lower().split("@")
+        metric_abbr = metric_info[0]
+        try:
+            top_k = int(metric_info[1]) if len(metric_info) > 1 else 1
+        except ValueError:
+            raise ValueError(f"Invalid metric: {metric}.")
+
+        if metric_abbr == "p":
+            return Precision(num_labels, average="samples", top_k=top_k)
+        # elif metric_abbr == "tp":
+        #     metric = RetrievalPrecision(k=top_k)
+        elif metric_abbr == "rp":
+            return RPrecision(top_k=top_k)
+        elif metric_abbr == "ndcg":
+            return NDCG(top_k=top_k)
+        elif metric_abbr == "ndcgnew":
+            return NDCGnew(top_k=top_k)
+        else:
+            raise ValueError(f"Invalid metric: {metric}.")
+
+    return MetricCollection({m.lower(): _str2metric(m) for m in metrics})
 
 
 class Loss(Metric):
@@ -45,7 +99,6 @@ class NDCG(Metric):
     https://scikit-learn.org/stable/modules/generated/sklearn.metrics.ndcg_score.html
     Please find the formal definition here:
     https://nlp.stanford.edu/IR-book/html/htmledition/evaluation-of-ranked-retrieval-results-1.html
-
     Args:
         top_k (int): the top k relevant labels to evaluate.
     """
@@ -68,10 +121,33 @@ class NDCG(Metric):
         self.ndcg += [self._metric(p, t) for p, t in zip(preds, target)]
 
     def compute(self):
-        return torch.stack(self.ndcg).mean()
+        """Performs stacking on ndcg if neccesary"""
+        ndcg = torch.stack(self.ndcg) if isinstance(self.ndcg, list) else self.ndcg
+        return ndcg.mean()
 
     def _metric(self, preds, target):
         return retrieval_normalized_dcg(preds, target, k=self.top_k)
+
+
+class NDCGnew(Metric):
+    is_differentiable = False
+    higher_is_better = True
+    full_state_update = False
+
+    def __init__(self, top_k: int):
+        super().__init__()
+        self.top_k = top_k
+        # the range of ndcg is from 0 to 1
+        self.add_state("ndcg", default=torch.tensor(0, dtype=torch.float), dist_reduce_fx="sum")
+        self.add_state("n", default=torch.tensor(0), dist_reduce_fx="sum")
+
+    def update(self, preds: Tensor, target: Tensor):
+        assert preds.shape == target.shape
+        self.ndcg += torch.stack([retrieval_normalized_dcg(p, t, k=self.top_k) for p, t in zip(preds, target)]).sum()
+        self.n += len(preds)
+
+    def compute(self):
+        return self.ndcg / self.n
 
 
 class RPrecision(Metric):
@@ -93,6 +169,7 @@ class RPrecision(Metric):
     def __init__(self, top_k):
         super().__init__()
         self.top_k = top_k
+        # self.add_state("score", default=[], dist_reduce_fx="cat")
         self.add_state("score", default=torch.tensor(0.0, dtype=torch.double), dist_reduce_fx="sum")
         self.add_state("num_sample", default=torch.tensor(0), dist_reduce_fx="sum")
 
@@ -248,3 +325,7 @@ def tabulate_metrics(metric_dict: dict[str, float], split: str) -> str:
     )
     msg += f"|{header}|\n|{'-----------------:|' * len(metric_dict)}\n|{values}|\n"
     return msg
+
+
+def get_precision(preds, target, classes=None, top=5):
+    return preds.multiply(target).sum() / (top * target.shape[0])

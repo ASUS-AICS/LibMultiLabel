@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from abc import ABC, abstractmethod
 
 import torch.nn as nn
@@ -14,21 +15,13 @@ from .modules import (
     LabelwiseAttention,
     LabelwiseMultiHeadAttention,
     LabelwiseLinearOutput,
-    AttentionRNNLinearOutput,
     FastLabelwiseAttention,
+    MultilayerLinearOutput,
 )
 
 
 class LabelwiseAttentionNetwork(ABC, nn.Module):
-    """Base class for Labelwise Attention Network
-
-    Args:
-        embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
-        num_classes (int): Total number of classes.
-        embed_dropout (float): The dropout rate of the word embedding.
-        encoder_dropout (float): The dropout rate of the encoder output.
-        hidden_dim (int): The output dimension of the encoder.
-    """
+    """Base class for Labelwise Attention Network"""
 
     def __init__(
         self,
@@ -37,15 +30,27 @@ class LabelwiseAttentionNetwork(ABC, nn.Module):
         embed_dropout: float,
         encoder_dropout: float,
         hidden_dim: int,
+        freeze: bool = False,
     ):
-        super(LabelwiseAttentionNetwork, self).__init__()
-        self.embedding = Embedding(embed_vecs, embed_dropout)
+        """
+
+        Args:
+            embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
+            num_classes (int): Total number of classes.
+            embed_dropout (float): The dropout rate of the word embedding.
+            encoder_dropout (float): The dropout rate of the encoder output.
+            hidden_dim (int): The output dimension of the encoder.
+            freeze (bool): If True, the tensor does not get updated in the learning process.
+                Equivalent to embedding.weight.requires_grad = False. Default: False.
+        """
+        super().__init__()
+        self.embedding = Embedding(embed_vecs, freeze=freeze, dropout=embed_dropout)
         self.encoder = self._get_encoder(embed_vecs.shape[1], encoder_dropout)
         self.attention = self._get_attention()
         self.output = LabelwiseLinearOutput(hidden_dim, num_classes)
 
     @abstractmethod
-    def forward(self, inputs):
+    def forward(self, input):
         raise NotImplementedError
 
     @abstractmethod
@@ -60,11 +65,11 @@ class LabelwiseAttentionNetwork(ABC, nn.Module):
 class RNNLWAN(LabelwiseAttentionNetwork):
     """Base class for RNN Labelwise Attention Network"""
 
-    def forward(self, inputs):
+    def forward(self, input):
         # (batch_size, sequence_length, embed_dim)
-        x = self.embedding(inputs["text"])
+        x = self.embedding(input["text"])
         # (batch_size, sequence_length, hidden_dim)
-        x = self.encoder(x, inputs["length"])
+        x = self.encoder(x, input["length"])
         x, _ = self.attention(x)  # (batch_size, num_classes, hidden_dim)
         x = self.output(x)  # (batch_size, num_classes)
         return {"logits": x}
@@ -95,85 +100,6 @@ class BiGRULWAN(RNNLWAN):
 
     def _get_attention(self):
         return LabelwiseAttention(self.rnn_dim, self.num_classes)
-
-
-class AttentionRNN(RNNLWAN):
-    def __init__(
-        self,
-        embed_vecs,
-        num_classes: int,
-        rnn_dim: int,
-        linear_size: list[int, ...],
-        freeze_embed_training: bool = False,
-        rnn_layers: int = 1,
-        embed_dropout: float = 0.2,
-        encoder_dropout: float = 0.5,
-    ):
-        self.num_classes = num_classes
-        self.rnn_dim = rnn_dim
-        self.rnn_layers = rnn_layers
-        super().__init__(embed_vecs, num_classes, embed_dropout, encoder_dropout, rnn_dim)
-        self.embedding = Embedding(
-            embed_vecs, dropout=embed_dropout, freeze=freeze_embed_training, use_sparse_embed=True
-        )
-        self.output = AttentionRNNLinearOutput([self.rnn_dim] + linear_size, 1)
-
-    def _get_encoder(self, input_size, dropout):
-        assert self.rnn_dim % 2 == 0, """`rnn_dim` should be even."""
-        return LSTMEncoder(input_size, self.rnn_dim // 2, self.rnn_layers, dropout)
-
-    def _get_attention(self):
-        # return LabelwiseAttention(self.rnn_dim * 2, self.num_classes, init_fn=xavier_uniform_)
-        return LabelwiseAttention(self.rnn_dim, self.num_classes, init_fn=xavier_uniform_)
-
-    def forward(self, inputs):
-        # N: num_batches, L: sequence_length, E: emb_size, v: vocab_size, C: num_classes, H: hidden_dim
-        # input : dict["text", (N, L, V), "labels", (N, L, C: csr_matrix)]
-        x, lengths, masks = self.embedding(inputs["text"])  # (N, L, E)
-        x = self.encoder(x, lengths)  # (N, L, 2 * H)
-        x, _ = self.attention(x, masks)  # (N, C, 2 * H)
-        x = self.output(x)  # (N, C)
-        return {"logits": x}
-
-
-# class FastAttentionRNN(RNNLWAN):
-#     def __init__(
-#         self,
-#         embed_vecs,
-#         num_classes: int,
-#         rnn_dim: int,
-#         linear_size: list[int, ...],
-#         parallel_attn: bool = False,
-#         freeze_embed_training: bool = False,
-#         num_layers: int = 1,
-#         embed_dropout: float = 0.2,
-#         encoder_dropout: float = 0.5,
-#     ):
-#         super().__init__(None, None, embed_dropout, encoder_dropout, rnn_dim)
-#         self.num_classes = num_classes
-#         self.rnn_dim = rnn_dim
-#         self.rnn_layers = num_layers
-#         self.embedding = Embedding(
-#             embed_vecs, dropout=embed_dropout, freeze=freeze_embed_training, use_sparse_embed=True
-#         )
-#         self.output = AttentionRNNLinearOutput([self.rnn_dim * 2] + linear_size, 1)
-#
-#     def _get_encoder(self, input_size, dropout):
-#         assert self.rnn_dim % 2 == 0, """`rnn_dim` should be even."""
-#         return LSTMEncoder(input_size, self.rnn_dim // 2, self.rnn_layers, dropout)
-#
-#     def _get_attention(self):
-#         # return LabelwiseAttention(self.rnn_dim * 2, self.num_classes, init_fn=xavier_uniform_)
-#         return FastLabelwiseAttention(self.rnn_dim, self.num_classes)
-#
-#     def forward(self, inputs, candidates, attn_weights: nn.Module):
-#         # N: num_batches, L: sequence_length, E: emb_size, v: vocab_size, C: num_classes, H: hidden_dim
-#         # input : dict["text", (N, L, V), "labels", (N, L, C: csr_matrix)]
-#         x, lengths, masks = self.emb(inputs["text"])  # (N, L, E)
-#         x = self.encoder(x, lengths)  # (N, L, 2 * H)
-#         x, _ = self.attention(x, masks, candidates, attn_weights)  # (N, C, 2 * H)
-#         x = self.output(x)  # (N, C)
-#         return {"logits": x}
 
 
 class BiLSTMLWAN(RNNLWAN):
@@ -243,13 +169,13 @@ class BiLSTMLWMHAN(LabelwiseAttentionNetwork):
     def _get_attention(self):
         return LabelwiseMultiHeadAttention(self.rnn_dim, self.num_classes, self.num_heads, self.attention_dropout)
 
-    def forward(self, inputs):
+    def forward(self, input):
         # (batch_size, sequence_length, embed_dim)
-        x = self.embedding(inputs["text"])
+        x = self.embedding(input["text"])
         # (batch_size, sequence_length, hidden_dim)
-        x = self.encoder(x, inputs["length"])
+        x = self.encoder(x, input["length"])
         # (batch_size, num_classes, hidden_dim)
-        x, _ = self.attention(x, attention_mask=inputs["text"] == 0)
+        x, _ = self.attention(x, attention_mask=input["text"] == 0)
         x = self.output(x)  # (batch_size, num_classes)
         return {"logits": x}
 
@@ -292,10 +218,87 @@ class CNNLWAN(LabelwiseAttentionNetwork):
     def _get_attention(self):
         return LabelwiseAttention(self.hidden_dim, self.num_classes)
 
-    def forward(self, inputs):
+    def forward(self, input):
         # (batch_size, sequence_length, embed_dim)
-        x = self.embedding(inputs["text"])
+        x = self.embedding(input["text"])
         x = self.encoder(x)  # (batch_size, sequence_length, hidden_dim)
         x, _ = self.attention(x)  # (batch_size, num_classes, hidden_dim)
         x = self.output(x)  # (batch_size, num_classes)
         return {"logits": x}
+
+
+class AttentionRNN(RNNLWAN):
+    def __init__(
+        self,
+        embed_vecs,
+        num_classes: int,
+        rnn_dim: int,
+        linear_size: list[int, ...],
+        freeze_embed_training: bool = False,
+        rnn_layers: int = 1,
+        embed_dropout: float = 0.2,
+        encoder_dropout: float = 0.5,
+    ):
+        self.num_classes = num_classes
+        self.rnn_dim = rnn_dim
+        self.rnn_layers = rnn_layers
+        super().__init__(embed_vecs, num_classes, embed_dropout, encoder_dropout, rnn_dim, freeze=freeze_embed_training)
+        self.output = MultilayerLinearOutput([self.rnn_dim] + linear_size, 1)
+
+    def _get_encoder(self, input_size, dropout):
+        assert self.rnn_dim % 2 == 0, """`rnn_dim` should be even."""
+        return LSTMEncoder(input_size, self.rnn_dim // 2, self.rnn_layers, dropout)
+
+    def _get_attention(self):
+        # return LabelwiseAttention(self.rnn_dim * 2, self.num_classes, init_fn=xavier_uniform_)
+        return LabelwiseAttention(self.rnn_dim, self.num_classes, init_fn=xavier_uniform_)
+
+    def forward(self, inputs):
+        # N: batch size, L: sequence_length, E: emb_size, v: vocab_size, C: num_classes, H: hidden_dim
+        # the index of padding is 0
+        lengths = (inputs != 0).sum(dim=1)
+        masks = (inputs != 0)[:, : lengths.max()]
+        # input : dict["text", (N, L, V), "labels", (N, L, C: csr_matrix)]
+        x = self.embedding(inputs)[:, : lengths.max()]  # (N, L, E)
+        x = self.encoder(x, lengths)  # (N, L, 2 * H)
+        x, _ = self.attention(x, masks)  # (N, C, 2 * H)
+        x = self.output(x)  # (N, C)
+        return x
+
+
+class FastAttentionRNN(RNNLWAN):
+    def __init__(
+        self,
+        embed_vecs,
+        num_classes: int,
+        rnn_dim: int,
+        linear_size: list[int],
+        freeze_embed_training: bool = False,
+        rnn_layers: int = 1,
+        embed_dropout: float = 0.2,
+        encoder_dropout: float = 0.5,
+    ):
+        self.num_classes = num_classes
+        self.rnn_dim = rnn_dim
+        self.rnn_layers = rnn_layers
+        super().__init__(embed_vecs, num_classes, embed_dropout, encoder_dropout, rnn_dim, freeze=freeze_embed_training)
+        self.output = MultilayerLinearOutput([self.rnn_dim] + linear_size, 1)
+
+    def _get_encoder(self, input_size, dropout):
+        assert self.rnn_dim % 2 == 0, """`rnn_dim` should be even."""
+        return LSTMEncoder(input_size, self.rnn_dim // 2, self.rnn_layers, dropout)
+
+    def _get_attention(self):
+        return FastLabelwiseAttention(self.rnn_dim, self.num_classes)
+
+    def forward(self, inputs, candidates):
+        # N: num_batches, L: sequence_length, E: emb_size, v: vocab_size, S: sample size, H: hidden_dim
+        # the index of padding is 0
+        lengths = (inputs != 0).sum(dim=1)
+        masks = (inputs != 0)[:, : lengths.max()]
+        # input : dict["text", (N, L, V), "labels", (N, L, C: csr_matrix)]
+        x = self.embedding(inputs)  # (N, L, E)
+        x = self.encoder(x, lengths)  # (N, L, 2 * H)
+        x, _ = self.attention(x, masks, candidates)  # (N, S, 2 * H)
+        x = self.output(x)  # (N, S)
+        return x

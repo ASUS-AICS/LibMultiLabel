@@ -8,7 +8,7 @@ PyYAML
 scikit-learn
 scipy
 torch>=2.0.0
-torchmetrics==0.10.3
+torchmetrics>=1.0
 torchtext>=0.13.0
 tqdm
 transformers

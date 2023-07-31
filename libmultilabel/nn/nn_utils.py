@@ -1,5 +1,6 @@
 import logging
 import os
+from pathlib import Path
 
 import pytorch_lightning as pl
 import torch
@@ -8,7 +9,8 @@ from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.utilities.seed import seed_everything
 
 from ..nn import networks
-from ..nn.model import Model
+from ..nn.model import Model, BaseModel
+from ..common_utils import GLOBAL_RANK
 
 
 def init_device(use_cpu=False):
@@ -26,12 +28,17 @@ def init_device(use_cpu=False):
         # https://docs.nvidia.com/cuda/cublas/index.html
         os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
         device = torch.device("cuda")
-        logging.info(f"Available GPUs: {torch.cuda.device_count()}")
+        if GLOBAL_RANK == 0:
+            logging.info(f"Available GPUs: {torch.cuda.device_count()}")
+        # Sets the internal precision of float32 matrix multiplications.
+        # https://pytorch.org/docs/stable/generated/torch.set_float32_matmul_precision.html
+        torch.set_float32_matmul_precision("high")
     else:
         device = torch.device("cpu")
         # https://github.com/pytorch/pytorch/issues/11201
         torch.multiprocessing.set_sharing_strategy("file_system")
-    logging.info(f"Using device: {device}")
+    if GLOBAL_RANK == 0:
+        logging.info(f"Using device: {device}")
     return device
 
 
@@ -56,6 +63,7 @@ def init_model(
     loss_function="binary_cross_entropy_with_logits",
     silent=False,
     save_k_predictions=0,
+    config=None,
 ):
     """Initialize a `Model` class for initializing and training a neural network.
 
@@ -90,36 +98,52 @@ def init_model(
         Model: A class that implements `MultiLabelModel` for initializing and training a neural network.
     """
 
-    try:
-        network = getattr(networks, model_name)(embed_vecs=embed_vecs, num_classes=len(classes), **dict(network_config))
-    except Exception as e:
-        logging.error(e)
-        raise AttributeError(f"Failed to initialize {model_name}.")
+    if config.model_name == "AttentionXML":
+        model = BaseModel(
+            network=config.model_name,
+            network_config=config["network_config"],
+            embed_vecs=embed_vecs,
+            optimizer=config.optimizer,
+            num_labels=len(classes),
+            metrics=config.monitor_metrics,
+            top_k=config.get("top_k", 100),
+            loss_fn=config.loss_fn,
+            optimizer_params=config.get("optimizer_config"),
+            swa_epoch_start=config["swa_epoch_start"],
+        )
+    else:
+        try:
+            network = getattr(networks, model_name)(
+                embed_vecs=embed_vecs, num_classes=len(classes), **dict(network_config)
+            )
+        except Exception as e:
+            logging.error(e)
+            raise AttributeError(f"Failed to initialize {model_name}.")
 
-    if init_weight is not None:
-        init_weight = networks.get_init_weight_func(init_weight=init_weight)
-        network.apply(init_weight)
+        if init_weight is not None:
+            init_weight = networks.get_init_weight_func(init_weight=init_weight)
+            network.apply(init_weight)
 
-    model = Model(
-        classes=classes,
-        word_dict=word_dict,
-        embed_vecs=embed_vecs,
-        network=network,
-        log_path=log_path,
-        learning_rate=learning_rate,
-        optimizer=optimizer,
-        momentum=momentum,
-        weight_decay=weight_decay,
-        lr_scheduler=lr_scheduler,
-        scheduler_config=scheduler_config,
-        val_metric=val_metric,
-        metric_threshold=metric_threshold,
-        monitor_metrics=monitor_metrics,
-        multiclass=multiclass,
-        loss_function=loss_function,
-        silent=silent,
-        save_k_predictions=save_k_predictions,
-    )
+        model = Model(
+            classes=classes,
+            word_dict=word_dict,
+            embed_vecs=embed_vecs,
+            network=network,
+            log_path=log_path,
+            learning_rate=learning_rate,
+            optimizer=optimizer,
+            momentum=momentum,
+            weight_decay=weight_decay,
+            lr_scheduler=lr_scheduler,
+            scheduler_config=scheduler_config,
+            val_metric=val_metric,
+            metric_threshold=metric_threshold,
+            monitor_metrics=monitor_metrics,
+            multiclass=multiclass,
+            loss_function=loss_function,
+            silent=silent,
+            save_k_predictions=save_k_predictions,
+        )
     return model
 
 
@@ -136,7 +160,7 @@ def init_trainer(
     limit_test_batches=1.0,
     search_params=False,
     save_checkpoints=True,
-    swa=False,
+    config=None,
 ):
     """Initialize a torch lightning trainer.
 
@@ -154,6 +178,7 @@ def init_trainer(
         search_params (bool): Enable pytorch-lightning trainer to report the results to ray tune
             on validation end during hyperparameter search. Defaults to False.
         save_checkpoints (bool): Whether to save the last and the best checkpoint or not. Defaults to True.
+        model_name=None
 
     Returns:
         pl.Trainer: A torch lightning trainer.
@@ -187,24 +212,58 @@ def init_trainer(
 
         callbacks += [TuneReportCallback({f"val_{val_metric}": val_metric}, on="validation_end")]
 
-    if swa:
-        from pytorch_lightning.callbacks import StochasticWeightAveraging
-
-        callbacks += [StochasticWeightAveraging(device=None)]
-
-    trainer = pl.Trainer(
-        logger=False,
-        num_sanity_val_steps=0,
-        accelerator="cpu" if use_cpu else "gpu",
-        devices=None if use_cpu else 1,
-        enable_progress_bar=False if silent else True,
-        max_epochs=epochs,
-        callbacks=callbacks,
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=limit_val_batches,
-        limit_test_batches=limit_test_batches,
-        deterministic="warn",
-    )
+    if config.model_name == "AttentionXML":
+        dir_path = Path(config.dir_path) / f"{config.data_name}-{config.model_name}-{0}"
+        callbacks = []
+        monitor = "_".join(["valid", config["val_metric"].lower()])
+        callbacks += [
+            ModelCheckpoint(
+                dirpath=dir_path,
+                filename=f"Model",
+                save_top_k=1,
+                monitor=monitor,
+                verbose=True,
+                mode="max",
+            )
+        ]
+        callbacks += [
+            EarlyStopping(
+                monitor=monitor,
+                patience=config["patience"],
+                mode="max",
+            )
+        ]
+        trainer = pl.Trainer(
+            num_nodes=config.num_nodes,
+            devices=config.devices,
+            max_epochs=config.max_epochs,
+            accelerator=config.accelerator,
+            # TODO: Decide whether to keep these parameters
+            check_val_every_n_epoch=None,
+            val_check_interval=100,
+            log_every_n_steps=100,
+            # strategy= "ddp" if ,
+            deterministic=True,
+            callbacks=callbacks,
+            profiler="simple",
+            default_root_dir=dir_path,
+            # gradient_clip_val=5,
+            # precision=16,
+        )
+    else:
+        trainer = pl.Trainer(
+            logger=False,
+            num_sanity_val_steps=0,
+            accelerator="cpu" if use_cpu else "gpu",
+            devices=None if use_cpu else 1,
+            enable_progress_bar=False if silent else True,
+            max_epochs=epochs,
+            callbacks=callbacks,
+            limit_train_batches=limit_train_batches,
+            limit_val_batches=limit_val_batches,
+            limit_test_batches=limit_test_batches,
+            deterministic="warn",
+        )
     return trainer
 
 
@@ -221,3 +280,11 @@ def set_seed(seed):
             seed_everything(seed=seed, workers=True)
         else:
             logging.warning("the random seed should be a non-negative integer")
+
+
+def is_global_zero(func):
+    def wrapper(*args, **kwargs):
+        if GLOBAL_RANK == 0:
+            return func(*args, **kwargs)
+
+    return wrapper

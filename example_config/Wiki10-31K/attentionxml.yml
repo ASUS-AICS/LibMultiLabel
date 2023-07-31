@@ -1,0 +1,54 @@
+# data
+training_file: /l/users/dongli.he/libml/data/Wiki10-31K/train.txt
+test_file: /l/users/dongli.he/libml/data/Wiki10-31K/test.txt
+# save path
+dir_path: /l/users/dongli.he/libml/results
+# pretrained embeddings
+embed_file: /l/users/dongli.he/libml/data/glove/glove.840B.300d.gensim
+# embed cache file
+#embed_cache_dir: /l/users/dongli.he/libml/data/glove
+
+data_name: Wiki10-31K
+
+# preprocessing
+random_state: 1240
+lowercase: true
+tokenizer: punkt
+max_tokens: 500000
+min_vocab_freq: 1
+max_seq_length: 500
+include_test_labels: false
+unk_init: uniform
+unk_init_param: {from: -1, to: 1}
+apply_all: True
+
+# trainer params
+accelerator: gpu
+devices: 1
+num_nodes: 1
+
+# train
+seed: 1337
+max_epochs: 30
+batch_size: 40
+optimizer: Adam
+val_size: 200
+patience: 50
+shuffle: true
+swa_epoch_start: 4
+
+# model
+model_name: AttentionXML
+loss_fn: binary_cross_entropy_with_logits
+network_config:
+  embed_dropout: 0.2
+  encoder_dropout: 0.5
+  rnn_dim: 512
+  rnn_layers: 1
+  linear_size: [256]
+  freeze_embed_training: True
+
+# eval
+eval_batch_size: 40
+monitor_metrics: ['P@1', 'P@3', 'P@5', 'RP@1', 'RP@3', 'RP@5', 'nDCG@1', 'nDCG@3', 'nDCG@5']
+val_metric: nDCG@5

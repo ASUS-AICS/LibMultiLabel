@@ -1,0 +1,62 @@
+# data
+training_file: /l/users/dongli.he/libml/data/EUR-Lex/train.txt
+training_sparse_file: /l/users/dongli.he/libml/data/EUR-Lex/eurlex_tfidf_train.svm
+test_file: /l/users/dongli.he/libml/data/EUR-Lex/test.txt
+# pretrained vocab / embeddings
+embed_file: /l/users/dongli.he/libml/data/glove/glove.840B.300d.txt
+# save path
+dir_path: /l/users/dongli.he/libml/results
+
+data_name: EUR-Lex
+
+# preprocessing
+random_state: 1240
+lowercase: true
+tokenizer: split
+max_tokens: 500000
+min_vocab_freq: 1
+max_seq_length: 500
+include_test_labels: false
+unk_init: uniform
+unk_init_param: {from: -1, to: 1}
+apply_all: True
+
+# trainer params
+accelerator: gpu
+devices: 1
+num_nodes: 1
+
+# data
+batch_size: 40
+val_size: 200
+shuffle: true
+
+# train
+seed: 1337
+epochs: 30
+# https://github.com/Lightning-AI/lightning/issues/8826
+num_workers: 16
+optimizer: Adam
+patience: 50
+swa_epoch_start: [10, 10, 10]
+
+# model
+model_name: FastAttentionXML
+loss_fn: binary_cross_entropy_with_logits
+network_config:
+  embed_dropout: 0.2
+  encoder_dropout: 0.5
+  rnn_dim: 512
+  rnn_layers: 1
+  linear_size: [256]
+  freeze_embed_training: False
+
+# label tree related parameters
+num_levels: 3
+cluster_size: 8
+top_k: 8
+
+# eval
+eval_batch_size: 40
+monitor_metrics: ['P@1', 'p@3', 'P@5', "RP@1", "RP@3", "RP@5", "nDCG@1", "nDcg@3", "ndCG@5", "ndcgnew@1", "ndcgnew@5"]  # "TP@1", "TP@3", "TP@5",
+val_metric: ndcg@5

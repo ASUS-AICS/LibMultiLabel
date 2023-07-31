@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from abc import abstractmethod
 from collections import deque
@@ -7,11 +9,14 @@ import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
+from torch import nn, Tensor
+from torch.nn import Module
+from torch.optim import Optimizer
 
 from ..common_utils import dump_log, argsort_top_k
-from ..nn.metrics import get_metrics, tabulate_metrics
-from .optimizer import DenseSparseAdam
+from ..nn.metrics import get_metrics, tabulate_metrics, list2metrics
 from .networks.labelwise_attention_networks import AttentionRNN
+from libmultilabel.nn import networks
 
 
 class MultiLabelModel(pl.LightningModule):
@@ -91,8 +96,6 @@ class MultiLabelModel(pl.LightningModule):
             optimizer = optim.AdamW(parameters, weight_decay=self.weight_decay, lr=self.learning_rate)
         elif optimizer_name == "adamax":
             optimizer = optim.Adamax(parameters, weight_decay=self.weight_decay, lr=self.learning_rate)
-        elif optimizer_name == "dense_sparse_adam":
-            optimizer = DenseSparseAdam(parameters, weight_decay=self.weight_decay, lr=self.learning_rate)
         else:
             raise RuntimeError(f"Unsupported optimizer: {self.optimizer}")
 
@@ -212,9 +215,9 @@ class Model(MultiLabelModel):
         classes,
         word_dict,
         embed_vecs,
-        network,
-        loss_function="binary_cross_entropy_with_logits",
-        log_path=None,
+        network: Module,
+        loss_function: str = "binary_cross_entropy_with_logits",
+        log_path: str | None = None,
         **kwargs,
     ):
         super().__init__(num_classes=len(classes), log_path=log_path, **kwargs)
@@ -226,9 +229,6 @@ class Model(MultiLabelModel):
         self.classes = classes
         self.network = network
         self.configure_loss_function(loss_function)
-        # attxml
-        self._clip_grad = 5.0
-        self._grad_norm_queue = deque([np.inf], maxlen=5)
 
     def configure_loss_function(self, loss_function):
         assert hasattr(
@@ -254,13 +254,307 @@ class Model(MultiLabelModel):
         loss = self.loss_function(pred_logits, target_labels.float())
         return loss, pred_logits
 
+
+class BaseModel(pl.LightningModule):
+    def __init__(
+        self,
+        network: str,
+        network_config: dict,
+        embed_vecs,
+        optimizer: str,
+        num_labels: int,
+        metrics: list[str],
+        top_k: int,
+        loss_fn: str = "binary_cross_entropy_with_logits",
+        optimizer_params: dict | None = None,
+        swa_epoch_start: int | None = None,
+        train_mlb=None,
+        test_mlb=None,
+    ):
+        super().__init__()
+        self.save_hyperparameters()
+
+        try:
+            self.network = getattr(networks, network)(embed_vecs=embed_vecs, num_classes=num_labels, **network_config)
+        except AttributeError as e:
+            logging.warning(e)
+            raise AttributeError(f"Invalid network name: {network}")
+        self.loss_fn = self.configure_loss_fn(loss_fn)
+
+        # optimizer config
+        self.optimizer = optimizer
+        self.optimizer_params = optimizer_params if optimizer_params is not None else {}
+
+        self.top_k = top_k if top_k is not None else 100
+
+        self.swa_epoch_start = swa_epoch_start
+
+        self.num_labels = num_labels
+        self.state = {}
+
+        # mlbs are needed for testing purposes
+        self.train_mlb = train_mlb
+        self.test_mlb = test_mlb
+
+        self.metric_list = metrics
+        self.metrics = list2metrics(metrics, self.num_labels)
+        self.valid_metrics = None
+        self.test_metrics = None
+
+        self._clip_grad = 5.0
+        self._grad_norm_queue = deque([torch.tensor(float("inf"))], maxlen=5)
+
+        self.state = {}
+
+    @staticmethod
+    def configure_loss_fn(loss_fn: str) -> Module:
+        try:
+            loss_fn = getattr(F, loss_fn)
+        except AttributeError:
+            raise AttributeError(f"Invalid loss function name: {loss_fn}")
+        return loss_fn
+
+    def configure_optimizers(self) -> Optimizer:
+        try:
+            if self.optimizer == "DenseSparseAdam":
+                from .optimizer import DenseSparseAdam
+
+                optimizer = DenseSparseAdam(self.parameters(), **self.optimizer_params)
+            else:
+                optimizer = getattr(torch.optim, self.optimizer)(self.parameters(), **self.optimizer_params)
+        except AttributeError:
+            raise AttributeError(f"Invalid optimizer name: {self.optimizer}")
+        except TypeError:
+            raise TypeError(f"Invalid optimizer params in {self.optimizer_params}")
+        return optimizer
+
+    def on_train_epoch_start(self):
+        if self.current_epoch == self.swa_epoch_start:
+            self.swa_init()
+
+    def training_step(self, batch: Tensor, batch_idx: int):
+        """log metrics on step"""
+        x, y = batch
+        logits = self.network(x)
+        loss = self.loss_fn(logits, y)
+        # self.log("loss", loss, prog_bar=True, sync_dist=True)
+        return loss
+
+    def swa_init(self):
+        if "swa" not in self.state:
+            swa_state = self.state["swa"] = {"models_num": 1}
+            for n, p in self.network.named_parameters():
+                if self.trainer.is_global_zero:
+                    logging.info("SWA Initializing")
+                swa_state[n] = p.data.clone().detach()
+
+    def swa_step(self):
+        if "swa" in self.state:
+            swa_state = self.state["swa"]
+            swa_state["models_num"] += 1
+            beta = 1.0 / swa_state["models_num"]
+            with torch.no_grad():
+                for n, p in self.network.named_parameters():
+                    swa_state[n].mul_(1.0 - beta).add_(p.data, alpha=beta)
+
+    def swap_swa_params(self):
+        if "swa" in self.state:
+            swa_state = self.state["swa"]
+            for n, p in self.network.named_parameters():
+                p.data, swa_state[n] = swa_state[n], p.data
+
+    def on_validation_start(self):
+        self.valid_metrics = self.metrics.clone(prefix="valid_")
+        self.swa_step()
+        self.swap_swa_params()
+
+    def validation_step(self, batch: Tensor, batch_idx: int):
+        """log metrics on epoch"""
+        x, y = batch
+        logits = self.network(x)
+        # why detach? see: https://github.com/Lightning-AI/lightning/issues/9441
+        self.valid_metrics.update(torch.sigmoid(logits).detach(), y.long())
+
+    def on_validation_epoch_end(self):
+        self.log_dict(self.valid_metrics.compute(), prog_bar=True, sync_dist=True)
+        self.valid_metrics.reset()
+
+    def on_validation_end(self):
+        self.swap_swa_params()
+
+    def on_test_start(self):
+        self.test_metrics = self.metrics.clone(prefix="test_")
+        # self.test_metrics = list2metrics(self.metric_list, len(self.test_mlb.classes_)).cuda()
+
+    def test_step(self, batch: Tensor, batch_idx: int):
+        """log metrics on epoch"""
+        x, y = batch
+        logits = self.network(x)
+        # preds = self.multilabel_binarize(logits.detach())
+        # self.test_metrics.update(preds, y.long())
+        self.test_metrics.update(torch.sigmoid(logits), y.long())
+
+    def on_test_epoch_end(self):
+        self.log_dict(self.test_metrics.compute())
+        self.test_metrics.reset()
+
+    def predict_step(self, batch: Tensor, batch_idx: int, dataloader_idx: int = 0):
+        # unequal distributed inference is not supported by lightning (v2.0) yet.
+        # make sure prediction is on a single GPU
+        x = batch
+        logits = self.network(x)
+        scores, labels = torch.topk(torch.sigmoid(logits), self.top_k)
+        return scores.cpu(), labels.cpu()
+
     def on_after_backward(self):
-        if isinstance(self.network, AttentionRNN):
-            if self._clip_grad is not None:
-                max_norm = max(self._grad_norm_queue)
-                total_norm = torch.nn.utils.clip_grad_norm_(self.network.parameters(), max_norm * self._clip_grad)
-                self._grad_norm_queue.append(min(total_norm, max_norm * 2.0, torch.tensor(1.0)))
-                if total_norm > max_norm * self._clip_grad:
-                    logging.warning(
-                        f"Clipping gradients with total norm {round(total_norm, 5)} and max norm {round(max_norm, 5)}"
-                    )
+        if self._clip_grad is not None:
+            max_norm = max(self._grad_norm_queue)
+            total_norm = torch.nn.utils.clip_grad_norm_(self.network.parameters(), max_norm * self._clip_grad)
+            self._grad_norm_queue += [min(total_norm, max_norm * 2.0, torch.tensor(1.0))]
+            if total_norm > max_norm * self._clip_grad:
+                if self.trainer.is_global_zero:
+                    logging.warning(f"Clipping gradients with total norm {total_norm} and max norm {max_norm}")
+
+    def multilabel_binarize(self, logits: Tensor) -> Tensor:
+        """self-implemented MultiLabelBinarizer for AttentionXML using Tensor"""
+        # find the top k labels
+        scores, labels = torch.topk(logits, self.top_k)
+        # transform them back to string form with training Multi-label Binarizer
+        labels = self.train_mlb.classes_[labels.cpu()]
+        # calculate the masks where labels do not appear in testing dataset
+        mask = torch.tensor(
+            [[la not in self.test_mlb.classes_ for la in label] for label in labels], device=logits.device
+        )
+        # fill scores with 0 where mask is True
+        scores.masked_fill_(mask, 0)
+        # get the indices of logits in new
+        index = torch.tensor(
+            [
+                np.stack(
+                    [
+                        np.asarray(self.test_mlb.classes_ == l).nonzero()[0][0]
+                        if np.asarray(self.test_mlb.classes_ == l).any()
+                        else self.test_mlb.classes_.shape[0]
+                        for l in label
+                    ]
+                )
+                for label in labels
+            ],
+            device=logits.device,
+        )
+
+        # make sure preds and src use the same precision, e.g., either float16 or float32
+        preds = torch.zeros(
+            logits.shape[0], self.test_mlb.classes_.shape[0] + 1, device=logits.device, dtype=logits.dtype
+        )
+        preds.scatter_(dim=1, index=index, src=torch.sigmoid(scores))
+        # remove dummy unknown labels
+        preds = preds[:, :-1]
+        return preds
+
+
+class PLTModel(BaseModel):
+    def __init__(
+        self,
+        network: str,
+        network_config: dict,
+        embed_vecs,
+        optimizer: str,
+        num_nodes: int,
+        metrics: list[str],
+        top_k: int,
+        eval_metric: str,
+        loss_fn: str = "binary_cross_entropy_with_logits",
+        optimizer_params: dict | None = None,
+        swa_epoch_start: int | None = None,
+        train_mlb=None,
+        test_mlb=None,
+    ):
+        super().__init__(
+            network=network,
+            network_config=network_config,
+            embed_vecs=embed_vecs,
+            optimizer=optimizer,
+            num_labels=num_nodes,
+            metrics=metrics,
+            top_k=top_k,
+            loss_fn=loss_fn,
+            optimizer_params=optimizer_params,
+            swa_epoch_start=swa_epoch_start,
+            train_mlb=train_mlb,
+            test_mlb=test_mlb,
+        )
+        self.state["best"] = {}
+        self.eval_metric = "_".join(["valid", eval_metric.lower()])
+        self.best_monitor = -1
+
+    def multilabel_binarize(
+        self,
+        candidates: Tensor,
+        logits: Tensor,
+        candidate_scores: Tensor,
+    ) -> Tensor:
+        """self-implemented MultiLabelBinarizer for AttentionXML using Tensor"""
+        src = torch.sigmoid(logits) * candidate_scores
+        # make sure preds and src use the same precision, e.g., either float16 or float32
+        preds = torch.zeros(candidates.size(0), self.num_labels + 1, device=candidates.device, dtype=src.dtype)
+        preds.scatter_(dim=1, index=candidates, src=src)
+        # remove dummy samples
+        preds = preds[:, :-1]
+        return preds
+
+    def training_step(self, batch, batch_idx):
+        x, y, candidates = batch
+        logits = self.network(x, candidates=candidates)
+        loss = self.loss_fn(logits, torch.take_along_dim(y, candidates, dim=1))
+        # self.log("loss", loss, prog_bar=True, sync_dist=True)
+        return loss
+
+    def on_train_end(self):
+        model_dict = self.network.state_dict()
+        for key in model_dict:
+            model_dict[key][:] = self.state["best"][key]
+
+    def validation_step(self, batch, batch_idx):
+        x, y, candidates, candidate_scores = batch
+        logits = self.network(x, candidates=candidates)
+        # FIXME: Cannot calculate loss, candidates might contain element whose value is self.num_labels (see dataset)
+        # loss = self.loss_fn(logits, torch.from_numpy(np.concatenate([y[:, candidates], offset])))
+        y_pred = self.multilabel_binarize(candidates, logits.detach(), candidate_scores)
+        self.valid_metrics.update(y_pred, y.long())
+
+    def on_validation_epoch_end(self):
+        metric = self.valid_metrics.compute()
+        self.valid_metrics.reset()
+        self.log_dict(metric, prog_bar=True, sync_dist=True)
+        # TODO: Remove hard code
+        if metric[self.eval_metric].item() > self.best_monitor:
+            self.best_monitor = metric[self.eval_metric].item()
+            model_dict = self.network.state_dict()
+            for key in model_dict:
+                self.state["best"][key] = model_dict[key].cpu().detach()
+
+    def test_step(self, batch, batch_idx):
+        x, y, candidates, candidate_scores = batch
+        logits = self.network(x, candidates=candidates)
+        y_pred = self.multilabel_binarize(candidates, logits.detach(), candidate_scores)
+        self.test_metrics.update(y_pred, y.long())
+
+    def predict_step(self, batch, batch_idx, dataloader_idx=0):
+        # unequal distributed inference is not supported by lightning (v2.0) yet.
+        # make sure prediction is on a single GPU
+        x, candidates, candidate_scores = batch
+        logits = self.network(x, candidates=candidates)
+        scores, labels = torch.topk(torch.sigmoid(logits) * candidate_scores, self.top_k)
+        return scores.cpu(), torch.take_along_dim(candidates, labels, dim=1).cpu()
+
+    def load_from_pretrained(self, state_dict: dict):
+        self.network.embedding.load_state_dict(
+            {n.split(".", 2)[-1]: p for n, p in state_dict.items() if n.startswith("network.embedding")}
+        )
+        self.network.encoder.load_state_dict(
+            {n.split(".", 2)[-1]: p for n, p in state_dict.items() if n.startswith("network.encoder")}
+        )
+        self.network.output.load_state_dict(
+            {n.split(".", 2)[-1]: p for n, p in state_dict.items() if n.startswith("network.output")}
+        )
