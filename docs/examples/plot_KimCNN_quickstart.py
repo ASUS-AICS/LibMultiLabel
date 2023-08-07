@@ -45,7 +45,12 @@ word_dict, embed_vecs = load_or_build_text_dict(dataset=datasets["train"], embed
 # We consider the following settings for the KimCNN model.
 
 model_name = "KimCNN"
-network_config = {"embed_dropout": 0.2, "post_encoder_dropout": 0.2, "filter_sizes": [2, 4, 8], "num_filter_per_size": 128}
+network_config = {
+    "embed_dropout": 0.2,
+    "post_encoder_dropout": 0.2,
+    "filter_sizes": [2, 4, 8],
+    "num_filter_per_size": 128,
+}
 learning_rate = 0.0003
 model = init_model(
     model_name=model_name,

@@ -199,7 +199,9 @@ class BiLSTMLWMHAN(LabelwiseAttentionNetwork):
         return LSTMEncoder(input_size, self.rnn_dim // 2, self.rnn_layers, encoder_dropout, post_encoder_dropout)
 
     def _get_attention(self):
-        return LabelwiseMultiHeadAttention(self.rnn_dim, self.num_classes, self.num_heads, self.labelwise_attention_dropout)
+        return LabelwiseMultiHeadAttention(
+            self.rnn_dim, self.num_classes, self.num_heads, self.labelwise_attention_dropout
+        )
 
     def forward(self, input):
         # (batch_size, sequence_length, embed_dim)
@@ -246,7 +248,12 @@ class CNNLWAN(LabelwiseAttentionNetwork):
     def _get_encoder(self, input_size, encoder_dropout, post_encoder_dropout):
         # encoder dropout is unused for CNN, we accept it to satisfy LabelwiseAttentionNetwork API
         return CNNEncoder(
-            input_size, self.filter_sizes, self.num_filter_per_size, self.activation, post_encoder_dropout, channel_last=True
+            input_size,
+            self.filter_sizes,
+            self.num_filter_per_size,
+            self.activation,
+            post_encoder_dropout,
+            channel_last=True,
         )
 
     def _get_attention(self):

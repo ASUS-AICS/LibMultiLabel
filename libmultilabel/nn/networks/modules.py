@@ -105,7 +105,14 @@ class CNNEncoder(nn.Module):
     """
 
     def __init__(
-        self, input_size, filter_sizes, num_filter_per_size, activation, post_encoder_dropout=0, num_pool=0, channel_last=False
+        self,
+        input_size,
+        filter_sizes,
+        num_filter_per_size,
+        activation,
+        post_encoder_dropout=0,
+        num_pool=0,
+        channel_last=False,
     ):
         super(CNNEncoder, self).__init__()
         if not filter_sizes:
