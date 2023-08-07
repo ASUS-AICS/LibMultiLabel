@@ -33,7 +33,7 @@ class XMLCNN(nn.Module):
         activation="relu",
     ):
         super(XMLCNN, self).__init__()
-        self.embedding = Embedding(embed_vecs, embed_dropout)
+        self.embedding = Embedding(embed_vecs, dropout=embed_dropout)
         self.encoder = CNNEncoder(embed_vecs.shape[1], filter_sizes, num_filter_per_size, activation, num_pool=num_pool)
         total_output_size = len(filter_sizes) * num_filter_per_size * num_pool
         self.linear1 = nn.Linear(total_output_size, hidden_dim)

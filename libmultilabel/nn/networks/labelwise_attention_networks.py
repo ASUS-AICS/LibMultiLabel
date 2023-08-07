@@ -27,7 +27,7 @@ class LabelwiseAttentionNetwork(ABC, nn.Module):
 
     def __init__(self, embed_vecs, num_classes, embed_dropout, encoder_dropout, post_encoder_dropout, hidden_dim):
         super(LabelwiseAttentionNetwork, self).__init__()
-        self.embedding = Embedding(embed_vecs, embed_dropout)
+        self.embedding = Embedding(embed_vecs, dropout=embed_dropout)
         self.encoder = self._get_encoder(embed_vecs.shape[1], encoder_dropout, post_encoder_dropout)
         self.attention = self._get_attention()
         self.output = LabelwiseLinearOutput(hidden_dim, num_classes)
