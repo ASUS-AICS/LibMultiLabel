@@ -11,12 +11,14 @@ class Embedding(nn.Module):
 
     Args:
         embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
+        freeze (bool): If True, the tensor does not get updated in the learning process.
+            Equivalent to embedding.weight.requires_grad = False. Default: False.
         dropout (float): The dropout rate of the word embedding. Defaults to 0.2.
     """
 
-    def __init__(self, embed_vecs, dropout=0.2):
+    def __init__(self, embed_vecs, freeze=False, dropout=0.2):
         super(Embedding, self).__init__()
-        self.embedding = nn.Embedding.from_pretrained(embed_vecs, freeze=False, padding_idx=0)
+        self.embedding = nn.Embedding.from_pretrained(embed_vecs, freeze=freeze, padding_idx=0)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, input):
@@ -105,7 +107,14 @@ class CNNEncoder(nn.Module):
     """
 
     def __init__(
-        self, input_size, filter_sizes, num_filter_per_size, activation, post_encoder_dropout=0, num_pool=0, channel_last=False
+        self,
+        input_size,
+        filter_sizes,
+        num_filter_per_size,
+        activation,
+        post_encoder_dropout=0,
+        num_pool=0,
+        channel_last=False,
     ):
         super(CNNEncoder, self).__init__()
         if not filter_sizes:
