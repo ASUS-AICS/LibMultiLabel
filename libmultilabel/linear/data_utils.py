@@ -57,8 +57,8 @@ def _read_libsvm_format(file_path: str) -> dict[str, list[list[int]] | sparse.cs
         m = pattern.fullmatch(line)
         try:
             labels = m[1]
-            int_labels = [int(s) for s in labels.split(",")]
-            prob_y.append(int_labels if labels else [])
+            int_labels = [int(s) for s in labels.split(",")] if labels else []
+            prob_y.append(int_labels)
             features = m[2] or ""
             nz = 0
             for e in features.split():
