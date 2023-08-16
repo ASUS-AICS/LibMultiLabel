@@ -212,7 +212,7 @@ def _train_node(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str, node: 
         meta_y = sparse.csr_matrix(np.hstack(meta_y))
         node.model = linear.train_1vsrest(meta_y, x, options, False)
 
-    node.model.weights = sparse.csr_matrix(node.model.weights)
+    node.model.weights = sparse.csc_matrix(node.model.weights)
 
 
 def _flatten_model(root: Node) -> tuple[linear.FlatModel, np.ndarray]:
