@@ -148,7 +148,8 @@ class Recall:
         assert preds.shape == target.shape  # (batch_size, num_classes)
         top_k_idx = np.argpartition(preds, -self.top_k)[:, -self.top_k :]
         num_relevant = np.take_along_axis(target, top_k_idx, -1).sum(axis=-1)
-        self.score += np.sum(np.nan_to_num(num_relevant / target.sum(axis=-1), nan=1.0))
+        # zero label instances treated as 0, to be consistent with torchmetrics
+        self.score += np.sum(np.nan_to_num(num_relevant / target.sum(axis=-1)))
         self.num_sample += preds.shape[0]
 
     def compute(self) -> float:
