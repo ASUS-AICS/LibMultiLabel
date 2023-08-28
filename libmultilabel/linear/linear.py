@@ -151,6 +151,11 @@ def train_thresholding(
     and cross-validation to pick decision thresholds optimizing the sum of Macro-F1 and Micro-F1.
     Outperforms train_1vsrest in most aspects at the cost of higher time complexity 
     due to an internal cross-validation.
+    
+    This method is the micromacro-freq approach from this CIKM 2023 paper:
+    `"On the Thresholding Strategy for Infrequent Labels in Multi-label Classification" 
+    <https://www.csie.ntu.edu.tw/~cjlin/papers/thresholding/smooth_acm.pdf>`_ 
+    (see Section 4.3 and Supplementary D).
 
     Args:
         y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
