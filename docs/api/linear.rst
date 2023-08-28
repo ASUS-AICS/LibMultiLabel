@@ -58,6 +58,7 @@ Metrics are specified by their names in ``compute_metrics`` and ``get_metrics``.
 The possible metric names are:
 
 * ``'P@K'``, where ``K`` is a positive integer
+* ``'R@K'``, where ``K`` is a positive integer
 * ``'RP@K'``, where ``K`` is a positive integer
 * ``'NDCG@K'``, where ``K`` is a positive integer
 * ``'Macro-F1'``
