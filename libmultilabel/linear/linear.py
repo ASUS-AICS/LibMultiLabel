@@ -149,12 +149,12 @@ def train_thresholding(
 ) -> FlatModel:
     """Trains a linear model for multi-label data using a one-vs-rest strategy
     and cross-validation to pick decision thresholds optimizing the sum of Macro-F1 and Micro-F1.
-    Outperforms train_1vsrest in most aspects at the cost of higher time complexity 
+    Outperforms train_1vsrest in most aspects at the cost of higher time complexity
     due to an internal cross-validation.
-    
+
     This method is the micromacro-freq approach from this CIKM 2023 paper:
-    `"On the Thresholding Strategy for Infrequent Labels in Multi-label Classification" 
-    <https://www.csie.ntu.edu.tw/~cjlin/papers/thresholding/smooth_acm.pdf>`_ 
+    `"On the Thresholding Strategy for Infrequent Labels in Multi-label Classification"
+    <https://www.csie.ntu.edu.tw/~cjlin/papers/thresholding/smooth_acm.pdf>`_
     (see Section 4.3 and Supplementary D).
 
     Args:
@@ -178,31 +178,32 @@ def train_thresholding(
         logging.info("Training thresholding model on %s labels", num_class)
 
     num_positives = np.sum(y, 2)
-    order = np.flip(np.argsort(num_positives))
+    label_order = np.flip(np.argsort(num_positives)).flat
 
-    # accumulated count for micro
+    # accumulated counts for micro
     stats = {"tp": 0, "fp": 0, "fn": 0, "labels": 0}
-    for i in tqdm(order.flat, disable=not verbose):
+
+    for i in tqdm(label_order, disable=not verbose):
         yi = y[:, i].toarray().reshape(-1)
         w, t, stats = _micromacro_one_label(2 * yi - 1, x, options, stats)
         weights[:, i] = w.ravel()
         thresholds[i] = t
 
-    return FlatModel(name="thresholding", weights=np.asmatrix(weights), bias=bias, 
-                     thresholds=thresholds)
+    return FlatModel(name="thresholding", weights=np.asmatrix(weights), bias=bias, thresholds=thresholds)
 
 
-def _micromacro_one_label(y: np.ndarray, x: sparse.csr_matrix, options: str, stats: dict
-    ) -> tuple[np.ndarray, float, dict]:
+def _micromacro_one_label(
+    y: np.ndarray, x: sparse.csr_matrix, options: str, stats: dict
+) -> tuple[np.ndarray, float, dict]:
     """Perform cross-validation to select the threshold for a label.
 
     Args:
         y (np.ndarray): A +1/-1 array with dimensions number of instances * 1.
         x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
         options (str): The option string passed to liblinear.
-        stats (dict): A dictionary containing information needed to calculated Micro-F1.
-            It includes the accumulated number of true positives, false positives, false 
-            negatives, and the number of labels processed. 
+        stats (dict): A dictionary containing information needed to calculate Micro-F1.
+            It includes the accumulated number of true positives, false positives, false
+            negatives, and the number of labels processed.
 
     Returns:
         tuple[np.ndarray, float, dict]: the weights, threshold, and the updated stats for calculating
@@ -210,17 +211,19 @@ def _micromacro_one_label(y: np.ndarray, x: sparse.csr_matrix, options: str, sta
     """
 
     nr_fold = 3
-    T_sum = 0
+    thresholds = np.zeros(nr_fold)
 
-    new_tp = stats['tp']
-    new_fp = stats['fp']
-    new_fn = stats['fn']
-    stats['labels'] += 1
+    tp_sum = 0
+    fp_sum = 0
+    fn_sum = 0
+    stats["labels"] += 1
 
-    def metric(tp, fp, fn):
-        F = np.nan_to_num((2 * tp) / (2 * tp + fp + fn))
-        micro = np.nan_to_num((2*(tp + stats["tp"])) / (2 * (tp + stats["tp"]) + fp + fn + stats["fp"] + stats["fn"]))
-        return micro + F / stats['labels']
+    def micro_plus_macro(tp, fp, fn):
+        # Because the F-measure of other labels are constants and thus does not affect optimization,
+        # we ignore them when calculating macro-F.
+        macro = np.nan_to_num((2 * tp) / (2 * tp + fp + fn)) / stats["labels"]
+        micro = np.nan_to_num((2 * (tp + stats["tp"])) / (2 * (tp + stats["tp"]) + fp + fn + stats["fp"] + stats["fn"]))
+        return micro + macro
 
     l = y.shape[0]
 
@@ -235,7 +238,7 @@ def _micromacro_one_label(y: np.ndarray, x: sparse.csr_matrix, options: str, sta
         w = _do_train(y[train_idx], x[train_idx], options)
         wTx = (x[val_idx] * w).A1
 
-        sorted_wTx_index = np.argsort(wTx)
+        sorted_wTx_index = np.argsort(wTx, kind="stable")
         sorted_wTx = wTx[sorted_wTx_index]
 
         # ignore warning for 0/0 when calculating F-measures
@@ -244,7 +247,7 @@ def _micromacro_one_label(y: np.ndarray, x: sparse.csr_matrix, options: str, sta
         tp = np.sum(y[val_idx] == 1)
         fp = val_idx.size - tp
         fn = 0
-        best_obj = metric(tp, fp, fn)
+        best_obj = micro_plus_macro(tp, fp, fn)
         best_tp, best_fp, best_fn = tp, fp, fn
         cut = -1
 
@@ -257,7 +260,7 @@ def _micromacro_one_label(y: np.ndarray, x: sparse.csr_matrix, options: str, sta
                 tp -= 1
                 fn += 1
 
-            obj = metric(tp,fp,fn)
+            obj = micro_plus_macro(tp, fp, fn)
 
             if obj >= best_obj:
                 best_obj = obj
@@ -266,20 +269,24 @@ def _micromacro_one_label(y: np.ndarray, x: sparse.csr_matrix, options: str, sta
         np.seterr(**prev_settings)
 
         if cut == -1:  # i.e. all 1 in scut
-            T_sum += np.nextafter(sorted_wTx[0], -np.inf)  # predict all 1
+            thresholds[fold] = np.nextafter(sorted_wTx[0], -np.inf)  # predict all 1
         elif cut == val_idx.size - 1:
-            T_sum += np.nextafter(sorted_wTx[-1], np.inf)
+            thresholds[fold] = np.nextafter(sorted_wTx[-1], np.inf)
         else:
-            T_sum += (sorted_wTx[cut] + sorted_wTx[cut + 1]) / 2
+            thresholds[fold] = (sorted_wTx[cut] + sorted_wTx[cut + 1]) / 2
 
-        new_tp = new_tp + best_tp
-        new_fp = new_fp + best_fp
-        new_fn = new_fn + best_fn
+        tp_sum += best_tp
+        fp_sum += best_fp
+        fn_sum += best_fn
 
-    T = -T_sum / nr_fold
-    stats["tp"], stats["fp"], stats["fn"] = new_tp, new_fp, new_fn
+    # In FlatModel.predict_values, the threshold is added to the decision value.
+    # Therefore, we need to make it negative here.
+    threshold = -thresholds.mean()
+    stats["tp"] += tp_sum
+    stats["fp"] += fp_sum
+    stats["fn"] += fn_sum
 
-    return _do_train(y, x, options), T, stats
+    return _do_train(y, x, options), threshold, stats
 
 
 def _do_train(y: np.ndarray, x: sparse.csr_matrix, options: str) -> np.matrix:
