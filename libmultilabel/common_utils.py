@@ -18,19 +18,19 @@ class AttributeDict(dict):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.__used = set()
+        object.__setattr__(self, "_used", set())
 
     def __getattr__(self, key: str) -> any:
         try:
             value = self[key]
-            self.__used.add(key)
+            self._used.add(key)
             return value
         except KeyError:
             raise AttributeError(f'Missing attribute "{key}"')
 
     def __setattr__(self, key: str, value: any) -> None:
         self[key] = value
-        self.__used.discard(key)
+        self._used.discard(key)
 
     def used_items(self) -> dict:
         """Returns the items that have been used at least once after being set.
@@ -38,7 +38,7 @@ class AttributeDict(dict):
         Returns:
             dict: the used items.
         """
-        return {k: self[k] for k in self.__used}
+        return {k: self[k] for k in self._used}
 
 
 class Timer(object):
@@ -88,7 +88,7 @@ def dump_log(log_path, metrics=None, split=None, config=None):
         result = dict()
 
     if config:
-        config_to_save = copy.deepcopy(config.used_values())
+        config_to_save = copy.deepcopy(config.used_items())
         config_to_save.pop("device", None)  # delete if device exists
         result["config"] = config_to_save
     if split and metrics:
