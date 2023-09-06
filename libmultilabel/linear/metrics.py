@@ -81,7 +81,7 @@ class RPrecision:
     def update(self, preds: np.ndarray, target: np.ndarray):
         assert preds.shape == target.shape  # (batch_size, num_classes)
         top_k_idx = np.argpartition(preds, -self.top_k)[:, -self.top_k :]
-        num_relevant = np.take_along_axis(target, top_k_idx, axis=-1).sum(axis=-1)  # (batch_size, top_k)
+        num_relevant = np.take_along_axis(target, top_k_idx, axis=-1).sum(axis=-1)  # (batch_size, )
         self.score += np.nan_to_num(num_relevant / np.minimum(self.top_k, target.sum(axis=-1)), nan=0.0).sum()
         self.num_sample += preds.shape[0]
 
@@ -116,6 +116,40 @@ class Precision:
         top_k_idx = np.argpartition(preds, -self.top_k)[:, -self.top_k :]
         num_relevant = np.take_along_axis(target, top_k_idx, -1).sum()
         self.score += num_relevant / self.top_k
+        self.num_sample += preds.shape[0]
+
+    def compute(self) -> float:
+        return self.score / self.num_sample
+
+    def reset(self):
+        self.score = 0
+        self.num_sample = 0
+
+
+class Recall:
+    def __init__(self, num_classes: int, average: str, top_k: int):
+        """Compute the Recall@K.
+
+        Args:
+            num_classes: The number of classes.
+            average: Define the reduction that is applied over labels. Currently only "samples" is supported.
+            top_k: Consider only the top k elements for each query.
+        """
+        if average != "samples":
+            raise ValueError("unsupported average")
+
+        _check_top_k(top_k)
+
+        self.top_k = top_k
+        self.score = 0
+        self.num_sample = 0
+
+    def update(self, preds: np.ndarray, target: np.ndarray):
+        assert preds.shape == target.shape  # (batch_size, num_classes)
+        top_k_idx = np.argpartition(preds, -self.top_k)[:, -self.top_k :]
+        num_relevant = np.take_along_axis(target, top_k_idx, -1).sum(axis=-1)  # (batch_size, )
+        # zero label instances treated as 0, to be consistent with torchmetrics
+        self.score += np.nan_to_num(num_relevant / target.sum(axis=-1), nan=0.0).sum()
         self.num_sample += preds.shape[0]
 
     def compute(self) -> float:
@@ -230,6 +264,8 @@ def get_metrics(monitor_metrics: list[str], num_classes: int, multiclass: bool =
     for metric in monitor_metrics:
         if re.match("P@\d+", metric):
             metrics[metric] = Precision(num_classes, average="samples", top_k=int(metric[2:]))
+        elif re.match("R@\d+", metric):
+            metrics[metric] = Recall(num_classes, average="samples", top_k=int(metric[2:]))
         elif re.match("RP@\d+", metric):
             metrics[metric] = RPrecision(top_k=int(metric[3:]))
         elif re.match("NDCG@\d+", metric):
