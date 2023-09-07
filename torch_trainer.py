@@ -225,6 +225,8 @@ class TorchTrainer:
                 If you want to save the best and the last model, please set `save_checkpoints` to True."
             )
 
+        dump_log(self.log_path, config=self.config)
+
     def test(self, split="test"):
         """Test model with pytorch lightning trainer. Top-k predictions are saved
         if `save_k_predictions` > 0.
@@ -244,6 +246,7 @@ class TorchTrainer:
         if self.config.save_k_predictions > 0:
             self._save_predictions(test_loader, self.config.predict_out_path)
 
+        dump_log(self.log_path, config=self.config)
         return metric_dict
 
     def _save_predictions(self, dataloader, predict_out_path):
