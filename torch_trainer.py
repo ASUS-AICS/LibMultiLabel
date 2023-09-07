@@ -90,9 +90,6 @@ class TorchTrainer:
         callbacks = [callback for callback in self.trainer.callbacks if isinstance(callback, ModelCheckpoint)]
         self.checkpoint_callback = callbacks[0] if callbacks else None
 
-        # Dump config to log
-        dump_log(self.log_path, config=config)
-
     def _setup_model(
         self,
         classes: list = None,
