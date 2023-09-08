@@ -334,7 +334,7 @@ def main():
         scheduler=scheduler,
         local_dir=config.result_dir,
         num_samples=config.num_samples,
-        resources_per_trial={"cpu": args.cpu_count, "gpu": args.gpu_count},
+        resources_per_trial={"cpu": config.cpu_count, "gpu": config.gpu_count},
         progress_reporter=reporter,
         config=config,
         name=exp_name,
