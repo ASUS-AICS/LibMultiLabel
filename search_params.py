@@ -52,7 +52,7 @@ def load_config_from_file(config_path):
         config_path (str): Path to the config file.
 
     Returns:
-        AttributeDict: Config of the experiment.
+        dict: Config of the experiment.
     """
     with open(config_path) as fp:
         config = yaml.safe_load(fp)
@@ -185,7 +185,7 @@ def load_static_data(config, merge_train_val=False):
         val_data=config.val_file,
         val_size=config.val_size,
         merge_train_val=merge_train_val,
-        tokenize_text="lm_weight" not in config["network_config"],
+        tokenize_text="lm_weight" not in config.network_config,
         remove_no_label_data=config.remove_no_label_data,
     )
     return {
@@ -334,7 +334,7 @@ def main():
         scheduler=scheduler,
         local_dir=config.result_dir,
         num_samples=config.num_samples,
-        resources_per_trial={"cpu": args.cpu_count, "gpu": args.gpu_count},
+        resources_per_trial={"cpu": config.cpu_count, "gpu": config.gpu_count},
         progress_reporter=reporter,
         config=config,
         name=exp_name,
