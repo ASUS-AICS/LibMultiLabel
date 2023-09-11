@@ -1,4 +1,4 @@
-To build the documentation
+To build the documentation, please set up Python 3.8 and:
     pip install -r ../requirements.txt
     pip install -r requirements.txt
     git submodule init
