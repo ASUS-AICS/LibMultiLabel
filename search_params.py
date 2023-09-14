@@ -150,7 +150,7 @@ def prepare_retrain_config(best_config, best_log_dir, retrain):
         retrain (bool): Whether to retrain the model with merged training and validation data.
     """
     if retrain:
-        best_config.retrain = True
+        best_config.merge_train_val = True
 
         log_path = os.path.join(best_log_dir, "logs.json")
         if os.path.isfile(log_path):
@@ -165,15 +165,15 @@ def prepare_retrain_config(best_config, best_log_dir, retrain):
         optimal_idx = log_metric.argmax() if best_config.mode == "max" else log_metric.argmin()
         best_config.epochs = optimal_idx.item() + 1  # plus 1 for epochs
     else:
-        best_config.retrain = False
+        best_config.merge_train_val = False
 
 
-def load_static_data(config, retrain=False):
+def load_static_data(config, merge_train_val=False):
     """Preload static data once for multiple trials.
 
     Args:
         config (AttributeDict): Config of the experiment.
-        retrain (bool): Whether to retrain the model with merged training and validation data.
+        merge_train_val (bool, optional): Whether to merge the training and validation data.
             Defaults to False.
 
     Returns:
@@ -184,7 +184,7 @@ def load_static_data(config, retrain=False):
         test_data=config.test_file,
         val_data=config.val_file,
         val_size=config.val_size,
-        merge_train_val=retrain,
+        merge_train_val=merge_train_val,
         tokenize_text="lm_weight" not in config.network_config,
         remove_no_label_data=config.remove_no_label_data,
     )
@@ -227,7 +227,7 @@ def retrain_best_model(exp_name, best_config, best_log_dir, retrain):
     with open(os.path.join(checkpoint_dir, "params.yml"), "w") as fp:
         yaml.dump(dict(best_config), fp)
 
-    data = load_static_data(best_config, retrain=best_config.retrain)
+    data = load_static_data(best_config, merge_train_val=best_config.merge_train_val)
 
     if retrain:
         logging.info(f"Re-training with best config: \n{best_config}")
