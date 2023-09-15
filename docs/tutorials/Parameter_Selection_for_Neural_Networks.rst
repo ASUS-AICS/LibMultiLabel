@@ -136,3 +136,70 @@ A summary of results is in the following table. Four Nvidia Tesla V100 GPUs were
      - 82.90
      - 56.38
      - 11.6 hours
+
+Re-training using ``main.py``
+--------------------------------------
+
+Re-training is conducted to exploit all available information by including the validation set during training. 
+Since all available data instances are used, the termination criteria relying on validation set no longer works.
+Instead, we will adopt the approach of determining the optimal number of epochs(the one with best validation score) using the validation set, and then apply this optimal epoch for re-training.
+
+Here we demonstrate an example of applying re-training on EUR-Lex dataset using BIGRU-LWAN.
+
+First, train the model with validation set to get the performance of each epoch:
+
+.. code-block:: bash
+
+    python main.py --config example_config/EUR-Lex/bigru_lwan.yml
+
+The result before re-training is as follows:
+
+.. list-table::
+   :widths: 25 25 25 25
+   :header-rows: 1
+
+   * - Macro-F1
+     - Micro-F1
+     - P@1
+     - P@5
+
+   * - 20.97
+     - 56.64
+     - 81.71
+     - 55.98
+
+To get the optimal epoch with the best performance, the following code snippet reads the log, extracts the performance metrics for each epoch, and identifies the optimal epoch:
+
+.. code-block:: python
+
+    import json
+    import numpy as numpy
+
+    with open('your_log_path_for_the_first_step.json') as fp:
+        log = json.load(fp)
+    log_metric = np.array([l[log["config"]["val_metric"]] for l in log["val"]])
+    optimal_idx = log_metric.argmax() # if your validation metric is loss, use np.argmin() instead.
+    best_epoch = optimal_idx.item() + 1
+    print(best_epoch)
+
+In this case, the optimal epoch should be 47 (``--epochs 47``). With the optimal epoch, we can train the model and use ``--merge_train_val`` to include the validation set.
+
+.. code-block:: bash
+
+    python main.py --config example_config/EUR-Lex/bigru_lwan.yml --epochs 47 --merge_train_val
+
+The test performance improves after re-training:
+
+.. list-table::
+   :widths: 25 25 25 25
+   :header-rows: 1
+
+   * - Macro-F1
+     - Micro-F1
+     - P@1
+     - P@5
+
+   * - 23.42
+     - 59.04
+     - 83.57
+     - 58.25
