@@ -80,7 +80,7 @@ The process finds the best parameter set of ``learning_rate=0.0003``, ``embed_dr
 After the search process, the program applies the best parameters to obtain the final model by adding
 the validation set for training. The average P@1 score is 81.99% on the test set, better
 than the result without a hyper-parameter search. Note that after obtaining the best 
-hyper-parameters, we combine training and validation sets train a final model for testing.
+hyper-parameters, we combine training and validation sets to train a final model for testing.
 For more details about 're-training', please refer to the `Re-train or not`_ section.
 
 Early Stopping of the Parameter Search
