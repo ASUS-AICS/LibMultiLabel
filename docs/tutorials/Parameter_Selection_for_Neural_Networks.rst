@@ -202,7 +202,7 @@ to re-train the model with your chosen hyper-parameters, we will provide an exam
 of how to do this.
 
 Let's train a BiGRU model using the configuration file used in the `Direct Trying Some Parameters`_ 
-section, where the learning rate is set to 0.003. Please note that because the validation set 
+section, where the learning rate is set to 0.001. Please note that because the validation set 
 is not specified in the configuration file, the training dataset is partitioned into 
 a training set and a validation subsets to assess the performance at each epoch.
 
