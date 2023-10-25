@@ -26,7 +26,7 @@ Install LibMultiLabel from Source
 
     * Python: 3.8+
     * CUDA: 11.6 (if training neural networks by GPU)
-    * Pytorch 1.13.1+
+    * Pytorch 1.13.1
 
 It is optional but highly recommended to
 create a virtual environment.
