@@ -2,6 +2,7 @@ import logging
 from math import ceil
 
 import numpy as np
+from joblib import parallel_config
 from tqdm import tqdm
 
 import libmultilabel.linear as linear
@@ -46,11 +47,12 @@ def linear_train(datasets, config):
             config.tree_max_depth,
         )
     else:
-        model = LINEAR_TECHNIQUES[config.linear_technique](
-            datasets["train"]["y"],
-            datasets["train"]["x"],
-            config.liblinear_options,
-        )
+        with parallel_config(n_jobs=config.get("n_jobs", 1)):
+            model = LINEAR_TECHNIQUES[config.linear_technique](
+                datasets["train"]["y"],
+                datasets["train"]["x"],
+                config.liblinear_options,
+            )
     return model
 
 

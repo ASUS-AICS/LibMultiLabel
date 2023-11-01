@@ -5,6 +5,7 @@ import os
 
 import numpy as np
 import scipy.sparse as sparse
+from joblib import Parallel, delayed
 from liblinear.liblinearutil import train
 from tqdm import tqdm
 
@@ -85,13 +86,17 @@ def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str = "",
     y = y.tocsc()
     num_class = y.shape[1]
     num_feature = x.shape[1]
-    weights = np.zeros((num_feature, num_class), order="F")
 
     if verbose:
         logging.info(f"Training one-vs-rest model on {num_class} labels")
-    for i in tqdm(range(num_class), disable=not verbose):
-        yi = y[:, i].toarray().reshape(-1)
-        weights[:, i] = _do_train(2 * yi - 1, x, options).ravel()
+
+    def _train_1vsrest(i):
+        yi = y[:, i].toarray().ravel()
+        return _do_train(2 * yi - 1, x, options).ravel()
+
+    weights = Parallel()(delayed(_train_1vsrest)(i) for i in tqdm(range(num_class), disable=not verbose))
+
+    weights = np.asarray(weights, dtype=np.float64, order="C").T
 
     return FlatModel(name="1vsrest", weights=np.asmatrix(weights), bias=bias, thresholds=0)
 
