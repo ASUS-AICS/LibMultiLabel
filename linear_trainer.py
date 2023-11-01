@@ -9,9 +9,9 @@ from libmultilabel.common_utils import dump_log
 from libmultilabel.linear.utils import LINEAR_TECHNIQUES
 
 
-def linear_test(config, model, datasets, label_mapping):
+def linear_test(config, model, datasets, label_mapping, task):
     metrics = linear.get_metrics(
-        config.monitor_metrics, datasets["test"]["y"].shape[1], multiclass=model.name == "binary_and_multiclass"
+        config.monitor_metrics, datasets["test"]["y"].shape[1], multiclass=task != "multilabel"
     )
     num_instance = datasets["test"]["x"].shape[0]
     k = config.save_k_predictions
@@ -71,6 +71,16 @@ def linear_run(config):
             config.label_file,
         )
         datasets = preprocessor.fit_transform(datasets)
+
+        # detect the task type
+        task = "multilabel"
+        split = "test" if "test" in datasets else "train"
+        if datasets[split]["y"].nnz == datasets[split]["y"].shape[0]:
+            if datasets[split]["y"].shape[1] == 2:
+                task = "binary"
+            else:
+                task = "multiclass"
+
         model = linear_train(datasets, config)
         linear.save_pipeline(config.checkpoint_dir, preprocessor, model)
 
@@ -80,7 +90,7 @@ def linear_run(config):
         ), """
             If save_k_predictions is larger than 0, only top k labels are saved.
             Save all labels with decision value larger than 0 by using save_positive_predictions and save_k_predictions=0."""
-        metric_dict, labels, scores = linear_test(config, model, datasets, preprocessor.label_mapping)
+        metric_dict, labels, scores = linear_test(config, model, datasets, preprocessor.label_mapping, task)
         dump_log(config=config, metrics=metric_dict, split="test", log_path=config.log_path)
         print(linear.tabulate_metrics(metric_dict, "test"))
         if config.save_k_predictions > 0:
