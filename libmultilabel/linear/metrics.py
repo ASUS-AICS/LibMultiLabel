@@ -235,25 +235,25 @@ class Recall:
 
 
 class F1:
-    def __init__(self, num_classes: int, average: str, multiclass=False):
+    def __init__(self, num_classes: int, average: str, is_multilabel: bool = False):
         """Compute the F1 score.
 
         Args:
             num_classes: The number of labels.
             average: Define the reduction that is applied over labels. Should be one of "macro", "micro",
             "another-macro".
-            multiclass: Whether the task is a multiclass task.
+            is_multilabel: Whether the task type is multilabel or not.
         """
         self.num_classes = num_classes
         if average not in {"macro", "micro", "another-macro"}:
             raise ValueError("unsupported average")
         self.average = average
-        self.multiclass = multiclass
+        self.is_multilabel = is_multilabel
         self.tp = self.fp = self.fn = 0
 
     def update(self, preds: np.ndarray, target: np.ndarray):
         assert preds.shape == target.shape  # (batch_size, num_classes)
-        if self.multiclass:
+        if not self.is_multilabel:
             max_idx = np.argmax(preds, axis=1).reshape(-1, 1)
             preds = np.zeros(preds.shape)
             np.put_along_axis(preds, max_idx, 1, axis=1)
@@ -387,7 +387,7 @@ def get_metrics(
             if metric == "NDCG":
                 metrics[metrics_key] = NDCG(top_k=k)
         elif metric in {"Another-Macro-F1", "Macro-F1", "Micro-F1"}:
-            metrics[metric] = F1(num_classes, average=metric[:-3].lower(), multiclass=task != "multilabel")
+            metrics[metric] = F1(num_classes, average=metric[:-3].lower(), is_multilabel=task != "multilabel")
         else:
             raise ValueError(f"invalid metric: {metric}")
 
