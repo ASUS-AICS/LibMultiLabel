@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from collections import defaultdict
 from scipy import sparse
 
 import numpy as np
@@ -85,10 +84,8 @@ class Preprocessor:
             raise AttributeError("Preprecessor has not been fitted.")
 
         # "tf" indicates transformed
-        dataset_tf = defaultdict(dict)
-        dataset_tf["data_format"] = dataset["data_format"]
-        if "classes" in dataset:
-            dataset_tf["classes"] = dataset["classes"]
+        dataset_tf = {key: value if key not in {"train", "test"} else {} for key, value in dataset.items()}
+
         # transform a collection of raw text to a matrix of TF-IDF features
         if {self.data_format, dataset["data_format"]}.issubset({"txt", "dataframe"}):
             try:
@@ -128,7 +125,7 @@ class Preprocessor:
                         extra={"collect": True},
                     )
 
-        return dict(dataset_tf)
+        return dataset_tf
 
     def fit_transform(self, dataset):
         """Fit the preprocessor according to the training and test datasets, and pre-defined labels if given.
