@@ -99,36 +99,105 @@ class RPrecision:
 
 
 class Precision:
-    def __init__(self, num_classes: int, average: str, top_k: int):
+    def __init__(
+        self,
+        num_classes: int,
+        top_k: int,
+        average: Literal["micro", "macro", "weighted", "samples"] = "samples",
+    ):
         """Compute the Precision@K.
 
         Args:
             num_classes: The number of classes.
-            average: Define the reduction that is applied over labels. Currently only "samples" is supported.
             top_k: Consider only the top k elements for each query.
+            average: Define the reduction that is applied over labels.
+                "micro":
+                    Calculate Precision@k globally by counting the total true positives and false positives.
+                "macro":
+                    Calculate Precision@k for each label, and find their unweighted mean.
+                    This does not take label imbalance into account.
+                "weighted":
+                    Calculate Precision@k for each label, and find their weighted mean.
+                "samples":
+                    Calculate Precision@k for each instance, and find their average.
         """
-        if average != "samples":
-            raise ValueError("unsupported average")
-
+        # validate arguments
+        allowed_average = {"micro", "macro", "weighted", "samples"}
+        if average not in allowed_average:
+            raise ValueError(f'"average" should be one of {allowed_average}. But got {average}.')
         _check_top_k(top_k)
 
+        # super.__init__()
         self.top_k = top_k
-        self.score = 0
-        self.num_sample = 0
+        self.average = average
+
+        if self.average == "micro":
+            self.tp = 0
+            self.fp = 0
+        elif self.average in {"macro", "weighted"}:
+            self.tp = np.zeros(num_classes, dtype=np.int64)
+            self.fp = np.zeros(num_classes, dtype=np.int64)
+
+            if self.average == "weighted":
+                self.fn = np.zeros(num_classes, dtype=np.int64)
+        elif self.average == "samples":
+            self.score = 0
+            self.num_sample = 0
 
     def update(self, preds: np.ndarray, target: np.ndarray):
         assert preds.shape == target.shape  # (batch_size, num_classes)
         top_k_idx = np.argpartition(preds, -self.top_k)[:, -self.top_k :]
-        num_relevant = np.take_along_axis(target, top_k_idx, -1).sum()
-        self.score += num_relevant / self.top_k
-        self.num_sample += preds.shape[0]
+        tp_ = np.take_along_axis(target, top_k_idx, -1)
+
+        if self.average == "micro":
+            sum_tp = tp_.sum()
+            self.tp += sum_tp
+            self.fp += self.top_k * preds.shape[0] - sum_tp
+        elif self.average in {"macro", "weighted"}:
+            for i in range(top_k_idx.shape[0]):
+                idx = top_k_idx[i]
+                tp = tp_[i]
+                self.tp[idx] += tp
+                self.fp[idx] += 1 - tp
+
+                if self.average == "weighted":
+                    mask = np.ones_like(self.num_sample, np.bool_)
+                    mask[idx] = False
+                    self.fp[mask] += target[mask]
+        elif self.average == "samples":
+            sum_tp = tp_.sum()
+            self.score += sum_tp / self.top_k
+            self.num_sample += preds.shape[0]
 
     def compute(self) -> float:
-        return self.score / self.num_sample
+        if self.average == "micro":
+            return self.tp / (self.tp + self.fp)
+        elif self.average in {"macro", "weighted"}:
+            weights = None
+            if self.average == "weighted":
+                tp_fn = self.tp + self.fn
+                weights = tp_fn / tp_fn.sum()
+
+            tp_fp = self.tp + self.fp
+            return np.divide(self.tp, tp_fp, out=np.zeros_like(self.tp, dtype=np.float64), where=tp_fp != 0).average(
+                weights=weights
+            )
+        elif self.average == "samples":
+            return self.score / self.num_sample
 
     def reset(self):
-        self.score = 0
-        self.num_sample = 0
+        if self.average == "micro":
+            self.tp = 0
+            self.fp = 0
+        elif self.average in {"macro", "weighted"}:
+            self.tp[:] = 0
+            self.fp[:] = 0
+
+            if self.average == "weighted":
+                self.fn[:] = 0
+        elif self.average == "samples":
+            self.score = 0
+            self.num_sample = 0
 
 
 class Recall:
