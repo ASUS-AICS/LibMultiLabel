@@ -11,9 +11,7 @@ from libmultilabel.linear.utils import LINEAR_TECHNIQUES
 
 
 def linear_test(config, model, datasets, label_mapping, task):
-    metrics = linear.get_metrics(
-        config.monitor_metrics, datasets["test"]["y"].shape[1], multiclass=task != "multilabel"
-    )
+    metrics = linear.get_metrics(config.monitor_metrics, datasets["test"]["y"].shape[1], task=task)
     num_instance = datasets["test"]["x"].shape[0]
     k = config.save_k_predictions
     if k > 0:

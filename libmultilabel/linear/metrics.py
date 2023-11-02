@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import logging
 import re
+from typing import Literal
 
 import numpy as np
 
 __all__ = ["get_metrics", "compute_metrics", "tabulate_metrics", "MetricCollection"]
+
+logger = logging.getLogger("__main__")
+logger.setLevel("INFO")
 
 
 def _DCG(preds: np.ndarray, target: np.ndarray, k: int = 5) -> np.ndarray:
@@ -246,14 +251,18 @@ class MetricCollection(dict):
             metric.reset()
 
 
-def get_metrics(monitor_metrics: list[str], num_classes: int, multiclass: bool = False) -> MetricCollection:
+def get_metrics(
+    monitor_metrics: list[str],
+    num_classes: int,
+    task: Literal["binary", "multiclass", "multilabel"],
+) -> MetricCollection:
     """Get a collection of metrics by their names.
     See MetricCollection for more details.
 
     Args:
         monitor_metrics (list[str]): A list of metric names.
         num_classes (int): The number of classes.
-        multiclass (bool, optional): Enable multiclass mode. Defaults to False.
+        task: The type of the classification task.
 
     Returns:
         MetricCollection: A metric collection of the list of metrics.
@@ -261,17 +270,55 @@ def get_metrics(monitor_metrics: list[str], num_classes: int, multiclass: bool =
     if monitor_metrics is None:
         monitor_metrics = []
     metrics = {}
+
     for metric in monitor_metrics:
-        if re.match("P@\d+", metric):
-            metrics[metric] = Precision(num_classes, average="samples", top_k=int(metric[2:]))
-        elif re.match("R@\d+", metric):
-            metrics[metric] = Recall(num_classes, average="samples", top_k=int(metric[2:]))
-        elif re.match("RP@\d+", metric):
-            metrics[metric] = RPrecision(top_k=int(metric[3:]))
-        elif re.match("NDCG@\d+", metric):
-            metrics[metric] = NDCG(top_k=int(metric[5:]))
+        metric_at_k = re.match(r"(P|R|RP|NDCG)@(\d+)$", metric.upper())
+
+        if metric_at_k is not None:
+            metric, k = metric_at_k.groups()
+            k = int(k)
+
+            # validate k in metric@k
+            if task != "multilabel" and k > 1:
+                # make sure k is 1 if the task type is not multilabel
+                if f"{metric}@1" in metrics:
+                    continue
+
+                logger.warning(
+                    f"""The task type is not multilabel and k is expected to be exactly 1. But {metric}@{k} is provided. 
+                    A fallback metric {metric}@1 will be used. 
+                    Repeated warnings of the same metric will be suppressed."""
+                )
+
+                k = 1
+
+            elif task == "multilabel" and k > num_classes:
+                # make sure k is less than the number of classes if the task type is multilabel
+                if f"{metric}@{num_classes}" in metrics:
+                    continue
+
+                logger.warning(
+                    f"""k is expected to be less than {num_classes}. But {metric}@{k} is provided. 
+                    A fallback metric {metric}@{num_classes} will be used.
+                    Repeated warnings of the same metric will be suppressed."""
+                )
+
+                k = num_classes
+
+            metrics_key = f"{metric}@{k}"
+            if metrics_key in metrics:
+                continue
+
+            if metric == "P":
+                metrics[metrics_key] = Precision(num_classes, average="samples", top_k=k)
+            if metric == "R":
+                metrics[metrics_key] = Recall(num_classes, average="samples", top_k=k)
+            if metric == "RP":
+                metrics[metrics_key] = RPrecision(top_k=k)
+            if metric == "NDCG":
+                metrics[metrics_key] = NDCG(top_k=k)
         elif metric in {"Another-Macro-F1", "Macro-F1", "Micro-F1"}:
-            metrics[metric] = F1(num_classes, average=metric[:-3].lower(), multiclass=multiclass)
+            metrics[metric] = F1(num_classes, average=metric[:-3].lower(), multiclass=task != "multilabel")
         else:
             raise ValueError(f"invalid metric: {metric}")
 
