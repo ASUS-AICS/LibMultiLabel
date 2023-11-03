@@ -83,6 +83,13 @@ class Preprocessor:
         if not self.is_fitted:
             raise AttributeError("Preprecessor has not been fitted.")
 
+        required_keys = {"data_format", "train", "test", "classes"}
+        dataset_keys = set(dataset.keys())
+        if not dataset_keys.issubset(required_keys):
+            raise ValueError(
+                f"Expect datasets to contain {required_keys}. But got extra keys {dataset_keys - required_keys}"
+            )
+
         # "tf" indicates transformed
         dataset_tf = {key: value if key not in {"train", "test"} else {} for key, value in dataset.items()}
 
