@@ -5,13 +5,15 @@ import numpy as np
 from tqdm import tqdm
 
 import libmultilabel.linear as linear
-from libmultilabel.common_utils import dump_log
+from libmultilabel.common_utils import dump_log, is_multiclass_dataset
 from libmultilabel.linear.utils import LINEAR_TECHNIQUES
 
 
 def linear_test(config, model, datasets, label_mapping):
     metrics = linear.get_metrics(
-        config.monitor_metrics, datasets["test"]["y"].shape[1], multiclass=model.name == "binary_and_multiclass"
+        config.monitor_metrics,
+        datasets["test"]["y"].shape[1],
+        multiclass=is_multiclass_dataset(datasets["train"], "y"),
     )
     num_instance = datasets["test"]["x"].shape[0]
     k = config.save_k_predictions
