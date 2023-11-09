@@ -404,7 +404,11 @@ def get_metrics(monitor_metrics: list[str], num_classes: int, multiclass: bool =
         monitor_metrics = []
     metrics = {}
     for metric in monitor_metrics:
-        if re.match("P@\d+", metric):
+        if re.match("P@1~\d+", metric):
+            metrics[metric] = BatchPrecision(num_classes, average="samples", top_k=int(metric[4:]))
+        elif re.match("NDCG@1~\d+", metric):
+            metrics[metric] = BatchNDCG(top_k=int(metric[7:]))
+        elif re.match("P@\d+", metric):
             metrics[metric] = Precision(num_classes, average="samples", top_k=int(metric[2:]))
         elif re.match("R@\d+", metric):
             metrics[metric] = Recall(num_classes, average="samples", top_k=int(metric[2:]))
