@@ -143,7 +143,7 @@ class BatchNDCG:
         return {f"NDCG@{k}": v for k, v in zip(range(1, self.top_k + 1), self.score / self.num_sample)}
 
     def reset(self):
-        self.score = 0
+        self.score = np.zeros(self.top_k)
         self.num_sample = 0
 
 
@@ -247,7 +247,7 @@ class BatchPrecision:
         return {f"P@{k}": v for k, v in zip(range(1, self.top_k + 1), self.score / self.num_sample)}
 
     def reset(self):
-        self.score = 0
+        self.score = np.zeros(self.top_k)
         self.num_sample = 0
 
 
@@ -276,7 +276,7 @@ class Recall:
     def update_argsort(self, argsort_preds: np.ndarray, target: np.ndarray):
         top_k_idx = argsort_preds[:, -self.top_k :]
         num_relevant = np.take_along_axis(target, top_k_idx, -1).sum(axis=-1)
-        self.score += np.sum(np.nan_to_num(num_relevant / target.sum(axis=-1), nan=1.0))
+        self.score += np.nan_to_num(num_relevant / target.sum(axis=-1), nan=1.0).sum()
         self.num_sample += argsort_preds.shape[0]
 
     def compute(self) -> float:
