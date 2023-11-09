@@ -246,7 +246,7 @@ class BatchPrecision:
         self.num_sample += argsort_preds.shape[0]
 
     def compute(self) -> dict[str, float]:
-        return {f"P@{k}": v for k, v in zip(range(1, self.top_k), self.score / self.num_sample)}
+        return {f"P@{k}": v for k, v in zip(range(1, self.top_k + 1), self.score / self.num_sample)}
 
     def reset(self):
         self.score = 0
