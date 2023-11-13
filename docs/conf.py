@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath(".."))
 # -- Project information -----------------------------------------------------
 
 project = "LibMultiLabel"
-copyright = "2021, LibMultiLabel Project"
+copyright = "2023, LibMultiLabel Project"
 author = "LibMultiLabel Authors"
 
 
