@@ -27,11 +27,13 @@ class FlatModel:
         weights: np.matrix,
         bias: float,
         thresholds: float | np.ndarray,
+        is_multilabel: bool,
     ):
         self.name = name
         self.weights = weights
         self.bias = bias
         self.thresholds = thresholds
+        self.is_multilabel = is_multilabel
 
     def predict_values(self, x: sparse.csr_matrix) -> np.ndarray:
         """Calculates the decision values associated with x.
@@ -67,12 +69,19 @@ class FlatModel:
         return (x * self.weights).A + self.thresholds
 
 
-def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str = "", verbose: bool = True) -> FlatModel:
-    """Trains a linear model for multiabel data using a one-vs-rest strategy.
+def train_1vsrest(
+    y: sparse.csr_matrix,
+    x: sparse.csr_matrix,
+    is_multilabel: bool,
+    options: str = "",
+    verbose: bool = True,
+) -> FlatModel:
+    """Trains a linear classification model with one-vs-rest strategy.
 
     Args:
         y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
         x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
+        is_multilabel (bool): A flag indicating if the dataset is multilabel.
         options (str, optional): The option string passed to liblinear. Defaults to ''.
         verbose (bool, optional): Output extra progress information. Defaults to True.
 
@@ -93,7 +102,13 @@ def train_1vsrest(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str = "",
         yi = y[:, i].toarray().reshape(-1)
         weights[:, i] = _do_train(2 * yi - 1, x, options).ravel()
 
-    return FlatModel(name="1vsrest", weights=np.asmatrix(weights), bias=bias, thresholds=0)
+    return FlatModel(
+        name="1vsrest",
+        weights=np.asmatrix(weights),
+        bias=bias,
+        thresholds=0,
+        is_multilabel=is_multilabel,
+    )
 
 
 def _prepare_options(x: sparse.csr_matrix, options: str) -> tuple[sparse.csr_matrix, str, float]:
@@ -145,7 +160,11 @@ def _prepare_options(x: sparse.csr_matrix, options: str) -> tuple[sparse.csr_mat
 
 
 def train_thresholding(
-    y: sparse.csr_matrix, x: sparse.csr_matrix, options: str = "", verbose: bool = True
+    y: sparse.csr_matrix,
+    x: sparse.csr_matrix,
+    is_multilabel: bool,
+    options: str = "",
+    verbose: bool = True,
 ) -> FlatModel:
     """Trains a linear model for multi-label data using a one-vs-rest strategy
     and cross-validation to pick decision thresholds optimizing the sum of Macro-F1 and Micro-F1.
@@ -160,12 +179,16 @@ def train_thresholding(
     Args:
         y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
         x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
+        is_multilabel (bool): A flag indicating if the dataset is multilabel.
         options (str, optional): The option string passed to liblinear. Defaults to ''.
         verbose (bool, optional): Output extra progress information. Defaults to True.
 
     Returns:
         A model which can be used in predict_values.
     """
+    if not is_multilabel:
+        raise ValueError("thresholding method doesn't support binary/multiclass datasets.")
+
     x, options, bias = _prepare_options(x, options)
 
     y = y.tocsc()
@@ -189,7 +212,13 @@ def train_thresholding(
         weights[:, i] = w.ravel()
         thresholds[i] = t
 
-    return FlatModel(name="thresholding", weights=np.asmatrix(weights), bias=bias, thresholds=thresholds)
+    return FlatModel(
+        name="thresholding",
+        weights=np.asmatrix(weights),
+        bias=bias,
+        thresholds=thresholds,
+        is_multilabel=is_multilabel,
+    )
 
 
 def _micromacro_one_label(
@@ -361,7 +390,11 @@ def _fmeasure(y_true: np.ndarray, y_pred: np.ndarray) -> float:
 
 
 def train_cost_sensitive(
-    y: sparse.csr_matrix, x: sparse.csr_matrix, options: str = "", verbose: bool = True
+    y: sparse.csr_matrix,
+    x: sparse.csr_matrix,
+    is_multilabel: bool,
+    options: str = "",
+    verbose: bool = True,
 ) -> FlatModel:
     """Trains a linear model for multilabel data using a one-vs-rest strategy
     and cross-validation to pick an optimal asymmetric misclassification cost
@@ -373,12 +406,16 @@ def train_cost_sensitive(
     Args:
         y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
         x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
+        is_multilabel (bool): A flag indicating if the dataset is multilabel.
         options (str, optional): The option string passed to liblinear. Defaults to ''.
         verbose (bool, optional): Output extra progress information. Defaults to True.
 
     Returns:
         A model which can be used in predict_values.
     """
+    if not is_multilabel:
+        raise ValueError("cost_sensitive method doesn't support binary/multiclass datasets.")
+
     # Follows the MATLAB implementation at https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/multilabel/
     x, options, bias = _prepare_options(x, options)
 
@@ -394,7 +431,13 @@ def train_cost_sensitive(
         w = _cost_sensitive_one_label(2 * yi - 1, x, options)
         weights[:, i] = w.ravel()
 
-    return FlatModel(name="cost_sensitive", weights=np.asmatrix(weights), bias=bias, thresholds=0)
+    return FlatModel(
+        name="cost_sensitive",
+        weights=np.asmatrix(weights),
+        bias=bias,
+        thresholds=0,
+        is_multilabel=is_multilabel,
+    )
 
 
 def _cost_sensitive_one_label(y: np.ndarray, x: sparse.csr_matrix, options: str) -> np.ndarray:
@@ -454,7 +497,11 @@ def _cross_validate(y: np.ndarray, x: sparse.csr_matrix, options: str, perm: np.
 
 
 def train_cost_sensitive_micro(
-    y: sparse.csr_matrix, x: sparse.csr_matrix, options: str = "", verbose: bool = True
+    y: sparse.csr_matrix,
+    x: sparse.csr_matrix,
+    is_multilabel: bool,
+    options: str = "",
+    verbose: bool = True,
 ) -> FlatModel:
     """Trains a linear model for multilabel data using a one-vs-rest strategy
     and cross-validation to pick an optimal asymmetric misclassification cost
@@ -466,12 +513,16 @@ def train_cost_sensitive_micro(
     Args:
         y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
         x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
+        is_multilabel (bool): A flag indicating if the dataset is multilabel.
         options (str, optional): The option string passed to liblinear. Defaults to ''.
         verbose (bool, optional): Output extra progress information. Defaults to True.
 
     Returns:
         A model which can be used in predict_values.
     """
+    if not is_multilabel:
+        raise ValueError("cost_sensitive_micro method doesn't support binary/multiclass datasets.")
+
     # Follows the MATLAB implementation at https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/multilabel/
     x, options, bias = _prepare_options(x, options)
 
@@ -510,17 +561,28 @@ def train_cost_sensitive_micro(
         w = _do_train(2 * yi - 1, x, final_options)
         weights[:, i] = w.ravel()
 
-    return FlatModel(name="cost_sensitive_micro", weights=np.asmatrix(weights), bias=bias, thresholds=0)
+    return FlatModel(
+        name="cost_sensitive_micro",
+        weights=np.asmatrix(weights),
+        bias=bias,
+        thresholds=0,
+        is_multilabel=is_multilabel,
+    )
 
 
 def train_binary_and_multiclass(
-    y: sparse.csr_matrix, x: sparse.csr_matrix, options: str = "", verbose: bool = True
+    y: sparse.csr_matrix,
+    x: sparse.csr_matrix,
+    is_multilabel: bool,
+    options: str = "",
+    verbose: bool = True,
 ) -> FlatModel:
     """Trains a linear model for binary and multi-class data.
 
     Args:
         y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
         x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
+        is_multilabel (bool): A flag indicating if the dataset is multilabel.
         options (str, optional): The option string passed to liblinear. Defaults to ''.
         verbose (bool, optional): Output extra progress information. Defaults to True.
 
@@ -556,7 +618,13 @@ def train_binary_and_multiclass(
     # For labels not appeared in training, assign thresholds to -inf so they won't be predicted.
     thresholds = np.full(num_labels, -np.inf)
     thresholds[train_labels] = 0
-    return FlatModel(name="binary_and_multiclass", weights=np.asmatrix(weights), bias=bias, thresholds=thresholds)
+    return FlatModel(
+        name="binary_and_multiclass",
+        weights=np.asmatrix(weights),
+        bias=bias,
+        thresholds=thresholds,
+        is_multilabel=is_multilabel,
+    )
 
 
 def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
