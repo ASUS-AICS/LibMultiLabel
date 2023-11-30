@@ -186,9 +186,6 @@ def train_thresholding(
     Returns:
         A model which can be used in predict_values.
     """
-    if not is_multilabel:
-        raise ValueError("thresholding method doesn't support binary/multiclass datasets.")
-
     x, options, bias = _prepare_options(x, options)
 
     y = y.tocsc()
@@ -413,9 +410,6 @@ def train_cost_sensitive(
     Returns:
         A model which can be used in predict_values.
     """
-    if not is_multilabel:
-        raise ValueError("cost_sensitive method doesn't support binary/multiclass datasets.")
-
     # Follows the MATLAB implementation at https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/multilabel/
     x, options, bias = _prepare_options(x, options)
 
@@ -520,9 +514,6 @@ def train_cost_sensitive_micro(
     Returns:
         A model which can be used in predict_values.
     """
-    if not is_multilabel:
-        raise ValueError("cost_sensitive_micro method doesn't support binary/multiclass datasets.")
-
     # Follows the MATLAB implementation at https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/multilabel/
     x, options, bias = _prepare_options(x, options)
 

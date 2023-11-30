@@ -11,9 +11,7 @@ from libmultilabel.linear.utils import LINEAR_TECHNIQUES
 
 def linear_test(config, model, datasets, label_mapping):
     metrics = linear.get_metrics(
-        config.monitor_metrics,
-        datasets["test"]["y"].shape[1],
-        multiclass=not model.is_multilabel,
+        config.monitor_metrics, datasets["test"]["y"].shape[1], multiclass=not model.is_multilabel
     )
     num_instance = datasets["test"]["x"].shape[0]
     k = config.save_k_predictions
@@ -40,19 +38,7 @@ def linear_test(config, model, datasets, label_mapping):
 
 def linear_train(datasets, config):
     # detect task type
-    is_multilabel = config.get("is_multilabel", "auto")
-    if is_multilabel == "auto":
-        is_multilabel = not is_multiclass_dataset(datasets["train"], "y")
-    elif not isinstance(is_multilabel, bool):
-        raise ValueError(
-            f'"is_multilabel" is expected to be either "auto", "True", or "False". But got "{is_multilabel}" instead.'
-        )
-
-    task_type = "multilabel" if is_multilabel else "binary/multiclass"
-    logging.info(
-        f'is_multilabel is set to "{config.get("is_multilabel", "auto")}". '
-        f"Model will be trained in {task_type} mode."
-    )
+    is_multilabel = not is_multiclass_dataset(datasets["train"], "y")
 
     # train
     if config.linear_technique == "tree":
