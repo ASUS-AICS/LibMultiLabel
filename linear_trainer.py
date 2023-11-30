@@ -40,7 +40,13 @@ def linear_test(config, model, datasets, label_mapping):
 
 def linear_train(datasets, config):
     # detect task type
-    is_multilabel = not is_multiclass_dataset(datasets["train"], "y")
+    is_multilabel = config.get("is_multilabel", "auto")
+    if is_multilabel == "auto":
+        is_multilabel = not is_multiclass_dataset(datasets["train"], "y")
+    elif not isinstance(is_multilabel, bool):
+        raise ValueError(
+            f'"is_multilabel" is expected to be either "auto", "True", or "False". But got "{is_multilabel}".'
+        )
 
     # train
     if config.linear_technique == "tree":

@@ -65,7 +65,15 @@ class TorchTrainer:
         else:
             self.datasets = datasets
 
-        self.config.multiclass = is_multiclass_dataset(self.datasets["train"] + self.datasets.get("val", list()))
+        # detect task type
+        is_multilabel = self.config.get("is_multilabel", "auto")
+        if is_multilabel == "auto":
+            self.config.multiclass = is_multiclass_dataset(self.datasets["train"] + self.datasets.get("val", list()))
+        elif not isinstance(is_multilabel, bool):
+            raise ValueError(
+                f'"is_multilabel" is expected to be either "auto", "True", or "False". But got "{is_multilabel}".'
+            )
+
         self._setup_model(
             classes=classes,
             word_dict=word_dict,
