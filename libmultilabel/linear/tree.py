@@ -48,7 +48,7 @@ class TreeModel:
         self.root = root
         self.flat_model = flat_model
         self.weight_map = weight_map
-        self.is_multilabel = True
+        self.multiclass = False
 
     def predict_values(
         self,
@@ -204,14 +204,14 @@ def _train_node(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str, node: 
         node (Node): Node to be trained.
     """
     if node.isLeaf():
-        node.model = linear.train_1vsrest(y[:, node.label_map], x, True, options, False)
+        node.model = linear.train_1vsrest(y[:, node.label_map], x, False, options, False)
     else:
         # meta_y[i, j] is 1 if the ith instance is relevant to the jth child.
         # getnnz returns an ndarray of shape number of instances.
         # This must be reshaped into number of instances * 1 to be interpreted as a column.
         meta_y = [y[:, child.label_map].getnnz(axis=1)[:, np.newaxis] > 0 for child in node.children]
         meta_y = sparse.csr_matrix(np.hstack(meta_y))
-        node.model = linear.train_1vsrest(meta_y, x, True, options, False)
+        node.model = linear.train_1vsrest(meta_y, x, False, options, False)
 
     node.model.weights = sparse.csc_matrix(node.model.weights)
 
@@ -251,7 +251,7 @@ def _flatten_model(root: Node) -> tuple[linear.FlatModel, np.ndarray]:
         weights=sparse.hstack(weights, "csr"),
         bias=bias,
         thresholds=0,
-        is_multilabel=True,
+        multiclass=False,
     )
 
     # w.shape[1] is the number of labels/metalabels of each node

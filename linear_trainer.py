@@ -10,9 +10,7 @@ from libmultilabel.linear.utils import LINEAR_TECHNIQUES
 
 
 def linear_test(config, model, datasets, label_mapping):
-    metrics = linear.get_metrics(
-        config.monitor_metrics, datasets["test"]["y"].shape[1], multiclass=not model.is_multilabel
-    )
+    metrics = linear.get_metrics(config.monitor_metrics, datasets["test"]["y"].shape[1], multiclass=model.multiclass)
     num_instance = datasets["test"]["x"].shape[0]
     k = config.save_k_predictions
     if k > 0:
@@ -38,11 +36,11 @@ def linear_test(config, model, datasets, label_mapping):
 
 def linear_train(datasets, config):
     # detect task type
-    is_multilabel = not is_multiclass_dataset(datasets["train"], "y")
+    multiclass = is_multiclass_dataset(datasets["train"], "y")
 
     # train
     if config.linear_technique == "tree":
-        if not is_multilabel:
+        if multiclass:
             raise ValueError("Tree model should only be used with multilabel datasets.")
 
         model = LINEAR_TECHNIQUES[config.linear_technique](
@@ -56,7 +54,7 @@ def linear_train(datasets, config):
         model = LINEAR_TECHNIQUES[config.linear_technique](
             datasets["train"]["y"],
             datasets["train"]["x"],
-            is_multilabel=is_multilabel,
+            multiclass=multiclass,
             options=config.liblinear_options,
         )
     return model
