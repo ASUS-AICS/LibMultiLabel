@@ -72,16 +72,16 @@ class FlatModel:
 def train_1vsrest(
     y: sparse.csr_matrix,
     x: sparse.csr_matrix,
-    multiclass: bool,
+    multiclass: bool = False,
     options: str = "",
     verbose: bool = True,
 ) -> FlatModel:
-    """Trains a linear classification model with one-vs-rest strategy.
+    """Trains a linear model for multiabel data using a one-vs-rest strategy.
 
     Args:
         y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
         x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
-        multiclass (bool): A flag indicating if the dataset is multiclass.
+        multiclass (bool, optional): A flag indicating if the dataset is multiclass.
         options (str, optional): The option string passed to liblinear. Defaults to ''.
         verbose (bool, optional): Output extra progress information. Defaults to True.
 
@@ -162,7 +162,7 @@ def _prepare_options(x: sparse.csr_matrix, options: str) -> tuple[sparse.csr_mat
 def train_thresholding(
     y: sparse.csr_matrix,
     x: sparse.csr_matrix,
-    multiclass: bool,
+    multiclass: bool = False,
     options: str = "",
     verbose: bool = True,
 ) -> FlatModel:
@@ -179,7 +179,7 @@ def train_thresholding(
     Args:
         y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
         x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
-        multiclass (bool): A flag indicating if the dataset is multiclass.
+        multiclass (bool, optional): A flag indicating if the dataset is multiclass.
         options (str, optional): The option string passed to liblinear. Defaults to ''.
         verbose (bool, optional): Output extra progress information. Defaults to True.
 
@@ -389,7 +389,7 @@ def _fmeasure(y_true: np.ndarray, y_pred: np.ndarray) -> float:
 def train_cost_sensitive(
     y: sparse.csr_matrix,
     x: sparse.csr_matrix,
-    multiclass: bool,
+    multiclass: bool = False,
     options: str = "",
     verbose: bool = True,
 ) -> FlatModel:
@@ -403,7 +403,7 @@ def train_cost_sensitive(
     Args:
         y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
         x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
-        multiclass (bool): A flag indicating if the dataset is multiclass.
+        multiclass (bool, optional): A flag indicating if the dataset is multiclass.
         options (str, optional): The option string passed to liblinear. Defaults to ''.
         verbose (bool, optional): Output extra progress information. Defaults to True.
 
@@ -493,7 +493,7 @@ def _cross_validate(y: np.ndarray, x: sparse.csr_matrix, options: str, perm: np.
 def train_cost_sensitive_micro(
     y: sparse.csr_matrix,
     x: sparse.csr_matrix,
-    multiclass: bool,
+    multiclass: bool = False,
     options: str = "",
     verbose: bool = True,
 ) -> FlatModel:
@@ -507,7 +507,7 @@ def train_cost_sensitive_micro(
     Args:
         y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
         x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
-        multiclass (bool): A flag indicating if the dataset is multiclass.
+        multiclass (bool, optional): A flag indicating if the dataset is multiclass.
         options (str, optional): The option string passed to liblinear. Defaults to ''.
         verbose (bool, optional): Output extra progress information. Defaults to True.
 
@@ -564,7 +564,7 @@ def train_cost_sensitive_micro(
 def train_binary_and_multiclass(
     y: sparse.csr_matrix,
     x: sparse.csr_matrix,
-    multiclass: bool,
+    multiclass: bool = True,
     options: str = "",
     verbose: bool = True,
 ) -> FlatModel:
@@ -573,7 +573,7 @@ def train_binary_and_multiclass(
     Args:
         y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
         x (sparse.csr_matrix): A matrix with dimensions number of instances * number of features.
-        multiclass (bool): A flag indicating if the dataset is multiclass.
+        multiclass (bool, optional): A flag indicating if the dataset is multiclass.
         options (str, optional): The option string passed to liblinear. Defaults to ''.
         verbose (bool, optional): Output extra progress information. Defaults to True.
 
