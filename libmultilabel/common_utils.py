@@ -136,6 +136,15 @@ def is_multiclass_dataset(dataset, label="label"):
     else:
         label_sizes = dataset[label].sum(axis=1)
 
+    # detect unlabeled ratio
+    ratio = round((label_sizes == 0).sum() / label_sizes.shape[0], 4)
+    threshold = 0.1
+    if ratio > threshold:
+        raise ValueError(
+            f"About {ratio * 100}% (> {threshold * 100}%) instances in the dataset are unlabeled. "
+            "LibMultiLabel doesn't support evaluation for unlabeled dataset at the current stage."
+        )
+
     ratio = float((label_sizes == 1).sum()) / len(label_sizes)
     if ratio > 0.999 and ratio != 1.0:
         logging.info(
