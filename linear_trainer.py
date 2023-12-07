@@ -5,14 +5,12 @@ import numpy as np
 from tqdm import tqdm
 
 import libmultilabel.linear as linear
-from libmultilabel.common_utils import dump_log
+from libmultilabel.common_utils import dump_log, is_multiclass_dataset
 from libmultilabel.linear.utils import LINEAR_TECHNIQUES
 
 
 def linear_test(config, model, datasets, label_mapping):
-    metrics = linear.get_metrics(
-        config.monitor_metrics, datasets["test"]["y"].shape[1], multiclass=model.name == "binary_and_multiclass"
-    )
+    metrics = linear.get_metrics(config.monitor_metrics, datasets["test"]["y"].shape[1], multiclass=model.multiclass)
     num_instance = datasets["test"]["x"].shape[0]
     k = config.save_k_predictions
     if k > 0:
@@ -37,7 +35,14 @@ def linear_test(config, model, datasets, label_mapping):
 
 
 def linear_train(datasets, config):
+    # detect task type
+    multiclass = is_multiclass_dataset(datasets["train"], "y")
+
+    # train
     if config.linear_technique == "tree":
+        if multiclass:
+            raise ValueError("Tree model should only be used with multilabel datasets.")
+
         model = LINEAR_TECHNIQUES[config.linear_technique](
             datasets["train"]["y"],
             datasets["train"]["x"],
@@ -49,7 +54,8 @@ def linear_train(datasets, config):
         model = LINEAR_TECHNIQUES[config.linear_technique](
             datasets["train"]["y"],
             datasets["train"]["x"],
-            config.liblinear_options,
+            multiclass=multiclass,
+            options=config.liblinear_options,
         )
     return model
 
