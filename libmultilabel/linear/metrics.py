@@ -7,45 +7,45 @@ import numpy as np
 __all__ = ["get_metrics", "compute_metrics", "tabulate_metrics", "MetricCollection"]
 
 
-def _sorted_top_k_idx(preds: np.ndarray, k: int) -> np.ndarray:
+def _sorted_top_k_idx(preds: np.ndarray, top_k: int) -> np.ndarray:
     """Sorts the top k indices in O(n + k log k) time.
     The sorting order is ascending to be consistent with np.sort.
     This means the last element is the largest, the first element is the kth largest.
     """
-    top_k_idx = np.argpartition(preds, -k)[:, -k:]
+    top_k_idx = np.argpartition(preds, -top_k)[:, -top_k:]
     argsort_top_k = np.argsort(np.take_along_axis(preds, top_k_idx, axis=-1))
     return np.take_along_axis(top_k_idx, argsort_top_k, axis=-1)
 
 
-def _DCG_argsort(argsort_preds: np.ndarray, target: np.ndarray, k: int) -> np.ndarray:
-    top_k_idx = argsort_preds[:, -k:][:, ::-1]
+def _DCG_argsort(argsort_preds: np.ndarray, target: np.ndarray, top_k: int) -> np.ndarray:
+    top_k_idx = argsort_preds[:, -top_k:][:, ::-1]
     gains = np.take_along_axis(target, top_k_idx, axis=-1)
-    discount = 1 / (np.log2(np.arange(k) + 2))
+    discount = 1 / (np.log2(np.arange(top_k) + 2))
     dcg = gains.dot(discount)
     return dcg
 
 
-def _IDCG(target: np.ndarray, k: int) -> np.ndarray:
+def _IDCG(target: np.ndarray, top_k: int) -> np.ndarray:
     labels = target.sum(axis=1, dtype="i")
-    discount = 1 / (np.log2(np.arange(k) + 2))
+    discount = 1 / (np.log2(np.arange(top_k) + 2))
     gains = discount.cumsum()
-    indices = np.minimum(labels - 1, k - 1)
+    indices = np.minimum(labels - 1, top_k - 1)
     return gains[indices]
 
 
-def _batchDCG_argsort(argsort_preds: np.ndarray, target: np.ndarray, k: int) -> np.ndarray:
-    top_k_idx = argsort_preds[:, -k:][:, ::-1]
+def _batchDCG_argsort(argsort_preds: np.ndarray, target: np.ndarray, top_k: int) -> np.ndarray:
+    top_k_idx = argsort_preds[:, -top_k:][:, ::-1]
     gains = np.take_along_axis(target, top_k_idx, axis=-1)
-    discount = 1 / (np.log2(np.arange(k) + 2))
+    discount = 1 / (np.log2(np.arange(top_k) + 2))
     dcg = (gains * discount).cumsum(axis=1)
     return dcg
 
 
-def _batchIDCG(target: np.ndarray, k: int) -> np.ndarray:
+def _batchIDCG(target: np.ndarray, top_k: int) -> np.ndarray:
     labels = target.sum(axis=1, dtype="i")
-    discount = 1 / (np.log2(np.arange(k) + 2))
+    discount = 1 / (np.log2(np.arange(top_k) + 2))
     gains = discount.cumsum()
-    indices = np.tile(np.arange(k), target.shape[0]).reshape(-1, k)
+    indices = np.tile(np.arange(top_k), target.shape[0]).reshape(-1, top_k)
     indices = np.minimum(labels[:, np.newaxis] - 1, indices)
     return gains[indices]
 
