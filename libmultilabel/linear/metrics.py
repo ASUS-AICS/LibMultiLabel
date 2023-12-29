@@ -17,28 +17,6 @@ def _sorted_top_k_idx(preds: np.ndarray, k: int) -> np.ndarray:
     return np.take_along_axis(top_k_idx, argsort_top_k, axis=-1)
 
 
-def _DCG(preds: np.ndarray, target: np.ndarray, k: int) -> np.ndarray:
-    """Compute the discounted cumulative gains (DCG)."""
-    # Self-implemented dcg is used here. scikit-learn's implementation has
-    # an average time complexity O(NlogN) as it directly applies quicksort
-    # to preds regardless of k. Here the average time complexity is reduced to
-    # O(N + klogk) by first partitioning off the k largest elements and then
-    # applying quicksort to the subarray.
-    row_idx = np.arange(preds.shape[0])[:, np.newaxis]
-    preds_unsorted_idx = np.argpartition(preds, -k)[:, -k:]
-    preds_sorted_idx = preds_unsorted_idx[row_idx, np.argsort(-preds[row_idx, preds_unsorted_idx])]
-
-    # target sorted by the top k preds in non-increasing order
-    gains = target[row_idx, preds_sorted_idx]
-
-    # the discount factor
-    discount = 1 / (np.log2(np.arange(gains.shape[1]) + 2))
-
-    # get the sum product over the last axis of gains and discount
-    dcg = gains.dot(discount)
-    return dcg
-
-
 def _DCG_argsort(argsort_preds: np.ndarray, target: np.ndarray, k: int) -> np.ndarray:
     top_k_idx = argsort_preds[:, -k:][:, ::-1]
     gains = np.take_along_axis(target, top_k_idx, axis=-1)
@@ -87,18 +65,7 @@ class NDCG:
 
     def update(self, preds: np.ndarray, target: np.ndarray):
         assert preds.shape == target.shape  # (batch_size, num_classes)
-
-        # DCG
-        dcgs = _DCG(preds, target, self.top_k)
-        # ideal DCG
-        idcgs = _DCG(target, target, self.top_k)
-        # normalized DCG
-        ndcg_score = dcgs / idcgs
-
-        # deal with instances with all 0 labels and add up the results
-        self.score += np.nan_to_num(ndcg_score, nan=0.0).sum()
-        # remember the total number of instances
-        self.num_sample += preds.shape[0]
+        return self.update_argsort(_sorted_top_k_idx(preds, self.top_k), target)
 
     def update_argsort(self, argsort_preds: np.ndarray, target: np.ndarray):
         dcgs = _DCG_argsort(argsort_preds, target, self.top_k)
