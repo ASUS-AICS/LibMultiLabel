@@ -33,23 +33,6 @@ def _IDCG(target: np.ndarray, top_k: int) -> np.ndarray:
     return gains[indices]
 
 
-def _batchDCG_argsort(argsort_preds: np.ndarray, target: np.ndarray, top_k: int) -> np.ndarray:
-    top_k_idx = argsort_preds[:, -top_k:][:, ::-1]
-    gains = np.take_along_axis(target, top_k_idx, axis=-1)
-    discount = 1 / (np.log2(np.arange(top_k) + 2))
-    dcg = (gains * discount).cumsum(axis=1)
-    return dcg
-
-
-def _batchIDCG(target: np.ndarray, top_k: int) -> np.ndarray:
-    labels = target.sum(axis=1, dtype="i")
-    discount = 1 / (np.log2(np.arange(top_k) + 2))
-    gains = discount.cumsum()
-    indices = np.tile(np.arange(top_k), target.shape[0]).reshape(-1, top_k)
-    indices = np.minimum(labels[:, np.newaxis] - 1, indices)
-    return gains[indices]
-
-
 class NDCG:
     def __init__(self, top_k: int):
         """Compute the normalized DCG@k (nDCG@k).
@@ -79,38 +62,6 @@ class NDCG:
 
     def reset(self):
         self.score = 0
-        self.num_sample = 0
-
-
-class BatchNDCG:
-    def __init__(self, top_k: int):
-        """Compute the normalized DCG@k (nDCG@k) for k = 1 to top_k.
-
-        Args:
-            top_k: Consider up to the top k elements for each query.
-        """
-        _check_top_k(top_k)
-
-        self.top_k = top_k
-        self.score = np.zeros(top_k)
-        self.num_sample = 0
-
-    def update(self, preds: np.ndarray, target: np.ndarray):
-        assert preds.shape == target.shape  # (batch_size, num_classes)
-        return self.update_argsort(_sorted_top_k_idx(preds, self.top_k), target)
-
-    def update_argsort(self, argsort_preds: np.ndarray, target: np.ndarray):
-        dcgs = _batchDCG_argsort(argsort_preds, target, self.top_k)
-        idcgs = _batchIDCG(target, self.top_k)
-        ndcg_score = dcgs / idcgs
-        self.score += np.nan_to_num(ndcg_score, nan=0.0).sum(axis=0)
-        self.num_sample += argsort_preds.shape[0]
-
-    def compute(self) -> dict[str, float]:
-        return {f"NDCG@{k}": v for k, v in zip(range(1, self.top_k + 1), self.score / self.num_sample)}
-
-    def reset(self):
-        self.score = np.zeros(self.top_k)
         self.num_sample = 0
 
 
@@ -178,43 +129,6 @@ class Precision:
 
     def reset(self):
         self.score = 0
-        self.num_sample = 0
-
-
-class BatchPrecision:
-    def __init__(self, num_classes: int, average: str, top_k: int):
-        """Compute Precision@k for K = 1 to top_k.
-
-        Args:
-            num_classes: The number of classes.
-            average: Define the reduction that is applied over labels. Currently only "samples" is supported.
-            top_k: Consider up to the top k elements for each query.
-        """
-        if average != "samples":
-            raise ValueError("unsupported average")
-
-        _check_top_k(top_k)
-
-        self.top_k = top_k
-        self.score = np.zeros(top_k)
-        self.num_sample = 0
-
-    def update(self, preds: np.ndarray, target: np.ndarray):
-        assert preds.shape == target.shape  # (batch_size, num_classes)
-        return self.update_argsort(_sorted_top_k_idx(preds, self.top_k), target)
-
-    def update_argsort(self, argsort_preds: np.ndarray, target: np.ndarray):
-        top_k_idx = argsort_preds[:, -self.top_k :][:, ::-1]
-        num_relevant = np.take_along_axis(target, top_k_idx, -1).cumsum(axis=1)
-        scores = num_relevant / np.arange(1, self.top_k + 1).reshape(1, -1)
-        self.score += scores.sum(axis=0)
-        self.num_sample += argsort_preds.shape[0]
-
-    def compute(self) -> dict[str, float]:
-        return {f"P@{k}": v for k, v in zip(range(1, self.top_k + 1), self.score / self.num_sample)}
-
-    def reset(self):
-        self.score = np.zeros(self.top_k)
         self.num_sample = 0
 
 
@@ -369,11 +283,7 @@ def get_metrics(monitor_metrics: list[str], num_classes: int, multiclass: bool =
         monitor_metrics = []
     metrics = {}
     for metric in monitor_metrics:
-        if re.match("P@1~\d+", metric):
-            metrics[metric] = BatchPrecision(num_classes, average="samples", top_k=int(metric[4:]))
-        elif re.match("NDCG@1~\d+", metric):
-            metrics[metric] = BatchNDCG(top_k=int(metric[7:]))
-        elif re.match("P@\d+", metric):
+        if re.match("P@\d+", metric):
             metrics[metric] = Precision(num_classes, average="samples", top_k=int(metric[2:]))
         elif re.match("R@\d+", metric):
             metrics[metric] = Recall(num_classes, average="samples", top_k=int(metric[2:]))
