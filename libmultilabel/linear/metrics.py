@@ -18,6 +18,7 @@ def _sorted_top_k_idx(preds: np.ndarray, top_k: int) -> np.ndarray:
 
 
 def _DCG_argsort(argsort_preds: np.ndarray, target: np.ndarray, top_k: int) -> np.ndarray:
+    """Computes DCG@k with a sorted preds array and a target array."""
     top_k_idx = argsort_preds[:, -top_k:][:, ::-1]
     gains = np.take_along_axis(target, top_k_idx, axis=-1)
     discount = 1 / (np.log2(np.arange(top_k) + 2))
@@ -26,6 +27,10 @@ def _DCG_argsort(argsort_preds: np.ndarray, target: np.ndarray, top_k: int) -> n
 
 
 def _IDCG(target: np.ndarray, top_k: int) -> np.ndarray:
+    """Computes IDCG@k for a 0/1 target array. A 0/1 target is a special case that
+    doesn't require sorting. If IDCG is computed with DCG,
+    then target will need to be sorted, which incurs a large overhead.
+    """
     labels = target.sum(axis=1, dtype="i")
     discount = 1 / (np.log2(np.arange(top_k) + 2))
     gains = discount.cumsum()
@@ -236,7 +241,9 @@ class MetricCollection(dict):
         """
         assert preds.shape == target.shape  # (batch_size, num_classes)
 
-        # update_argsort only requires there to be max_k indices
+        # The main bottleneck when computing metrics is sorting the top k indices.
+        # As an optimization, we sort only once and pass the sorted predictions to metrics that needs them.
+        # Top k ranking metrics only requires the sorted top k predictions, so we don't need to fully sort the predictions.
         if self.max_k > 0:
             argsort_preds = _sorted_top_k_idx(preds, self.max_k)
 
