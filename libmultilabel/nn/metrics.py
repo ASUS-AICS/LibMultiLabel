@@ -70,7 +70,8 @@ class NDCG(Metric):
         assert preds.shape == target.shape
         dcg = self._dcg(preds, target)
         idcg = self._idcg(target)
-        self.score += (dcg / idcg).sum()
+        ndcg = torch.nan_to_num(dcg / idcg, nan=0.0)
+        self.score += ndcg.sum()
         self.num_sample += preds.shape[0]
 
     def compute(self):
@@ -87,7 +88,10 @@ class NDCG(Metric):
         """optimized idcg for multilabel classification"""
         cum_discount = self.discount.cumsum(0)
         idx = target.sum(1).clamp(max=self.top_k) - 1
+        # instances without labels will have index -1
+        irrelevant_idx = idx == -1
         idcg = cum_discount[idx]
+        idcg[irrelevant_idx] = 0
         return idcg
 
 
