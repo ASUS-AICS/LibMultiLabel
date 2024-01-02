@@ -79,7 +79,7 @@ class NDCG(Metric):
         return score
 
     def _dcg(self, preds, target):
-        sorted_top_k_idx = preds.argsort(descending=True)[:, : self.top_k]
+        _, sorted_top_k_idx = torch.topk(preds, k=self.top_k)
         gains = target.take_along_dim(sorted_top_k_idx, 1)
         dcg = (gains * self.discount).sum(1)
         return dcg
