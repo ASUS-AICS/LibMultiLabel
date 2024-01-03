@@ -69,8 +69,10 @@ class NDCG(Metric):
         assert preds.shape == target.shape
         discount = 1.0 / torch.log2(torch.arange(self.top_k, device=target.device) + 2.0)
         dcg = self._dcg(preds, target, discount)
+        # Instances without labels will have incorrect idcg. However, their dcg will be 0.
+        # As a result, the ndcg will still be correct.
         idcg = self._idcg(target, discount)
-        ndcg = torch.nan_to_num(dcg / idcg, nan=0.0)
+        ndcg = dcg / idcg
         self.score += ndcg.sum()
         self.num_sample += preds.shape[0]
 
@@ -88,10 +90,7 @@ class NDCG(Metric):
         """optimized idcg for multilabel classification"""
         cum_discount = discount.cumsum(dim=0)
         idx = target.sum(dim=1).clamp(max=self.top_k) - 1
-        # instances without labels will have index -1
-        irrelevant_idx = idx == -1
         idcg = cum_discount[idx]
-        idcg[irrelevant_idx] = 0
         return idcg
 
 
