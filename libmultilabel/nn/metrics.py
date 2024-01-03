@@ -77,21 +77,18 @@ class NDCG(Metric):
         self.num_sample += preds.shape[0]
 
     def compute(self):
-        score = self.score / self.num_sample
-        return score
+        return self.score / self.num_sample
 
     def _dcg(self, preds, target, discount):
         _, sorted_top_k_idx = torch.topk(preds, k=self.top_k)
         gains = target.take_along_dim(sorted_top_k_idx, dim=1)
-        dcg = (gains * discount).sum(dim=1)
-        return dcg
+        # best practice for batch dot product: https://discuss.pytorch.org/t/dot-product-batch-wise/9746/11
+        return (gains * discount).sum(dim=1)
 
     def _idcg(self, target, discount):
-        """optimized idcg for multilabel classification"""
         cum_discount = discount.cumsum(dim=0)
         idx = target.sum(dim=1).clamp(max=self.top_k) - 1
-        idcg = cum_discount[idx]
-        return idcg
+        return cum_discount[idx]
 
 
 class RPrecision(Metric):
