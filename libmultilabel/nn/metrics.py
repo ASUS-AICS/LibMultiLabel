@@ -80,14 +80,14 @@ class NDCG(Metric):
 
     def _dcg(self, preds, target, discount):
         _, sorted_top_k_idx = torch.topk(preds, k=self.top_k)
-        gains = target.take_along_dim(sorted_top_k_idx, 1)
-        dcg = (gains * discount).sum(1)
+        gains = target.take_along_dim(sorted_top_k_idx, dim=1)
+        dcg = (gains * discount).sum(dim=1)
         return dcg
 
     def _idcg(self, target, discount):
         """optimized idcg for multilabel classification"""
-        cum_discount = discount.cumsum(0)
-        idx = target.sum(1).clamp(max=self.top_k) - 1
+        cum_discount = discount.cumsum(dim=0)
+        idx = target.sum(dim=1).clamp(max=self.top_k) - 1
         # instances without labels will have index -1
         irrelevant_idx = idx == -1
         idcg = cum_discount[idx]
