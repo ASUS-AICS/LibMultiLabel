@@ -7,7 +7,7 @@ import numpy as np
 __all__ = ["get_metrics", "compute_metrics", "tabulate_metrics", "MetricCollection"]
 
 
-def _sorted_top_k_idx(preds: np.ndarray, top_k: int) -> np.ndarray:
+def _argsort_top_k(preds: np.ndarray, top_k: int) -> np.ndarray:
     """Sorts the top k indices in O(n + k log k) time.
     The sorting order is ascending to be consistent with np.sort.
     This means the last element is the largest, the first element is the kth largest.
@@ -56,7 +56,7 @@ class NDCG:
 
     def update(self, preds: np.ndarray, target: np.ndarray):
         assert preds.shape == target.shape  # (batch_size, num_classes)
-        return self.update_argsort(_sorted_top_k_idx(preds, self.top_k), target)
+        return self.update_argsort(_argsort_top_k(preds, self.top_k), target)
 
     def update_argsort(self, argsort_preds: np.ndarray, target: np.ndarray):
         dcgs = _DCG_argsort(argsort_preds, target, self.top_k)
@@ -248,7 +248,7 @@ class MetricCollection(dict):
         # As an optimization, we sort only once and pass the sorted predictions to metrics that needs them.
         # Top k ranking metrics only requires the sorted top k predictions, so we don't need to fully sort the predictions.
         if self.max_k > 0:
-            argsort_preds = _sorted_top_k_idx(preds, self.max_k)
+            argsort_preds = _argsort_top_k(preds, self.max_k)
 
         for metric in self.metrics.values():
             if hasattr(metric, "update_argsort"):
@@ -264,11 +264,7 @@ class MetricCollection(dict):
         """
         ret = {}
         for name, metric in self.metrics.items():
-            value = metric.compute()
-            if isinstance(value, dict):
-                ret.update(value)
-            else:
-                ret[name] = value
+            ret[name] = metric.compute()
         return ret
 
     def reset(self):
