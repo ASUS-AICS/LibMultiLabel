@@ -64,12 +64,12 @@ class NDCG(Metric):
         self.top_k = top_k
         self.add_state("score", default=torch.tensor(0.0, dtype=torch.float64), dist_reduce_fx="sum")
         self.add_state("num_sample", default=torch.tensor(0, dtype=torch.int64), dist_reduce_fx="sum")
-        self.add_state("discount", default=1.0 / torch.log2(torch.arange(self.top_k) + 2.0))
 
     def update(self, preds, target):
         assert preds.shape == target.shape
-        dcg = self._dcg(preds, target)
-        idcg = self._idcg(target)
+        discount = 1.0 / torch.log2(torch.arange(self.top_k, device=target.device) + 2.0)
+        dcg = self._dcg(preds, target, discount)
+        idcg = self._idcg(target, discount)
         ndcg = torch.nan_to_num(dcg / idcg, nan=0.0)
         self.score += ndcg.sum()
         self.num_sample += preds.shape[0]
@@ -78,15 +78,15 @@ class NDCG(Metric):
         score = self.score / self.num_sample
         return score
 
-    def _dcg(self, preds, target):
+    def _dcg(self, preds, target, discount):
         _, sorted_top_k_idx = torch.topk(preds, k=self.top_k)
         gains = target.take_along_dim(sorted_top_k_idx, 1)
-        dcg = (gains * self.discount).sum(1)
+        dcg = (gains * discount).sum(1)
         return dcg
 
-    def _idcg(self, target):
+    def _idcg(self, target, discount):
         """optimized idcg for multilabel classification"""
-        cum_discount = self.discount.cumsum(0)
+        cum_discount = discount.cumsum(0)
         idx = target.sum(1).clamp(max=self.top_k) - 1
         # instances without labels will have index -1
         irrelevant_idx = idx == -1
