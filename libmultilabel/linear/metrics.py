@@ -22,6 +22,7 @@ def _DCG_argsort(argsort_preds: np.ndarray, target: np.ndarray, top_k: int) -> n
     top_k_idx = argsort_preds[:, -top_k:][:, ::-1]
     gains = np.take_along_axis(target, top_k_idx, axis=-1)
     discount = 1 / (np.log2(np.arange(top_k) + 2))
+    # get the sum product over the last axis of gains and discount
     dcgs = gains.dot(discount)
     return dcgs
 
@@ -31,14 +32,15 @@ def _IDCG(target: np.ndarray, top_k: int) -> np.ndarray:
     doesn't require sorting. If IDCG is computed with DCG,
     then target will need to be sorted, which incurs a large overhead.
     """
-    num_relevant = target.sum(axis=1, dtype="i")
+    num_relevant_labels = target.sum(axis=1, dtype="i")
     discount = 1 / (np.log2(np.arange(top_k) + 2))
-    gains = discount.cumsum()
+    cum_discount = discount.cumsum()
     # NDCG for an instance with no relevant labels is defined to be 0.
     # If an instance has no relevant labels, its DCG will be 0,
     # thus we can return any non-zero IDCG for that instance.
-    indices = np.minimum(num_relevant - 1, top_k - 1)
-    return gains[indices]
+    # Here we return the first element of cum_discount, which is 1.
+    idx = np.clip(num_relevant_labels - 1, 0, top_k - 1)
+    return cum_discount[idx]
 
 
 class NDCG:
@@ -59,9 +61,9 @@ class NDCG:
         return self.update_argsort(_argsort_top_k(preds, self.top_k), target)
 
     def update_argsort(self, argsort_preds: np.ndarray, target: np.ndarray):
-        dcgs = _DCG_argsort(argsort_preds, target, self.top_k)
-        idcgs = _IDCG(target, self.top_k)
-        ndcg_score = dcgs / idcgs
+        dcg = _DCG_argsort(argsort_preds, target, self.top_k)
+        idcg = _IDCG(target, self.top_k)
+        ndcg_score = dcg / idcg
         self.score += np.nan_to_num(ndcg_score, nan=0.0).sum()
         self.num_sample += argsort_preds.shape[0]
 
