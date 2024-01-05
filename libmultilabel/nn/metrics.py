@@ -46,8 +46,6 @@ class NDCG(Metric):
     Please find the formal definition here:
     https://nlp.stanford.edu/IR-book/html/htmledition/evaluation-of-ranked-retrieval-results-1.html
 
-    This is an optimized version of NDCG for multilabal classification. The target has to be a binary tensor.
-
     Args:
         top_k (int): the top k relevant labels to evaluate.
     """
@@ -87,7 +85,8 @@ class NDCG(Metric):
 
     def _idcg(self, target, discount):
         cum_discount = discount.cumsum(dim=0)
-        idx = target.sum(dim=1).clamp(max=self.top_k) - 1
+        idx = target.sum(dim=1) - 1
+        idx = idx.clamp(min=0, max=self.top_k - 1)
         return cum_discount[idx]
 
 
