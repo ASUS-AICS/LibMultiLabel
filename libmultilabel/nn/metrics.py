@@ -84,6 +84,9 @@ class NDCG(Metric):
         return (gains * discount).sum(dim=1)
 
     def _idcg(self, target, discount):
+        """Computes IDCG@k for a 0/1 target tensor.
+        A 0/1 target is a special case that doesn't require sorting.
+        """
         cum_discount = discount.cumsum(dim=0)
         idx = target.sum(dim=1) - 1
         idx = idx.clamp(min=0, max=self.top_k - 1)
