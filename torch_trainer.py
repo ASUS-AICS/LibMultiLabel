@@ -2,7 +2,7 @@ import logging
 import os
 
 import numpy as np
-from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
+from lightning.pytorch.callbacks import ModelCheckpoint
 from transformers import AutoTokenizer
 
 from libmultilabel.common_utils import dump_log, is_multiclass_dataset

@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torchmetrics.classification
 from torchmetrics import Metric, MetricCollection, Precision, Recall
-from torchmetrics.functional.retrieval.ndcg import retrieval_normalized_dcg
+from torchmetrics.functional.retrieval import retrieval_normalized_dcg
 from torchmetrics.utilities.data import select_topk
 
 
@@ -71,7 +71,7 @@ class NDCG(Metric):
         return torch.stack(self.ndcg).mean()
 
     def _metric(self, preds, target):
-        return retrieval_normalized_dcg(preds, target, k=self.top_k)
+        return retrieval_normalized_dcg(preds, target, top_k=self.top_k)
 
 
 class RPrecision(Metric):
@@ -103,6 +103,70 @@ class RPrecision(Metric):
         num_relevant = torch.sum(binary_topk_preds & target, dim=-1)
         top_ks = torch.tensor([self.top_k] * preds.shape[0]).to(preds.device)
         self.score += torch.nan_to_num(num_relevant / torch.min(top_ks, target.sum(dim=-1)), posinf=0.0).sum()
+        self.num_sample += len(preds)
+
+    def compute(self):
+        return self.score / self.num_sample
+
+
+class PrecisionAtK(Metric):
+    """
+
+    Args:
+        top_k (int): the top k relevant labels to evaluate.
+    """
+
+    # If the metric state of one batch is independent of the state of other batches,
+    # full_state_update can be set to False,
+    # which leads to more efficient computation with calling update() only once.
+    # Please find the detailed explanation here:
+    # https://torchmetrics.readthedocs.io/en/stable/pages/implement.html
+    full_state_update = False
+
+    def __init__(self, top_k):
+        super().__init__()
+        self.top_k = top_k
+        self.add_state("score", default=torch.tensor(0.0, dtype=torch.double), dist_reduce_fx="sum")
+        self.add_state("num_sample", default=torch.tensor(0), dist_reduce_fx="sum")
+
+    def update(self, preds, target):
+        assert preds.shape == target.shape
+        binary_topk_preds = select_topk(preds, self.top_k)
+        target = target.to(dtype=torch.int)
+        num_relevant = torch.sum(binary_topk_preds & target, dim=-1)
+        self.score += torch.nan_to_num(num_relevant / self.top_k, posinf=0.0).sum()
+        self.num_sample += len(preds)
+
+    def compute(self):
+        return self.score / self.num_sample
+
+
+class RecallAtK(Metric):
+    """
+
+    Args:
+        top_k (int): the top k relevant labels to evaluate.
+    """
+
+    # If the metric state of one batch is independent of the state of other batches,
+    # full_state_update can be set to False,
+    # which leads to more efficient computation with calling update() only once.
+    # Please find the detailed explanation here:
+    # https://torchmetrics.readthedocs.io/en/stable/pages/implement.html
+    full_state_update = False
+
+    def __init__(self, top_k):
+        super().__init__()
+        self.top_k = top_k
+        self.add_state("score", default=torch.tensor(0.0, dtype=torch.double), dist_reduce_fx="sum")
+        self.add_state("num_sample", default=torch.tensor(0), dist_reduce_fx="sum")
+
+    def update(self, preds, target):
+        assert preds.shape == target.shape
+        binary_topk_preds = select_topk(preds, self.top_k)
+        target = target.to(dtype=torch.int)
+        num_relevant = torch.sum(binary_topk_preds & target, dim=-1)
+        self.score += torch.nan_to_num(num_relevant / target.sum(dim=-1), posinf=0.0).sum()
         self.num_sample += len(preds)
 
     def compute(self):
@@ -198,9 +262,9 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes, top_k=None):
                     f"Invalid metric: {metric}. top_k ({top_k}) is greater than num_classes({num_classes})."
                 )
             if metric_abbr == "P":
-                metrics[metric] = Precision(num_classes, average="samples", top_k=top_k)
+                metrics[metric] = PrecisionAtK(top_k=top_k)
             elif metric_abbr == "R":
-                metrics[metric] = Recall(num_classes, average="samples", top_k=top_k)
+                metrics[metric] = RecallAtK(top_k=top_k)
             elif metric_abbr == "RP":
                 metrics[metric] = RPrecision(top_k=top_k)
             elif metric_abbr == "nDCG":
@@ -218,8 +282,12 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes, top_k=None):
             average_type = match_metric.group(1).lower()  # Micro
             metric_type = match_metric.group(2)  # Precision, Recall, or F1
             metric_type = metric_type.replace("F1", "F1Score")  # to be determined
-            metrics[metric] = getattr(torchmetrics.classification, metric_type)(
-                num_classes, metric_threshold, average=average_type, top_k=top_k
+            metrics[metric] = getattr(torchmetrics, metric_type)(
+                task="multilabel",
+                threshold=metric_threshold,
+                num_labels=num_classes,
+                average=average_type,
+                top_k=top_k,
             )
         else:
             raise ValueError(

@@ -1,11 +1,12 @@
 import logging
 import os
 
-import pytorch_lightning as pl
+import lightning as L
 import torch
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
-from pytorch_lightning.utilities.seed import seed_everything
+from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
+
+# https://github.com/Lightning-AI/pytorch-lightning/pull/16422
+from lightning.fabric.utilities.seed import seed_everything
 
 from ..nn import networks
 from ..nn.model import Model
@@ -153,7 +154,7 @@ def init_trainer(
         save_checkpoints (bool): Whether to save the last and the best checkpoint or not. Defaults to True.
 
     Returns:
-        pl.Trainer: A torch lightning trainer.
+        lightning.trainer: A torch lightning trainer.
     """
 
     # The value of `mode` equals to 'min' only when the metric is 'Loss'
@@ -184,7 +185,7 @@ def init_trainer(
 
         callbacks += [TuneReportCallback({f"val_{val_metric}": val_metric}, on="validation_end")]
 
-    trainer = pl.Trainer(
+    trainer = L.Trainer(
         logger=False,
         num_sanity_val_steps=0,
         accelerator="cpu" if use_cpu else "gpu",

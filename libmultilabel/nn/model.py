@@ -1,7 +1,8 @@
 from abc import abstractmethod
 
 import numpy as np
-import pytorch_lightning as pl
+
+import lightning as L
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
@@ -10,7 +11,7 @@ from ..common_utils import dump_log, argsort_top_k
 from ..nn.metrics import get_metrics, tabulate_metrics
 
 
-class MultiLabelModel(pl.LightningModule):
+class MultiLabelModel(L.LightningModule):
     """Abstract class handling Pytorch Lightning training flow
 
     Args:
@@ -90,7 +91,7 @@ class MultiLabelModel(pl.LightningModule):
         else:
             raise RuntimeError("Unsupported optimizer: {self.optimizer}")
 
-        torch.nn.utils.clip_grad_value_(parameters, 0.5)
+        # torch.nn.utils.clip_grad_value_(parameters, 0.5)
         if self.lr_scheduler:
             if self.lr_scheduler == "ReduceLROnPlateau":
                 lr_scheduler_config = {
@@ -108,38 +109,23 @@ class MultiLabelModel(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        return self._shared_eval_step(batch, batch_idx)
+        self._shared_eval_step(batch, batch_idx)
 
-    def validation_step_end(self, batch_parts):
-        return self._shared_eval_step_end(batch_parts)
-
-    def validation_epoch_end(self, step_outputs):
-        return self._shared_eval_epoch_end(step_outputs, "val")
+    def on_validation_epoch_end(self):
+        return self._shared_eval_epoch_end(split="val")
 
     def test_step(self, batch, batch_idx):
-        return self._shared_eval_step(batch, batch_idx)
+        self._shared_eval_step(batch, batch_idx)
 
-    def test_step_end(self, batch_parts):
-        return self._shared_eval_step_end(batch_parts)
-
-    def test_epoch_end(self, step_outputs):
-        return self._shared_eval_epoch_end(step_outputs, "test")
+    def on_test_epoch_end(self):
+        return self._shared_eval_epoch_end(split="test")
 
     def _shared_eval_step(self, batch, batch_idx):
         loss, pred_logits = self.shared_step(batch)
-        return {
-            "batch_idx": batch_idx,
-            "loss": loss,
-            "pred_scores": torch.sigmoid(pred_logits),
-            "target": batch["label"],
-        }
+        pred_scores = torch.sigmoid(pred_logits)
+        self.eval_metric.update(preds=pred_scores, target=batch["label"], loss=loss)
 
-    def _shared_eval_step_end(self, batch_parts):
-        return self.eval_metric.update(
-            preds=batch_parts["pred_scores"], target=batch_parts["target"], loss=batch_parts["loss"]
-        )
-
-    def _shared_eval_epoch_end(self, step_outputs, split):
+    def _shared_eval_epoch_end(self, split):
         """Get scores such as `Micro-F1`, `Macro-F1`, and monitor metrics defined
         in the configuration file in the end of an epoch.
 
