@@ -20,8 +20,6 @@ class TorchTrainer:
         classes(list, optional): List of class names.
         word_dict(torchtext.vocab.Vocab, optional): A vocab object which maps tokens to indices.
         embed_vecs (torch.Tensor, optional): The pre-trained word vectors of shape (vocab_size, embed_dim).
-        search_params (bool, optional): Enable pytorch-lightning trainer to report the results to ray tune
-            on validation end during hyperparameter search. Defaults to False.
         save_checkpoints (bool, optional): Whether to save the last and the best checkpoint or not.
             Defaults to True.
     """
@@ -33,7 +31,6 @@ class TorchTrainer:
         classes: list = None,
         word_dict: dict = None,
         embed_vecs=None,
-        search_params: bool = False,
         save_checkpoints: bool = True,
     ):
         self.run_name = config.run_name
@@ -84,7 +81,6 @@ class TorchTrainer:
             limit_train_batches=config.limit_train_batches,
             limit_val_batches=config.limit_val_batches,
             limit_test_batches=config.limit_test_batches,
-            search_params=search_params,
             save_checkpoints=save_checkpoints,
         )
         callbacks = [callback for callback in self.trainer.callbacks if isinstance(callback, ModelCheckpoint)]
@@ -223,6 +219,9 @@ class TorchTrainer:
             )
 
         dump_log(self.log_path, config=self.config)
+
+        # return best model score for ray
+        return self.checkpoint_callback.best_model_score.item() if self.checkpoint_callback.best_model_score else None
 
     def test(self, split="test"):
         """Test model with pytorch lightning trainer. Top-k predictions are saved
