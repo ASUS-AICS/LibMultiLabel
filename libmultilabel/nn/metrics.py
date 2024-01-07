@@ -46,6 +46,12 @@ class NDCG(Metric):
     Please find the formal definition here:
     https://nlp.stanford.edu/IR-book/html/htmledition/evaluation-of-ranked-retrieval-results-1.html
 
+    TorchMetrics(v1.2.1) has a function to calculate instance-wise NDCG.
+    This is inefficient when there are dozens of instances in a batch.
+    Moreover, it takes almost twice the time for TorchMetrics' NDCG function to calculate on GPU than CPU. See
+    https://github.com/Lightning-AI/torchmetrics/issues/2287
+    As a result, we implement our own batch-wise NDCG.
+
     Args:
         top_k (int): the top k relevant labels to evaluate.
     """
