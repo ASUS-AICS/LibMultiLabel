@@ -1,13 +1,19 @@
 from abc import abstractmethod
+from typing import Optional
 
 import lightning as L
 import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
+from lightning import LightningModule
+from torch import nn, Tensor
+from torch.nn import Module
+from torch.optim import Optimizer
 
 from ..common_utils import argsort_top_k, dump_log
 from ..nn.metrics import get_metrics, tabulate_metrics
+from libmultilabel.nn import networks
 
 
 class MultiLabelModel(L.LightningModule):
@@ -43,7 +49,7 @@ class MultiLabelModel(L.LightningModule):
         multiclass=False,
         silent=False,
         save_k_predictions=0,
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
 
@@ -197,7 +203,7 @@ class Model(MultiLabelModel):
         network,
         loss_function="binary_cross_entropy_with_logits",
         log_path=None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(num_classes=len(classes), log_path=log_path, **kwargs)
         self.save_hyperparameters(
@@ -232,3 +238,212 @@ class Model(MultiLabelModel):
         loss = self.loss_function(pred_logits, target_labels.float())
 
         return loss, pred_logits
+
+
+class BaseModel(LightningModule):
+    def __init__(
+        self,
+        network: str,
+        network_config: dict,
+        embed_vecs: Tensor,
+        num_labels: int,
+        optimizer: str,
+        metrics: list[str],
+        val_metric: str,
+        top_k: int,
+        is_multiclass: bool,
+        init_weight: Optional[str] = None,
+        loss_func: str = "binary_cross_entropy_with_logits",
+        optimizer_params: Optional[dict] = None,
+        lr_scheduler: Optional[str] = None,
+        metric_threshold: int = 0.5,
+    ):
+        super().__init__()
+        self.save_hyperparameters(ignore="embed_vecs")
+
+        self.network = getattr(networks, network)(embed_vecs=embed_vecs, num_classes=num_labels, **network_config)
+        self.init_weight = init_weight
+        if init_weight is not None:
+            init_weight = networks.get_init_weight_func(init_weight=init_weight)
+            self.network.apply(init_weight)
+
+        self.loss_func = self.configure_loss_func(loss_func)
+
+        # optimizer config
+        self.optimizer_name = optimizer.lower()
+        self.optimizer_params = optimizer_params if optimizer_params is not None else {}
+
+        self.lr_scheduler_name = lr_scheduler
+
+        self.top_k = top_k
+
+        self.num_labels = num_labels
+
+        self.metric_list = metrics
+        self.val_metric_name = val_metric
+        self.test_metric_names = metrics
+        self.is_multiclass = is_multiclass
+        self.metric_threshold = metric_threshold
+
+    @staticmethod
+    def configure_loss_func(loss_func: str) -> Module:
+        try:
+            loss_func = getattr(F, loss_func)
+        except AttributeError:
+            raise AttributeError(f"Invalid loss function name: {loss_func}")
+        return loss_func
+
+    def configure_optimizers(self) -> Optimizer:
+        parameters = [p for p in self.parameters() if p.requires_grad]
+
+        if self.optimizer_name == "sgd":
+            optimizer = optim.SGD
+        elif self.optimizer_name == "adam":
+            optimizer = optim.Adam
+        elif self.optimizer_name == "adamw":
+            optimizer = optim.AdamW
+        elif self.optimizer_name == "adamax":
+            optimizer = optim.Adamax
+        else:
+            raise ValueError(f"Unsupported optimizer: {self.optimizer}")
+
+        optimizer = optimizer(parameters, **self.optimizer_params)
+        if self.lr_scheduler_name is None:
+            return optimizer
+
+        if self.lr_scheduler_name is not None and self.lr_scheduler_name.lower() == "reducelronplateau":
+            lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+                optimizer,
+                mode="min" if self.val_metric_name == "loss" else "max",
+            )
+        else:
+            raise ValueError(f"Unsupported learning rate scheduler: {self.lr_scheduler}")
+
+        lr_scheduler_config = {
+            "scheduler": lr_scheduler,
+            "monitor": self.val_metric_name,
+        }
+        return {"optimizer": optimizer, "lr_scheduler": lr_scheduler_config}
+
+    def on_fit_start(self):
+        self.val_metric = get_metrics(
+            metric_threshold=self.metric_threshold,
+            monitor_metrics=[self.val_metric_name],
+            num_classes=self.num_labels,
+            top_k=1 if self.is_multiclass else None,
+        ).to(self.device)
+
+    def training_step(self, batch: Tensor, batch_idx: int):
+        x, y = batch
+        logits = self.network(x)
+        loss = self.loss_func(logits, y.float())
+        return loss
+
+    def validation_step(self, batch: Tensor, batch_idx: int):
+        x, y = batch
+        logits = self.network(x)
+        self.val_metric.update(torch.sigmoid(logits), y.long())
+
+    def on_validation_epoch_end(self):
+        self.log_dict(self.val_metric.compute(), prog_bar=True)
+        self.val_metric.reset()
+
+    def on_test_start(self):
+        self.test_metrics = get_metrics(
+            metric_threshold=self.metric_threshold,
+            monitor_metrics=self.test_metric_names,
+            num_classes=self.num_labels,
+            top_k=1 if self.is_multiclass else None,
+        ).to(self.device)
+
+    def test_step(self, batch: Tensor, batch_idx: int):
+        x, y = batch
+        logits = self.network(x)
+        self.test_metrics.update(torch.sigmoid(logits), y.long())
+
+    def on_test_epoch_end(self):
+        self.log_dict(self.test_metrics.compute())
+        self.test_metrics.reset()
+
+    def predict_step(self, batch: Tensor, batch_idx: int, dataloader_idx: int = 0):
+        # lightning will put tensors on cpu
+        x = batch
+        logits = self.network(x)
+        scores, labels = torch.topk(torch.sigmoid(logits), self.top_k)
+        return scores, labels
+
+    def forward(self, x):
+        return self.network(x)
+
+
+class PLTModel(BaseModel):
+    def __init__(
+        self,
+        network: str,
+        network_config: dict,
+        embed_vecs: Tensor,
+        num_labels: int,
+        optimizer: str,
+        metrics: list[str],
+        val_metric: str,
+        top_k: int,
+        is_multiclass: bool,
+        loss_func: str = "binary_cross_entropy_with_logits",
+        optimizer_params: Optional[dict] = None,
+        lr_scheduler: Optional[str] = None,
+    ):
+        super().__init__(
+            network=network,
+            network_config=network_config,
+            embed_vecs=embed_vecs,
+            num_labels=num_labels,
+            optimizer=optimizer,
+            metrics=metrics,
+            val_metric=val_metric,
+            top_k=top_k,
+            is_multiclass=is_multiclass,
+            loss_func=loss_func,
+            optimizer_params=optimizer_params,
+            lr_scheduler=lr_scheduler,
+        )
+
+    def multilabel_binarize(
+        self,
+        logits: Tensor,
+        candidates: Tensor,
+        candidate_scores: Tensor,
+    ) -> Tensor:
+        """self-implemented MultiLabelBinarizer for AttentionXML"""
+        src = torch.sigmoid(logits.detach()) * candidate_scores
+        # make sure preds and src use the same precision, e.g., either float16 or float32
+        preds = torch.zeros(candidates.size(0), self.num_labels + 1, device=candidates.device, dtype=src.dtype)
+        preds.scatter_(dim=1, index=candidates, src=src)
+        # remove dummy samples
+        preds = preds[:, :-1]
+        return preds
+
+    def training_step(self, batch, batch_idx):
+        x, y, candidates = batch
+        logits = self.network(x, candidates=candidates)
+        loss = self.loss_func(logits, torch.take_along_dim(y.float(), candidates, dim=1))
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        x, y, candidates, candidate_scores = batch
+        logits = self.network(x, candidates=candidates)
+        # FIXME: Cannot calculate loss, candidates might contain element whose value is self.num_labels (see dataset.py)
+        # loss = self.loss_func(logits, torch.from_numpy(np.concatenate([y[:, candidates], offset])))
+        y_pred = self.multilabel_binarize(logits, candidates, candidate_scores)
+        self.val_metric.update(y_pred, y.long())
+
+    def test_step(self, batch, batch_idx):
+        x, y, candidates, candidate_scores = batch
+        logits = self.network(x, candidates=candidates)
+        y_pred = self.multilabel_binarize(logits, candidates, candidate_scores)
+        self.test_metrics.update(y_pred, y.long())
+
+    def predict_step(self, batch, batch_idx, dataloader_idx=0):
+        x, candidates, candidate_scores = batch
+        logits = self.network(x, candidates=candidates)
+        scores, labels = torch.topk(torch.sigmoid(logits) * candidate_scores, self.top_k)
+        return scores, torch.take_along_dim(candidates, labels, dim=1)

@@ -19,6 +19,7 @@ def add_all_arguments(parser):
     # data
     parser.add_argument("--data_name", default="unnamed_data", help="Dataset name (default: %(default)s)")
     parser.add_argument("--training_file", help="Path to training data (default: %(default)s)")
+    parser.add_argument("--training_sparse_file", help="Path to training sparse data (default: %(default)s)")
     parser.add_argument("--val_file", help="Path to validation data (default: %(default)s)")
     parser.add_argument("--test_file", help="Path to test data (default: %(default)s")
     parser.add_argument(
@@ -78,6 +79,10 @@ def add_all_arguments(parser):
         default="adam",
         choices=["adam", "adamw", "adamax", "sgd"],
         help="Optimizer (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--optimizer_config",
+        help="Optimizer parameters",
     )
     parser.add_argument(
         "--learning_rate", type=float, default=0.0001, help="Learning rate for optimizer (default: %(default)s)"
@@ -222,6 +227,19 @@ def add_all_arguments(parser):
     parser.add_argument("--tree_degree", type=int, default=100, help="Degree of the tree (default: %(default)s)")
     parser.add_argument(
         "--tree_max_depth", type=int, default=10, help="Maximum depth of the tree (default: %(default)s)"
+    )
+    # AttentionXML
+    parser.add_argument(
+        "--cluster_size",
+        type=int,
+        default=8,
+        help="the maximal number of labels inside a cluster (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--top_k",
+        type=int,
+        default=64,
+        help="sample top-k clusters and use them to train tree model (default: %(default)s)",
     )
     parser.add_argument(
         "--beam_width",

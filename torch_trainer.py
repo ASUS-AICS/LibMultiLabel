@@ -3,12 +3,14 @@ import os
 
 import numpy as np
 from lightning.pytorch.callbacks import ModelCheckpoint
+from sklearn.preprocessing import MultiLabelBinarizer
 from transformers import AutoTokenizer
 
 from libmultilabel.common_utils import dump_log, is_multiclass_dataset
 from libmultilabel.nn import data_utils
 from libmultilabel.nn.model import Model
 from libmultilabel.nn.nn_utils import init_device, init_model, init_trainer, set_seed
+from libmultilabel.nn.plt import PLTTrainer
 
 
 class TorchTrainer:
@@ -36,6 +38,7 @@ class TorchTrainer:
         self.run_name = config.run_name
         self.checkpoint_dir = config.checkpoint_dir
         self.log_path = config.log_path
+        self.classes = classes
         os.makedirs(self.checkpoint_dir, exist_ok=True)
 
         # Set up seed & device
@@ -52,6 +55,7 @@ class TorchTrainer:
         if datasets is None:
             self.datasets = data_utils.load_datasets(
                 training_data=config.training_file,
+                training_sparse_data=config.training_sparse_file,
                 test_data=config.test_file,
                 val_data=config.val_file,
                 val_size=config.val_size,
@@ -62,33 +66,56 @@ class TorchTrainer:
         else:
             self.datasets = datasets
 
+        if config.embed_file is not None:
+            word_dict, embed_vecs = data_utils.load_or_build_text_dict(
+                dataset=self.datasets["train"]
+                if config.model_name.lower() != "fastattentionxml"
+                else self.datasets["train_full"],
+                vocab_file=config.vocab_file,
+                min_vocab_freq=config.min_vocab_freq,
+                embed_file=config.embed_file,
+                silent=config.silent,
+                normalize_embed=config.normalize_embed,
+                embed_cache_dir=config.embed_cache_dir,
+            )
+
+        if not classes:
+            self.classes = data_utils.load_or_build_label(self.datasets, config.label_file, config.include_test_labels)
+
+        mlb = MultiLabelBinarizer(classes=self.classes, sparse_output=True)
+        mlb.fit(None)
+
         self.config.multiclass = is_multiclass_dataset(self.datasets["train"] + self.datasets.get("val", list()))
-        self._setup_model(
-            classes=classes,
-            word_dict=word_dict,
-            embed_vecs=embed_vecs,
-            log_path=self.log_path,
-            checkpoint_path=config.checkpoint_path,
-        )
-        self.trainer = init_trainer(
-            checkpoint_dir=self.checkpoint_dir,
-            epochs=config.epochs,
-            patience=config.patience,
-            early_stopping_metric=config.early_stopping_metric,
-            val_metric=config.val_metric,
-            silent=config.silent,
-            use_cpu=config.cpu,
-            limit_train_batches=config.limit_train_batches,
-            limit_val_batches=config.limit_val_batches,
-            limit_test_batches=config.limit_test_batches,
-            save_checkpoints=save_checkpoints,
-        )
-        callbacks = [callback for callback in self.trainer.callbacks if isinstance(callback, ModelCheckpoint)]
-        self.checkpoint_callback = callbacks[0] if callbacks else None
+
+        if self.config.model_name.lower() == "fastattentionxml":
+            self.trainer = PLTTrainer(
+                self.config, classes=self.classes, embed_vecs=embed_vecs, word_dict=word_dict, mlb=mlb
+            )
+        else:
+            self._setup_model(
+                word_dict=word_dict,
+                embed_vecs=embed_vecs,
+                log_path=self.log_path,
+                checkpoint_path=config.checkpoint_path,
+            )
+            self.trainer = init_trainer(
+                checkpoint_dir=self.checkpoint_dir,
+                epochs=config.epochs,
+                patience=config.patience,
+                early_stopping_metric=config.early_stopping_metric,
+                val_metric=config.val_metric,
+                silent=config.silent,
+                use_cpu=config.cpu,
+                limit_train_batches=config.limit_train_batches,
+                limit_val_batches=config.limit_val_batches,
+                limit_test_batches=config.limit_test_batches,
+                save_checkpoints=save_checkpoints,
+            )
+            callbacks = [callback for callback in self.trainer.callbacks if isinstance(callback, ModelCheckpoint)]
+            self.checkpoint_callback = callbacks[0] if callbacks else None
 
     def _setup_model(
         self,
-        classes: list = None,
         word_dict: dict = None,
         embed_vecs=None,
         log_path: str = None,
@@ -114,21 +141,6 @@ class TorchTrainer:
             self.model = Model.load_from_checkpoint(checkpoint_path, log_path=log_path)
         else:
             logging.info("Initialize model from scratch.")
-            if self.config.embed_file is not None:
-                logging.info("Load word dictionary ")
-                word_dict, embed_vecs = data_utils.load_or_build_text_dict(
-                    dataset=self.datasets["train"],
-                    vocab_file=self.config.vocab_file,
-                    min_vocab_freq=self.config.min_vocab_freq,
-                    embed_file=self.config.embed_file,
-                    silent=self.config.silent,
-                    normalize_embed=self.config.normalize_embed,
-                    embed_cache_dir=self.config.embed_cache_dir,
-                )
-            if not classes:
-                classes = data_utils.load_or_build_label(
-                    self.datasets, self.config.label_file, self.config.include_test_labels
-                )
 
             if self.config.early_stopping_metric not in self.config.monitor_metrics:
                 logging.warn(
@@ -147,7 +159,7 @@ class TorchTrainer:
             self.model = init_model(
                 model_name=self.config.model_name,
                 network_config=dict(self.config.network_config),
-                classes=classes,
+                classes=self.classes,
                 word_dict=word_dict,
                 embed_vecs=embed_vecs,
                 init_weight=self.config.init_weight,
@@ -194,31 +206,34 @@ class TorchTrainer:
         """Train model with pytorch lightning trainer. Set model to the best model after the training
         process is finished.
         """
-        assert (
-            self.trainer is not None
-        ), "Please make sure the trainer is successfully initialized by `self._setup_trainer()`."
-        train_loader = self._get_dataset_loader(split="train", shuffle=self.config.shuffle)
-
-        if "val" not in self.datasets:
-            logging.info("No validation dataset is provided. Train without vaildation.")
-            self.trainer.fit(self.model, train_loader)
+        if self.config.model_name.lower() == "fastattentionxml":
+            self.trainer.fit(self.datasets)
         else:
-            val_loader = self._get_dataset_loader(split="val")
-            self.trainer.fit(self.model, train_loader, val_loader)
+            assert (
+                self.trainer is not None
+            ), "Please make sure the trainer is successfully initialized by `self._setup_trainer()`."
+            train_loader = self._get_dataset_loader(split="train", shuffle=self.config.shuffle)
 
-        # Set model to the best model. If the validation process is skipped during
-        # training (i.e., val_size=0), the model is set to the last model.
-        model_path = self.checkpoint_callback.best_model_path or self.checkpoint_callback.last_model_path
-        if model_path:
-            logging.info(f"Finished training. Load best model from {model_path}.")
-            self._setup_model(checkpoint_path=model_path, log_path=self.log_path)
-        else:
-            logging.info(
-                "No model is saved during training. \
-                If you want to save the best and the last model, please set `save_checkpoints` to True."
-            )
+            if "val" not in self.datasets:
+                logging.info("No validation dataset is provided. Train without vaildation.")
+                self.trainer.fit(self.model, train_loader)
+            else:
+                val_loader = self._get_dataset_loader(split="val")
+                self.trainer.fit(self.model, train_loader, val_loader)
 
-        dump_log(self.log_path, config=self.config)
+            # Set model to the best model. If the validation process is skipped during
+            # training (i.e., val_size=0), the model is set to the last model.
+            model_path = self.checkpoint_callback.best_model_path or self.checkpoint_callback.last_model_path
+            if model_path:
+                logging.info(f"Finished training. Load best model from {model_path}.")
+                self._setup_model(checkpoint_path=model_path, log_path=self.log_path)
+            else:
+                logging.info(
+                    "No model is saved during training. \
+                    If you want to save the best and the last model, please set `save_checkpoints` to True."
+                )
+
+            dump_log(self.log_path, config=self.config)
 
         # return best model score for ray
         return self.checkpoint_callback.best_model_score.item() if self.checkpoint_callback.best_model_score else None
@@ -235,15 +250,18 @@ class TorchTrainer:
         """
         assert "test" in self.datasets and self.trainer is not None
 
-        logging.info(f"Testing on {split} set.")
-        test_loader = self._get_dataset_loader(split=split)
-        metric_dict = self.trainer.test(self.model, dataloaders=test_loader, verbose=False)[0]
+        if self.config.model_name.lower() == "fastattentionxml":
+            self.trainer.test(self.datasets["test"])
+        else:
+            logging.info(f"Testing on {split} set.")
+            test_loader = self._get_dataset_loader(split=split)
+            metric_dict = self.trainer.test(self.model, dataloaders=test_loader, verbose=False)[0]
 
-        if self.config.save_k_predictions > 0:
-            self._save_predictions(test_loader, self.config.predict_out_path)
+            if self.config.save_k_predictions > 0:
+                self._save_predictions(test_loader, self.config.predict_out_path)
 
-        dump_log(self.log_path, config=self.config)
-        return metric_dict
+            dump_log(self.log_path, config=self.config)
+            return metric_dict
 
     def _save_predictions(self, dataloader, predict_out_path):
         """Save top k label results.
