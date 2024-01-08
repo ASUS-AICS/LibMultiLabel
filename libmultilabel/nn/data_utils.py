@@ -7,8 +7,10 @@ import pandas as pd
 import torch
 import transformers
 from nltk.tokenize import RegexpTokenizer
+from scipy.sparse import issparse
+from sklearn.datasets import load_svmlight_file
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MultiLabelBinarizer
+from sklearn.preprocessing import MultiLabelBinarizer, normalize
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import Dataset
 from torchtext.vocab import build_vocab_from_iterator, pretrained_aliases, Vocab
@@ -17,6 +19,7 @@ from tqdm import tqdm
 transformers.logging.set_verbosity_error()
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
+# selection of UNK: https://groups.google.com/g/globalvectors/c/9w8ZADXJclA/m/hRdn4prm-XUJ
 UNK = "<unk>"
 PAD = "<pad>"
 
@@ -194,6 +197,7 @@ def _load_raw_data(data, is_test=False, tokenize_text=True, remove_no_label_data
 
 def load_datasets(
     training_data=None,
+    training_sparse_data=None,
     test_data=None,
     val_data=None,
     val_size=0.2,
@@ -206,6 +210,7 @@ def load_datasets(
 
     Args:
         training_data (Union[str, pandas,.Dataframe], optional): Path to training data or a dataframe.
+        training_sparse_data (Union[str, pandas,.Dataframe], optional): Path to training sparse data or a dataframe in libsvm format.
         test_data (Union[str, pandas,.Dataframe], optional): Path to test data or a dataframe.
         val_data (Union[str, pandas,.Dataframe], optional): Path to validation data or a dataframe.
         val_size (float, optional): Training-validation split: a ratio in [0, 1] or an integer for the size of the validation set.
@@ -229,11 +234,16 @@ def load_datasets(
             training_data, tokenize_text=tokenize_text, remove_no_label_data=remove_no_label_data
         )
 
+    if training_sparse_data is not None:
+        logging.info(f"Loading sparse training data")
+        datasets["train_sparse_x"] = normalize(load_svmlight_file(training_sparse_data, multilabel=True)[0])
+
     if val_data is not None:
         datasets["val"] = _load_raw_data(
             val_data, tokenize_text=tokenize_text, remove_no_label_data=remove_no_label_data
         )
     elif val_size > 0:
+        datasets["train_full"] = datasets["train"]
         datasets["train"], datasets["val"] = train_test_split(datasets["train"], test_size=val_size, random_state=42)
 
     if test_data is not None:
@@ -249,7 +259,7 @@ def load_datasets(
         del datasets["val"]
         gc.collect()
 
-    msg = " / ".join(f"{k}: {len(v)}" for k, v in datasets.items())
+    msg = " / ".join(f"{k}: {v.shape[0] if issparse(v) else len(v)}" for k, v in datasets.items())
     logging.info(f"Finish loading dataset ({msg})")
     return datasets
 
@@ -335,7 +345,7 @@ def load_or_build_label(datasets, label_file=None, include_test_labels=False):
         classes = set()
 
         for split, data in datasets.items():
-            if split == "test" and not include_test_labels:
+            if (split == "test" and not include_test_labels) or split == "train_sparse_x":
                 continue
             for instance in data:
                 classes.update(instance["label"])

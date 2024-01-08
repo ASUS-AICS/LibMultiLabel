@@ -1,0 +1,50 @@
+data_name: EUR-Lex
+training_file: /l/users/dongli.he/libml/LibMultiLabel/EUR-Lex/train.txt
+training_sparse_file: /l/users/dongli.he/libml/LibMultiLabel/EUR-Lex/train.svm
+test_file: /l/users/dongli.he/libml/LibMultiLabel/EUR-Lex/test.txt
+# pretrained embeddings
+embed_file: glove.840B.300d
+embed_cache_dir: /l/users/dongli.he/libml/LibMultiLabel/embedding
+# save path
+result_dir: /l/users/dongli.he/libml/LibMultiLabel/EUR-Lex/results
+
+# preprocessing
+min_vocab_freq: 1
+max_seq_length: 500
+
+# AttentionXML-related parameters
+cluster_size: 8
+top_k: 64
+
+# dataloader
+batch_size: 40
+val_size: 200
+shuffle: true
+
+# eval
+eval_batch_size: 40
+monitor_metrics: [P@1, P@3, P@5, nDCG@3, nDCG@5, RP@3, RP@5]
+val_metric: nDCG@5
+
+# trainer params
+accelerator: gpu
+
+# train
+seed: 1337
+epochs: 30
+silent: true
+# https://github.com/Lightning-AI/lightning/issues/8826
+optimizer: Adam
+# early stopping
+patience: 5
+
+# model
+model_name: FastAttentionXML
+loss_func: binary_cross_entropy_with_logits
+network_config:
+  embed_dropout: 0.2
+  post_encoder_dropout: 0.5
+  rnn_dim: 512
+  rnn_layers: 1
+  linear_size: [256]
+  freeze_embed_training: True

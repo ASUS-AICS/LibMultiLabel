@@ -9,6 +9,8 @@ from .labelwise_attention_networks import BiGRULWAN
 from .labelwise_attention_networks import BiLSTMLWAN
 from .labelwise_attention_networks import BiLSTMLWMHAN
 from .labelwise_attention_networks import CNNLWAN
+from .labelwise_attention_networks import AttentionRNN as AttentionXML
+from .labelwise_attention_networks import FastAttentionRNN as FastAttentionXML
 
 
 def get_init_weight_func(init_weight):
