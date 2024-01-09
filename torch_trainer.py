@@ -10,6 +10,7 @@ import torch
 import torch.distributed as dist
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
+from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_info, rank_zero_warn
 from sklearn.preprocessing import MultiLabelBinarizer
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader
@@ -17,11 +18,11 @@ from transformers import AutoTokenizer
 
 from libmultilabel.common_utils import dump_log, is_multiclass_dataset, AttributeDict
 from libmultilabel.nn import data_utils
-from libmultilabel.nn.data_utils import MultiLabelDataset, UNK
+from libmultilabel.nn.data_utils import UNK
+from libmultilabel.nn.datasets import MultiLabelDataset
 from libmultilabel.nn.model import Model, BaseModel
-from libmultilabel.nn.nn_utils import init_device, init_model, init_trainer, set_seed, is_global_zero
+from libmultilabel.nn.nn_utils import init_device, init_model, init_trainer, set_seed
 from libmultilabel.nn.plt import PLTTrainer
-from libmultilabel.common_utils import GLOBAL_RANK
 
 
 class TorchTrainer:
@@ -48,13 +49,11 @@ class TorchTrainer:
         embed_vecs=None,
         search_params: bool = False,
         save_checkpoints: bool = True,
-        ensemble_id: int = 0,
     ):
         self.run_name = config.run_name
         self.checkpoint_dir = config.checkpoint_dir
         self.log_path = config.log_path
         self.classes = classes
-        self.ensemble_id = ensemble_id
         os.makedirs(self.checkpoint_dir, exist_ok=True)
 
         # Set up seed & device
@@ -62,11 +61,7 @@ class TorchTrainer:
         self.device = init_device(use_cpu=config.cpu)
         self.config = config
 
-        if config.model_name == "FastAttentionXML":
-            # TODO: Remove
-            import re
-
-            self.model_path = re.search(r".+_.+", config.checkpoint_dir)
+        if self.config.model_name.lower() == "FastAttentionXML":
             if datasets is None:
                 self.datasets = data_utils.load_datasets(
                     training_data=config.training_file,
@@ -75,48 +70,42 @@ class TorchTrainer:
                     val_data=config.val_file,
                     val_size=config.val_size,
                     merge_train_val=config.merge_train_val,
-                    # TODO: move to config
                     tokenize_text=True,
-                    lowercase=config.lowercase,
                     tokenizer=config.get("tokenizer", "regex"),
                     remove_no_label_data=config.remove_no_label_data,
-                    random_state=config.get("random_state", 42),
+                    random_state=config.get("random_state", 1270),
                 )
             if not (Path(config.test_file).parent / "word_dict.vocab").exists():
-                if GLOBAL_RANK == 0:
-                    logging.info("Calculating word dictionary and embeddings.")
-                    word_dict, embed_vecs = data_utils.load_or_build_text_dict(
-                        dataset=self.datasets["train"] + self.datasets["val"],
-                        vocab_file=self.config.vocab_file,
-                        # TODO: move to config
-                        min_vocab_freq=self.config.min_vocab_freq,
-                        embed_file=self.config.embed_file,
-                        silent=self.config.silent,
-                        normalize_embed=self.config.normalize_embed,
-                        embed_cache_dir=self.config.embed_cache_dir,
-                        max_tokens=self.config.get("max_tokens"),
-                        unk_init=self.config.get("unk_init", "uniform"),
-                        unk_init_param=self.config.get("unk_init_param", {-1, 1}),
-                        apply_all=self.config.get("apply_all", True),
-                    )
+                rank_zero_info("Calculating word dictionary and embeddings.")
+                word_dict, embed_vecs = data_utils.load_or_build_text_dict(
+                    dataset=self.datasets["train"] + self.datasets["val"],
+                    vocab_file=self.config.vocab_file,
+                    # TODO: move to config
+                    min_vocab_freq=self.config.min_vocab_freq,
+                    embed_file=self.config.embed_file,
+                    silent=self.config.silent,
+                    normalize_embed=self.config.normalize_embed,
+                    embed_cache_dir=self.config.embed_cache_dir,
+                    max_tokens=self.config.get("max_tokens"),
+                    unk_init=self.config.get("unk_init", "uniform"),
+                    unk_init_param=self.config.get("unk_init_param", {-1, 1}),
+                    apply_all=self.config.get("apply_all", True),
+                )
+                if word_dict is not None:
                     torch.save(word_dict, Path(config.test_file).parent / "word_dict.vocab")
                     torch.save(embed_vecs, Path(config.test_file).parent / "word_embeddings.tensor")
                 # barrier
-                else:
-                    while not (Path(config.test_file).parent / "word_dict.vocab").exists():
-                        time.sleep(15)
+                while not (Path(config.test_file).parent / "word_dict.vocab").exists():
+                    time.sleep(15)
 
             word_dict = torch.load(Path(config.test_file).parent / "word_dict.vocab")
             embed_vecs = torch.load(Path(config.test_file).parent / "word_embeddings.tensor")
 
             if not classes:
-                logging.warning(f"[Rank: {GLOBAL_RANK}] read labels.")
                 classes = data_utils.load_or_build_label(
                     self.datasets, self.config.label_file, self.config.include_test_labels
                 )
-            self.trainer = PLTTrainer(
-                config, classes=classes, ensemble_id=self.ensemble_id, word_dict=word_dict, embed_vecs=embed_vecs
-            )
+            self.trainer = PLTTrainer(config, classes=classes, word_dict=word_dict, embed_vecs=embed_vecs)
         else:
             # Load pretrained tokenizer for dataset loader
             self.tokenizer = None
@@ -132,7 +121,6 @@ class TorchTrainer:
                     val_size=config.val_size,
                     merge_train_val=config.merge_train_val,
                     tokenize_text=tokenize_text,
-                    lowercase=config.get("lowercase", True),
                     tokenizer=config.get("tokenizer", "regex"),
                     remove_no_label_data=config.remove_no_label_data,
                 )
@@ -197,34 +185,35 @@ class TorchTrainer:
         else:
             logging.info("Initialize model from scratch.")
             if self.config.embed_file is not None:
-                # if not (Path(self.config.test_file).parent / "word_dict.vocab").exists():
-                # if GLOBAL_RANK == 0:
-                logging.info("Calculating word dictionary and embeddings.")
-                logging.info("Load word dictionary ")
-                word_dict, embed_vecs = data_utils.load_or_build_text_dict(
-                    dataset=self.datasets["train"] + self.datasets["val"],
-                    vocab_file=self.config.vocab_file,
-                    min_vocab_freq=self.config.min_vocab_freq,
-                    embed_file=self.config.embed_file,
-                    silent=self.config.silent,
-                    normalize_embed=self.config.normalize_embed,
-                    embed_cache_dir=self.config.embed_cache_dir,
-                    max_tokens=self.config.get("max_tokens"),
-                    unk_init=self.config.get("unk_init"),
-                    unk_init_param=self.config.get("unk_init_param"),
-                    apply_all=self.config.get("apply_all", False),
-                )
-                # torch.save(word_dict, Path(self.config.test_file).parent / "word_dict.vocab")
-                # torch.save(embed_vecs, Path(self.config.test_file).parent / "word_embeddings.tensor")
-                # time.sleep(15)
-                # barrier
-                # else:
-                #     while not (Path(self.config.test_file).parent / "word_dict.vocab").exists():
-                #         time.sleep(15)
+                if not (Path(self.config.test_file).parent / "word_dict.vocab").exists():
+                    rank_zero_info("Calculating word dictionary and embeddings.")
+                    rank_zero_info("Load word dictionary")
+                    word_dict, embed_vecs = data_utils.load_or_build_text_dict(
+                        dataset=self.datasets["train"]
+                        if self.config.model_name.lower() != "AttentionXML"
+                        else self.datasets["train"] + self.datasets["val"],
+                        vocab_file=self.config.vocab_file,
+                        min_vocab_freq=self.config.min_vocab_freq,
+                        embed_file=self.config.embed_file,
+                        silent=self.config.silent,
+                        normalize_embed=self.config.normalize_embed,
+                        embed_cache_dir=self.config.embed_cache_dir,
+                        max_tokens=self.config.get("max_tokens"),
+                        unk_init=self.config.get("unk_init"),
+                        unk_init_param=self.config.get("unk_init_param"),
+                        apply_all=self.config.get("apply_all", False),
+                    )
+                    if word_dict is not None:
+                        torch.save(word_dict, Path(self.config.test_file).parent / "word_dict.vocab")
+                        torch.save(embed_vecs, Path(self.config.test_file).parent / "word_embeddings.tensor")
+                    # barrier
+                    while not (Path(self.config.test_file).parent / "word_dict.vocab").exists():
+                        time.sleep(15)
 
-                # word_dict = torch.load(Path(self.config.test_file).parent / "word_dict.vocab")
+                word_dict = torch.load(Path(self.config.test_file).parent / "word_dict.vocab")
+                embed_vecs = torch.load(Path(self.config.test_file).parent / "word_embeddings.tensor")
                 self.word_dict = word_dict
-                # embed_vecs = torch.load(Path(self.config.test_file).parent / "word_embeddings.tensor")
+                self.embed_vecs = embed_vecs
 
             if not classes:
                 classes = data_utils.load_or_build_label(
@@ -300,12 +289,12 @@ class TorchTrainer:
             self.trainer is not None
         ), "Please make sure the trainer is successfully initialized by `self._setup_trainer()`."
 
-        if self.config.model_name == "FastAttentionXML":
+        if self.config.model_name.lower() == "FastAttentionXML":
             self.trainer.fit(self.datasets)
         else:
-            if self.config.model_name == "AttentionXML":
+            if self.config.model_name.lower() == "AttentionXML":
                 if (
-                    Path(self.config.dir_path) / f"{self.config.data_name}-{self.config.model_name}-{0}" / "Model.ckpt"
+                    Path(self.config.dir_path) / f"{self.config.data_name}-{self.config.model_name}" / "Model.ckpt"
                 ).exists():
                     return
 
@@ -358,7 +347,7 @@ class TorchTrainer:
                         If you want to save the best and the last model, please set `save_checkpoints` to True."
                     )
 
-    @is_global_zero
+    @rank_zero_only
     def test(self, split="test"):
         """Test model with pytorch lightning trainer. Top-k predictions are saved
         if `save_k_predictions` > 0.

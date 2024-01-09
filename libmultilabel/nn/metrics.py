@@ -1,15 +1,12 @@
 from __future__ import annotations
 
-import logging
 import re
 
 import numpy as np
 import torch
 import torchmetrics.classification
-from torch import Tensor
-from torchmetrics import Metric, MetricCollection, Precision, Recall, RetrievalPrecision
-from torchmetrics.functional.retrieval.ndcg import retrieval_normalized_dcg
-from torchmetrics.utilities.data import select_topk, dim_zero_cat
+from torchmetrics import Metric, MetricCollection, Precision, Recall
+from torchmetrics.utilities.data import select_topk
 
 AVAILABLE_METRICS_ABBR = ["p", "r", "rp", "ndcg"]
 
@@ -50,18 +47,14 @@ def list2metrics(
 
         if metric_abbr == "p":
             return Precision(num_labels, average="samples", top_k=top_k)
-        # elif metric_abbr == "tp":
-        #     metric = RetrievalPrecision(k=top_k)
         elif metric_abbr == "rp":
             return RPrecision(top_k=top_k)
         elif metric_abbr == "ndcg":
             return NDCG(top_k=top_k)
-        elif metric_abbr == "ndcgnew":
-            return NDCGnew(top_k=top_k)
         else:
             raise ValueError(f"Invalid metric: {metric}.")
 
-    return MetricCollection({m.lower(): _str2metric(m) for m in metrics})
+    return MetricCollection({m.lower(): _str2metric(m) for m in metrics}, compute_groups=False)
 
 
 class Loss(Metric):
@@ -99,6 +92,7 @@ class NDCG(Metric):
     https://scikit-learn.org/stable/modules/generated/sklearn.metrics.ndcg_score.html
     Please find the formal definition here:
     https://nlp.stanford.edu/IR-book/html/htmledition/evaluation-of-ranked-retrieval-results-1.html
+
     Args:
         top_k (int): the top k relevant labels to evaluate.
     """
@@ -113,41 +107,37 @@ class NDCG(Metric):
     def __init__(self, top_k):
         super().__init__()
         self.top_k = top_k
-        self.add_state("ndcg", default=[], dist_reduce_fx="cat")
+        self.add_state("score", default=torch.tensor(0.0, dtype=torch.float64), dist_reduce_fx="sum")
+        self.add_state("num_sample", default=torch.tensor(0, dtype=torch.int64), dist_reduce_fx="sum")
 
     def update(self, preds, target):
         assert preds.shape == target.shape
-        # implement batch-wise calculations instead of storing results of all batches
-        self.ndcg += [self._metric(p, t) for p, t in zip(preds, target)]
+        discount = 1.0 / torch.log2(torch.arange(self.top_k, device=target.device) + 2.0)
+        dcg = self._dcg(preds, target, discount)
+        # Instances without labels will have incorrect idcg. However, their dcg will be 0.
+        # As a result, the ndcg will still be correct.
+        idcg = self._idcg(target, discount)
+        ndcg = dcg / idcg
+        self.score += ndcg.sum()
+        self.num_sample += preds.shape[0]
 
     def compute(self):
-        """Performs stacking on ndcg if neccesary"""
-        ndcg = torch.stack(self.ndcg) if isinstance(self.ndcg, list) else self.ndcg
-        return ndcg.mean()
+        return self.score / self.num_sample
 
-    def _metric(self, preds, target):
-        return retrieval_normalized_dcg(preds, target, k=self.top_k)
+    def _dcg(self, preds, target, discount):
+        _, sorted_top_k_idx = torch.topk(preds, k=self.top_k)
+        gains = target.take_along_dim(sorted_top_k_idx, dim=1)
+        # best practice for batch dot product: https://discuss.pytorch.org/t/dot-product-batch-wise/9746/11
+        return (gains * discount).sum(dim=1)
 
-
-class NDCGnew(Metric):
-    is_differentiable = False
-    higher_is_better = True
-    full_state_update = False
-
-    def __init__(self, top_k: int):
-        super().__init__()
-        self.top_k = top_k
-        # the range of ndcg is from 0 to 1
-        self.add_state("ndcg", default=torch.tensor(0, dtype=torch.float), dist_reduce_fx="sum")
-        self.add_state("n", default=torch.tensor(0), dist_reduce_fx="sum")
-
-    def update(self, preds: Tensor, target: Tensor):
-        assert preds.shape == target.shape
-        self.ndcg += torch.stack([retrieval_normalized_dcg(p, t, k=self.top_k) for p, t in zip(preds, target)]).sum()
-        self.n += len(preds)
-
-    def compute(self):
-        return self.ndcg / self.n
+    def _idcg(self, target, discount):
+        """Computes IDCG@k for a 0/1 target tensor.
+        A 0/1 target is a special case that doesn't require sorting.
+        """
+        cum_discount = discount.cumsum(dim=0)
+        idx = target.sum(dim=1) - 1
+        idx = idx.clamp(min=0, max=self.top_k - 1)
+        return cum_discount[idx]
 
 
 class RPrecision(Metric):
@@ -169,7 +159,6 @@ class RPrecision(Metric):
     def __init__(self, top_k):
         super().__init__()
         self.top_k = top_k
-        # self.add_state("score", default=[], dist_reduce_fx="cat")
         self.add_state("score", default=torch.tensor(0.0, dtype=torch.double), dist_reduce_fx="sum")
         self.add_state("num_sample", default=torch.tensor(0), dist_reduce_fx="sum")
 
@@ -325,7 +314,3 @@ def tabulate_metrics(metric_dict: dict[str, float], split: str) -> str:
     )
     msg += f"|{header}|\n|{'-----------------:|' * len(metric_dict)}\n|{values}|\n"
     return msg
-
-
-def get_precision(preds, target, classes=None, top=5):
-    return preds.multiply(target).sum() / (top * target.shape[0])

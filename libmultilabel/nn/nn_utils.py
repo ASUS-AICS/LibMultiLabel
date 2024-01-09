@@ -2,11 +2,11 @@ import logging
 import os
 from pathlib import Path
 
-import pytorch_lightning as pl
+import lightning as L
 import torch
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
-from pytorch_lightning.utilities.seed import seed_everything
+from lightning import seed_everything
+from lightning.pytorch.callbacks.early_stopping import EarlyStopping
+from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
 
 from ..nn import networks
 from ..nn.model import Model, BaseModel
@@ -28,8 +28,6 @@ def init_device(use_cpu=False):
         # https://docs.nvidia.com/cuda/cublas/index.html
         os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
         device = torch.device("cuda")
-        if GLOBAL_RANK == 0:
-            logging.info(f"Available GPUs: {torch.cuda.device_count()}")
         # Sets the internal precision of float32 matrix multiplications.
         # https://pytorch.org/docs/stable/generated/torch.set_float32_matmul_precision.html
         torch.set_float32_matmul_precision("high")
@@ -37,8 +35,7 @@ def init_device(use_cpu=False):
         device = torch.device("cpu")
         # https://github.com/pytorch/pytorch/issues/11201
         torch.multiprocessing.set_sharing_strategy("file_system")
-    if GLOBAL_RANK == 0:
-        logging.info(f"Using device: {device}")
+    logging.info(f"Using device: {device}")
     return device
 
 
@@ -181,7 +178,7 @@ def init_trainer(
         model_name=None
 
     Returns:
-        pl.Trainer: A torch lightning trainer.
+        L.Trainer: A torch lightning trainer.
     """
 
     # The value of `mode` equals to 'min' only when the metric is 'Loss'
@@ -233,7 +230,7 @@ def init_trainer(
                 mode="max",
             )
         ]
-        trainer = pl.Trainer(
+        trainer = L.Trainer(
             num_nodes=config.num_nodes,
             devices=config.devices,
             max_epochs=config.max_epochs,
@@ -251,7 +248,7 @@ def init_trainer(
             # precision=16,
         )
     else:
-        trainer = pl.Trainer(
+        trainer = L.Trainer(
             logger=False,
             num_sanity_val_steps=0,
             accelerator="cpu" if use_cpu else "gpu",
@@ -268,23 +265,5 @@ def init_trainer(
 
 
 def set_seed(seed):
-    """Set seeds for numpy and pytorch.
-    # Dongli Suggestion: Rename to setup_reproducibility
-    # random seed if not specified
-    Args:
-        seed (int): Random seed.
-    """
-
-    if seed is not None:
-        if seed >= 0:
-            seed_everything(seed=seed, workers=True)
-        else:
-            logging.warning("the random seed should be a non-negative integer")
-
-
-def is_global_zero(func):
-    def wrapper(*args, **kwargs):
-        if GLOBAL_RANK == 0:
-            return func(*args, **kwargs)
-
-    return wrapper
+    """Wrapper of lightning.seed_everything"""
+    seed_everything(seed=seed, workers=True)

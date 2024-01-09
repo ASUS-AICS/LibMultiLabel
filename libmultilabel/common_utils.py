@@ -5,13 +5,6 @@ import os
 import time
 
 import numpy as np
-from pytorch_lightning.plugins.environments import SLURMEnvironment, LightningEnvironment
-
-if os.environ.get("SLURM_PROCID") is not None:
-    env = SLURMEnvironment()
-else:
-    env = LightningEnvironment()
-GLOBAL_RANK = env.global_rank()
 
 
 class AttributeDict(dict):

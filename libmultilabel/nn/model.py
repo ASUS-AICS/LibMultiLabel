@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from abc import abstractmethod
 from collections import deque
+from typing import Optional
 
 import numpy as np
 import pytorch_lightning as pl
@@ -15,7 +16,6 @@ from torch.optim import Optimizer
 
 from ..common_utils import dump_log, argsort_top_k
 from ..nn.metrics import get_metrics, tabulate_metrics, list2metrics
-from .networks.labelwise_attention_networks import AttentionRNN
 from libmultilabel.nn import networks
 
 
@@ -266,19 +266,18 @@ class BaseModel(pl.LightningModule):
         metrics: list[str],
         top_k: int,
         loss_fn: str = "binary_cross_entropy_with_logits",
-        optimizer_params: dict | None = None,
-        swa_epoch_start: int | None = None,
-        train_mlb=None,
-        test_mlb=None,
+        optimizer_params: Optional[dict] = None,
+        swa_epoch_start: Optional[int] = None,
     ):
         super().__init__()
-        self.save_hyperparameters()
+        self.save_hyperparameters(ignore=["embed_vecs"])
 
         try:
             self.network = getattr(networks, network)(embed_vecs=embed_vecs, num_classes=num_labels, **network_config)
         except AttributeError as e:
             logging.warning(e)
             raise AttributeError(f"Invalid network name: {network}")
+
         self.loss_fn = self.configure_loss_fn(loss_fn)
 
         # optimizer config
@@ -292,14 +291,9 @@ class BaseModel(pl.LightningModule):
         self.num_labels = num_labels
         self.state = {}
 
-        # mlbs are needed for testing purposes
-        self.train_mlb = train_mlb
-        self.test_mlb = test_mlb
-
         self.metric_list = metrics
-        self.metrics = list2metrics(metrics, self.num_labels)
-        self.valid_metrics = None
-        self.test_metrics = None
+        self.valid_metrics = list2metrics(["ndcg@5"], self.num_labels)
+        self.test_metrics = list2metrics(metrics, self.num_labels)
 
         self._clip_grad = 5.0
         self._grad_norm_queue = deque([torch.tensor(float("inf"))], maxlen=5)
@@ -316,12 +310,7 @@ class BaseModel(pl.LightningModule):
 
     def configure_optimizers(self) -> Optimizer:
         try:
-            if self.optimizer == "DenseSparseAdam":
-                from .optimizer import DenseSparseAdam
-
-                optimizer = DenseSparseAdam(self.parameters(), **self.optimizer_params)
-            else:
-                optimizer = getattr(torch.optim, self.optimizer)(self.parameters(), **self.optimizer_params)
+            optimizer = getattr(torch.optim, self.optimizer)(self.parameters(), **self.optimizer_params)
         except AttributeError:
             raise AttributeError(f"Invalid optimizer name: {self.optimizer}")
         except TypeError:
@@ -337,7 +326,6 @@ class BaseModel(pl.LightningModule):
         x, y = batch
         logits = self.network(x)
         loss = self.loss_fn(logits, y)
-        # self.log("loss", loss, prog_bar=True, sync_dist=True)
         return loss
 
     def swa_init(self):
@@ -364,35 +352,25 @@ class BaseModel(pl.LightningModule):
                 p.data, swa_state[n] = swa_state[n], p.data
 
     def on_validation_start(self):
-        self.valid_metrics = self.metrics.clone(prefix="valid_")
         self.swa_step()
         self.swap_swa_params()
 
     def validation_step(self, batch: Tensor, batch_idx: int):
-        """log metrics on epoch"""
         x, y = batch
         logits = self.network(x)
-        # why detach? see: https://github.com/Lightning-AI/lightning/issues/9441
-        self.valid_metrics.update(torch.sigmoid(logits).detach(), y.long())
+        self.valid_metrics.update(torch.sigmoid(logits), y.long())
 
     def on_validation_epoch_end(self):
-        self.log_dict(self.valid_metrics.compute(), prog_bar=True, sync_dist=True)
+        self.log_dict(self.valid_metrics.compute(), prog_bar=True)
         self.valid_metrics.reset()
 
     def on_validation_end(self):
         self.swap_swa_params()
 
-    def on_test_start(self):
-        self.test_metrics = self.metrics.clone(prefix="test_")
-        # self.test_metrics = list2metrics(self.metric_list, len(self.test_mlb.classes_)).cuda()
-
     def test_step(self, batch: Tensor, batch_idx: int):
-        """log metrics on epoch"""
         x, y = batch
         logits = self.network(x)
-        # preds = self.multilabel_binarize(logits.detach())
-        # self.test_metrics.update(preds, y.long())
-        self.test_metrics.update(torch.sigmoid(logits), y.long())
+        self.test_metrics.update(torch.sigmoid(logits).detach(), y.long())
 
     def on_test_epoch_end(self):
         self.log_dict(self.test_metrics.compute())
@@ -404,7 +382,15 @@ class BaseModel(pl.LightningModule):
         x = batch
         logits = self.network(x)
         scores, labels = torch.topk(torch.sigmoid(logits), self.top_k)
-        return scores.cpu(), labels.cpu()
+        return scores.detach().cpu(), labels.detach().cpu()
+
+    def forward(self, x):
+        return self.network(x)
+
+    def on_save_checkpoint(self, checkpoint):
+        for k in list(checkpoint):
+            if k not in self.CHECKPOINT_KEYS:
+                checkpoint.pop(k)
 
     def on_after_backward(self):
         if self._clip_grad is not None:
@@ -413,44 +399,7 @@ class BaseModel(pl.LightningModule):
             self._grad_norm_queue += [min(total_norm, max_norm * 2.0, torch.tensor(1.0))]
             if total_norm > max_norm * self._clip_grad:
                 if self.trainer.is_global_zero:
-                    logging.warning(f"Clipping gradients with total norm {total_norm} and max norm {max_norm}")
-
-    def multilabel_binarize(self, logits: Tensor) -> Tensor:
-        """self-implemented MultiLabelBinarizer for AttentionXML using Tensor"""
-        # find the top k labels
-        scores, labels = torch.topk(logits, self.top_k)
-        # transform them back to string form with training Multi-label Binarizer
-        labels = self.train_mlb.classes_[labels.cpu()]
-        # calculate the masks where labels do not appear in testing dataset
-        mask = torch.tensor(
-            [[la not in self.test_mlb.classes_ for la in label] for label in labels], device=logits.device
-        )
-        # fill scores with 0 where mask is True
-        scores.masked_fill_(mask, 0)
-        # get the indices of logits in new
-        index = torch.tensor(
-            [
-                np.stack(
-                    [
-                        np.asarray(self.test_mlb.classes_ == l).nonzero()[0][0]
-                        if np.asarray(self.test_mlb.classes_ == l).any()
-                        else self.test_mlb.classes_.shape[0]
-                        for l in label
-                    ]
-                )
-                for label in labels
-            ],
-            device=logits.device,
-        )
-
-        # make sure preds and src use the same precision, e.g., either float16 or float32
-        preds = torch.zeros(
-            logits.shape[0], self.test_mlb.classes_.shape[0] + 1, device=logits.device, dtype=logits.dtype
-        )
-        preds.scatter_(dim=1, index=index, src=torch.sigmoid(scores))
-        # remove dummy unknown labels
-        preds = preds[:, :-1]
-        return preds
+                    logging.warning(f"Clipping gradients with total norm {total_norm:.4f} and max norm {max_norm:.4f}")
 
 
 class PLTModel(BaseModel):
@@ -465,10 +414,8 @@ class PLTModel(BaseModel):
         top_k: int,
         eval_metric: str,
         loss_fn: str = "binary_cross_entropy_with_logits",
-        optimizer_params: dict | None = None,
-        swa_epoch_start: int | None = None,
-        train_mlb=None,
-        test_mlb=None,
+        optimizer_params: Optional[dict] = None,
+        swa_epoch_start: Optional[int] = None,
     ):
         super().__init__(
             network=network,
@@ -481,8 +428,6 @@ class PLTModel(BaseModel):
             loss_fn=loss_fn,
             optimizer_params=optimizer_params,
             swa_epoch_start=swa_epoch_start,
-            train_mlb=train_mlb,
-            test_mlb=test_mlb,
         )
         self.state["best"] = {}
         self.eval_metric = "_".join(["valid", eval_metric.lower()])

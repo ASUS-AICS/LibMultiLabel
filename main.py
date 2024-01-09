@@ -6,7 +6,8 @@ from pathlib import Path
 
 import yaml
 
-from libmultilabel.common_utils import Timer, AttributeDict, GLOBAL_RANK
+from libmultilabel.common_utils import Timer, AttributeDict
+from lightning.pytorch.utilities.rank_zero import rank_zero_info
 from libmultilabel.logging import add_stream_handler, add_collect_handler
 
 
@@ -285,8 +286,6 @@ def check_config(config):
 
 
 def main():
-    logging.info(f"Global rank: {GLOBAL_RANK}")
-
     # Get config
     config = get_config()
     check_config(config)
@@ -295,8 +294,8 @@ def main():
     log_level = logging.WARNING if config.silent else logging.INFO
     stream_handler = add_stream_handler(log_level)
     collect_handler = add_collect_handler(logging.NOTSET)
-    if GLOBAL_RANK == 0:
-        logging.info(f"Run name: {config.run_name}")
+
+    rank_zero_info(f"Run name: {config.run_name}")
 
     if config.linear:
         from linear_trainer import linear_run

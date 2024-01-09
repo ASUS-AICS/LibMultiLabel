@@ -6,15 +6,15 @@ import time
 from functools import reduce
 from pathlib import Path
 from typing import Generator
-from datetime import datetime
 
 import numpy as np
 import torch
+import torch.distributed as dist
 from multiprocessing import Process
 
-import torch.distributed as dist
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint, StochasticWeightAveraging
+from lightning import Trainer
+from lightning.pytorch.callbacks import ModelCheckpoint, StochasticWeightAveraging
+from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_info, rank_zero_warn
 from scipy.sparse import csr_matrix, csc_matrix
 from sklearn.preprocessing import normalize, MultiLabelBinarizer
 from torch import Tensor
@@ -23,10 +23,8 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
-from .data_utils import MultiLabelDataset, PLTDataset
+from .datasets import MultiLabelDataset, PLTDataset
 from .model import PLTModel, BaseModel
-from .nn_utils import is_global_zero
-from ..common_utils import GLOBAL_RANK
 
 __all__ = ["PLTTrainer"]
 
@@ -100,11 +98,10 @@ class PLTTrainer:
         self.max_epochs = self.config["epochs"]
         self.strategy = "ddp" if (self.num_nodes > 1 or self.devices > 1) and self.accelerator == "gpu" else "auto"
 
-        if GLOBAL_RANK == 0:
-            logger.info(
-                f"Accelerator: {self.accelerator}, devices: {self.devices}, num_nodes: {self.num_nodes} "
-                f"max_epochs: {self.max_epochs}, strategy: {self.strategy}"
-            )
+        rank_zero_info(
+            f"Accelerator: {self.accelerator}, devices: {self.devices}, num_nodes: {self.num_nodes} "
+            f"max_epochs: {self.max_epochs}, strategy: {self.strategy}"
+        )
 
         # dataloader parameters
         self.batch_size = self.config["batch_size"]
@@ -251,8 +248,7 @@ class PLTTrainer:
             # model
             if best_model_path.exists():
                 # load existing best model
-                if trainer.is_global_zero:
-                    logger.info(f"Best model loaded from {best_model_path}")
+                rank_zero_info(f"Best model loaded from {best_model_path}")
                 model = BaseModel.load_from_checkpoint(best_model_path, top_k=self.top_k)
             else:
                 # train & valid dataloaders for training
@@ -283,19 +279,16 @@ class PLTTrainer:
                     optimizer_params=self.config.get("optimizer_config"),
                     swa_epoch_start=self.config["swa_epoch_start"][level],
                 )
-                if GLOBAL_RANK == 0:
-                    logger.info(f"Training level-{level}. Number of labels: {num_nodes}")
+                rank_zero_info(f"Training level-{level}. Number of labels: {num_nodes}")
                 trainer.fit(model, train_dataloader, valid_dataloader)
                 # torch.cuda.empty_cache()
-                if GLOBAL_RANK == 0:
-                    logger.info(f"Best last loaded from {best_model_path}")
+                rank_zero_info(f"Best last loaded from {best_model_path}")
                 # FIXME: I met a bug while experimenting with ModelCheckpoint
                 trainer.strategy.barrier()
                 model = BaseModel.load_from_checkpoint(best_model_path)
                 # TODO: figure out why
                 model.optimizer = None
-            if GLOBAL_RANK == 0:
-                logger.info(f"Finish Training Level-{level}")
+            rank_zero_info(f"Finish Training Level-{level}")
 
             # Utilize single GPU to predict
             trainer = Trainer(
@@ -303,12 +296,10 @@ class PLTTrainer:
                 devices=1,
                 accelerator=self.accelerator,
             )
-            print(f"trainer.is_global_zero: {GLOBAL_RANK} {trainer.is_global_zero}")
-            if GLOBAL_RANK == 0:
-                logger.info(
-                    f"Generating predictions for Level-{level + 1}. "
-                    f"Number of possible predictions: {num_nodes}. Top k: {self.top_k}"
-                )
+            rank_zero_info(
+                f"Generating predictions for Level-{level + 1}. "
+                f"Number of possible predictions: {num_nodes}. Top k: {self.top_k}"
+            )
             # train & valid dataloaders for prediction (without labels)
             train_dataloader = DataLoader(
                 MultiLabelDataset(train_x),
@@ -335,11 +326,12 @@ class PLTTrainer:
             valid_node_score_pred, valid_node_y_pred = map(torch.vstack, list(zip(*valid_node_pred)))
 
             torch.cuda.empty_cache()
-            if GLOBAL_RANK == 0:
-                logger.info("Getting Candidates")
+            rank_zero_info("Getting Candidates")
             node_candidates = np.empty((len(train_x), self.top_k), dtype=np.int32)
 
-            prog = tqdm(train_node_y_pred, leave=False, desc="Parents") if GLOBAL_RANK == 0 else train_node_y_pred
+            prog = rank_zero_only(tqdm(train_node_y_pred, leave=False, desc="Parents"))
+            if prog is None:
+                prog = train_node_y_pred
             for i, ys in enumerate(prog):
                 # true nodes/labels are positive
                 positive = set(train_node_y.indices[train_node_y.indptr[i] : train_node_y.indptr[i + 1]])
@@ -390,11 +382,8 @@ class PLTTrainer:
 
             trainer.strategy.barrier()
 
-            print(f"{GLOBAL_RANK}: ")
-
             if best_model_path.exists():
-                if trainer.is_global_zero:
-                    logger.info(f"Best model loaded from {best_model_path}")
+                rank_zero_info(f"Best model loaded from {best_model_path}")
                 model = PLTModel.load_from_checkpoint(best_model_path, top_k=self.top_k)
             else:
                 # train & valid dataloaders for training
@@ -441,25 +430,21 @@ class PLTTrainer:
                 )
 
                 # initialize current layer with weights from last layer
-                if GLOBAL_RANK == 0:
-                    logger.info(f"Loading parameters of Level-{level} from Level-{level - 1}")
+                rank_zero_info(f"Loading parameters of Level-{level} from Level-{level - 1}")
                 # remove the name prefix in state_dict starting with "network"
                 model.load_from_pretrained(torch.load(self.get_best_model_path(level - 1))["state_dict"])
-                if GLOBAL_RANK == 0:
-                    logger.info(
-                        f"Training Level-{level}, "
-                        f"Number of nodes: {num_nodes}, "
-                        f"Number of candidates: {train_dataloader.dataset.num_candidates}"
-                    )
+                rank_zero_info(
+                    f"Training Level-{level}, "
+                    f"Number of nodes: {num_nodes}, "
+                    f"Number of candidates: {train_dataloader.dataset.num_candidates}"
+                )
                 trainer.fit(model, train_dataloader, valid_dataloader)
                 trainer.save_checkpoint(best_model_path)
                 # FIXME: I met a bug while experimenting with ModelCheckpoint
-                if GLOBAL_RANK == 0:
-                    logger.info(f"Best model loaded from {best_model_path}")
+                rank_zero_info(f"Best model loaded from {best_model_path}")
                 trainer.strategy.barrier()
                 model = PLTModel.load_from_checkpoint(best_model_path)
-            if GLOBAL_RANK == 0:
-                logger.info(f"Finish training Level-{level}")
+            rank_zero_info(f"Finish training Level-{level}")
             # Utilize single GPU to predict
             trainer = Trainer(
                 num_nodes=1,
@@ -468,14 +453,12 @@ class PLTTrainer:
             )
             # end training if it is the last level
             if level == self.num_levels - 1:
-                if GLOBAL_RANK == 0:
-                    logger.info("Training process finished.")
+                rank_zero_info("Training process finished.")
                 return
-            if GLOBAL_RANK == 0:
-                logger.info(
-                    f"Generating predictions for Level-{level + 1}. "
-                    f"Number of possible predictions: {num_nodes}, Top k: {self.top_k}"
-                )
+            rank_zero_info(
+                f"Generating predictions for Level-{level + 1}. "
+                f"Number of possible predictions: {num_nodes}, Top k: {self.top_k}"
+            )
 
             # train & valid dataloaders for prediction
             train_dataloader = DataLoader(
@@ -534,11 +517,9 @@ class PLTTrainer:
                 pin_memory=self.pin_memory,
             )
 
-            if GLOBAL_RANK == 0:
-                logger.info(f"Predicting Level-{level}, Top: {self.top_k}")
+            rank_zero_info(f"Predicting Level-{level}, Top: {self.top_k}")
             node_pred = trainer.predict(model, test_dataloader)
-            if GLOBAL_RANK == 0:
-                logger.info(f"node_pred: {len(node_pred)}")
+            rank_zero_info(f"node_pred: {len(node_pred)}")
             node_score_pred, node_label_pred = map(torch.vstack, list(zip(*node_pred)))
 
             return node_score_pred, node_label_pred
@@ -571,11 +552,9 @@ class PLTTrainer:
                 trainer.test(model, test_dataloader)
                 return
 
-            if GLOBAL_RANK == 0:
-                logger.info(f"Predicting Level-{level}, Top: {self.top_k}")
+            rank_zero_info(f"Predicting Level-{level}, Top: {self.top_k}")
             node_pred = trainer.predict(model, test_dataloader)
-            if GLOBAL_RANK == 0:
-                logger.info(f"node_pred: {len(node_pred)}")
+            rank_zero_info(f"node_pred: {len(node_pred)}")
             node_score_pred, node_label_pred = map(torch.vstack, list(zip(*node_pred)))
 
             return node_score_pred, node_label_pred
@@ -593,10 +572,6 @@ class PLTTrainer:
         # sparse training labels
         # TODO: remove workaround
         train_sparse_y_full = self.mlb.transform((i["label"] for i in train_data_full))
-        cluster_process = Process(
-            target=build_shallow_and_wide_plt,
-            args=(train_sparse_x, train_sparse_y_full, self.levels, self.cluster_size, self.dir_path),
-        )
 
         # TODO: remove workaround
         # TODO: we assume <unk> is 0. Remove this assumption or not?
@@ -631,30 +606,32 @@ class PLTTrainer:
         train_data = (train_x, self.mlb.transform((i["label"] for i in datasets["train"])))
         valid_data = (valid_x, self.mlb.transform((i["label"] for i in datasets["val"])))
 
-        # only do clustering on the main process
-        if GLOBAL_RANK == 0:
-            try:
-                cluster_process.start()
-                self.train_level(self.num_levels - 1, train_data, valid_data)
-                cluster_process.join()
-            finally:
-                # TODO: How to close process properly?
-                cluster_process.terminate()
-                cluster_process.close()
-        else:
-            self.train_level(self.num_levels - 1, train_data, valid_data)
+        # @rank_zero_only
+        # def start_cluster():
+        #     cluster_process = Process(
+        #         target=build_shallow_and_wide_plt,
+        #         args=(train_sparse_x, train_sparse_y_full, self.levels, self.cluster_size, self.dir_path),
+        #     )
+        #     try:
+        #         cluster_process.start()
+        #         cluster_process.join()
+        #     finally:
+        #         # TODO: How to close process properly?
+        #         cluster_process.terminate()
+        #         cluster_process.close()
+
+        # start_cluster()
+        build_shallow_and_wide_plt(train_sparse_x, train_sparse_y_full, self.levels, self.cluster_size, self.dir_path)
+        self.train_level(self.num_levels - 1, train_data, valid_data)
 
         if dist.is_initialized():
             dist.destroy_process_group()
             torch.cuda.empty_cache()
 
-    @is_global_zero
+    # Here are explanations that why we want to test on a single GPU?
+    # https://lightning.ai/docs/pytorch/stable/common/evaluation_intermediate.html
+    @rank_zero_only
     def test(self, dataset):
-        # why we want to test on a single GPU?
-        # https://lightning.ai/docs/pytorch/stable/common/evaluation_intermediate.html
-        if GLOBAL_RANK != 0:
-            return
-
         test_x = list(
             map(
                 lambda x: torch.tensor([self.word_dict[i] for i in x], dtype=torch.int),
@@ -680,6 +657,7 @@ class PLTTrainer:
         return self.dir_path / f"Level-{len(self.levels)}-{level}.npy"
 
 
+@rank_zero_only
 def build_shallow_and_wide_plt(
     sparse_x,
     sparse_y: np.ndarray,
@@ -697,8 +675,6 @@ def build_shallow_and_wide_plt(
         cluster_path:
 
     """
-    if GLOBAL_RANK != 0:
-        return
     logger.info(f"Number of levels: {len(levels) + 1}")
     logger.info(f"Internal level at depth: {levels}")
     logger.info(f"Cluster size: {cluster_size}")
