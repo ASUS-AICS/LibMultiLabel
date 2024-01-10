@@ -2,15 +2,15 @@ nltk
 pandas>1.3.0
 PyYAML
 scikit-learn
-torch # 2.1.2
-torchmetrics # 1.2.1
-torchtext # 0.16.2
+torch
+torchmetrics
+torchtext
 # wait for https://github.com/Lightning-AI/pytorch-lightning/pull/19191
 lightning==2.0.9
 tqdm
 liblinear-multicore
 numba
 scipy
-transformers # 4.36.2
+transformers
 fsspec>=2023.5.0
 typing-extensions>=4.8.0

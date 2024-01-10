@@ -3,10 +3,8 @@ import os
 
 import lightning as L
 import torch
+from lightning.pytorch import seed_everything
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
-
-# https://github.com/Lightning-AI/pytorch-lightning/pull/16422
-from lightning.fabric.utilities.seed import seed_everything
 
 from ..nn import networks
 from ..nn.model import Model
@@ -181,7 +179,7 @@ def init_trainer(
         logger=False,
         num_sanity_val_steps=0,
         accelerator="cpu" if use_cpu else "gpu",
-        devices=None if use_cpu else 1,
+        devices="auto" if use_cpu else 1,
         enable_progress_bar=False if silent else True,
         max_epochs=epochs,
         callbacks=callbacks,

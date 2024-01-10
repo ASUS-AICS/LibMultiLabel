@@ -6,7 +6,6 @@ import numpy as np
 import torch
 import torchmetrics.classification
 from torchmetrics import Metric, MetricCollection, Precision, Recall
-from torchmetrics.functional.retrieval import retrieval_normalized_dcg
 from torchmetrics.utilities.data import select_topk
 
 
@@ -135,7 +134,8 @@ class RPrecision(Metric):
 
 
 class PrecisionAtK(Metric):
-    """
+    """Precision at k. Please refer to the `implementation document`
+    (https://www.csie.ntu.edu.tw/~cjlin/papers/libmultilabel/libmultilabel_implementation.pdf) for details.
 
     Args:
         top_k (int): the top k relevant labels to evaluate.
@@ -167,7 +167,8 @@ class PrecisionAtK(Metric):
 
 
 class RecallAtK(Metric):
-    """
+    """Recall at k. Please refer to the `implementation document`
+    (https://www.csie.ntu.edu.tw/~cjlin/papers/libmultilabel/libmultilabel_implementation.pdf) for details.
 
     Args:
         top_k (int): the top k relevant labels to evaluate.
