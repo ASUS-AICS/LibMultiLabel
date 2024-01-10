@@ -7,26 +7,40 @@ import numpy as np
 __all__ = ["get_metrics", "compute_metrics", "tabulate_metrics", "MetricCollection"]
 
 
-def _DCG(preds: np.ndarray, target: np.ndarray, k: int = 5) -> np.ndarray:
-    """Compute the discounted cumulative gains (DCG)."""
-    # Self-implemented dcg is used here. scikit-learn's implementation has
-    # an average time complexity O(NlogN) as it directly applies quicksort
-    # to preds regardless of k. Here the average time complexity is reduced to
-    # O(N + klogk) by first partitioning off the k largest elements and then
-    # applying quicksort to the subarray.
-    row_idx = np.arange(preds.shape[0])[:, np.newaxis]
-    preds_unsorted_idx = np.argpartition(preds, -k)[:, -k:]
-    preds_sorted_idx = preds_unsorted_idx[row_idx, np.argsort(-preds[row_idx, preds_unsorted_idx])]
+def _argsort_top_k(preds: np.ndarray, top_k: int) -> np.ndarray:
+    """Sorts the top k indices in O(n + k log k) time.
+    The sorting order is ascending to be consistent with np.sort.
+    This means the last element is the largest, the first element is the kth largest.
+    """
+    top_k_idx = np.argpartition(preds, -top_k)[:, -top_k:]
+    argsort_top_k = np.argsort(np.take_along_axis(preds, top_k_idx, axis=-1))
+    return np.take_along_axis(top_k_idx, argsort_top_k, axis=-1)
 
-    # target sorted by the top k preds in non-increasing order
-    gains = target[row_idx, preds_sorted_idx]
 
-    # the discount factor
-    discount = 1 / (np.log2(np.arange(gains.shape[1]) + 2))
-
+def _DCG_argsort(argsort_preds: np.ndarray, target: np.ndarray, top_k: int) -> np.ndarray:
+    """Computes DCG@k with a sorted preds array and a target array."""
+    top_k_idx = argsort_preds[:, -top_k:][:, ::-1]
+    gains = np.take_along_axis(target, top_k_idx, axis=-1)
+    discount = 1 / (np.log2(np.arange(top_k) + 2))
     # get the sum product over the last axis of gains and discount
-    dcg = gains.dot(discount)
-    return dcg
+    dcgs = gains.dot(discount)
+    return dcgs
+
+
+def _IDCG(target: np.ndarray, top_k: int) -> np.ndarray:
+    """Computes IDCG@k for a 0/1 target array. A 0/1 target is a special case that
+    doesn't require sorting. If IDCG is computed with DCG,
+    then target will need to be sorted, which incurs a large overhead.
+    """
+    num_relevant_labels = target.sum(axis=1, dtype="i")
+    discount = 1 / (np.log2(np.arange(top_k) + 2))
+    cum_discount = discount.cumsum()
+    # NDCG for an instance with no relevant labels is defined to be 0.
+    # If an instance has no relevant labels, its DCG will be 0,
+    # thus we can return any non-zero IDCG for that instance.
+    # Here we return the first element of cum_discount, which is 1.
+    idx = np.clip(num_relevant_labels - 1, 0, top_k - 1)
+    return cum_discount[idx]
 
 
 class NDCG:
@@ -44,18 +58,14 @@ class NDCG:
 
     def update(self, preds: np.ndarray, target: np.ndarray):
         assert preds.shape == target.shape  # (batch_size, num_classes)
+        return self.update_argsort(_argsort_top_k(preds, self.top_k), target)
 
-        # DCG
-        dcgs = _DCG(preds, target, self.top_k)
-        # ideal DCG
-        idcgs = _DCG(target, target, self.top_k)
-        # normalized DCG
-        ndcg_score = dcgs / idcgs
-
-        # deal with instances with all 0 labels and add up the results
+    def update_argsort(self, argsort_preds: np.ndarray, target: np.ndarray):
+        dcg = _DCG_argsort(argsort_preds, target, self.top_k)
+        idcg = _IDCG(target, self.top_k)
+        ndcg_score = dcg / idcg
         self.score += np.nan_to_num(ndcg_score, nan=0.0).sum()
-        # remember the total number of instances
-        self.num_sample += preds.shape[0]
+        self.num_sample += argsort_preds.shape[0]
 
     def compute(self) -> float:
         return self.score / self.num_sample
@@ -80,10 +90,13 @@ class RPrecision:
 
     def update(self, preds: np.ndarray, target: np.ndarray):
         assert preds.shape == target.shape  # (batch_size, num_classes)
-        top_k_idx = np.argpartition(preds, -self.top_k)[:, -self.top_k :]
+        return self.update_argsort(np.argpartition(preds, -self.top_k), target)
+
+    def update_argsort(self, argsort_preds: np.ndarray, target: np.ndarray):
+        top_k_idx = argsort_preds[:, -self.top_k :]
         num_relevant = np.take_along_axis(target, top_k_idx, axis=-1).sum(axis=-1)  # (batch_size, )
         self.score += np.nan_to_num(num_relevant / np.minimum(self.top_k, target.sum(axis=-1)), nan=0.0).sum()
-        self.num_sample += preds.shape[0]
+        self.num_sample += argsort_preds.shape[0]
 
     def compute(self) -> float:
         return self.score / self.num_sample
@@ -113,10 +126,13 @@ class Precision:
 
     def update(self, preds: np.ndarray, target: np.ndarray):
         assert preds.shape == target.shape  # (batch_size, num_classes)
-        top_k_idx = np.argpartition(preds, -self.top_k)[:, -self.top_k :]
+        return self.update_argsort(np.argpartition(preds, -self.top_k), target)
+
+    def update_argsort(self, argsort_preds: np.ndarray, target: np.ndarray):
+        top_k_idx = argsort_preds[:, -self.top_k :]
         num_relevant = np.take_along_axis(target, top_k_idx, -1).sum()
         self.score += num_relevant / self.top_k
-        self.num_sample += preds.shape[0]
+        self.num_sample += argsort_preds.shape[0]
 
     def compute(self) -> float:
         return self.score / self.num_sample
@@ -146,11 +162,13 @@ class Recall:
 
     def update(self, preds: np.ndarray, target: np.ndarray):
         assert preds.shape == target.shape  # (batch_size, num_classes)
-        top_k_idx = np.argpartition(preds, -self.top_k)[:, -self.top_k :]
-        num_relevant = np.take_along_axis(target, top_k_idx, -1).sum(axis=-1)  # (batch_size, )
-        # zero label instances treated as 0, to be consistent with torchmetrics
-        self.score += np.nan_to_num(num_relevant / target.sum(axis=-1), nan=0.0).sum()
-        self.num_sample += preds.shape[0]
+        return self.update_argsort(np.argpartition(preds, -self.top_k), target)
+
+    def update_argsort(self, argsort_preds: np.ndarray, target: np.ndarray):
+        top_k_idx = argsort_preds[:, -self.top_k :]
+        num_relevant = np.take_along_axis(target, top_k_idx, -1).sum(axis=-1)
+        self.score += np.nan_to_num(num_relevant / target.sum(axis=-1), nan=1.0).sum()
+        self.num_sample += argsort_preds.shape[0]
 
     def compute(self) -> float:
         return self.score / self.num_sample
@@ -217,6 +235,7 @@ class MetricCollection(dict):
 
     def __init__(self, metrics):
         self.metrics = metrics
+        self.max_k = max(getattr(metric, "top_k", 0) for metric in self.metrics.values())
 
     def update(self, preds: np.ndarray, target: np.ndarray):
         """Adds a batch of decision values and labels.
@@ -226,8 +245,18 @@ class MetricCollection(dict):
             target (np.ndarray): A 0/1 matrix of labels with dimensions number of instances * number of classes.
         """
         assert preds.shape == target.shape  # (batch_size, num_classes)
+
+        # The main bottleneck when computing metrics is sorting the top k indices.
+        # As an optimization, we sort only once and pass the sorted predictions to metrics that needs them.
+        # Top k ranking metrics only requires the sorted top k predictions, so we don't need to fully sort the predictions.
+        if self.max_k > 0:
+            argsort_preds = _argsort_top_k(preds, self.max_k)
+
         for metric in self.metrics.values():
-            metric.update(preds, target)
+            if hasattr(metric, "update_argsort"):
+                metric.update_argsort(argsort_preds, target)
+            else:
+                metric.update(preds, target)
 
     def compute(self) -> dict[str, float]:
         """Computes the metrics from the accumulated batches of decision values and labels.
