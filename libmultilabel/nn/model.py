@@ -91,7 +91,6 @@ class MultiLabelModel(L.LightningModule):
         else:
             raise RuntimeError("Unsupported optimizer: {self.optimizer}")
 
-        # torch.nn.utils.clip_grad_value_(parameters, 0.5)
         if self.lr_scheduler:
             if self.lr_scheduler == "ReduceLROnPlateau":
                 lr_scheduler_config = {

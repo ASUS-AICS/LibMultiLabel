@@ -187,6 +187,8 @@ def init_trainer(
         limit_val_batches=limit_val_batches,
         limit_test_batches=limit_test_batches,
         deterministic="warn",
+        gradient_clip_val=0.5,
+        gradient_clip_algorithm="value",
     )
     return trainer
 
