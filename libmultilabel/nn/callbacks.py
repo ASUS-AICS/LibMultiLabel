@@ -6,18 +6,43 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_info
 
 
-class CustomModelCheckpoint(ModelCheckpoint):
+class CacheModelCheckpoint(ModelCheckpoint):
+    r"""Cache the best model during validation and save it at the end of training. Every metric logged with
+    `lightning.pytorch.core.LightningModule.log` or `lightning.pytorch.core.LightningModule.log_dict` is a candidate for
+    the monitor key
+
+    After training finishes, use :attr:`best_model_path` to retrieve the path to the
+    best checkpoint file and :attr:`best_model_score` to retrieve its score.
+
+    Args:
+        monitor: quantity to monitor.
+        mode: one of {min, max}.
+        dirpath: directory to save the model file. By default, dirpath is ``None`` and will be set at runtime to the
+            location specified by `lightning.pytorch.trainer.trainer.Trainer`'s default_root_dir` argument, and if the
+            Trainer uses a logger, the path will also contain logger name and version.
+        filename: checkpoint filename. Can contain named formatting options to be auto-filled. By default, filename is
+            ``None`` and will be set to ``'{epoch}-{step}'``, where "epoch" and "step" match the number of finished
+            epoch and optimizer steps respectively.
+        verbose: verbosity mode. Default: ``False``.
+        save_weights_only: if ``True``, then only the model's weights will be saved. Otherwise, the optimizer states,
+            lr-scheduler states, etc are added in the checkpoint too.
+        auto_insert_metric_name: When ``True``, the checkpoints filenames will contain the metric name. For example,
+            ``filename='checkpoint_{epoch:02d}-{acc:02.0f}`` with epoch ``1`` and acc ``1.12`` will resolve to
+            ``checkpoint_epoch=01-acc=01.ckpt``. Is useful to set it to ``False`` when metric names contain ``/`` as
+            this will result in extra folders. For example,
+            ``filename='epoch={epoch}-step={step}-val_acc={val/acc:.2f}', auto_insert_metric_name=False``
+    """
+
     def __init__(
         self,
         monitor: str,
-        dirpath=None,
+        mode: str,
+        dirpath: str = None,
         filename: str = None,
         save_weights_only: bool = False,
         verbose: bool = False,
-        mode: str = "min",
         auto_insert_metric_name: bool = True,
     ):
-        """Cache the best model during validation and save it at the end of training"""
         if monitor is None:
             raise ValueError("Monitor has to be set")
 
@@ -30,6 +55,7 @@ class CustomModelCheckpoint(ModelCheckpoint):
             save_weights_only=save_weights_only,
             mode=mode,
             auto_insert_metric_name=auto_insert_metric_name,
+            enable_version_counter=False,
         )
         # As we only want the top-1 model, these values are equal.
         self.best_model_score = self.kth_value
