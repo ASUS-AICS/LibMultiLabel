@@ -9,7 +9,7 @@ LibMultiLabel is a library for binary, multi-class, and multi-label classificati
 
 LibMultiLabel can be used through either `Command Line Interface <cli_index.html>`_ or `APIs <library_index.html>`_. Check their respective documents for installation instructions.
 
-For practical use, please see the `Tutorials <tutorial.html>`_.
+For practical use, please see the `Tutorials <tutorial.html>`_. For Implementation details, see this `document <https://www.csie.ntu.edu.tw/~cjlin/papers/libmultilabel/libmultilabel_implementation.pdf>`_.
 
 .. toctree::
    :maxdepth: 1
@@ -18,6 +18,7 @@ For practical use, please see the `Tutorials <tutorial.html>`_.
    cli_index
    library_index
    tutorial
+   LibMultiLabel Implementation Doc <https://www.csie.ntu.edu.tw/~cjlin/papers/libmultilabel/libmultilabel_implementation.pdf>
    
 
 ..
