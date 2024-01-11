@@ -125,7 +125,7 @@ def init_search_params_spaces(config, parameter_columns, prefix):
 def init_search_algorithm(search_alg, metric=None, mode=None):
     """Specify a search algorithm and you must pip install it first.
     If no search algorithm is specified, the default search algorithm is BasicVariantGenerator.
-    See more details here: https://docs.ray.io/en/master/tune/api_docs/suggestion.html
+    See more details here: https://docs.ray.io/en/latest/tune/api/suggestion.html
 
     Args:
         search_alg (str): One of 'basic_variant', 'bayesopt', or 'optuna'.
