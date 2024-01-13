@@ -14,10 +14,10 @@ The library API is composed of a `linear classifier module <linear.html>`_ and a
 The two types of APIs can be used independently.
 We provide two installation types:
 
-* Install both neural network module and linear classifier module. ::
+* Install only linear classifier module without any torch-related requirements. ::
 
     pip3 install libmultilabel
 
-* Install only linear classifier module without any torch-related requirements. ::
+* Install both neural network module and linear classifier module. ::
 
-    pip3 install libmultilabel[linear]
+    pip3 install libmultilabel[nn]
