@@ -1,0 +1,6 @@
+nltk
+pytorch-lightning==1.7.7
+torch==1.13.1
+torchmetrics==0.10.3
+torchtext==0.14.1
+transformers==4.28.1

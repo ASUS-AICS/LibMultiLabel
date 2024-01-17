@@ -47,11 +47,17 @@ and then create a virtual enviroment as follows.
     git clone https://github.com/ASUS-AICS/LibMultiLabel.git
     cd LibMultiLabel
 
-* Install the latest development version, run:
+* Install the default dependencies with:
 
 .. code-block:: bash
 
     pip3 install -r requirements.txt
+
+* If you are using neural networks, install additional dependencies with:
+
+.. code-block:: bash
+
+    pip3 install -r requirements_nn.txt
 
 If you have a different version of CUDA,
 follow the installation instructions for PyTorch LTS at

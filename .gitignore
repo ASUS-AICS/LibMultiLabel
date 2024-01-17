@@ -157,4 +157,7 @@ docs/_build/
 docs/auto_examples/
 docs/cli/*.include
 !docs/requirements.txt
+
 !requirements.txt
+!requirements_nn.txt
+!requirements_parameter_search.txt
