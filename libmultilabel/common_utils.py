@@ -3,8 +3,10 @@ import json
 import logging
 import os
 import time
+from functools import wraps
 
 import numpy as np
+from pytorch_lightning.utilities.rank_zero import rank_zero_info
 
 
 class AttributeDict(dict):
@@ -156,3 +158,17 @@ def is_multiclass_dataset(dataset, label="label"):
             a multi-class problem."""
         )
     return ratio == 1.0
+
+
+def timer(func):
+    """Emit info-level wall time only on global rank 0."""
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        value = func(*args, **kwargs)
+        wall_time = time.time() - start_time
+        rank_zero_info(f"{repr(func.__name__)} finished in {wall_time:.2f} seconds")
+        return value
+
+    return wrapper

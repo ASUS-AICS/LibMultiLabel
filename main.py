@@ -6,7 +6,7 @@ from pathlib import Path
 
 import yaml
 
-from libmultilabel.common_utils import Timer, AttributeDict
+from libmultilabel.common_utils import AttributeDict, timer
 from libmultilabel.logging import add_stream_handler, add_collect_handler
 
 
@@ -284,6 +284,7 @@ def check_config(config):
     return None
 
 
+@timer
 def main():
     # Get config
     config = get_config()
@@ -318,6 +319,4 @@ def main():
 
 
 if __name__ == "__main__":
-    wall_time = Timer()
     main()
-    print(f"Wall time: {wall_time.time():.2f} (s)")
