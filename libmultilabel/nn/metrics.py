@@ -5,7 +5,7 @@ import re
 import numpy as np
 import torch
 import torchmetrics.classification
-from torchmetrics import Metric, MetricCollection, Precision, Recall
+from torchmetrics import Metric, MetricCollection
 from torchmetrics.utilities.data import select_topk
 
 
@@ -98,10 +98,8 @@ class NDCG(Metric):
         return cum_discount[idx]
 
 
-class RPrecision(Metric):
-    """R-precision calculates precision at k by adjusting k to the minimum value of the number of
-    relevant labels and k. The definition is given at Appendix C equation (3) of
-    https://aclanthology.org/P19-1636.pdf
+class _PrecisonRecallWrapperMetric(Metric):
+    """Encapsulate common functions of RPrecision, PrecisionAtK, and RecallAtK.
 
     Args:
         top_k (int): the top k relevant labels to evaluate.
@@ -120,83 +118,50 @@ class RPrecision(Metric):
         self.add_state("score", default=torch.tensor(0.0, dtype=torch.double), dist_reduce_fx="sum")
         self.add_state("num_sample", default=torch.tensor(0), dist_reduce_fx="sum")
 
-    def update(self, preds, target):
+    def compute(self):
+        return self.score / self.num_sample
+
+    def _get_num_relevant(self, preds, target):
         assert preds.shape == target.shape
         binary_topk_preds = select_topk(preds, self.top_k)
         target = target.to(dtype=torch.int)
         num_relevant = torch.sum(binary_topk_preds & target, dim=-1)
+        return num_relevant
+
+
+class RPrecision(_PrecisonRecallWrapperMetric):
+    """R-precision calculates precision at k by adjusting k to the minimum value of the number of
+    relevant labels and k. The definition is given at Appendix C equation (3) of
+    https://aclanthology.org/P19-1636.pdf
+    """
+
+    def update(self, preds, target):
+        num_relevant = super()._get_num_relevant(preds, target)
         top_ks = torch.tensor([self.top_k] * preds.shape[0]).to(preds.device)
         self.score += torch.nan_to_num(num_relevant / torch.min(top_ks, target.sum(dim=-1)), posinf=0.0).sum()
         self.num_sample += len(preds)
 
-    def compute(self):
-        return self.score / self.num_sample
 
-
-class PrecisionAtK(Metric):
+class PrecisionAtK(_PrecisonRecallWrapperMetric):
     """Precision at k. Please refer to the `implementation document`
     (https://www.csie.ntu.edu.tw/~cjlin/papers/libmultilabel/libmultilabel_implementation.pdf) for details.
-
-    Args:
-        top_k (int): the top k relevant labels to evaluate.
     """
 
-    # If the metric state of one batch is independent of the state of other batches,
-    # full_state_update can be set to False,
-    # which leads to more efficient computation with calling update() only once.
-    # Please find the detailed explanation here:
-    # https://torchmetrics.readthedocs.io/en/stable/pages/implement.html
-    full_state_update = False
-
-    def __init__(self, top_k):
-        super().__init__()
-        self.top_k = top_k
-        self.add_state("score", default=torch.tensor(0.0, dtype=torch.double), dist_reduce_fx="sum")
-        self.add_state("num_sample", default=torch.tensor(0), dist_reduce_fx="sum")
-
     def update(self, preds, target):
-        assert preds.shape == target.shape
-        binary_topk_preds = select_topk(preds, self.top_k)
-        target = target.to(dtype=torch.int)
-        num_relevant = torch.sum(binary_topk_preds & target, dim=-1)
+        num_relevant = super()._get_num_relevant(preds, target)
         self.score += torch.nan_to_num(num_relevant / self.top_k, posinf=0.0).sum()
         self.num_sample += len(preds)
 
-    def compute(self):
-        return self.score / self.num_sample
 
-
-class RecallAtK(Metric):
+class RecallAtK(_PrecisonRecallWrapperMetric):
     """Recall at k. Please refer to the `implementation document`
     (https://www.csie.ntu.edu.tw/~cjlin/papers/libmultilabel/libmultilabel_implementation.pdf) for details.
-
-    Args:
-        top_k (int): the top k relevant labels to evaluate.
     """
 
-    # If the metric state of one batch is independent of the state of other batches,
-    # full_state_update can be set to False,
-    # which leads to more efficient computation with calling update() only once.
-    # Please find the detailed explanation here:
-    # https://torchmetrics.readthedocs.io/en/stable/pages/implement.html
-    full_state_update = False
-
-    def __init__(self, top_k):
-        super().__init__()
-        self.top_k = top_k
-        self.add_state("score", default=torch.tensor(0.0, dtype=torch.double), dist_reduce_fx="sum")
-        self.add_state("num_sample", default=torch.tensor(0), dist_reduce_fx="sum")
-
     def update(self, preds, target):
-        assert preds.shape == target.shape
-        binary_topk_preds = select_topk(preds, self.top_k)
-        target = target.to(dtype=torch.int)
-        num_relevant = torch.sum(binary_topk_preds & target, dim=-1)
+        num_relevant = super()._get_num_relevant(preds, target)
         self.score += torch.nan_to_num(num_relevant / target.sum(dim=-1), posinf=0.0).sum()
         self.num_sample += len(preds)
-
-    def compute(self):
-        return self.score / self.num_sample
 
 
 class MacroF1(Metric):
