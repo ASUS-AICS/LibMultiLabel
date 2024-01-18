@@ -64,6 +64,7 @@ class NDCG:
         dcg = _DCG_argsort(argsort_preds, target, self.top_k)
         idcg = _IDCG(target, self.top_k)
         ndcg_score = dcg / idcg
+        # by convention, ndcg is 0 for zero label instances
         self.score += np.nan_to_num(ndcg_score, nan=0.0).sum()
         self.num_sample += argsort_preds.shape[0]
 
@@ -95,6 +96,7 @@ class RPrecision:
     def update_argsort(self, argsort_preds: np.ndarray, target: np.ndarray):
         top_k_idx = argsort_preds[:, -self.top_k :]
         num_relevant = np.take_along_axis(target, top_k_idx, axis=-1).sum(axis=-1)  # (batch_size, )
+        # by convention, rprecision is 0 for zero label instances
         self.score += np.nan_to_num(num_relevant / np.minimum(self.top_k, target.sum(axis=-1)), nan=0.0).sum()
         self.num_sample += argsort_preds.shape[0]
 
@@ -167,7 +169,8 @@ class Recall:
     def update_argsort(self, argsort_preds: np.ndarray, target: np.ndarray):
         top_k_idx = argsort_preds[:, -self.top_k :]
         num_relevant = np.take_along_axis(target, top_k_idx, -1).sum(axis=-1)
-        self.score += np.nan_to_num(num_relevant / target.sum(axis=-1), nan=1.0).sum()
+        # by convention, recall is 0 for zero label instances
+        self.score += np.nan_to_num(num_relevant / target.sum(axis=-1), nan=0.0).sum()
         self.num_sample += argsort_preds.shape[0]
 
     def compute(self) -> float:
@@ -210,14 +213,15 @@ class F1:
     def compute(self) -> float:
         prev_settings = np.seterr("ignore")
 
+        # F1 is 0 for the cases where there are no positive instances
         if self.average == "macro":
             score = np.nansum(2 * self.tp / (2 * self.tp + self.fp + self.fn)) / self.num_classes
         elif self.average == "micro":
-            score = np.nan_to_num(2 * np.sum(self.tp) / np.sum(2 * self.tp + self.fp + self.fn))
+            score = np.nan_to_num(2 * np.sum(self.tp) / np.sum(2 * self.tp + self.fp + self.fn), nan=0.0)
         elif self.average == "another-macro":
             macro_prec = np.nansum(self.tp / (self.tp + self.fp)) / self.num_classes
             macro_recall = np.nansum(self.tp / (self.tp + self.fn)) / self.num_classes
-            score = np.nan_to_num(2 * macro_prec * macro_recall / (macro_prec + macro_recall))
+            score = np.nan_to_num(2 * macro_prec * macro_recall / (macro_prec + macro_recall), nan=0.0)
 
         np.seterr(**prev_settings)
         return score
