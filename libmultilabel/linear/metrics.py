@@ -297,9 +297,9 @@ def get_metrics(monitor_metrics: list[str], num_classes: int, multiclass: bool =
     metrics = {}
     for metric in monitor_metrics:
         if re.match("P@\d+", metric):
-            metrics[metric] = PrecisionAtK(num_classes, average="samples", top_k=int(metric[2:]))
+            metrics[metric] = PrecisionAtK(top_k=int(metric[2:]))
         elif re.match("R@\d+", metric):
-            metrics[metric] = RecallAtK(num_classes, average="samples", top_k=int(metric[2:]))
+            metrics[metric] = RecallAtK(top_k=int(metric[2:]))
         elif re.match("RP@\d+", metric):
             metrics[metric] = RPrecisionAtK(top_k=int(metric[3:]))
         elif re.match("NDCG@\d+", metric):
