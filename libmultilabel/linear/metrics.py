@@ -17,7 +17,7 @@ def _argsort_top_k(preds: np.ndarray, top_k: int) -> np.ndarray:
     return np.take_along_axis(top_k_idx, argsort_top_k, axis=-1)
 
 
-def _DCG_argsort(argsort_preds: np.ndarray, target: np.ndarray, top_k: int) -> np.ndarray:
+def _dcg_argsort(argsort_preds: np.ndarray, target: np.ndarray, top_k: int) -> np.ndarray:
     """Computes DCG@k with a sorted preds array and a target array."""
     top_k_idx = argsort_preds[:, -top_k:][:, ::-1]
     gains = np.take_along_axis(target, top_k_idx, axis=-1)
@@ -27,7 +27,7 @@ def _DCG_argsort(argsort_preds: np.ndarray, target: np.ndarray, top_k: int) -> n
     return dcgs
 
 
-def _IDCG(target: np.ndarray, top_k: int) -> np.ndarray:
+def _idcg(target: np.ndarray, top_k: int) -> np.ndarray:
     """Computes IDCG@k for a 0/1 target array. A 0/1 target is a special case that
     doesn't require sorting. If IDCG is computed with DCG,
     then target will need to be sorted, which incurs a large overhead.
@@ -43,10 +43,13 @@ def _IDCG(target: np.ndarray, top_k: int) -> np.ndarray:
     return cum_discount[idx]
 
 
-class NDCG:
-    def __init__(self, top_k: int):
-        """Compute the normalized DCG@k (nDCG@k).
+class NDCGAtK:
+    """Compute the normalized DCG@k (nDCG@k). Please refer to the `implementation document`
+    (https://www.csie.ntu.edu.tw/~cjlin/papers/libmultilabel/libmultilabel_implementation.pdf) for details.
+    """
 
+    def __init__(self, top_k: int):
+        """
         Args:
             top_k: Consider only the top k elements for each query.
         """
@@ -61,8 +64,8 @@ class NDCG:
         return self.update_argsort(_argsort_top_k(preds, self.top_k), target)
 
     def update_argsort(self, argsort_preds: np.ndarray, target: np.ndarray):
-        dcg = _DCG_argsort(argsort_preds, target, self.top_k)
-        idcg = _IDCG(target, self.top_k)
+        dcg = _dcg_argsort(argsort_preds, target, self.top_k)
+        idcg = _idcg(target, self.top_k)
         ndcg_score = dcg / idcg
         self.score += np.nan_to_num(ndcg_score, nan=0.0).sum()
         self.num_sample += argsort_preds.shape[0]
@@ -75,10 +78,13 @@ class NDCG:
         self.num_sample = 0
 
 
-class RPrecision:
-    def __init__(self, top_k: int):
-        """Compute the R-Precision@K.
+class RPrecisionAtK:
+    """Compute the R-Precision@K. Please refer to the `implementation document`
+    (https://www.csie.ntu.edu.tw/~cjlin/papers/libmultilabel/libmultilabel_implementation.pdf) for details.
+    """
 
+    def __init__(self, top_k: int):
+        """
         Args:
             top_k: Consider only the top k elements for each query.
         """
@@ -106,18 +112,16 @@ class RPrecision:
         self.num_sample = 0
 
 
-class Precision:
-    def __init__(self, num_classes: int, average: str, top_k: int):
-        """Compute the Precision@K.
+class PrecisionAtK:
+    """Compute the Precision@K. Please refer to the `implementation document`
+    (https://www.csie.ntu.edu.tw/~cjlin/papers/libmultilabel/libmultilabel_implementation.pdf) for details.
+    """
 
+    def __init__(self, top_k: int):
+        """
         Args:
-            num_classes: The number of classes.
-            average: Define the reduction that is applied over labels. Currently only "samples" is supported.
             top_k: Consider only the top k elements for each query.
         """
-        if average != "samples":
-            raise ValueError("unsupported average")
-
         _check_top_k(top_k)
 
         self.top_k = top_k
@@ -142,18 +146,16 @@ class Precision:
         self.num_sample = 0
 
 
-class Recall:
-    def __init__(self, num_classes: int, average: str, top_k: int):
-        """Compute the Recall@K.
+class RecallAtK:
+    """Compute the Recall@K. Please refer to the `implementation document`
+    (https://www.csie.ntu.edu.tw/~cjlin/papers/libmultilabel/libmultilabel_implementation.pdf) for details.
+    """
 
+    def __init__(self, top_k: int):
+        """
         Args:
-            num_classes: The number of classes.
-            average: Define the reduction that is applied over labels. Currently only "samples" is supported.
             top_k: Consider only the top k elements for each query.
         """
-        if average != "samples":
-            raise ValueError("unsupported average")
-
         _check_top_k(top_k)
 
         self.top_k = top_k
@@ -179,9 +181,12 @@ class Recall:
 
 
 class F1:
-    def __init__(self, num_classes: int, average: str, multiclass=False):
-        """Compute the F1 score.
+    """Compute the F1 score. Please refer to the `implementation document`
+    (https://www.csie.ntu.edu.tw/~cjlin/papers/libmultilabel/libmultilabel_implementation.pdf) for details.
+    """
 
+    def __init__(self, num_classes: int, average: str, multiclass=False):
+        """
         Args:
             num_classes: The number of labels.
             average: Define the reduction that is applied over labels. Should be one of "macro", "micro",
@@ -292,13 +297,13 @@ def get_metrics(monitor_metrics: list[str], num_classes: int, multiclass: bool =
     metrics = {}
     for metric in monitor_metrics:
         if re.match("P@\d+", metric):
-            metrics[metric] = Precision(num_classes, average="samples", top_k=int(metric[2:]))
+            metrics[metric] = PrecisionAtK(num_classes, average="samples", top_k=int(metric[2:]))
         elif re.match("R@\d+", metric):
-            metrics[metric] = Recall(num_classes, average="samples", top_k=int(metric[2:]))
+            metrics[metric] = RecallAtK(num_classes, average="samples", top_k=int(metric[2:]))
         elif re.match("RP@\d+", metric):
-            metrics[metric] = RPrecision(top_k=int(metric[3:]))
+            metrics[metric] = RPrecisionAtK(top_k=int(metric[3:]))
         elif re.match("NDCG@\d+", metric):
-            metrics[metric] = NDCG(top_k=int(metric[5:]))
+            metrics[metric] = NDCGAtK(top_k=int(metric[5:]))
         elif metric in {"Another-Macro-F1", "Macro-F1", "Micro-F1"}:
             metrics[metric] = F1(num_classes, average=metric[:-3].lower(), multiclass=multiclass)
         else:
