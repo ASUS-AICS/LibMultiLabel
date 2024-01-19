@@ -3,7 +3,6 @@ import os
 import pickle
 
 from main import get_config, check_config
-from libmultilabel.common_utils import timer
 from libmultilabel.logging import add_stream_handler
 from tests.nn.utils import get_names, get_components_from_trainer
 
@@ -26,7 +25,6 @@ def store_components_from_trainer(trainer):
     logging.info(f"Components for testing saved to {trainer.checkpoint_dir}.")
 
 
-@timer
 def main():
     # Get config
     config = get_config()
