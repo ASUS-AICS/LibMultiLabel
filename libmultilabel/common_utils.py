@@ -43,36 +43,6 @@ class AttributeDict(dict):
         return {k: self[k] for k in self._used}
 
 
-class Timer(object):
-    """Computes elasped time."""
-
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        self.running = True
-        self.total = 0
-        self.start = time.time()
-        return self
-
-    def resume(self):
-        if not self.running:
-            self.running = True
-            self.start = time.time()
-        return self
-
-    def stop(self):
-        if self.running:
-            self.running = False
-            self.total += time.time() - self.start
-        return self
-
-    def time(self):
-        if self.running:
-            return self.total + time.time() - self.start
-        return self.total
-
-
 def dump_log(log_path, metrics=None, split=None, config=None):
     """Write log including the used items of config and the evaluation scores.
 
