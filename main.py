@@ -132,7 +132,7 @@ def add_all_arguments(parser):
         "--monitor_metrics",
         nargs="+",
         default=["P@1", "P@3", "P@5"],
-        help="Metrics to monitor while validating (default: %(default)s)",
+        help="Metrics to monitor for evaluation (default: %(default)s)",
     )
     parser.add_argument(
         "--val_metric", default="P@1", help="The metric to select the best model for testing (default: %(default)s)"
