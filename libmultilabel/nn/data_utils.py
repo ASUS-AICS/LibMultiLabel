@@ -227,6 +227,7 @@ def load_datasets(
 
     datasets = {}
     if training_data is not None:
+        logging.info(f"Loading training data")
         datasets["train"] = _load_raw_data(
             training_data, tokenize_text=tokenize_text, remove_no_label_data=remove_no_label_data
         )
@@ -239,6 +240,7 @@ def load_datasets(
         datasets["train"], datasets["val"] = train_test_split(datasets["train"], test_size=val_size, random_state=42)
 
     if test_data is not None:
+        logging.info(f"Loading test data")
         datasets["test"] = _load_raw_data(
             test_data, is_test=True, tokenize_text=tokenize_text, remove_no_label_data=remove_no_label_data
         )
