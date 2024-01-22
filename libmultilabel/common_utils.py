@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import time
+from functools import wraps
 
 import numpy as np
 
@@ -39,36 +40,6 @@ class AttributeDict(dict):
             dict: the used items.
         """
         return {k: self[k] for k in self._used}
-
-
-class Timer(object):
-    """Computes elasped time."""
-
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        self.running = True
-        self.total = 0
-        self.start = time.time()
-        return self
-
-    def resume(self):
-        if not self.running:
-            self.running = True
-            self.start = time.time()
-        return self
-
-    def stop(self):
-        if self.running:
-            self.running = False
-            self.total += time.time() - self.start
-        return self
-
-    def time(self):
-        if self.running:
-            return self.total + time.time() - self.start
-        return self.total
 
 
 def dump_log(log_path, metrics=None, split=None, config=None):
@@ -156,3 +127,17 @@ def is_multiclass_dataset(dataset, label="label"):
             a multi-class problem."""
         )
     return ratio == 1.0
+
+
+def timer(func):
+    """Log info-level wall time"""
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        value = func(*args, **kwargs)
+        wall_time = time.time() - start_time
+        logging.info(f"{repr(func.__name__)} finished in {wall_time:.2f} seconds")
+        return value
+
+    return wrapper

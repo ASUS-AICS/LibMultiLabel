@@ -13,7 +13,7 @@ import numpy as np
 
 from libmultilabel.nn import data_utils
 from libmultilabel.nn.nn_utils import set_seed
-from libmultilabel.common_utils import AttributeDict, Timer
+from libmultilabel.common_utils import AttributeDict, timer
 from torch_trainer import TorchTrainer
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s:%(message)s")
@@ -254,6 +254,7 @@ def retrain_best_model(exp_name, best_config, best_log_dir, retrain):
     logging.info(f"Best model saved to {best_model_path}.")
 
 
+@timer
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -357,7 +358,4 @@ def main():
 
 
 if __name__ == "__main__":
-    # calculate wall time.
-    wall_time = Timer()
     main()
-    print(f"Wall time: {wall_time.time():.2f} (s)")
