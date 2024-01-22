@@ -159,7 +159,7 @@ def _load_raw_data(data, is_test=False, tokenize_text=True, remove_no_label_data
             This is effective only when is_test=False. Defaults to False.
 
     Returns:
-        pandas.DataFrame: Data composed of index, label, and tokenized text.
+        dict: [{(optional: "index": ..., )"label": ..., "text": ...}, ...]
     """
     assert isinstance(data, str) or isinstance(data, pd.DataFrame), "Data must be from a file or pandas dataframe."
     if isinstance(data, str):
