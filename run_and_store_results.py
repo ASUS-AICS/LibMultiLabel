@@ -3,7 +3,6 @@ import os
 import pickle
 
 from main import get_config, check_config
-from libmultilabel.common_utils import Timer, AttributeDict
 from libmultilabel.logging import add_stream_handler
 from tests.nn.utils import get_names, get_components_from_trainer
 
@@ -55,6 +54,4 @@ def main():
 
 
 if __name__ == "__main__":
-    wall_time = Timer()
     main()
-    print(f"Wall time: {wall_time.time():.2f} (s)")
