@@ -243,7 +243,7 @@ def load_datasets(
             test_data, is_test=True, tokenize_text=tokenize_text, remove_no_label_data=remove_no_label_data
         )
 
-    if merge_train_val:
+    if merge_train_val and "val" in datasets:
         datasets["train"] = datasets["train"] + datasets["val"]
         for i in range(len(datasets["train"])):
             datasets["train"][i]["index"] = i
