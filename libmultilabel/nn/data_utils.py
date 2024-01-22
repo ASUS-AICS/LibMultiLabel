@@ -222,12 +222,8 @@ def load_datasets(
     Returns:
         dict: A dictionary of datasets.
     """
-    if isinstance(training_data, str) or isinstance(test_data, str):
-        assert training_data or test_data, "At least one of `training_data` and `test_data` must be specified."
-    elif isinstance(training_data, pd.DataFrame) or isinstance(test_data, pd.DataFrame):
-        assert (
-            not training_data.empty or not test_data.empty
-        ), "At least one of `training_data` and `test_data` must be specified."
+    if training_data is None and test_data is None:
+        raise ValueError("At least one of `training_data` and `test_data` must be specified.")
 
     datasets = {}
     if training_data is not None:
