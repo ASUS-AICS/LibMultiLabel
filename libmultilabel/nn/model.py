@@ -108,43 +108,29 @@ class MultiLabelModel(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        return self._shared_eval_step(batch, batch_idx)
-
-    def validation_step_end(self, batch_parts):
-        return self._shared_eval_step_end(batch_parts)
+        self._shared_eval_step(batch, batch_idx)
 
     def validation_epoch_end(self, step_outputs):
-        return self._shared_eval_epoch_end(step_outputs, "val")
+        # Left unused step_outputs here for 1.7.7 API:
+        # https://pytorch-lightning.readthedocs.io/en/1.7.7/api/pytorch_lightning.core.LightningModule.html?highlight=validation_epoch_end#pytorch_lightning.core.LightningModule.validation_epoch_end
+        return self._shared_eval_epoch_end(split="val")
 
     def test_step(self, batch, batch_idx):
-        return self._shared_eval_step(batch, batch_idx)
-
-    def test_step_end(self, batch_parts):
-        return self._shared_eval_step_end(batch_parts)
+        self._shared_eval_step(batch, batch_idx)
 
     def test_epoch_end(self, step_outputs):
-        return self._shared_eval_epoch_end(step_outputs, "test")
+        return self._shared_eval_epoch_end(split="test")
 
     def _shared_eval_step(self, batch, batch_idx):
         loss, pred_logits = self.shared_step(batch)
-        return {
-            "batch_idx": batch_idx,
-            "loss": loss,
-            "pred_scores": torch.sigmoid(pred_logits),
-            "target": batch["label"],
-        }
+        pred_scores = torch.sigmoid(pred_logits)
+        self.eval_metric.update(preds=pred_scores, target=batch["label"], loss=loss)
 
-    def _shared_eval_step_end(self, batch_parts):
-        return self.eval_metric.update(
-            preds=batch_parts["pred_scores"], target=batch_parts["target"], loss=batch_parts["loss"]
-        )
-
-    def _shared_eval_epoch_end(self, step_outputs, split):
+    def _shared_eval_epoch_end(self, split):
         """Get scores such as `Micro-F1`, `Macro-F1`, and monitor metrics defined
         in the configuration file in the end of an epoch.
 
         Args:
-            step_outputs (list): List of the return values from the val or test step end.
             split (str): One of the `val` or `test`.
 
         Returns:
