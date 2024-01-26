@@ -14,7 +14,7 @@ max_seq_length: 500
 
 # AttentionXML-related parameters
 cluster_size: 8
-top_k: 64
+save_k_predictions: 64
 
 # dataloader
 batch_size: 40
@@ -26,9 +26,6 @@ eval_batch_size: 40
 monitor_metrics: [P@1, P@3, P@5, nDCG@3, nDCG@5, RP@3, RP@5]
 val_metric: nDCG@5
 
-# trainer params
-accelerator: gpu
-
 # train
 seed: 1337
 epochs: 30
@@ -39,8 +36,7 @@ optimizer: Adam
 patience: 5
 
 # model
-model_name: FastAttentionXML
-loss_func: binary_cross_entropy_with_logits
+model_name: AttentionXML
 network_config:
   embed_dropout: 0.2
   post_encoder_dropout: 0.5

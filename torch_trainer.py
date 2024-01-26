@@ -69,7 +69,7 @@ class TorchTrainer:
         if config.embed_file is not None:
             word_dict, embed_vecs = data_utils.load_or_build_text_dict(
                 dataset=self.datasets["train"]
-                if config.model_name.lower() != "fastattentionxml"
+                if config.model_name.lower() != "attentionxml"
                 else self.datasets["train_full"],
                 vocab_file=config.vocab_file,
                 min_vocab_freq=config.min_vocab_freq,
@@ -82,15 +82,10 @@ class TorchTrainer:
         if not classes:
             self.classes = data_utils.load_or_build_label(self.datasets, config.label_file, config.include_test_labels)
 
-        mlb = MultiLabelBinarizer(classes=self.classes, sparse_output=True)
-        mlb.fit(None)
-
         self.config.multiclass = is_multiclass_dataset(self.datasets["train"] + self.datasets.get("val", list()))
 
-        if self.config.model_name.lower() == "fastattentionxml":
-            self.trainer = PLTTrainer(
-                self.config, classes=self.classes, embed_vecs=embed_vecs, word_dict=word_dict, mlb=mlb
-            )
+        if self.config.model_name.lower() == "attentionxml":
+            self.trainer = PLTTrainer(self.config, classes=self.classes, embed_vecs=embed_vecs, word_dict=word_dict)
         else:
             self._setup_model(
                 word_dict=word_dict,
@@ -206,7 +201,7 @@ class TorchTrainer:
         """Train model with pytorch lightning trainer. Set model to the best model after the training
         process is finished.
         """
-        if self.config.model_name.lower() == "fastattentionxml":
+        if self.config.model_name.lower() == "attentionxml":
             self.trainer.fit(self.datasets)
         else:
             assert (
@@ -250,7 +245,7 @@ class TorchTrainer:
         """
         assert "test" in self.datasets and self.trainer is not None
 
-        if self.config.model_name.lower() == "fastattentionxml":
+        if self.config.model_name.lower() == "attentionxml":
             self.trainer.test(self.datasets["test"])
         else:
             logging.info(f"Testing on {split} set.")
