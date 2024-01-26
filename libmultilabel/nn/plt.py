@@ -2,31 +2,32 @@ from __future__ import annotations
 
 import logging
 import time
-from concurrent.futures import ThreadPoolExecutor
 from functools import reduce, partial
 from pathlib import Path
 from typing import Generator, Optional
 
 import numpy as np
 import torch
-import torch.distributed as dist
 from lightning import Trainer
 from scipy.sparse import csr_matrix
+from sklearn.preprocessing import MultiLabelBinarizer
 from torch import Tensor
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
-from lightning.pytorch.utilities import rank_zero_only, rank_zero_info
+from lightning.pytorch.callbacks import ModelCheckpoint
 
 from .cluster import CLUSTER_NAME, FILE_EXTENSION as CLUSTER_FILE_EXTENSION, build_label_tree
 from .data_utils import UNK
-from .datasets import MultiLabelDataset, PLTDataset
-from .model import PLTModel, BaseModel
+from .datasets_AttentionXML import MultiLabelDataset, PLTDataset
+from .model_AttentionXML import PLTModel
+from ..nn import networks
+from ..nn.model import Model
 
 __all__ = ["PLTTrainer"]
 
-logging.basicConfig(level=logging.INFO)
+from .nn_utils import init_trainer, init_model
+
 logger = logging.getLogger(__name__)
 
 
@@ -36,25 +37,31 @@ class PLTTrainer:
     def __init__(
         self,
         config,
-        classes: Optional[list] = None,  # TODO: removed in the future
+        classes: Optional[list] = None,
         embed_vecs: Optional[Tensor] = None,
-        word_dict: Optional[dict] = None,  # TODO: removed in the future
-        mlb=None,  # TODO: removed in the future
+        word_dict: Optional[dict] = None,
     ):
         # The number of levels is set to 2
         # In other words, there will be 2 models
 
+        if config.multiclass:
+            raise ValueError(
+                "The label space of multi-class datasets are usually not large enough for PLT training."
+                "Please consider other methods."
+                "If you think this statement is false. Please comment the exception in plt.py"
+            )
+        self.is_multiclass = config.multiclass
+
         # cluster
         self.cluster_size = config.cluster_size
         # predict the top k labels
-        self.top_k = config.top_k
+        self.predict_top_k = config.top_k
 
         # dataset meta info
         self.embed_vecs = embed_vecs
         self.word_dict = word_dict
-        self.mlb = mlb
+        self.classes = classes
         self.num_labels = len(classes)
-        self.is_multiclass = config.multiclass
 
         # cluster meta info
         self.cluster_size = config.cluster_size
@@ -70,34 +77,21 @@ class PLTTrainer:
 
         # Trainer parameters
         self.accelerator = config.accelerator
+        self.use_cpu = config.cpu
         self.devices = 1
         self.num_nodes = 1
-        self.max_epochs = config.epochs
+        self.epochs = config.epochs
+        self.limit_train_batches = config.limit_train_batches
+        self.limit_val_batches = config.limit_val_batches
+        self.limit_test_batches = config.limit_test_batches
+
         # callbacks
         self.val_metric = config.val_metric
-        self.verbose = not config.silent
+        self.silent = config.silent
         # EarlyStopping
         self.patience = config.patience
         # ModelCheckpoint
         self.result_dir = Path(config.result_dir)
-        # SWA/EMA
-        # to understand how SWA work, see the pytorch doc and the following link
-        # https://stackoverflow.com/questions/68726290/setting-learning-rate-for-stochastic-weight-averaging-in-pytorch
-        # self.swa = config.get("swa")
-        #
-        # if (swa_config := config.get("swa")) is not None:
-        #     self.swa_lr = swa_config.get("swa_lr", 5e-2)
-        #     self.swa_epoch_start = swa_config.get("swa_epoch_start")
-        #     self.annealing_epochs = swa_config.get("annealing_epochs", 10)
-        #     self.annealing_strategy = swa_config.get("annealing_strategy", "cos")
-        #     # TODO: SWA or EMA?
-        #
-        #     # self.avg_fn = None  # None == SWA
-        #     def ema_avg_fn(averaged_model_parameter: Tensor, model_parameter: Tensor, num_averaged: Tensor) -> Tensor:
-        #         decay = 1.0 - 1.0 / num_averaged
-        #         return torch.optim.swa_utils.get_ema_avg_fn(decay=decay)
-        #
-        #     self.avg_fn = ema_avg_fn
 
         self.metrics = config.monitor_metrics
 
@@ -123,12 +117,11 @@ class PLTTrainer:
         # save path
         self.config = config
 
-    def label2node(self, nodes, *ys) -> Generator[csr_matrix, ...]:
-        """Map labels (leaf nodes) to ancestor nodes at a certain level.
+    def label2cluster(self, nodes, *ys) -> Generator[csr_matrix, ...]:
+        """Map labels to their corresponding clusters in CSR sparse format.
 
-        If num_labels is 8 and nodes is [(0, 1), (2, 3), (4, 6), (5, 7)].
-        Then the mapping is as follows: [0, 0, 1, 1, 2, 3, 2, 3]
-        Suppose one element of ys is [0, 1, 7]. The results after mapping is [0, 3].
+        Suppose there are 6 labels and clusters are [(0, 1), (2, 3), (4, 5)] and ys is [0, 1, 4].
+        The clustered labels of the given instance are [0, 2].
 
         Args:
             nodes: the nodes generated at a pre-defined level.
@@ -141,7 +134,7 @@ class PLTTrainer:
         for idx, node_labels in enumerate(nodes):
             mapping[node_labels] = idx
 
-        def _label2node(y: csr_matrix) -> csr_matrix:
+        def _label2cluster(y: csr_matrix) -> csr_matrix:
             row = []
             col = []
             data = []
@@ -153,47 +146,7 @@ class PLTTrainer:
                 data += [1] * len(n)
             return csr_matrix((data, (row, col)), shape=(y.shape[0], len(nodes)))
 
-        return (_label2node(y) for y in ys)
-
-    def configure_trainer(self, level) -> Trainer:
-        callbacks = []
-        monitor = self.val_metric
-        # loss cannot be calculated for PLTModel
-        mode = "max"
-
-        # ModelCheckpoint
-        callbacks.append(
-            ModelCheckpoint(
-                dirpath=self.result_dir,
-                filename=f"{self.CHECKPOINT_NAME}{level}",
-                monitor=monitor,
-                verbose=self.verbose,
-                mode=mode,
-                enable_version_counter=False,
-                save_on_train_epoch_end=True,
-            )
-        )
-
-        callbacks.append(
-            EarlyStopping(
-                monitor=monitor,
-                patience=self.patience,
-                mode=mode,
-                verbose=self.verbose,
-            )
-        )
-
-        trainer = Trainer(
-            accelerator=self.accelerator,
-            devices=self.devices,
-            num_nodes=self.num_nodes,
-            callbacks=callbacks,
-            max_epochs=self.max_epochs,
-            # TODO: Decide whether to keep these parameters
-            enable_progress_bar=True,
-            default_root_dir=self.result_dir,
-        )
-        return trainer
+        return (_label2cluster(y) for y in ys)
 
     def fit(self, datasets):
         """fit model to the training dataset
@@ -208,28 +161,23 @@ class PLTTrainer:
         train_sparse_x = datasets["train_sparse_x"]
         # sparse training labels
         # TODO: remove workaround in future PR
-        train_sparse_y_full = self.mlb.transform((i["label"] for i in train_data_full))
+        self.binarizer = MultiLabelBinarizer(classes=self.classes, sparse_output=True)
+        self.binarizer.fit(None)
+        train_sparse_y_full = self.binarizer.transform((i["label"] for i in train_data_full))
 
         train_x = self.reformat_text(datasets["train"])
         val_x = self.reformat_text(datasets["val"])
 
-        train_y = self.mlb.transform((i["label"] for i in datasets["train"]))
-        val_y = self.mlb.transform((i["label"] for i in datasets["val"]))
+        train_y = self.binarizer.transform((i["label"] for i in datasets["train"]))
+        val_y = self.binarizer.transform((i["label"] for i in datasets["val"]))
 
-        # only do clustering on GPU 0
-        @rank_zero_only
-        def start_cluster():
-            with ThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(
-                    build_label_tree,
-                    sparse_x=train_sparse_x,
-                    sparse_y=train_sparse_y_full,
-                    cluster_size=self.cluster_size,
-                    output_dir=self.result_dir,
-                )
-                future.result()
-
-        start_cluster()
+        # clustering
+        build_label_tree(
+            sparse_x=train_sparse_x,
+            sparse_y=train_sparse_y_full,
+            cluster_size=self.cluster_size,
+            output_dir=self.result_dir,
+        )
 
         # wait until the clustering process finishes
         cluster_path = self.get_cluster_path()
@@ -238,40 +186,62 @@ class PLTTrainer:
         clusters = np.load(cluster_path, allow_pickle=True)
 
         # each y has been mapped to the node indices of its parent
-        train_y_cluster, val_y_cluster = self.label2node(clusters, train_y, val_y)
+        train_y_clustered, val_y_clustered = self.label2cluster(clusters, train_y, val_y)
         # regard each internal nodes as a "labels"
         num_labels = len(clusters)
 
         # trainer
-        trainer = self.configure_trainer(level=0)
+        trainer = init_trainer(
+            self.result_dir,
+            epochs=self.epochs,
+            patience=self.patience,
+            early_stopping_metric=self.val_metric,
+            val_metric=self.val_metric,
+            silent=self.silent,
+            use_cpu=self.use_cpu,
+            limit_train_batches=self.limit_train_batches,
+            limit_val_batches=self.limit_val_batches,
+            limit_test_batches=self.limit_test_batches,
+            search_params=False,
+            save_checkpoints=True,
+        )
+        trainer.checkpoint_callback.file_name = f"{self.CHECKPOINT_NAME}0{ModelCheckpoint.FILE_EXTENSION}"
 
         best_model_path = self.get_best_model_path(level=0)
         if not best_model_path.exists():
             # train & valid dataloaders for training
-            train_dataloader = self.dataloader(MultiLabelDataset(train_x, train_y_cluster), shuffle=self.shuffle)
-            val_dataloader = self.dataloader(MultiLabelDataset(val_x, val_y_cluster))
+            train_dataloader = self.dataloader(MultiLabelDataset(train_x, train_y_clustered), shuffle=self.shuffle)
+            val_dataloader = self.dataloader(MultiLabelDataset(val_x, val_y_clustered))
 
-            model = BaseModel(
-                network="AttentionXML",
-                network_config=self.network_config,
+            model = init_model(
+                model_name="AttentionXML",
+                network_config=self.config.network_config,
+                classes=self.classes,
+                word_dict=self.word_dict,
                 embed_vecs=self.embed_vecs,
-                num_labels=num_labels,
-                optimizer=self.optimizer,
-                metrics=self.metrics,
-                val_metric=self.val_metric,
-                top_k=self.top_k,
-                is_multiclass=self.is_multiclass,
-                init_weight=self.init_weight,
-                loss_func=self.loss_func,
-                optimizer_params=self.optimizer_config,
+                init_weight=self.config.init_weight,
+                log_path=self.config.log_path,
+                learning_rate=self.config.learning_rate,
+                optimizer=self.config.optimizer,
+                momentum=self.config.momentum,
+                weight_decay=self.config.weight_decay,
+                lr_scheduler=self.config.lr_scheduler,
+                scheduler_config=self.config.scheduler_config,
+                val_metric=self.config.val_metric,
+                metric_threshold=self.config.metric_threshold,
+                monitor_metrics=self.config.monitor_metrics,
+                multiclass=self.config.multiclass,
+                loss_function=self.config.loss_function,
+                silent=self.config.silent,
+                save_k_predictions=self.config.save_k_predictions,
             )
 
-            rank_zero_info(f"Training level 0. Number of labels: {num_labels}")
+            logger.info(f"Training level 0. Number of labels: {num_labels}")
             trainer.fit(model, train_dataloader, val_dataloader)
-            rank_zero_info(f"Finish training level 0")
+            logger.info(f"Finish training level 0")
 
-        rank_zero_info(f"Best model loaded from {best_model_path}")
-        model = BaseModel.load_from_checkpoint(best_model_path, embed_vecs=self.embed_vecs)
+        logger.info(f"Best model loaded from {best_model_path}")
+        model = Model.load_from_checkpoint(best_model_path, embed_vecs=self.embed_vecs)
 
         # Utilize single GPU to predict
         trainer = Trainer(
@@ -280,8 +250,8 @@ class PLTTrainer:
             accelerator=self.accelerator,
             logger=False,
         )
-        rank_zero_info(
-            f"Generating predictions for level 1. Number of possible predictions: {num_labels}. Top k: {self.top_k}"
+        logger.info(
+            f"Generating predictions for level 1. Number of possible predictions: {num_labels}. Top k: {self.predict_top_k}"
         )
         # train & val dataloaders for prediction (without labels)
         train_dataloader = self.eval_dataloader(MultiLabelDataset(train_x))
@@ -291,58 +261,73 @@ class PLTTrainer:
         train_node_pred = trainer.predict(model, train_dataloader)
         valid_node_pred = trainer.predict(model, val_dataloader)
 
+        import pdb
+
+        pdb.set_trace()
+
         # shape of node_pred: (n, 2, ~batch_size, top_k). n is floor(num_x / batch_size)
         # new shape: (2, num_x, top_k)
         _, train_node_y_pred = map(torch.vstack, list(zip(*train_node_pred)))
         valid_node_score_pred, valid_node_y_pred = map(torch.vstack, list(zip(*valid_node_pred)))
 
         # The following process can be simplified using method from LightXML
-        rank_zero_info("Getting Candidates")
-        node_candidates = np.empty((len(train_x), self.top_k), dtype=np.int64)
-        prog = rank_zero_only(tqdm)(train_node_y_pred, leave=False, desc="Parents")
-        if prog is None:
-            prog = train_node_y_pred
-        for i, ys in enumerate(prog):
+        logger.info("Getting samples")
+        cluster_samples = np.empty((len(train_x), self.predict_top_k), dtype=np.int64)
+        for i, ys in enumerate(tqdm(train_node_y_pred, leave=False, desc="Sampling")):
             # true nodes/labels are positive
-            positive = set(train_y_cluster.indices[train_y_cluster.indptr[i] : train_y_cluster.indptr[i + 1]])
-            # Regard positive nodes and predicted training nodes that are not in positive as candidates
+            pos = set(train_y_clustered.indices[train_y_clustered.indptr[i] : train_y_clustered.indptr[i + 1]])
+            # Regard positive nodes and predicted training nodes that are not in positive as samples
             # until reaching top_k if the number of positive labels is less than top_k.
-            if len(positive) <= self.top_k:
-                candidates = positive
+            if len(pos) <= self.predict_top_k:
+                samples = pos
                 for y in ys:
                     y = y.item()
-                    if len(candidates) == self.top_k:
+                    if len(samples) == self.predict_top_k:
                         break
-                    candidates.add(y)
-            # Regard positive (true) label as candidates iff they appear in the predicted labels
-            # if the number of positive labels is more than top_k. If candidates are not of length top_k
+                    samples.add(y)
+            # Regard positive (true) label as samples iff they appear in the predicted labels
+            # if the number of positive labels is more than top_k. If samples are not of length top_k
             # add unseen predicted labels until reaching top_k.
             else:
-                candidates = set()
+                samples = set()
                 for y in ys:
                     y = y.item()
-                    if y in positive:
-                        candidates.add(y)
-                    if len(candidates) == self.top_k:
+                    if y in pos:
+                        samples.add(y)
+                    if len(samples) == self.predict_top_k:
                         break
-                if len(candidates) < self.top_k:
-                    candidates = (list(candidates) + list(positive - candidates))[: self.top_k]
-            node_candidates[i] = np.asarray(list(candidates))
+                if len(samples) < self.predict_top_k:
+                    samples = (list(samples) + list(pos - samples))[: self.predict_top_k]
+            cluster_samples[i] = np.asarray(list(samples))
 
         # mapping from the current nodes to leaf nodes.
         assert reduce(lambda a, b: a + len(b), clusters, 0) == self.num_labels
 
         # trainer
-        trainer = self.configure_trainer(level=1)
+        trainer = init_trainer(
+            self.result_dir,
+            epochs=self.epochs,
+            patience=self.patience,
+            early_stopping_metric=self.val_metric,
+            val_metric=self.val_metric,
+            silent=self.silent,
+            use_cpu=self.use_cpu,
+            limit_train_batches=self.limit_train_batches,
+            limit_val_batches=self.limit_val_batches,
+            limit_test_batches=self.limit_test_batches,
+            search_params=False,
+            save_checkpoints=True,
+        )
+        trainer.checkpoint_callback.file_name = f"{self.CHECKPOINT_NAME}1{ModelCheckpoint.FILE_EXTENSION}"
 
         # train & valid dataloaders for training
         train_dataloader = self.dataloader(
             PLTDataset(
                 train_x,
                 train_y,
-                num_labels=self.num_labels,
+                num_classes=self.num_labels,
                 mapping=clusters,
-                node_label=node_candidates,
+                cluster_samples=cluster_samples,
             ),
             shuffle=self.shuffle,
         )
@@ -350,21 +335,28 @@ class PLTTrainer:
             PLTDataset(
                 val_x,
                 val_y,
-                num_labels=self.num_labels,
+                num_classes=self.num_labels,
                 mapping=clusters,
-                node_label=valid_node_y_pred,
-                node_score=valid_node_score_pred,
+                cluster_samples=valid_node_y_pred,
+                cluster_scores=valid_node_score_pred,
             ),
         )
 
+        try:
+            network = getattr(networks, "FastAttentionXML")(
+                embed_vecs=self.embed_vecs, num_classes=len(self.classes), **dict(self.network_config)
+            )
+        except:
+            raise AttributeError("Failed to initialize AttentionXML")
+
         model = PLTModel(
-            network="FastAttentionXML",
+            network=network,
             network_config=self.network_config,
             embed_vecs=self.embed_vecs,
             num_labels=self.num_labels,
             optimizer=self.optimizer,
             metrics=self.metrics,
-            top_k=self.top_k,
+            top_k=self.predict_top_k,
             val_metric=self.val_metric,
             is_multiclass=self.is_multiclass,
             loss_func=self.loss_func,
@@ -373,7 +365,7 @@ class PLTTrainer:
         torch.nn.init.xavier_uniform_(model.network.attention.attention.weight)
 
         # initialize model with weights from level 0
-        rank_zero_info(f"Loading parameters of level 1 from level 0")
+        logger.info(f"Loading parameters of level 1 from level 0")
         state_dict = torch.load(self.get_best_model_path(level=0))["state_dict"]
 
         # remove the name prefix in state_dict starting with "network.xxx"
@@ -392,25 +384,18 @@ class PLTTrainer:
         model.network.encoder.load_state_dict(encoder_state_dict)
         model.network.output.load_state_dict(output_state_dict)
 
-        rank_zero_info(
-            f"Training level 1, Number of labels: {self.num_labels}, "
-            f"Number of candidates: {train_dataloader.dataset.num_candidates}"
+        logger.info(
+            f"Training level 1. Number of labels: {self.num_labels}."
+            f"Number of samples: {train_dataloader.dataset.num_samples}"
         )
         trainer.fit(model, train_dataloader, valid_dataloader)
-        rank_zero_info(f"Best model loaded from {best_model_path}")
-        rank_zero_info(f"Finish training level 1")
+        logger.info(f"Best model loaded from {best_model_path}")
+        logger.info(f"Finish training level 1")
 
-        # testing will hang forever without destroying process group
-        if dist.is_initialized():
-            dist.destroy_process_group()
-
-    # why we want to test on a single GPU?
-    # https://lightning.ai/docs/pytorch/stable/common/evaluation_intermediate.html
-    @rank_zero_only
     def test(self, dataset):
         test_x = self.reformat_text(dataset)
-        test_y = self.mlb.transform((i["label"] for i in dataset))
-        rank_zero_info("Start predicting process.")
+        test_y = self.binarize.transform((i["label"] for i in dataset))
+        logger.info("Testing process started")
         trainer = Trainer(
             devices=1,
             accelerator=self.accelerator,
@@ -421,36 +406,39 @@ class PLTTrainer:
         model = BaseModel.load_from_checkpoint(
             self.get_best_model_path(level=0),
             embed_vecs=self.embed_vecs,
-            top_k=self.top_k,
+            top_k=self.predict_top_k,
             metrics=self.metrics,
         )
 
         test_dataloader = self.eval_dataloader(MultiLabelDataset(test_x))
 
-        rank_zero_info(f"Predicting level 0, Top: {self.top_k}")
+        logger.info(f"Predicting level 0, Top: {self.predict_top_k}")
         node_pred = trainer.predict(model, test_dataloader)
         node_score_pred, node_label_pred = map(torch.vstack, list(zip(*node_pred)))
 
         clusters = np.load(self.get_cluster_path(), allow_pickle=True)
 
         model = PLTModel.load_from_checkpoint(
-            self.get_best_model_path(level=1), embed_vecs=self.embed_vecs, top_k=self.top_k, metrics=self.metrics
+            self.get_best_model_path(level=1),
+            embed_vecs=self.embed_vecs,
+            top_k=self.predict_top_k,
+            metrics=self.metrics,
         )
 
         test_dataloader = self.eval_dataloader(
             PLTDataset(
                 test_x,
                 test_y,
-                num_labels=self.num_labels,
+                num_classes=self.num_labels,
                 mapping=clusters,
-                node_label=node_label_pred,
-                node_score=node_score_pred,
+                cluster_samples=node_label_pred,
+                cluster_scores=node_score_pred,
             ),
         )
 
-        rank_zero_info(f"Testing on level 1")
+        logger.info(f"Testing on level 1")
         trainer.test(model, test_dataloader)
-        rank_zero_info("Testing process finished")
+        logger.info("Testing process finished")
 
     def reformat_text(self, dataset):
         encoded_text = list(

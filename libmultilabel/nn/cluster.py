@@ -4,90 +4,86 @@ import logging
 from pathlib import Path
 
 import numpy as np
-from scipy.sparse import csr_matrix, csc_matrix
-from sklearn.preprocessing import normalize
 from numpy import ndarray
+from scipy.sparse import csc_matrix, csr_matrix
+from sklearn.preprocessing import normalize
 
 __all__ = ["CLUSTER_NAME", "FILE_EXTENSION", "build_label_tree"]
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 CLUSTER_NAME = "label_clusters"
 FILE_EXTENSION = ".npy"
 
 
 def build_label_tree(sparse_x: csr_matrix, sparse_y: csr_matrix, cluster_size: int, output_dir: str | Path):
-    """Build label tree described in AttentionXML
+    """Group labels into clusters that contain up tp cluster_size labels.
+    Given a set of labels (0, 1, 2, 3, 4, 5) and a cluster size of 2, the resulting clusters looks something like:
+    ((0, 2), (1, 3), (4, 5)).
 
     Args:
         sparse_x: features extracted from texts in CSR sparse format
-        sparse_y: labels in CSR sparse format
-        cluster_size: the maximal number of labels inside a cluster
-        output_dir: directory to save the clusters
+        sparse_y: binarized labels in CSR sparse format
+        cluster_size: the maximum number of labels within each cluster
+        output_dir: directory to store the clustering file
     """
-    # skip label clustering if the clustering file already exists
+    # skip constructing label tree if the output file already exists
     output_dir = output_dir if isinstance(output_dir, Path) else Path(output_dir)
     cluster_path = output_dir / f"{CLUSTER_NAME}{FILE_EXTENSION}"
     if cluster_path.exists():
         logger.info("Clustering has finished in a previous run")
         return
 
-    # cluster meta info
-    logger.info("Performing label clustering")
+    # meta info
+    logger.info("Label clustering started")
     logger.info(f"Cluster size: {cluster_size}")
     num_labels = sparse_y.shape[1]
-    # the height of the tree satisfies the following inequation:
+    # The height of the tree satisfies the following inequation:
     # 2**(tree_height - 1) * cluster_size < num_labels <= 2**tree_height * cluster_size
     height = int(np.ceil(np.log2(num_labels / cluster_size)))
     logger.info(f"Labels will be grouped into {2**height} clusters")
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # generate label representations
+    # the normalized representations of the relationship between labels and texts
     label_repr = normalize(sparse_y.T @ csc_matrix(sparse_x))
 
     # clustering process
-    rng = np.random.default_rng()
     clusters = [np.arange(num_labels)]
     for _ in range(height):
-        assert sum(map(len, clusters)) == num_labels
-
         next_clusters = []
-        for idx_in_cluster in clusters:
-            next_clusters.extend(_cluster_split(idx_in_cluster, label_repr, rng))
+        for cluster in clusters:
+            next_clusters.extend(_split_cluster(cluster, label_repr))
         clusters = next_clusters
         logger.info(f"Having grouped {len(clusters)} clusters")
 
     np.save(cluster_path, np.asarray(clusters, dtype=object))
-    logger.info(f"Finish clustering, saving cluster to '{cluster_path}'")
+    logger.info(f"Label clustering finished. Saving results to {repr(cluster_path)}")
 
 
-def _cluster_split(
-    idx_in_cluster: ndarray, label_repr: csr_matrix, rng: np.random.Generator
-) -> tuple[ndarray, ndarray]:
-    """A variant of KMeans implemented in AttentionXML. Its main differences with sklearn.KMeans are:
-    1. the distance metric is cosine similarity as all label representations are normalized.
-    2. the end-of-loop criterion is the difference between the new and old average in-cluster distance to centroids.
-    Possible drawbacks:
-        Random initialization.
-        cluster_size matters.
+def _split_cluster(cluster: ndarray, label_repr: csr_matrix) -> tuple[ndarray, ndarray]:
+    """A variant of KMeans implemented in AttentionXML. The cluster is partitioned into two groups, each with
+    approximately equal size. Its main differences with the KMeans algorithm in scikit-learn are:
+    1. the distance metric is cosine similarity.
+    2. the end-of-loop criterion is the difference between the new and old average in-cluster distances to centroids.
+
+    Args:
+        cluster: a subset of labels
+        label_repr: the normalized representations of the relationship between labels and texts
     """
-    # tol is a possible hyperparameter
     tol = 1e-4
-    if tol <= 0 or tol > 1:
-        raise ValueError(f"tol should be a positive number that is less than 1, got {repr(tol)} instead.")
 
-    # the corresponding label representations in the node
-    tgt_repr = label_repr[idx_in_cluster]
+    # the normalized label representations corresponding to the cluster
+    tgt_repr = label_repr[cluster]
 
-    # the number of leaf labels in the node
-    n = len(idx_in_cluster)
+    # the number of labels in the cluster
+    n = len(cluster)
 
-    # randomly choose two points as initial centroids
-    centroids = tgt_repr[rng.choice(n, size=2, replace=False)].toarray()
+    # Randomly choose two points as initial centroids and obtain their label representations
+    centroids = tgt_repr[np.random.choice(n, size=2, replace=False)].toarray()
 
-    # initialize distances (cosine similarity)
+    # Initialize distances (cosine similarity)
+    # The cosine similarity always belongs to the interval [-1, 1]
     old_dist = -2.0
     new_dist = -1.0
 
@@ -96,7 +92,8 @@ def _cluster_split(
     c1_idx = None
 
     while new_dist - old_dist >= tol:
-        # each points' distance (cosine similarity) to the two centroids
+        # each point's distances (cosine similarity) to the two centroids
+        # tgs_repr and centroids.T have been normalized
         dist = tgt_repr @ centroids.T  # shape: (n, 2)
 
         # generate clusters
@@ -107,12 +104,12 @@ def _cluster_split(
         c1_idx = c_idx[k:]
 
         # update distances
-        # the distance is the average in-cluster distance to the centroids
+        # the new distance is the average of in-cluster distances to the centroids
         old_dist = new_dist
         new_dist = (dist[c0_idx, 0].sum() + dist[c1_idx, 1].sum()) / n
 
         # update centroids
-        # the new centroid is the average of the points in the cluster
+        # the new centroid is the normalized average of the points in the cluster
         centroids = normalize(
             np.asarray(
                 [
@@ -121,4 +118,4 @@ def _cluster_split(
                 ]
             )
         )
-    return idx_in_cluster[c0_idx], idx_in_cluster[c1_idx]
+    return cluster[c0_idx], cluster[c1_idx]

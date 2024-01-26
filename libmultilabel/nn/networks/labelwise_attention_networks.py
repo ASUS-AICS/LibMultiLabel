@@ -299,7 +299,7 @@ class AttentionRNN(nn.Module):
         x = self.encoder(x, lengths)  # batch_size, length, hidden_size
         x, _ = self.attention(x, masks)  # batch_size, num_classes, hidden_size
         x = self.output(x)  # batch_size, num_classes
-        return x
+        return {"logits": x}
 
 
 class FastAttentionRNN(nn.Module):
@@ -321,7 +321,7 @@ class FastAttentionRNN(nn.Module):
         self.attention = FastLabelwiseAttention(rnn_dim, num_classes)
         self.output = MultilayerLinearOutput([rnn_dim] + linear_size, 1)
 
-    def forward(self, inputs, candidates):
+    def forward(self, inputs, samples):
         # the index of padding is 0
         masks = inputs != 0
         lengths = masks.sum(dim=1)
@@ -329,6 +329,6 @@ class FastAttentionRNN(nn.Module):
 
         x = self.embedding(inputs)[:, : lengths.max()]  # batch_size, length, embedding_size
         x = self.encoder(x, lengths)  # batch_size, length, hidden_size
-        x, _ = self.attention(x, masks, candidates)  # batch_size, candidate_size, hidden_size
+        x, _ = self.attention(x, masks, samples)  # batch_size, candidate_size, hidden_size
         x = self.output(x)  # batch_size, candidate_size
-        return x
+        return {"logits": x}
