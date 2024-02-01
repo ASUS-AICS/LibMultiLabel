@@ -247,19 +247,17 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes, top_k=None):
 
         if match_top_k:
             metric_abbr = match_top_k.group(1)  # P, R, PR, or nDCG
-            top_k = int(match_top_k.group(2))
-            if top_k >= num_classes:
-                raise ValueError(
-                    f"Invalid metric: {metric}. top_k ({top_k}) is greater than num_classes({num_classes})."
-                )
+            k = int(match_top_k.group(2))
+            if k >= num_classes:
+                raise ValueError(f"Invalid metric: {metric}. k ({k}) is greater than num_classes({num_classes}).")
             if metric_abbr == "P":
-                metrics[metric] = PrecisionAtK(top_k=top_k)
+                metrics[metric] = PrecisionAtK(top_k=k)
             elif metric_abbr == "R":
-                metrics[metric] = RecallAtK(top_k=top_k)
+                metrics[metric] = RecallAtK(top_k=k)
             elif metric_abbr == "RP":
-                metrics[metric] = RPrecisionAtK(top_k=top_k)
+                metrics[metric] = RPrecisionAtK(top_k=k)
             elif metric_abbr == "nDCG":
-                metrics[metric] = NDCGAtK(top_k=top_k)
+                metrics[metric] = NDCGAtK(top_k=k)
                 # The implementation in torchmetrics stores the prediction/target of all batches,
                 # which can lead to CUDA out of memory.
                 # metrics[metric] = RetrievalNormalizedDCG(k=top_k)
@@ -273,11 +271,8 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes, top_k=None):
             average_type = match_metric.group(1).lower()  # Micro
             metric_type = match_metric.group(2)  # Precision, Recall, or F1
             metric_type = metric_type.replace("F1", "F1Score")  # to be determined
-            metrics[metric] = getattr(torchmetrics, metric_type)(
-                task="multilabel",
-                threshold=metric_threshold,
-                num_labels=num_classes,
-                average=average_type,
+            metrics[metric] = getattr(torchmetrics.classification, metric_type)(
+                num_classes, metric_threshold, average=average_type, top_k=top_k
             )
         else:
             raise ValueError(
