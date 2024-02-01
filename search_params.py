@@ -5,16 +5,15 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-import yaml
+import numpy as np
 import ray.train as ray_train
+import yaml
 from ray import tune
 from ray.tune.schedulers import ASHAScheduler
 
-import numpy as np
-
+from libmultilabel.common_utils import AttributeDict, timer
 from libmultilabel.nn import data_utils
 from libmultilabel.nn.nn_utils import set_seed
-from libmultilabel.common_utils import AttributeDict, timer
 from torch_trainer import TorchTrainer
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s:%(message)s")
