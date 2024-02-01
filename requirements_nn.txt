@@ -1,9 +1,7 @@
-fsspec>=2023.5.0
 nltk
 # wait for https://github.com/Lightning-AI/pytorch-lightning/pull/19191
 lightning==2.0.9
 torch
-torchmetrics
+torchmetrics==0.10.3
 torchtext
 transformers
-typing-extensions>=4.8.0
