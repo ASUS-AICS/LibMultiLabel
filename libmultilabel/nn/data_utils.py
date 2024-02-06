@@ -2,7 +2,6 @@ import csv
 import gc
 import logging
 import warnings
-from concurrent.futures import ProcessPoolExecutor
 
 import pandas as pd
 import torch
@@ -176,9 +175,7 @@ def _load_raw_data(data, is_test=False, tokenize_text=True, remove_no_label_data
 
     data["label"] = data["label"].astype(str).map(lambda s: s.split())
     if tokenize_text:
-        # multiprocessing requires serializable objects
-        with ProcessPoolExecutor() as executor:
-            data["text"] = pd.Series(tqdm(executor.map(tokenize, data["text"]), total=len(data["text"])))
+        data["text"] = data["text"].map(tokenize)
     data = data.to_dict("records")
     if not is_test:
         num_no_label_data = sum(1 for d in data if len(d["label"]) == 0)
