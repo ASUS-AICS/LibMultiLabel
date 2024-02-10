@@ -5,9 +5,39 @@ import re
 import numpy as np
 import torch
 import torchmetrics.classification
-from torchmetrics import Metric, MetricCollection, Precision, Recall
-from torchmetrics.functional.retrieval.ndcg import retrieval_normalized_dcg
+from torchmetrics import Metric, MetricCollection
 from torchmetrics.utilities.data import select_topk
+
+
+class _PrecisonRecallWrapperMetric(Metric):
+    """Encapsulate common functions of RPrecision, PrecisionAtK, and RecallAtK.
+
+    Args:
+        top_k (int): the top k relevant labels to evaluate.
+    """
+
+    # If the metric state of one batch is independent of the state of other batches,
+    # full_state_update can be set to False,
+    # which leads to more efficient computation with calling update() only once.
+    # Please find the detailed explanation here:
+    # https://torchmetrics.readthedocs.io/en/stable/pages/implement.html
+    full_state_update = False
+
+    def __init__(self, top_k):
+        super().__init__()
+        self.top_k = top_k
+        self.add_state("score", default=torch.tensor(0.0, dtype=torch.double), dist_reduce_fx="sum")
+        self.add_state("num_sample", default=torch.tensor(0), dist_reduce_fx="sum")
+
+    def compute(self):
+        return self.score / self.num_sample
+
+    def _get_num_relevant(self, preds, target):
+        assert preds.shape == target.shape
+        binary_topk_preds = select_topk(preds, self.top_k)
+        target = target.to(dtype=torch.int)
+        num_relevant = torch.sum(binary_topk_preds & target, dim=-1)
+        return num_relevant
 
 
 class Loss(Metric):
@@ -36,7 +66,57 @@ class Loss(Metric):
         return self.loss / self.num_sample
 
 
-class NDCG(Metric):
+class MacroF1(Metric):
+    """The macro-f1 score computes the average f1 scores of all labels in the dataset.
+
+    Args:
+        num_classes (int): Total number of classes.
+        metric_threshold (float): The decision value threshold over which a label is predicted as positive.
+        another_macro_f1 (bool, optional): Whether to compute the 'Another-Macro-F1' score.
+            The 'Another-Macro-F1' is the f1 value of macro-precision and macro-recall.
+            This variant of macro-f1 is less preferred but is used in some works.
+            Please refer to Opitz et al. 2019 [https://arxiv.org/pdf/1911.03347.pdf].
+            Defaults to False.
+    """
+
+    # If the metric state of one batch is independent of the state of other batches,
+    # full_state_update can be set to False,
+    # which leads to more efficient computation with calling update() only once.
+    # Please find the detailed explanation here:
+    # https://torchmetrics.readthedocs.io/en/stable/pages/implement.html
+    full_state_update = False
+
+    def __init__(self, num_classes, metric_threshold, another_macro_f1=False, top_k=None):
+        super().__init__()
+        self.metric_threshold = metric_threshold
+        self.another_macro_f1 = another_macro_f1
+        self.top_k = top_k
+        self.add_state("preds_sum", default=torch.zeros(num_classes, dtype=torch.double))
+        self.add_state("target_sum", default=torch.zeros(num_classes, dtype=torch.double))
+        self.add_state("tp_sum", default=torch.zeros(num_classes, dtype=torch.double))
+
+    def update(self, preds, target):
+        assert preds.shape == target.shape
+        if self.top_k:
+            preds = select_topk(preds, self.top_k)
+        else:
+            preds = torch.where(preds > self.metric_threshold, 1, 0)
+
+        self.preds_sum = torch.add(self.preds_sum, preds.sum(dim=0))
+        self.target_sum = torch.add(self.target_sum, target.sum(dim=0))
+        self.tp_sum = torch.add(self.tp_sum, (preds & target).sum(dim=0))
+
+    def compute(self):
+        if self.another_macro_f1:
+            macro_prec = torch.mean(torch.nan_to_num(self.tp_sum / self.preds_sum, posinf=0.0))
+            macro_recall = torch.mean(torch.nan_to_num(self.tp_sum / self.target_sum, posinf=0.0))
+            return 2 * (macro_prec * macro_recall) / (macro_prec + macro_recall + 1e-10)
+        else:
+            label_f1 = 2 * self.tp_sum / (self.preds_sum + self.target_sum + 1e-10)
+            return torch.mean(label_f1)
+
+
+class NDCGAtK(Metric):
     """NDCG (Normalized Discounted Cumulative Gain) sums the true scores
     ranked in the order induced by the predicted scores after applying a logarithmic discount,
     and then divides by the best possible score (Ideal DCG, obtained for a perfect ranking)
@@ -99,89 +179,39 @@ class NDCG(Metric):
         return cum_discount[idx]
 
 
-class RPrecision(Metric):
+class PrecisionAtK(_PrecisonRecallWrapperMetric):
+    """Precision at k. Please refer to the `implementation document`
+    (https://www.csie.ntu.edu.tw/~cjlin/papers/libmultilabel/libmultilabel_implementation.pdf) for details.
+    """
+
+    def update(self, preds, target):
+        num_relevant = super()._get_num_relevant(preds, target)
+        self.score += torch.nan_to_num(num_relevant / self.top_k, posinf=0.0).sum()
+        self.num_sample += len(preds)
+
+
+class RecallAtK(_PrecisonRecallWrapperMetric):
+    """Recall at k. Please refer to the `implementation document`
+    (https://www.csie.ntu.edu.tw/~cjlin/papers/libmultilabel/libmultilabel_implementation.pdf) for details.
+    """
+
+    def update(self, preds, target):
+        num_relevant = super()._get_num_relevant(preds, target)
+        self.score += torch.nan_to_num(num_relevant / target.sum(dim=-1), posinf=0.0).sum()
+        self.num_sample += len(preds)
+
+
+class RPrecisionAtK(_PrecisonRecallWrapperMetric):
     """R-precision calculates precision at k by adjusting k to the minimum value of the number of
     relevant labels and k. The definition is given at Appendix C equation (3) of
     https://aclanthology.org/P19-1636.pdf
-
-    Args:
-        top_k (int): the top k relevant labels to evaluate.
     """
 
-    # If the metric state of one batch is independent of the state of other batches,
-    # full_state_update can be set to False,
-    # which leads to more efficient computation with calling update() only once.
-    # Please find the detailed explanation here:
-    # https://torchmetrics.readthedocs.io/en/stable/pages/implement.html
-    full_state_update = False
-
-    def __init__(self, top_k):
-        super().__init__()
-        self.top_k = top_k
-        self.add_state("score", default=torch.tensor(0.0, dtype=torch.double), dist_reduce_fx="sum")
-        self.add_state("num_sample", default=torch.tensor(0), dist_reduce_fx="sum")
-
     def update(self, preds, target):
-        assert preds.shape == target.shape
-        binary_topk_preds = select_topk(preds, self.top_k)
-        target = target.to(dtype=torch.int)
-        num_relevant = torch.sum(binary_topk_preds & target, dim=-1)
+        num_relevant = super()._get_num_relevant(preds, target)
         top_ks = torch.tensor([self.top_k] * preds.shape[0]).to(preds.device)
         self.score += torch.nan_to_num(num_relevant / torch.min(top_ks, target.sum(dim=-1)), posinf=0.0).sum()
         self.num_sample += len(preds)
-
-    def compute(self):
-        return self.score / self.num_sample
-
-
-class MacroF1(Metric):
-    """The macro-f1 score computes the average f1 scores of all labels in the dataset.
-
-    Args:
-        num_classes (int): Total number of classes.
-        metric_threshold (float): The decision value threshold over which a label is predicted as positive.
-        another_macro_f1 (bool, optional): Whether to compute the 'Another-Macro-F1' score.
-            The 'Another-Macro-F1' is the f1 value of macro-precision and macro-recall.
-            This variant of macro-f1 is less preferred but is used in some works.
-            Please refer to Opitz et al. 2019 [https://arxiv.org/pdf/1911.03347.pdf].
-            Defaults to False.
-    """
-
-    # If the metric state of one batch is independent of the state of other batches,
-    # full_state_update can be set to False,
-    # which leads to more efficient computation with calling update() only once.
-    # Please find the detailed explanation here:
-    # https://torchmetrics.readthedocs.io/en/stable/pages/implement.html
-    full_state_update = False
-
-    def __init__(self, num_classes, metric_threshold, another_macro_f1=False, top_k=None):
-        super().__init__()
-        self.metric_threshold = metric_threshold
-        self.another_macro_f1 = another_macro_f1
-        self.top_k = top_k
-        self.add_state("preds_sum", default=torch.zeros(num_classes, dtype=torch.double))
-        self.add_state("target_sum", default=torch.zeros(num_classes, dtype=torch.double))
-        self.add_state("tp_sum", default=torch.zeros(num_classes, dtype=torch.double))
-
-    def update(self, preds, target):
-        assert preds.shape == target.shape
-        if self.top_k:
-            preds = select_topk(preds, self.top_k)
-        else:
-            preds = torch.where(preds > self.metric_threshold, 1, 0)
-
-        self.preds_sum = torch.add(self.preds_sum, preds.sum(dim=0))
-        self.target_sum = torch.add(self.target_sum, target.sum(dim=0))
-        self.tp_sum = torch.add(self.tp_sum, (preds & target).sum(dim=0))
-
-    def compute(self):
-        if self.another_macro_f1:
-            macro_prec = torch.mean(torch.nan_to_num(self.tp_sum / self.preds_sum, posinf=0.0))
-            macro_recall = torch.mean(torch.nan_to_num(self.tp_sum / self.target_sum, posinf=0.0))
-            return 2 * (macro_prec * macro_recall) / (macro_prec + macro_recall + 1e-10)
-        else:
-            label_f1 = 2 * self.tp_sum / (self.preds_sum + self.target_sum + 1e-10)
-            return torch.mean(label_f1)
 
 
 def get_metrics(metric_threshold, monitor_metrics, num_classes, top_k=None):
@@ -221,13 +251,13 @@ def get_metrics(metric_threshold, monitor_metrics, num_classes, top_k=None):
             if k >= num_classes:
                 raise ValueError(f"Invalid metric: {metric}. k ({k}) is greater than num_classes({num_classes}).")
             if metric_abbr == "P":
-                metrics[metric] = Precision(num_classes, average="samples", top_k=k)
+                metrics[metric] = PrecisionAtK(top_k=k)
             elif metric_abbr == "R":
-                metrics[metric] = Recall(num_classes, average="samples", top_k=k)
+                metrics[metric] = RecallAtK(top_k=k)
             elif metric_abbr == "RP":
-                metrics[metric] = RPrecision(top_k=k)
+                metrics[metric] = RPrecisionAtK(top_k=k)
             elif metric_abbr == "nDCG":
-                metrics[metric] = NDCG(top_k=k)
+                metrics[metric] = NDCGAtK(top_k=k)
                 # The implementation in torchmetrics stores the prediction/target of all batches,
                 # which can lead to CUDA out of memory.
                 # metrics[metric] = RetrievalNormalizedDCG(k=top_k)

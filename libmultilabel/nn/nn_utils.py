@@ -1,11 +1,10 @@
 import logging
 import os
 
-import pytorch_lightning as pl
+import lightning as L
 import torch
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
-from pytorch_lightning.utilities.seed import seed_everything
+from lightning.pytorch import seed_everything
+from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
 
 from ..nn import networks
 from ..nn.model import Model
@@ -132,7 +131,6 @@ def init_trainer(
     limit_train_batches=1.0,
     limit_val_batches=1.0,
     limit_test_batches=1.0,
-    search_params=False,
     save_checkpoints=True,
 ):
     """Initialize a torch lightning trainer.
@@ -148,12 +146,10 @@ def init_trainer(
         limit_train_batches (Union[int, float]): Percentage of training dataset to use. Defaults to 1.0.
         limit_val_batches (Union[int, float]): Percentage of validation dataset to use. Defaults to 1.0.
         limit_test_batches (Union[int, float]): Percentage of test dataset to use. Defaults to 1.0.
-        search_params (bool): Enable pytorch-lightning trainer to report the results to ray tune
-            on validation end during hyperparameter search. Defaults to False.
         save_checkpoints (bool): Whether to save the last and the best checkpoint or not. Defaults to True.
 
     Returns:
-        pl.Trainer: A torch lightning trainer.
+        lightning.trainer: A torch lightning trainer.
     """
 
     # The value of `mode` equals to 'min' only when the metric is 'Loss'
@@ -179,16 +175,11 @@ def init_trainer(
                 mode="min" if val_metric == "Loss" else "max",
             )
         ]
-    if search_params:
-        from ray.tune.integration.pytorch_lightning import TuneReportCallback
-
-        callbacks += [TuneReportCallback({f"val_{val_metric}": val_metric}, on="validation_end")]
-
-    trainer = pl.Trainer(
+    trainer = L.Trainer(
         logger=False,
         num_sanity_val_steps=0,
         accelerator="cpu" if use_cpu else "gpu",
-        devices=None if use_cpu else 1,
+        devices="auto" if use_cpu else 1,
         enable_progress_bar=False if silent else True,
         max_epochs=epochs,
         callbacks=callbacks,
@@ -196,6 +187,8 @@ def init_trainer(
         limit_val_batches=limit_val_batches,
         limit_test_batches=limit_test_batches,
         deterministic="warn",
+        gradient_clip_val=0.5,
+        gradient_clip_algorithm="value",
     )
     return trainer
 
