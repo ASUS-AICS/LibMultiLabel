@@ -1,12 +1,10 @@
 from abc import abstractmethod
-from typing import Optional
 
 import lightning as L
 import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-from torch import nn
 
 from ..common_utils import argsort_top_k, dump_log
 from ..nn.metrics import get_metrics, tabulate_metrics

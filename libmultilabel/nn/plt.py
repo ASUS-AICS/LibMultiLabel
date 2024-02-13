@@ -46,15 +46,15 @@ class PLTTrainer:
 
         if config.multiclass:
             raise ValueError(
-                "The label space of multi-class datasets are usually not large enough for PLT training."
+                "The label space of multi-class datasets is usually not large, so PLT training is unnecessary."
                 "Please consider other methods."
-                "If you think this statement is false. Please comment the exception in plt.py"
+                "If you have a multi-class set with numerous labels, please let us know"
             )
         self.is_multiclass = config.multiclass
 
         # cluster
         self.cluster_size = config.cluster_size
-        # predict the top k labels
+        # predict the top k clusters for deciding relevant/irrelevant labels of each instance in level 1 model training
         self.predict_top_k = config.top_k
 
         # dataset meta info
@@ -120,8 +120,8 @@ class PLTTrainer:
     def label2cluster(self, nodes, *ys) -> Generator[csr_matrix, ...]:
         """Map labels to their corresponding clusters in CSR sparse format.
 
-        Suppose there are 6 labels and clusters are [(0, 1), (2, 3), (4, 5)] and ys is [0, 1, 4].
-        The clustered labels of the given instance are [0, 2].
+        Suppose there are 6 labels and clusters are [(0, 1), (2, 3), (4, 5)] and ys of a given instance is [0, 1, 4].
+        The clusters of the instance are [0, 2].
 
         Args:
             nodes: the nodes generated at a pre-defined level.
@@ -202,7 +202,6 @@ class PLTTrainer:
             limit_train_batches=self.limit_train_batches,
             limit_val_batches=self.limit_val_batches,
             limit_test_batches=self.limit_test_batches,
-            search_params=False,
             save_checkpoints=True,
         )
         trainer.checkpoint_callback.file_name = f"{self.CHECKPOINT_NAME}0{ModelCheckpoint.FILE_EXTENSION}"
@@ -253,55 +252,46 @@ class PLTTrainer:
         logger.info(
             f"Generating predictions for level 1. Number of possible predictions: {num_labels}. Top k: {self.predict_top_k}"
         )
-        # train & val dataloaders for prediction (without labels)
+        # load training and validation data and predict corresponding level 0 nodes
         train_dataloader = self.eval_dataloader(MultiLabelDataset(train_x))
         val_dataloader = self.eval_dataloader(MultiLabelDataset(val_x))
 
-        # returned labels have been clustered into nodes (groups)
-        train_node_pred = trainer.predict(model, train_dataloader)
-        valid_node_pred = trainer.predict(model, val_dataloader)
-
-        import pdb
-
-        pdb.set_trace()
+        train_pred = trainer.predict(model, train_dataloader)
+        val_pred = trainer.predict(model, val_dataloader)
 
         # shape of node_pred: (n, 2, ~batch_size, top_k). n is floor(num_x / batch_size)
         # new shape: (2, num_x, top_k)
-        _, train_node_y_pred = map(torch.vstack, list(zip(*train_node_pred)))
-        valid_node_score_pred, valid_node_y_pred = map(torch.vstack, list(zip(*valid_node_pred)))
+        _, train_clusters_pred = map(torch.vstack, list(zip(*train_pred)))
+        val_scores_pred, val_clusters_pred = map(torch.vstack, list(zip(*val_pred)))
 
-        # The following process can be simplified using method from LightXML
-        logger.info("Getting samples")
-        cluster_samples = np.empty((len(train_x), self.predict_top_k), dtype=np.int64)
-        for i, ys in enumerate(tqdm(train_node_y_pred, leave=False, desc="Sampling")):
-            # true nodes/labels are positive
+        logger.info("Selecting relevant/irrelevant clusters of each instance for level 1 training")
+        clusters_selected = np.empty((len(train_x), self.predict_top_k), dtype=np.int64)
+        for i, ys in enumerate(tqdm(train_clusters_pred, leave=False, desc="Sampling clusters")):
+            # relevant clusters are positive
             pos = set(train_y_clustered.indices[train_y_clustered.indptr[i] : train_y_clustered.indptr[i + 1]])
-            # Regard positive nodes and predicted training nodes that are not in positive as samples
+            # Select relevant clusters first. Then from top-predicted clusters, sequentially include their labels until the total # of
             # until reaching top_k if the number of positive labels is less than top_k.
             if len(pos) <= self.predict_top_k:
-                samples = pos
+                selected = pos
                 for y in ys:
                     y = y.item()
-                    if len(samples) == self.predict_top_k:
+                    if len(selected) == self.predict_top_k:
                         break
-                    samples.add(y)
+                    selected.add(y)
             # Regard positive (true) label as samples iff they appear in the predicted labels
             # if the number of positive labels is more than top_k. If samples are not of length top_k
             # add unseen predicted labels until reaching top_k.
             else:
-                samples = set()
+                selected = set()
                 for y in ys:
                     y = y.item()
                     if y in pos:
-                        samples.add(y)
-                    if len(samples) == self.predict_top_k:
+                        selected.add(y)
+                    if len(selected) == self.predict_top_k:
                         break
-                if len(samples) < self.predict_top_k:
-                    samples = (list(samples) + list(pos - samples))[: self.predict_top_k]
-            cluster_samples[i] = np.asarray(list(samples))
-
-        # mapping from the current nodes to leaf nodes.
-        assert reduce(lambda a, b: a + len(b), clusters, 0) == self.num_labels
+                if len(selected) < self.predict_top_k:
+                    selected = (list(selected) + list(pos - selected))[: self.predict_top_k]
+            clusters_selected[i] = np.asarray(list(selected))
 
         # trainer
         trainer = init_trainer(
@@ -315,7 +305,6 @@ class PLTTrainer:
             limit_train_batches=self.limit_train_batches,
             limit_val_batches=self.limit_val_batches,
             limit_test_batches=self.limit_test_batches,
-            search_params=False,
             save_checkpoints=True,
         )
         trainer.checkpoint_callback.file_name = f"{self.CHECKPOINT_NAME}1{ModelCheckpoint.FILE_EXTENSION}"
@@ -327,7 +316,7 @@ class PLTTrainer:
                 train_y,
                 num_classes=self.num_labels,
                 mapping=clusters,
-                cluster_samples=cluster_samples,
+                clusters_selected=clusters_selected,
             ),
             shuffle=self.shuffle,
         )
@@ -337,8 +326,8 @@ class PLTTrainer:
                 val_y,
                 num_classes=self.num_labels,
                 mapping=clusters,
-                cluster_samples=valid_node_y_pred,
-                cluster_scores=valid_node_score_pred,
+                clusters_selected=val_clusters_pred,
+                cluster_scores=val_scores_pred,
             ),
         )
 
@@ -346,7 +335,7 @@ class PLTTrainer:
             network = getattr(networks, "FastAttentionXML")(
                 embed_vecs=self.embed_vecs, num_classes=len(self.classes), **dict(self.network_config)
             )
-        except:
+        except Exception:
             raise AttributeError("Failed to initialize AttentionXML")
 
         model = PLTModel(
@@ -386,7 +375,7 @@ class PLTTrainer:
 
         logger.info(
             f"Training level 1. Number of labels: {self.num_labels}."
-            f"Number of samples: {train_dataloader.dataset.num_samples}"
+            f"Number of clusters selected: {train_dataloader.dataset.num_clusters_selected}"
         )
         trainer.fit(model, train_dataloader, valid_dataloader)
         logger.info(f"Best model loaded from {best_model_path}")
@@ -394,7 +383,7 @@ class PLTTrainer:
 
     def test(self, dataset):
         test_x = self.reformat_text(dataset)
-        test_y = self.binarize.transform((i["label"] for i in dataset))
+        test_y = self.binarizer.transform((i["label"] for i in dataset))
         logger.info("Testing process started")
         trainer = Trainer(
             devices=1,
@@ -431,7 +420,7 @@ class PLTTrainer:
                 test_y,
                 num_classes=self.num_labels,
                 mapping=clusters,
-                cluster_samples=node_label_pred,
+                clusters_selected=node_label_pred,
                 cluster_scores=node_score_pred,
             ),
         )
