@@ -6,8 +6,8 @@ import re
 from array import array
 from collections import defaultdict
 
+import numpy as np
 import pandas as pd
-import scipy
 import scipy.sparse as sparse
 
 __all__ = ["load_dataset"]
@@ -78,9 +78,9 @@ def _read_libsvm_format(file_path: str) -> dict[str, list[list[int]] | sparse.cs
         except:
             raise ValueError(f"invalid svm format at line {i + 1} of the file '{file_path}'")
 
-    prob_x = scipy.frombuffer(prob_x, dtype="d")
-    col_idx = scipy.frombuffer(col_idx, dtype="l")
-    row_ptr = scipy.frombuffer(row_ptr, dtype="l")
+    prob_x = np.frombuffer(prob_x, dtype="d")
+    col_idx = np.frombuffer(col_idx, dtype="l")
+    row_ptr = np.frombuffer(row_ptr, dtype="l")
     prob_x = sparse.csr_matrix((prob_x, col_idx, row_ptr))
 
     return {"x": prob_x, "y": prob_y}
