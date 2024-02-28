@@ -1,6 +1,5 @@
 data_name: AmazonCat-13K
 training_file: /l/users/dongli.he/libml/LibMultiLabel/AmazonCat-13K/train.txt
-training_sparse_file: /l/users/dongli.he/libml/LibMultiLabel/AmazonCat-13K/train_ver3.svm
 test_file: /l/users/dongli.he/libml/LibMultiLabel/AmazonCat-13K/test.txt
 # pretrained embeddings
 embed_file: glove.840B.300d

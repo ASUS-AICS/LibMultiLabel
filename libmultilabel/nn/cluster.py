@@ -47,7 +47,7 @@ def build_label_tree(sparse_x: csr_matrix, sparse_y: csr_matrix, cluster_size: i
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # For each label, sum up instances relevant to the label and normalize to get the label representation
-    label_repr = normalize(sparse_y.T @ csc_matrix(sparse_x))
+    label_repr = normalize(sparse_y.T @ csc_matrix(normalize(sparse_x)))
 
     # clustering by a binary tree:
     # at each layer split each cluster to two. Leave nodes correspond to the obtained clusters.
