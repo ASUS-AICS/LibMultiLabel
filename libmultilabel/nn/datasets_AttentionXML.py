@@ -79,7 +79,7 @@ class PLTDataset(MultiLabelDataset):
         self.cluster_scores = cluster_scores
         self.label_scores = None
 
-        # candidate are positive nodes at the current level. shape: (len(x), ~cluster_size * top_k)
+        # candidate are positive nodes at the current level. shape: (len(x), cluster_size * top_k)
         # look like [[0, 1, 2, 4, 5, 18, 19,...], ...]
         prog = rank_zero_only(tqdm)(self.clusters_selected, leave=False, desc="Generating candidates")
         if prog is None:
@@ -87,7 +87,7 @@ class PLTDataset(MultiLabelDataset):
         self.candidates = [np.concatenate(self.mapping[labels]) for labels in prog]
         if self.cluster_scores is not None:
             # label_scores are corresponding scores for candidates and
-            # look like [[0.1, 0.1, 0.1, 0.4, 0.4, 0.5, 0.5,...], ...]. shape: (len(x), ~cluster_size * top_k)
+            # look like [[0.1, 0.1, 0.1, 0.4, 0.4, 0.5, 0.5,...], ...]. shape: (len(x), cluster_size * top_k)
             # notice how scores repeat for each cluster.
             self.label_scores = [
                 np.repeat(scores, [len(i) for i in self.mapping[labels]])

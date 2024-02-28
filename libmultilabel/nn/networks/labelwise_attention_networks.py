@@ -270,7 +270,7 @@ class CNNLWAN(LabelwiseAttentionNetwork):
         return {"logits": x}
 
 
-class AttentionRNN(nn.Module):
+class AttentionXML_0(nn.Module):
     def __init__(
         self,
         embed_vecs,
@@ -302,7 +302,7 @@ class AttentionRNN(nn.Module):
         return {"logits": x}
 
 
-class FastAttentionRNN(nn.Module):
+class AttentionXML_1(nn.Module):
     def __init__(
         self,
         embed_vecs,

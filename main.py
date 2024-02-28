@@ -19,7 +19,6 @@ def add_all_arguments(parser):
     # data
     parser.add_argument("--data_name", default="unnamed_data", help="Dataset name (default: %(default)s)")
     parser.add_argument("--training_file", help="Path to training data (default: %(default)s)")
-    parser.add_argument("--training_sparse_file", help="Path to training sparse data (default: %(default)s)")
     parser.add_argument("--val_file", help="Path to validation data (default: %(default)s)")
     parser.add_argument("--test_file", help="Path to test data (default: %(default)s")
     parser.add_argument(
@@ -79,10 +78,6 @@ def add_all_arguments(parser):
         default="adam",
         choices=["adam", "adamw", "adamax", "sgd"],
         help="Optimizer (default: %(default)s)",
-    )
-    parser.add_argument(
-        "--optimizer_config",
-        help="Optimizer parameters",
     )
     parser.add_argument(
         "--learning_rate", type=float, default=0.0001, help="Learning rate for optimizer (default: %(default)s)"

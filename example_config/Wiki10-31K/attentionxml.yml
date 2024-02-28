@@ -1,6 +1,5 @@
 data_name: Wiki10-31K
 training_file: /l/users/dongli.he/libml/LibMultiLabel/Wiki10-31K/train.txt
-training_sparse_file: /l/users/dongli.he/libml/LibMultiLabel/Wiki10-31K/train.svm
 test_file: /l/users/dongli.he/libml/LibMultiLabel/Wiki10-31K/test.txt
 # pretrained embeddings
 embed_file: glove.840B.300d

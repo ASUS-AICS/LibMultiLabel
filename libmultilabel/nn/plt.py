@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
-from functools import reduce, partial
+from functools import partial
 from pathlib import Path
 from typing import Generator, Optional
 
@@ -10,7 +10,7 @@ import numpy as np
 import torch
 from lightning import Trainer
 from scipy.sparse import csr_matrix
-from sklearn.preprocessing import MultiLabelBinarizer
+from sklearn.preprocessing import normalize
 from torch import Tensor
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader
@@ -21,6 +21,7 @@ from .cluster import CLUSTER_NAME, FILE_EXTENSION as CLUSTER_FILE_EXTENSION, bui
 from .data_utils import UNK
 from .datasets_AttentionXML import MultiLabelDataset, PLTDataset
 from .model_AttentionXML import PLTModel
+from ..linear.preprocessor import Preprocessor
 from ..nn import networks
 from ..nn.model import Model
 
@@ -62,6 +63,9 @@ class PLTTrainer:
         self.word_dict = word_dict
         self.classes = classes
         self.num_labels = len(classes)
+
+        # preprocessor of the datasets
+        self.preprocessor = None
 
         # cluster meta info
         self.cluster_size = config.cluster_size
@@ -157,24 +161,26 @@ class PLTTrainer:
         if self.get_best_model_path(level=1).exists():
             return
 
-        train_data_full = datasets["train_full"]
-        train_sparse_x = datasets["train_sparse_x"]
-        # sparse training labels
-        # TODO: remove workaround in future PR
-        self.binarizer = MultiLabelBinarizer(classes=self.classes, sparse_output=True)
-        self.binarizer.fit(None)
-        train_sparse_y_full = self.binarizer.transform((i["label"] for i in train_data_full))
+        # datasets preprocessing
+        # Convert training texts and labels to a matrix of tfidf features and a binary sparse matrix indicating the
+        # presence of a class label, respectively
+        train_val_dataset = datasets["train"] + datasets["val"]
+        train_val_dataset = {"x": (i["text"] for i in train_val_dataset), "y": (i["label"] for i in train_val_dataset)}
+
+        self.preprocessor = Preprocessor()
+        datasets_temp = {"data_format": "txt", "train": train_val_dataset, "classes": self.classes}
+        datasets_temp_tf = self.preprocessor.fit_transform(datasets_temp)
 
         train_x = self.reformat_text(datasets["train"])
         val_x = self.reformat_text(datasets["val"])
 
-        train_y = self.binarizer.transform((i["label"] for i in datasets["train"]))
-        val_y = self.binarizer.transform((i["label"] for i in datasets["val"]))
+        train_y = datasets_temp_tf["train"]["y"][: len(datasets["train"])]
+        val_y = datasets_temp_tf["train"]["y"][len(datasets["train"]) :]
 
         # clustering
         build_label_tree(
-            sparse_x=train_sparse_x,
-            sparse_y=train_sparse_y_full,
+            sparse_x=datasets_temp_tf["train"]["x"],
+            sparse_y=datasets_temp_tf["train"]["y"],
             cluster_size=self.cluster_size,
             output_dir=self.result_dir,
         )
@@ -259,7 +265,7 @@ class PLTTrainer:
         train_pred = trainer.predict(model, train_dataloader)
         val_pred = trainer.predict(model, val_dataloader)
 
-        # shape of node_pred: (n, 2, ~batch_size, top_k). n is floor(num_x / batch_size)
+        # shape of node_pred: (n, 2, batch_size, top_k). n is floor(num_x / batch_size)
         # new shape: (2, num_x, top_k)
         _, train_clusters_pred = map(torch.vstack, list(zip(*train_pred)))
         val_scores_pred, val_clusters_pred = map(torch.vstack, list(zip(*val_pred)))
@@ -383,7 +389,7 @@ class PLTTrainer:
 
     def test(self, dataset):
         test_x = self.reformat_text(dataset)
-        test_y = self.binarizer.transform((i["label"] for i in dataset))
+        test_y = self.preprocessor.binarizer.transform((i["label"] for i in dataset))
         logger.info("Testing process started")
         trainer = Trainer(
             devices=1,
