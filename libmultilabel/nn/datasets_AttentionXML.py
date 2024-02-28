@@ -48,7 +48,7 @@ class PlainDataset(Dataset):
         return len(self.x)
 
 
-class PLTDataset(MultiLabelDataset):
+class PLTDataset(PlainDataset):
     """Dataset class for AttentionXML."""
 
     def __init__(
@@ -66,9 +66,9 @@ class PLTDataset(MultiLabelDataset):
         Args:
             x: texts
             y: labels
-            num_classes: number of nodes at the current level.
-            mapping: [[0,..., 7], [8,..., 15], ...]. shape: (len(nodes), cluster_size). Map from clusters to labels.
-            clusters_selected: [[7, 1, 128, 6], [21, 85, 64, 103], ...]. shape: (len(x), top_k). numbers are predicted nodes
+            num_classes: number of clusters at the current level.
+            mapping: [[0,..., 7], [8,..., 15], ...]. shape: (len(clusters), cluster_size). Map from clusters to labels.
+            clusters_selected: [[7, 1, 128, 6], [21, 85, 64, 103], ...]. shape: (len(x), top_k). numbers are predicted clusters
                 from last level.
             cluster_scores: corresponding scores. shape: (len(x), top_k)
         """
@@ -79,14 +79,14 @@ class PLTDataset(MultiLabelDataset):
         self.cluster_scores = cluster_scores
         self.label_scores = None
 
-        # candidate are positive nodes at the current level. shape: (len(x), cluster_size * top_k)
+        # labels_selected are positive clusters at the current level. shape: (len(x), cluster_size * top_k)
         # look like [[0, 1, 2, 4, 5, 18, 19,...], ...]
-        prog = rank_zero_only(tqdm)(self.clusters_selected, leave=False, desc="Generating candidates")
-        if prog is None:
-            prog = self.clusters_selected
-        self.candidates = [np.concatenate(self.mapping[labels]) for labels in prog]
+        self.labels_selected = [
+            np.concatenate(self.mapping[labels])
+            for labels in tqdm(self.clusters_selected, leave=False, desc="Retrieving labels from selected clusters")
+        ]
         if self.cluster_scores is not None:
-            # label_scores are corresponding scores for candidates and
+            # label_scores are corresponding scores for selected labels and
             # look like [[0.1, 0.1, 0.1, 0.4, 0.4, 0.5, 0.5,...], ...]. shape: (len(x), cluster_size * top_k)
             # notice how scores repeat for each cluster.
             self.label_scores = [
@@ -94,11 +94,11 @@ class PLTDataset(MultiLabelDataset):
                 for labels, scores in zip(self.clusters_selected, self.cluster_scores)
             ]
 
-        # top_k * n (n <= cluster_size). number of maximum possible number candidates at the current level.
-        self.num_clusters_selected = self.clusters_selected.shape[1] * max(len(node) for node in self.mapping)
+        # top_k * n (n <= cluster_size). number of maximum possible number selected labels at the current level.
+        self.num_labels_selected = self.clusters_selected.shape[1] * max(len(clusters) for clusters in self.mapping)
 
     def __getitem__(self, idx: int):
-        item = {"text": self.x[idx], "candidates": np.asarray(self.candidates[idx], dtype=np.int64)}
+        item = {"text": self.x[idx], "labels_selected": np.asarray(self.labels_selected[idx], dtype=np.int64)}
 
         # train/valid/test
         if self.y is not None:
@@ -106,21 +106,26 @@ class PLTDataset(MultiLabelDataset):
 
         # train
         if self.label_scores is None:
-            # randomly select clusters as candidates when less than required
-            if len(item["candidates"]) < self.num_clusters_selected:
-                sample = np.random.randint(self.num_classes, size=self.num_clusters_selected - len(item["candidates"]))
-                item["candidates"] = np.concatenate([item["candidates"], sample])
+            # randomly select clusters as selected labels when less than required
+            if len(item["labels_selected"]) < self.num_labels_selected:
+                sample = np.random.randint(
+                    self.num_classes, size=self.num_labels_selected - len(item["labels_selected"])
+                )
+                item["labels_selected"] = np.concatenate([item["labels_selected"], sample])
         # valid/test
         else:
             item["label_scores"] = self.label_scores[idx]
 
             # add dummy elements when less than required
-            if len(item["candidates"]) < self.num_clusters_selected:
+            if len(item["labels_selected"]) < self.num_labels_selected:
                 item["label_scores"] = np.concatenate(
-                    [item["label_scores"], [-np.inf] * (self.num_clusters_selected - len(item["candidates"]))]
+                    [item["label_scores"], [-np.inf] * (self.num_labels_selected - len(item["labels_selected"]))]
                 )
-                item["candidates"] = np.concatenate(
-                    [item["candidates"], [self.num_classes] * (self.num_clusters_selected - len(item["candidates"]))]
+                item["labels_selected"] = np.concatenate(
+                    [
+                        item["labels_selected"],
+                        [self.num_classes] * (self.num_labels_selected - len(item["labels_selected"])),
+                    ]
                 )
 
             item["label_scores"] = np.asarray(item["label_scores"], dtype=np.float32)

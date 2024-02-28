@@ -94,8 +94,8 @@ def _split_cluster(cluster: ndarray, label_repr: csr_matrix) -> tuple[ndarray, n
     c1_idx = None
 
     while new_dist - old_dist >= tol:
-        # each point's distances (cosine similarity) to the two centroids
-        # tgt_repr and centroids.T have been normalized
+        # Notice that tgt_repr and centroids.T have been normalized
+        # Thus, dist indicates the cosine similarity between points and centroids.
         dist = tgt_repr @ centroids.T  # shape: (n, 2)
 
         # generate clusters
