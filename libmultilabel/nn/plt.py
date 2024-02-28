@@ -10,7 +10,6 @@ import numpy as np
 import torch
 from lightning import Trainer
 from scipy.sparse import csr_matrix
-from sklearn.preprocessing import normalize
 from torch import Tensor
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader
@@ -33,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 class PLTTrainer:
-    CHECKPOINT_NAME = "model-level-"
+    CHECKPOINT_NAME = "model_"
 
     def __init__(
         self,
@@ -42,9 +41,7 @@ class PLTTrainer:
         embed_vecs: Optional[Tensor] = None,
         word_dict: Optional[dict] = None,
     ):
-        # The number of levels is set to 2
-        # In other words, there will be 2 models
-
+        # The number of levels is set to 2. In other words, there will be 2 models
         if config.multiclass:
             raise ValueError(
                 "The label space of multi-class datasets is usually not large, so PLT training is unnecessary."
@@ -56,7 +53,7 @@ class PLTTrainer:
         # cluster
         self.cluster_size = config.cluster_size
         # predict the top k clusters for deciding relevant/irrelevant labels of each instance in level 1 model training
-        self.predict_top_k = config.top_k
+        self.predict_top_k = config.save_k_predictions
 
         # dataset meta info
         self.embed_vecs = embed_vecs
@@ -80,8 +77,8 @@ class PLTTrainer:
         self.optimizer_config = config.optimizer_config
 
         # Trainer parameters
-        self.accelerator = config.accelerator
         self.use_cpu = config.cpu
+        self.accelerator = "cpu" if self.use_cpu else "gpu"
         self.devices = 1
         self.num_nodes = 1
         self.epochs = config.epochs
@@ -90,11 +87,12 @@ class PLTTrainer:
         self.limit_test_batches = config.limit_test_batches
 
         # callbacks
-        self.val_metric = config.val_metric
         self.silent = config.silent
         # EarlyStopping
+        self.early_stopping_metric = config.early_stopping_metric
         self.patience = config.patience
         # ModelCheckpoint
+        self.val_metric = config.val_metric
         self.result_dir = Path(config.result_dir)
 
         self.metrics = config.monitor_metrics
@@ -121,34 +119,34 @@ class PLTTrainer:
         # save path
         self.config = config
 
-    def label2cluster(self, nodes, *ys) -> Generator[csr_matrix, ...]:
+    def label2cluster(self, cluster_mapping, *ys) -> Generator[csr_matrix, ...]:
         """Map labels to their corresponding clusters in CSR sparse format.
 
         Suppose there are 6 labels and clusters are [(0, 1), (2, 3), (4, 5)] and ys of a given instance is [0, 1, 4].
         The clusters of the instance are [0, 2].
 
         Args:
-            nodes: the nodes generated at a pre-defined level.
-            *ys: true labels (leaf nodes) for train and/or valid datasets.
+            cluster_mapping: the clusters generated at a pre-defined level.
+            *ys: labels for train and/or valid datasets.
 
         Returns:
-            Generator[csr_matrix]: the mapped labels (ancestor nodes) for train and/or valid datasets.
+            Generator[csr_matrix]: the mapped labels (ancestor clusters) for train and/or valid datasets.
         """
         mapping = np.empty(self.num_labels, dtype=np.uint64)
-        for idx, node_labels in enumerate(nodes):
-            mapping[node_labels] = idx
+        for idx, clusters in enumerate(cluster_mapping):
+            mapping[clusters] = idx
 
         def _label2cluster(y: csr_matrix) -> csr_matrix:
             row = []
             col = []
             data = []
             for i in range(y.shape[0]):
-                # n include all mapped ancestor nodes
+                # n include all mapped ancestor clusters
                 n = np.unique(mapping[y.indices[y.indptr[i] : y.indptr[i + 1]]])
                 row += [i] * len(n)
                 col += n.tolist()
                 data += [1] * len(n)
-            return csr_matrix((data, (row, col)), shape=(y.shape[0], len(nodes)))
+            return csr_matrix((data, (row, col)), shape=(y.shape[0], len(cluster_mapping)))
 
         return (_label2cluster(y) for y in ys)
 
@@ -184,16 +182,11 @@ class PLTTrainer:
             cluster_size=self.cluster_size,
             output_dir=self.result_dir,
         )
+        clusters = np.load(self.get_cluster_path(), allow_pickle=True)
 
-        # wait until the clustering process finishes
-        cluster_path = self.get_cluster_path()
-        while not cluster_path.exists():
-            time.sleep(15)
-        clusters = np.load(cluster_path, allow_pickle=True)
-
-        # each y has been mapped to the node indices of its parent
+        # each y has been mapped to the cluster indices of its parent
         train_y_clustered, val_y_clustered = self.label2cluster(clusters, train_y, val_y)
-        # regard each internal nodes as a "labels"
+        # regard each internal clusters as a "labels"
         num_labels = len(clusters)
 
         # trainer
@@ -201,7 +194,7 @@ class PLTTrainer:
             self.result_dir,
             epochs=self.epochs,
             patience=self.patience,
-            early_stopping_metric=self.val_metric,
+            early_stopping_metric=self.early_stopping_metric,
             val_metric=self.val_metric,
             silent=self.silent,
             use_cpu=self.use_cpu,
@@ -218,7 +211,7 @@ class PLTTrainer:
             train_dataloader = self.dataloader(MultiLabelDataset(train_x, train_y_clustered), shuffle=self.shuffle)
             val_dataloader = self.dataloader(MultiLabelDataset(val_x, val_y_clustered))
 
-            model = init_model(
+            model_0 = init_model(
                 model_name="AttentionXML",
                 network_config=self.config.network_config,
                 classes=self.classes,
@@ -242,11 +235,11 @@ class PLTTrainer:
             )
 
             logger.info(f"Training level 0. Number of labels: {num_labels}")
-            trainer.fit(model, train_dataloader, val_dataloader)
+            trainer.fit(model_0, train_dataloader, val_dataloader)
             logger.info(f"Finish training level 0")
 
         logger.info(f"Best model loaded from {best_model_path}")
-        model = Model.load_from_checkpoint(best_model_path, embed_vecs=self.embed_vecs)
+        model_0 = Model.load_from_checkpoint(best_model_path, embed_vecs=self.embed_vecs)
 
         # Utilize single GPU to predict
         trainer = Trainer(
@@ -258,15 +251,15 @@ class PLTTrainer:
         logger.info(
             f"Generating predictions for level 1. Number of possible predictions: {num_labels}. Top k: {self.predict_top_k}"
         )
-        # load training and validation data and predict corresponding level 0 nodes
+        # load training and validation data and predict corresponding level 0 clusters
         train_dataloader = self.eval_dataloader(MultiLabelDataset(train_x))
         val_dataloader = self.eval_dataloader(MultiLabelDataset(val_x))
 
-        train_pred = trainer.predict(model, train_dataloader)
-        val_pred = trainer.predict(model, val_dataloader)
+        train_pred = trainer.predict(model_0, train_dataloader)
+        val_pred = trainer.predict(model_0, val_dataloader)
 
-        # shape of node_pred: (n, 2, batch_size, top_k). n is floor(num_x / batch_size)
-        # new shape: (2, num_x, top_k)
+        # shape of old pred: (n, 2, batch_size, top_k). n is floor(num_x / batch_size)
+        # shape of new pred: (2, num_x, top_k)
         _, train_clusters_pred = map(torch.vstack, list(zip(*train_pred)))
         val_scores_pred, val_clusters_pred = map(torch.vstack, list(zip(*val_pred)))
 
@@ -344,7 +337,7 @@ class PLTTrainer:
         except Exception:
             raise AttributeError("Failed to initialize AttentionXML")
 
-        model = PLTModel(
+        model_1 = PLTModel(
             network=network,
             network_config=self.network_config,
             embed_vecs=self.embed_vecs,
@@ -357,33 +350,18 @@ class PLTTrainer:
             loss_func=self.loss_func,
             optimizer_params=self.optimizer_config,
         )
-        torch.nn.init.xavier_uniform_(model.network.attention.attention.weight)
+        torch.nn.init.xavier_uniform_(model_1.network.attention.attention.weight)
 
-        # initialize model with weights from level 0
-        logger.info(f"Loading parameters of level 1 from level 0")
-        state_dict = torch.load(self.get_best_model_path(level=0))["state_dict"]
-
-        # remove the name prefix in state_dict starting with "network.xxx"
-        embedding_state_dict = {}
-        encoder_state_dict = {}
-        output_state_dict = {}
-        for n, p in state_dict.items():
-            truncated_n = n.split(".", 2)[-1]
-            if n.startswith("network.embedding"):
-                embedding_state_dict[truncated_n] = p
-            elif n.startswith("network.encoder"):
-                encoder_state_dict[truncated_n] = p
-            elif n.startswith("network.output"):
-                output_state_dict[truncated_n] = p
-        model.network.embedding.load_state_dict(embedding_state_dict)
-        model.network.encoder.load_state_dict(encoder_state_dict)
-        model.network.output.load_state_dict(output_state_dict)
+        logger.info(f"Initialize model with weights from the last level")
+        model_1.network.embedding.load_state_dict(model_0.network.embedding)
+        model_1.network.encoder.load_state_dict(model_0.network.encoder)
+        model_1.network.output.load_state_dict(model_0.network.output)
 
         logger.info(
             f"Training level 1. Number of labels: {self.num_labels}."
             f"Number of clusters selected: {train_dataloader.dataset.num_clusters_selected}"
         )
-        trainer.fit(model, train_dataloader, valid_dataloader)
+        trainer.fit(model_1, train_dataloader, valid_dataloader)
         logger.info(f"Best model loaded from {best_model_path}")
         logger.info(f"Finish training level 1")
 
