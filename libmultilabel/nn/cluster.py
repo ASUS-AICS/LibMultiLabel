@@ -60,7 +60,7 @@ def build_label_tree(sparse_x: csr_matrix, sparse_y: csr_matrix, cluster_size: i
         logger.info(f"Having grouped {len(clusters)} clusters")
 
     np.save(cluster_path, np.asarray(clusters, dtype=object))
-    logger.info(f"Label clustering finished. Saving results to {repr(cluster_path)}")
+    logger.info(f"Label clustering finished. Saving results to {cluster_path}")
 
 
 def _split_cluster(cluster: ndarray, label_repr: csr_matrix) -> tuple[ndarray, ndarray]:

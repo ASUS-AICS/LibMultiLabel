@@ -72,7 +72,7 @@ class GRUEncoder(RNNEncoder):
         return nn.GRU(input_size, hidden_size, num_layers, batch_first=True, dropout=dropout, bidirectional=True)
 
 
-class LSTMEncoder(nn.Module):
+class LSTMEncoder(RNNEncoder):
     """Bi-directional LSTM encoder with dropout
 
     Args:
@@ -84,23 +84,10 @@ class LSTMEncoder(nn.Module):
     """
 
     def __init__(self, input_size, hidden_size, num_layers, encoder_dropout=0, post_encoder_dropout=0):
-        super().__init__()
-        self.rnn = nn.LSTM(
-            input_size, hidden_size, num_layers, batch_first=True, dropout=encoder_dropout, bidirectional=True
-        )
-        self.h0 = nn.Parameter(torch.zeros(2 * num_layers, 1, hidden_size))
-        self.c0 = nn.Parameter(torch.zeros(2 * num_layers, 1, hidden_size))
-        self.post_encoder_dropout = nn.Dropout(post_encoder_dropout)
+        super(LSTMEncoder, self).__init__(input_size, hidden_size, num_layers, encoder_dropout, post_encoder_dropout)
 
-    def forward(self, inputs, length):
-        self.rnn.flatten_parameters()
-        idx = torch.argsort(length, descending=True)
-        h0 = self.h0.repeat([1, inputs.size(0), 1])
-        c0 = self.c0.repeat([1, inputs.size(0), 1])
-        length_clamped = length[idx].cpu().clamp(min=1)  # avoid the empty text with length 0
-        packed_input = pack_padded_sequence(inputs[idx], length_clamped, batch_first=True)
-        outputs, _ = pad_packed_sequence(self.rnn(packed_input, (h0, c0))[0], batch_first=True)
-        return self.post_encoder_dropout(outputs[torch.argsort(idx)])
+    def _get_rnn(self, input_size, hidden_size, num_layers, dropout):
+        return nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, dropout=dropout, bidirectional=True)
 
 
 class CNNEncoder(nn.Module):
@@ -174,12 +161,9 @@ class LabelwiseAttention(nn.Module):
         super(LabelwiseAttention, self).__init__()
         self.attention = nn.Linear(input_size, num_classes, bias=False)
 
-    def forward(self, input, masks):
+    def forward(self, input):
         # (batch_size, num_classes, sequence_length)
         attention = self.attention(input).transpose(1, 2)
-        if masks is not None:
-            masks = torch.unsqueeze(masks, 1)  # batch_size, 1, length
-            attention = attention.masked_fill(~masks, -torch.inf)  # batch_size, num_classes, length
         attention = F.softmax(attention, -1)
         # (batch_size, num_classes, hidden_dim)
         logits = torch.bmm(attention, input)
@@ -228,17 +212,21 @@ class LabelwiseLinearOutput(nn.Module):
         return (self.output.weight * input).sum(dim=-1) + self.output.bias
 
 
-class FastLabelwiseAttention(nn.Module):
-    def __init__(self, hidden_size, num_labels):
-        super().__init__()
-        self.attention = nn.Embedding(num_labels + 1, hidden_size)
+class PartialLabelwiseAttention(nn.Module):
+    """Similar to LabelwiseAttention.
+    What makes the class different from LabelwiseAttention is that only the weights of selected labels will be
+    updated in a single iteration.
+    """
 
-    def forward(self, inputs, masks, candidates):
-        masks = torch.unsqueeze(masks, 1)  # batch_size, 1, length
-        attn_inputs = inputs.transpose(1, 2)  # batch_size, hidden, length
-        attn_weights = self.attention(candidates)  # batch_size, sample_size, hidden
-        attention = (attn_weights @ attn_inputs).masked_fill(~masks, -torch.inf)  # batch_size, sampled_size, length
-        attention = F.softmax(attention, -1)  # batch_size, sampled_size, length
+    def __init__(self, hidden_size, num_classes):
+        super().__init__()
+        self.attention = nn.Embedding(num_classes + 1, hidden_size)
+
+    def forward(self, inputs, labels_selected):
+        attn_inputs = inputs.transpose(1, 2)  # batch_size, hidden_dim, length
+        attn_weights = self.attention(labels_selected)  # batch_size, sample_size, hidden_dim
+        attention = attn_weights @ attn_inputs  # batch_size, sample_size, length
+        attention = F.softmax(attention, -1)  # batch_size, sample_size, length
         logits = attention @ inputs  # batch_size, sample_size, hidden_dim
         return logits, attention
 

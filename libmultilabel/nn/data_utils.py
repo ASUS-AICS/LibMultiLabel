@@ -195,7 +195,6 @@ def _load_raw_data(data, is_test=False, tokenize_text=True, remove_no_label_data
 
 def load_datasets(
     training_data=None,
-    training_sparse_data=None,
     test_data=None,
     val_data=None,
     val_size=0.2,
@@ -230,6 +229,7 @@ def load_datasets(
         datasets["train"] = _load_raw_data(
             training_data, tokenize_text=tokenize_text, remove_no_label_data=remove_no_label_data
         )
+
     if val_data is not None:
         datasets["val"] = _load_raw_data(
             val_data, tokenize_text=tokenize_text, remove_no_label_data=remove_no_label_data
