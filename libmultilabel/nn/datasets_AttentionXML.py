@@ -12,7 +12,7 @@ from torch.utils.data import Dataset
 from tqdm import tqdm
 
 
-class MultiLabelDataset(Dataset):
+class PlainDataset(Dataset):
     """Basic class for multi-label dataset."""
 
     def __init__(self, x: list | ndarray | Tensor, y: Optional[csr_matrix | ndarray | Tensor] = None):

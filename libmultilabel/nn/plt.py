@@ -18,7 +18,7 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 
 from .cluster import CLUSTER_NAME, FILE_EXTENSION as CLUSTER_FILE_EXTENSION, build_label_tree
 from .data_utils import UNK
-from .datasets_AttentionXML import MultiLabelDataset, PLTDataset
+from .datasets_AttentionXML import PlainDataset, PLTDataset
 from .model_AttentionXML import PLTModel
 from ..linear.preprocessor import Preprocessor
 from ..nn import networks
@@ -208,8 +208,8 @@ class PLTTrainer:
         best_model_path = self.get_best_model_path(level=0)
         if not best_model_path.exists():
             # train & valid dataloaders for training
-            train_dataloader = self.dataloader(MultiLabelDataset(train_x, train_y_clustered), shuffle=self.shuffle)
-            val_dataloader = self.dataloader(MultiLabelDataset(val_x, val_y_clustered))
+            train_dataloader = self.dataloader(PlainDataset(train_x, train_y_clustered), shuffle=self.shuffle)
+            val_dataloader = self.dataloader(PlainDataset(val_x, val_y_clustered))
 
             model_0 = init_model(
                 model_name="AttentionXML",
@@ -252,8 +252,8 @@ class PLTTrainer:
             f"Generating predictions for level 1. Number of possible predictions: {num_labels}. Top k: {self.predict_top_k}"
         )
         # load training and validation data and predict corresponding level 0 clusters
-        train_dataloader = self.eval_dataloader(MultiLabelDataset(train_x))
-        val_dataloader = self.eval_dataloader(MultiLabelDataset(val_x))
+        train_dataloader = self.eval_dataloader(PlainDataset(train_x))
+        val_dataloader = self.eval_dataloader(PlainDataset(val_x))
 
         train_pred = trainer.predict(model_0, train_dataloader)
         val_pred = trainer.predict(model_0, val_dataloader)
@@ -383,7 +383,7 @@ class PLTTrainer:
             metrics=self.metrics,
         )
 
-        test_dataloader = self.eval_dataloader(MultiLabelDataset(test_x))
+        test_dataloader = self.eval_dataloader(PlainDataset(test_x))
 
         logger.info(f"Predicting level 0, Top: {self.predict_top_k}")
         node_pred = trainer.predict(model, test_dataloader)
