@@ -10,7 +10,7 @@ from .modules import (
     LabelwiseAttention,
     LabelwiseMultiHeadAttention,
     LabelwiseLinearOutput,
-    FastLabelwiseAttention,
+    PartialLabelwiseAttention,
     MultilayerLinearOutput,
 )
 
@@ -291,13 +291,14 @@ class AttentionXML_0(nn.Module):
 
     def forward(self, inputs):
         # the index of padding is 0
+        inputs = inputs["text"]
         masks = inputs != 0
         lengths = masks.sum(dim=1)
         masks = masks[:, : lengths.max()]
 
         x = self.embedding(inputs)[:, : lengths.max()]  # batch_size, length, embedding_size
         x = self.encoder(x, lengths)  # batch_size, length, hidden_size
-        x, _ = self.attention(x, masks)  # batch_size, num_classes, hidden_size
+        x, _ = self.attention(x)  # batch_size, num_classes, hidden_size
         x = self.output(x)  # batch_size, num_classes
         return {"logits": x}
 
@@ -318,10 +319,10 @@ class AttentionXML_1(nn.Module):
         super().__init__()
         self.embedding = Embedding(embed_vecs, freeze=freeze_embed_training, dropout=embed_dropout)
         self.encoder = LSTMEncoder(embed_vecs.shape[1], rnn_dim // 2, rnn_layers, encoder_dropout, post_encoder_dropout)
-        self.attention = FastLabelwiseAttention(rnn_dim, num_classes)
+        self.attention = PartialLabelwiseAttention(rnn_dim, num_classes)
         self.output = MultilayerLinearOutput([rnn_dim] + linear_size, 1)
 
-    def forward(self, inputs, samples):
+    def forward(self, inputs, labels_selected):
         # the index of padding is 0
         masks = inputs != 0
         lengths = masks.sum(dim=1)
@@ -329,6 +330,6 @@ class AttentionXML_1(nn.Module):
 
         x = self.embedding(inputs)[:, : lengths.max()]  # batch_size, length, embedding_size
         x = self.encoder(x, lengths)  # batch_size, length, hidden_size
-        x, _ = self.attention(x, masks, samples)  # batch_size, candidate_size, hidden_size
-        x = self.output(x)  # batch_size, candidate_size
+        x, _ = self.attention(x, labels_selected)  # batch_size, sample_size, hidden_size
+        x = self.output(x)  # batch_size, sample_size
         return {"logits": x}

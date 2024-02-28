@@ -29,12 +29,11 @@ val_metric: nDCG@5
 seed: 1337
 epochs: 10
 # https://github.com/Lightning-AI/lightning/issues/8826
-optimizer: Adam
+optimizer: adam
 optimizer_config:
   lr: 0.001
 # early stopping
 patience: 5
-silent: true
 
 # model
 model_name: AttentionXML

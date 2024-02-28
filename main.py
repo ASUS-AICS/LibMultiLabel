@@ -231,18 +231,6 @@ def add_all_arguments(parser):
         help="the maximal number of labels inside a cluster (default: %(default)s)",
     )
     parser.add_argument(
-        "--top_k",
-        type=int,
-        default=64,
-        help="sample top-k clusters and use them to train tree model (default: %(default)s)",
-    )
-    parser.add_argument(
-        "--beam_width",
-        type=int,
-        default=10,
-        help="The width of the beam search (default: %(default)s)",
-    )
-    parser.add_argument(
         "-h",
         "--help",
         action="help",

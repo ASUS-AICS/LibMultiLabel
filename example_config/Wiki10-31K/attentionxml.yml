@@ -28,9 +28,8 @@ val_metric: nDCG@5
 # train
 seed: 1337
 epochs: 30
-silent: true
 # https://github.com/Lightning-AI/lightning/issues/8826
-optimizer: Adam
+optimizer: adam
 # early stopping
 patience: 5
 

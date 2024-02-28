@@ -3,7 +3,6 @@ import os
 
 import numpy as np
 from lightning.pytorch.callbacks import ModelCheckpoint
-from sklearn.preprocessing import MultiLabelBinarizer
 from transformers import AutoTokenizer
 
 from libmultilabel.common_utils import dump_log, is_multiclass_dataset
@@ -55,7 +54,6 @@ class TorchTrainer:
         if datasets is None:
             self.datasets = data_utils.load_datasets(
                 training_data=config.training_file,
-                training_sparse_data=config.training_sparse_file,
                 test_data=config.test_file,
                 val_data=config.val_file,
                 val_size=config.val_size,
@@ -70,7 +68,7 @@ class TorchTrainer:
             word_dict, embed_vecs = data_utils.load_or_build_text_dict(
                 dataset=self.datasets["train"]
                 if config.model_name.lower() != "attentionxml"
-                else self.datasets["train_full"],
+                else self.datasets["train"] + self.datasets["val"],
                 vocab_file=config.vocab_file,
                 min_vocab_freq=config.min_vocab_freq,
                 embed_file=config.embed_file,
@@ -230,8 +228,10 @@ class TorchTrainer:
 
             dump_log(self.log_path, config=self.config)
 
-        # return best model score for ray
-        return self.checkpoint_callback.best_model_score.item() if self.checkpoint_callback.best_model_score else None
+            # return best model score for ray
+            return (
+                self.checkpoint_callback.best_model_score.item() if self.checkpoint_callback.best_model_score else None
+            )
 
     def test(self, split="test"):
         """Test model with pytorch lightning trainer. Top-k predictions are saved
@@ -246,7 +246,7 @@ class TorchTrainer:
         assert "test" in self.datasets and self.trainer is not None
 
         if self.config.model_name.lower() == "attentionxml":
-            self.trainer.test(self.datasets["test"])
+            self.trainer.test(self.datasets["test"], self.classes)
         else:
             logging.info(f"Testing on {split} set.")
             test_loader = self._get_dataset_loader(split=split)

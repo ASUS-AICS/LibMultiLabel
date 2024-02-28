@@ -4,7 +4,6 @@ from typing import Sequence, Optional
 
 import numpy as np
 import torch
-from lightning.pytorch.utilities.rank_zero import rank_zero_only
 from numpy import ndarray
 from scipy.sparse import csr_matrix, issparse
 from torch import Tensor, is_tensor

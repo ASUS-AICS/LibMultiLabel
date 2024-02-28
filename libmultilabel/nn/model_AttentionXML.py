@@ -1,12 +1,10 @@
-from typing import Optional
-
 import torch
 from torch import Tensor
 
-from .model import MultiLabelModel
+from .model import Model
 
 
-class PLTModel(MultiLabelModel):
+class PLTModel(Model):
     def __init__(
         self,
         classes,
@@ -30,48 +28,50 @@ class PLTModel(MultiLabelModel):
     def multilabel_binarize(
         self,
         logits: Tensor,
-        samples: Tensor,
+        labels_selected: Tensor,
         label_scores: Tensor,
     ) -> Tensor:
         """self-implemented MultiLabelBinarizer for AttentionXML"""
         src = torch.sigmoid(logits.detach()) * label_scores
         # make sure preds and src use the same precision, e.g., either float16 or float32
-        preds = torch.zeros(samples.size(0), self.num_labels + 1, device=samples.device, dtype=src.dtype)
-        preds.scatter_(dim=1, index=samples, src=src)
-        # remove dummy samples
+        preds = torch.zeros(
+            labels_selected.size(0), len(self.classes) + 1, device=labels_selected.device, dtype=src.dtype
+        )
+        preds.scatter_(dim=1, index=labels_selected, src=src)
+        # remove dummy labels
         preds = preds[:, :-1]
         return preds
 
-    def training_step(self, batch, batch_idx):
-        x = batch["text"]
-        y = batch["label"]
-        samples = batch["samples"]
-        logits = self.network(x, samples=samples)
-        loss = self.loss_func(logits, torch.take_along_dim(y.float(), samples, dim=1))
-        return loss
+    def shared_step(self, batch):
+        """Return loss and predicted logits of the network.
 
-    def validation_step(self, batch, batch_idx):
-        x = batch["text"]
-        y = batch["label"]
-        samples = batch["samples"]
-        label_scores = batch["label_scores"]
-        logits = self.network(x, samples=samples)
-        y_pred = self.multilabel_binarize(logits, samples, label_scores)
-        self.val_metric.update(y_pred, y.long())
+        Args:
+            batch (dict): A batch of text and label.
 
-    def test_step(self, batch, batch_idx):
+        Returns:
+            loss (torch.Tensor): Loss between target and predict logits.
+            pred_logits (torch.Tensor): The predict logits (batch_size, num_classes).
+        """
         x = batch["text"]
         y = batch["label"]
-        samples = batch["samples"]
+        labels_selected = batch["labels_selected"]
+        logits = self.network(x, labels_selected=labels_selected)["logits"]
+        loss = self.loss_function(logits, torch.take_along_dim(y.float(), labels_selected, dim=1))
+        return loss, logits
+
+    def _shared_eval_step(self, batch, batch_idx):
+        x = batch["text"]
+        y = batch["label"]
+        labels_selected = batch["labels_selected"]
         label_scores = batch["label_scores"]
-        logits = self.network(x, samples=samples)
-        y_pred = self.multilabel_binarize(logits, samples, label_scores)
-        self.test_metrics.update(y_pred, y.long())
+        logits = self.network(x, labels_selected=labels_selected)["logits"]
+        y_pred = self.multilabel_binarize(logits, labels_selected, label_scores)
+        self.eval_metric.update(y_pred, y.long())
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         x = batch["text"]
-        samples = batch["samples"]
+        labels_selected = batch["labels_selected"]
         label_scores = batch["label_scores"]
-        logits = self.network(x, samples=samples)
+        logits = self.network(x, labels_selected=labels_selected)["logits"]
         scores, labels = torch.topk(torch.sigmoid(logits) * label_scores, self.top_k)
-        return scores, torch.take_along_dim(samples, labels, dim=1)
+        return scores.numpy(force=True), torch.take_along_dim(labels_selected, labels, dim=1).numpy(force=True)
