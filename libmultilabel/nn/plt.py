@@ -172,7 +172,16 @@ class PLTTrainer:
         if self.get_best_model_path(level=1).exists():
             return
 
-        datasets_temp_tf = self.preprocess(datasets)
+        # AttentionXML-specific data preprocessing
+        train_val_dataset = datasets["train"] + datasets["val"]
+        train_val_dataset = {
+            "x": [" ".join(i["text"]) for i in train_val_dataset],
+            "y": [i["label"] for i in train_val_dataset],
+        }
+
+        self.preprocessor = Preprocessor()
+        datasets_temp = {"data_format": "txt", "train": train_val_dataset, "classes": self.classes}
+        datasets_temp_tf = self.preprocessor.fit_transform(datasets_temp)
 
         train_x = self.reformat_text(datasets["train"])
         val_x = self.reformat_text(datasets["val"])
@@ -402,13 +411,15 @@ class PLTTrainer:
 
         logger.info(f"Predicting level 0, Top: {self.predict_top_k}")
         test_pred = trainer.predict(model, test_dataloader)
-        test_score_pred, test_label_pred = map(torch.vstack, list(zip(*test_pred)))
+        test_score_pred = np.vstack([i["top_k_pred_scores"] for i in test_pred])
+        test_label_pred = np.vstack([i["top_k_pred"] for i in test_pred])
 
         clusters = np.load(self.get_cluster_path(), allow_pickle=True)
 
         model = PLTModel.load_from_checkpoint(
             self.get_best_model_path(level=1),
             embed_vecs=self.embed_vecs,
+            word_dict=self.word_dict,
             top_k=self.predict_top_k,
             metrics=self.metrics,
         )
