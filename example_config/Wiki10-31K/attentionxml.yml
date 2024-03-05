@@ -30,6 +30,7 @@ seed: 1337
 epochs: 30
 # https://github.com/Lightning-AI/lightning/issues/8826
 optimizer: adam
+learning_rate: 0.001
 # early stopping
 patience: 5
 
