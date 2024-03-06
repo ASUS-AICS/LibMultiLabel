@@ -109,7 +109,7 @@ class GridSearchCV(sklearn.model_selection.GridSearchCV):
     The usage is similar to sklearn's, except that the parameter ``scoring`` is unavailable. Instead, specify ``scoring_metric`` in ``MultiLabelEstimator`` in the Pipeline.
 
     Args:
-        estimator (estimator object): A estimator for grid search.
+        estimator (estimator object): An estimator for grid search.
         param_grid (dict): Search space for a grid search containing a dictionary of
             parameters and their corresponding list of candidate values.
         n_jobs (int, optional): Number of CPU cores run in parallel. Defaults to None.
