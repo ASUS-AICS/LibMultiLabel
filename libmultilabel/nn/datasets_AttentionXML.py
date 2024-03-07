@@ -12,17 +12,20 @@ from tqdm import tqdm
 
 
 class PlainDataset(Dataset):
-    """Basic class for multi-label dataset."""
+    """Plain (compared to nn.data_utils.TextDataset) dataset class for multi-label dataset.
+    WHY EXISTS: The reason why this class is necessary is that it can process labels in sparse format, while TextDataset
+    does not.
+    Moreover, TextDataset implements multilabel binarization in a mandatory way. Nevertheless, AttentionXML already does
+    this while generating clusters. There is no need to do multilabel binarization again.
+
+    Args:
+        x: texts
+        y: labels
+    """
 
     def __init__(self, x: list | ndarray | Tensor, y: Optional[csr_matrix | ndarray | Tensor] = None):
-        """General dataset class for multi-label dataset.
-
-        Args:
-            x: texts
-            y: labels
-        """
         if y is not None:
-            assert len(x) == y.shape[0], "Sizes mismatch between x and y"
+            assert len(x) == y.shape[0], "Sizes mismatch between texts and labels"
         self.x = x
         self.y = y
 
@@ -48,7 +51,16 @@ class PlainDataset(Dataset):
 
 
 class PLTDataset(PlainDataset):
-    """Dataset class for AttentionXML."""
+    """Dataset for model_1 of AttentionXML.
+
+    Args:
+        x: texts
+        y: labels
+        num_classes: number of classes.
+        mapping: mapping from clusters to labels. Shape: (len(clusters), cluster_size).
+        clusters_selected: sampled predicted clusters from model_0. Shape: (len(x), predict_top_k).
+        cluster_scores: corresponding scores. Shape: (len(x), predict_top_k)
+    """
 
     def __init__(
         self,
@@ -60,17 +72,6 @@ class PLTDataset(PlainDataset):
         clusters_selected: ndarray | Tensor,
         cluster_scores: Optional[ndarray | Tensor] = None,
     ):
-        """Dataset for AttentionXML.
-
-        Args:
-            x: texts
-            y: labels
-            num_classes: number of clusters at the current level.
-            mapping: [[0,..., 7], [8,..., 15], ...]. shape: (len(clusters), cluster_size). Map from clusters to labels.
-            clusters_selected: [[7, 1, 128, 6], [21, 85, 64, 103], ...]. shape: (len(x), top_k). numbers are predicted clusters
-                from last level.
-            cluster_scores: corresponding scores. shape: (len(x), top_k)
-        """
         super().__init__(x, y)
         self.num_classes = num_classes
         self.mapping = mapping
@@ -105,7 +106,8 @@ class PLTDataset(PlainDataset):
 
         # train
         if self.label_scores is None:
-            # randomly select clusters as selected labels when less than required
+            # As networks require input to be of fixed shape, randomly select labels when the number of selected label
+            # is not enough
             if len(item["labels_selected"]) < self.num_labels_selected:
                 sample = np.random.randint(
                     self.num_classes, size=self.num_labels_selected - len(item["labels_selected"])

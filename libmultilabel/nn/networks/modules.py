@@ -232,7 +232,7 @@ class PartialLabelwiseAttention(nn.Module):
 
 
 class MultilayerLinearOutput(nn.Module):
-    def __init__(self, linear_size: list[int], output_size: int):
+    def __init__(self, linear_size, output_size):
         super().__init__()
         self.linears = nn.ModuleList(nn.Linear(in_s, out_s) for in_s, out_s in zip(linear_size[:-1], linear_size[1:]))
         self.output = nn.Linear(linear_size[-1], output_size)

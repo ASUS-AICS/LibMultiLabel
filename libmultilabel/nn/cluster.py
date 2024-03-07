@@ -38,24 +38,23 @@ def build_label_tree(sparse_x: csr_matrix, sparse_y: csr_matrix, cluster_size: i
     # meta info
     logger.info("Label clustering started")
     logger.info(f"Cluster size: {cluster_size}")
-    num_labels = sparse_y.shape[1]
     # The height of the tree satisfies the following inequality:
     # 2**(tree_height - 1) * cluster_size < num_labels <= 2**tree_height * cluster_size
-    height = int(np.ceil(np.log2(num_labels / cluster_size)))
+    height = int(np.ceil(np.log2(sparse_y.shape[1] / cluster_size)))
     logger.info(f"Labels will be grouped into {2**height} clusters")
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # For each label, sum up instances relevant to the label and normalize to get the label representation
+    # For each label, sum up normalized instances relevant to the label and normalize to get the label representation
     label_repr = normalize(sparse_y.T @ csc_matrix(normalize(sparse_x)))
 
     # clustering by a binary tree:
     # at each layer split each cluster to two. Leave nodes correspond to the obtained clusters.
-    clusters = [np.arange(num_labels)]
+    clusters = [np.arange(sparse_y.shape[1])]
     for _ in range(height):
         next_clusters = []
         for cluster in clusters:
-            next_clusters.extend(_split_cluster(cluster, label_repr))
+            next_clusters.extend(_split_cluster(cluster, label_repr[cluster]))
         clusters = next_clusters
         logger.info(f"Having grouped {len(clusters)} clusters")
 
@@ -71,18 +70,10 @@ def _split_cluster(cluster: ndarray, label_repr: csr_matrix) -> tuple[ndarray, n
 
     Args:
         cluster: a subset of labels
-        label_repr: the normalized representations of the relationship between labels and texts
+        label_repr: the normalized representations of the relationship between labels and texts of the given cluster
     """
-    tol = 1e-4
-
-    # the normalized label representations corresponding to the cluster
-    tgt_repr = label_repr[cluster]
-
-    # the number of labels in the cluster
-    n = len(cluster)
-
     # Randomly choose two points as initial centroids and obtain their label representations
-    centroids = tgt_repr[np.random.choice(n, size=2, replace=False)].toarray()
+    centroids = label_repr[np.random.choice(len(cluster), size=2, replace=False)].toarray()
 
     # Initialize distances (cosine similarity)
     # Cosine similarity always falls to the interval [-1, 1]
@@ -93,14 +84,14 @@ def _split_cluster(cluster: ndarray, label_repr: csr_matrix) -> tuple[ndarray, n
     c0_idx = None
     c1_idx = None
 
-    while new_dist - old_dist >= tol:
-        # Notice that tgt_repr and centroids.T have been normalized
+    while new_dist - old_dist >= 1e-4:
+        # Notice that label_repr and centroids.T have been normalized
         # Thus, dist indicates the cosine similarity between points and centroids.
-        dist = tgt_repr @ centroids.T  # shape: (n, 2)
+        dist = label_repr @ centroids.T  # shape: (n, 2)
 
         # generate clusters
         # let a = dist[:, 1] - dist[:, 0], the larger the element in a is, the closer the point is to c1
-        k = n // 2
+        k = len(cluster) // 2
         c_idx = np.argpartition(dist[:, 1] - dist[:, 0], kth=k)
         c0_idx = c_idx[:k]
         c1_idx = c_idx[k:]
@@ -108,15 +99,15 @@ def _split_cluster(cluster: ndarray, label_repr: csr_matrix) -> tuple[ndarray, n
         # update distances
         # the new distance is the average of in-cluster distances to the centroids
         old_dist = new_dist
-        new_dist = (dist[c0_idx, 0].sum() + dist[c1_idx, 1].sum()) / n
+        new_dist = (dist[c0_idx, 0].sum() + dist[c1_idx, 1].sum()) / len(cluster)
 
         # update centroids
         # the new centroid is the normalized average of the points in the cluster
         centroids = normalize(
             np.asarray(
                 [
-                    np.squeeze(np.asarray(tgt_repr[c0_idx].sum(axis=0))),
-                    np.squeeze(np.asarray(tgt_repr[c1_idx].sum(axis=0))),
+                    np.squeeze(np.asarray(label_repr[c0_idx].sum(axis=0))),
+                    np.squeeze(np.asarray(label_repr[c1_idx].sum(axis=0))),
                 ]
             )
         )

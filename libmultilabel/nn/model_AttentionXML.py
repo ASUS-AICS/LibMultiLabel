@@ -25,15 +25,14 @@ class PLTModel(Model):
             **kwargs,
         )
 
-    def multilabel_binarize(
+    def scatter_preds(
         self,
         logits: Tensor,
         labels_selected: Tensor,
         label_scores: Tensor,
     ) -> Tensor:
-        """self-implemented MultiLabelBinarizer for AttentionXML"""
+        """map predictions from sample space to label space. The scores of unsampled labels are set to 0."""
         src = torch.sigmoid(logits.detach()) * label_scores
-        # make sure preds and src use the same precision, e.g., either float16 or float32
         preds = torch.zeros(
             labels_selected.size(0), len(self.classes) + 1, device=labels_selected.device, dtype=src.dtype
         )
@@ -65,7 +64,7 @@ class PLTModel(Model):
         labels_selected = batch["labels_selected"]
         label_scores = batch["label_scores"]
         logits = self.network(x, labels_selected=labels_selected)["logits"]
-        y_pred = self.multilabel_binarize(logits, labels_selected, label_scores)
+        y_pred = self.scatter_preds(logits, labels_selected, label_scores)
         self.eval_metric.update(y_pred, y.long())
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
