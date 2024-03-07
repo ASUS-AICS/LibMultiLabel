@@ -7,6 +7,7 @@ from typing import Generator, Optional
 
 import numpy as np
 import torch
+from scipy.special import expit
 from lightning import Trainer
 from scipy.sparse import csr_matrix
 from sklearn.preprocessing import MultiLabelBinarizer
@@ -42,13 +43,13 @@ class PLTTrainer:
         word_dict: Optional[dict] = None,
     ):
         # The number of levels is set to 2. In other words, there will be 2 models
-        if config.multiclass:
+        self.multiclass = config.multiclass
+        if self.multiclass:
             raise ValueError(
                 "The label space of multi-class datasets is usually not large, so PLT training is unnecessary."
                 "Please consider other methods."
                 "If you have a multi-class set with numerous labels, please let us know"
             )
-        self.is_multiclass = config.multiclass
 
         # cluster
         self.cluster_size = config.cluster_size
@@ -59,10 +60,11 @@ class PLTTrainer:
         self.embed_vecs = embed_vecs
         self.word_dict = word_dict
         self.classes = classes
+        self.max_seq_length = config.max_seq_length
         self.num_classes = len(classes)
 
-        # preprocessor of the datasets
-        self.preprocessor = None
+        # multilabel binarizer fitted to the datasets
+        self.binarizer = None
 
         # cluster meta info
         self.cluster_size = config.cluster_size
@@ -74,6 +76,12 @@ class PLTTrainer:
 
         # optimizer parameters
         self.optimizer = config.optimizer
+        self.learning_rate = config.learning_rate
+        self.momentum = config.momentum
+        self.weight_decay = config.weight_decay
+        # learning rate scheduler
+        self.lr_scheduler = config.lr_scheduler
+        self.scheduler_config = config.scheduler_config
 
         # Trainer parameters
         self.use_cpu = config.cpu
@@ -95,6 +103,8 @@ class PLTTrainer:
         self.result_dir = Path(config.result_dir)
 
         self.metrics = config.monitor_metrics
+        self.metric_threshold = config.metric_threshold
+        self.monitor_metrics = config.monitor_metrics
 
         # dataloader parameters
         # whether shuffle the training dataset or not during the training process
@@ -114,7 +124,7 @@ class PLTTrainer:
         )
 
         # save path
-        self.config = config
+        self.log_path = config.log_path
 
     def label2cluster(self, cluster_mapping, *ys) -> Generator[csr_matrix, ...]:
         """Map labels to their corresponding clusters in CSR sparse format.
@@ -147,22 +157,6 @@ class PLTTrainer:
 
         return (_label2cluster(y) for y in ys)
 
-    def preprocess(self, datasets):
-        # datasets preprocessing
-        # Convert training texts and labels to a matrix of tfidf features and a binary sparse matrix indicating the
-        # presence of a class label, respectively
-        train_val_dataset = datasets["train"] + datasets["val"]
-        train_val_dataset = {
-            "x": [" ".join(i["text"]) for i in train_val_dataset],
-            "y": [i["label"] for i in train_val_dataset],
-        }
-
-        self.preprocessor = Preprocessor()
-        datasets_temp = {"data_format": "txt", "train": train_val_dataset, "classes": self.classes}
-        datasets_temp_tf = self.preprocessor.fit_transform(datasets_temp)
-
-        return datasets_temp_tf
-
     def fit(self, datasets):
         """fit model to the training dataset
 
@@ -179,29 +173,34 @@ class PLTTrainer:
             "y": [i["label"] for i in train_val_dataset],
         }
 
-        self.preprocessor = Preprocessor()
+        # Preprocessor does tf-idf vectorization and multilabel binarization
+        # For details, see libmultilabel.linear.preprocessor.Preprocessor
+        preprocessor = Preprocessor()
         datasets_temp = {"data_format": "txt", "train": train_val_dataset, "classes": self.classes}
-        datasets_temp_tf = self.preprocessor.fit_transform(datasets_temp)
+        # Preprocessor requires the input dictionary to has a key named "train" and will return a new dictionary with
+        # the same key.
+        train_val_dataset_tf = preprocessor.fit_transform(datasets_temp)["train"]
+        # save binarizer for testing
+        self.binarizer = preprocessor.binarizer
 
         train_x = self.reformat_text(datasets["train"])
         val_x = self.reformat_text(datasets["val"])
 
-        train_y = datasets_temp_tf["train"]["y"][: len(datasets["train"])]
-        val_y = datasets_temp_tf["train"]["y"][len(datasets["train"]) :]
+        train_y = train_val_dataset_tf["y"][: len(datasets["train"])]
+        val_y = train_val_dataset_tf["y"][len(datasets["train"]) :]
 
         # clustering
         build_label_tree(
-            sparse_x=datasets_temp_tf["train"]["x"],
-            sparse_y=datasets_temp_tf["train"]["y"],
+            sparse_x=train_val_dataset_tf["x"],
+            sparse_y=train_val_dataset_tf["y"],
             cluster_size=self.cluster_size,
             output_dir=self.result_dir,
         )
+
         clusters = np.load(self.get_cluster_path(), allow_pickle=True)
 
         # each y has been mapped to the cluster indices of its parent
         train_y_clustered, val_y_clustered = self.label2cluster(clusters, train_y, val_y)
-        # regard each internal clusters as a "labels"
-        num_labels = len(clusters)
 
         trainer = init_trainer(
             self.result_dir,
@@ -225,51 +224,42 @@ class PLTTrainer:
         if not best_model_path.exists():
             model_0 = init_model(
                 model_name="AttentionXML_0",
-                network_config=self.config.network_config,
+                network_config=self.network_config,
                 classes=clusters,
                 word_dict=self.word_dict,
                 embed_vecs=self.embed_vecs,
-                init_weight=self.config.init_weight,
-                log_path=self.config.log_path,
-                learning_rate=self.config.learning_rate,
-                optimizer=self.config.optimizer,
-                momentum=self.config.momentum,
-                weight_decay=self.config.weight_decay,
-                lr_scheduler=self.config.lr_scheduler,
-                scheduler_config=self.config.scheduler_config,
-                val_metric=self.config.val_metric,
-                metric_threshold=self.config.metric_threshold,
-                monitor_metrics=self.config.monitor_metrics,
-                multiclass=self.config.multiclass,
+                init_weight=self.init_weight,
+                log_path=self.log_path,
+                learning_rate=self.learning_rate,
+                optimizer=self.optimizer,
+                momentum=self.momentum,
+                weight_decay=self.weight_decay,
+                lr_scheduler=self.lr_scheduler,
+                scheduler_config=self.scheduler_config,
+                val_metric=self.val_metric,
+                metric_threshold=self.metric_threshold,
+                monitor_metrics=self.monitor_metrics,
+                multiclass=self.multiclass,
                 loss_function=self.loss_function,
                 silent=self.silent,
-                save_k_predictions=self.config.save_k_predictions,
+                save_k_predictions=self.predict_top_k,
             )
 
-            logger.info(f"Training level 0. Number of labels: {num_labels}")
+            logger.info(f"Training level 0. Number of clusters: {len(clusters)}")
             trainer.fit(model_0, train_dataloader, val_dataloader)
             logger.info(f"Finish training level 0")
 
         logger.info(f"Best model loaded from {best_model_path}")
         model_0 = Model.load_from_checkpoint(best_model_path, embed_vecs=self.embed_vecs, word_dict=self.word_dict)
 
-        # Utilize single GPU to predict
-        trainer = Trainer(
-            num_nodes=1,
-            devices=1,
-            accelerator=self.accelerator,
-            logger=False,
-        )
-        logger.info(
-            f"Generating predictions for level 1. Number of possible predictions: {num_labels}. Top k: {self.predict_top_k}"
-        )
+        logger.info(f"Generating predictions for level 1. Will use the top {self.predict_top_k} predictions")
         # load training and validation data and predict corresponding level 0 clusters
 
         train_pred = trainer.predict(model_0, train_dataloader)
         val_pred = trainer.predict(model_0, val_dataloader)
 
         train_clusters_pred = np.vstack([i["top_k_pred"] for i in train_pred])
-        val_scores_pred = np.vstack([i["top_k_pred_scores"] for i in val_pred])
+        val_scores_pred = expit(np.vstack([i["top_k_pred_scores"] for i in val_pred]))
         val_clusters_pred = np.vstack([i["top_k_pred"] for i in val_pred])
 
         logger.info("Selecting relevant/irrelevant clusters of each instance for level 1 training")
@@ -277,8 +267,8 @@ class PLTTrainer:
         for i, ys in enumerate(tqdm(train_clusters_pred, leave=False, desc="Sampling clusters")):
             # relevant clusters are positive
             pos = set(train_y_clustered.indices[train_y_clustered.indptr[i] : train_y_clustered.indptr[i + 1]])
-            # Select relevant clusters first. Then from top-predicted clusters, sequentially include their labels until the total # of
-            # until reaching top_k if the number of positive labels is less than top_k.
+            # Select relevant clusters first. Then from top-predicted clusters, sequentially include their labels until
+            # reaching self.predict_top_k if the number of positive labels is less than self.predict_top_k
             if len(pos) <= self.predict_top_k:
                 selected = pos
                 for y in ys:
@@ -327,7 +317,7 @@ class PLTTrainer:
             ),
             shuffle=self.shuffle,
         )
-        valid_dataloader = self.dataloader(
+        val_dataloader = self.dataloader(
             PLTDataset(
                 val_x,
                 val_y,
@@ -350,20 +340,20 @@ class PLTTrainer:
             word_dict=self.word_dict,
             embed_vecs=self.embed_vecs,
             network=network,
-            log_path=self.config.log_path,
-            learning_rate=self.config.learning_rate,
-            optimizer=self.config.optimizer,
-            momentum=self.config.momentum,
-            weight_decay=self.config.weight_decay,
-            lr_scheduler=self.config.lr_scheduler,
-            scheduler_config=self.config.scheduler_config,
-            val_metric=self.config.val_metric,
-            metric_threshold=self.config.metric_threshold,
-            monitor_metrics=self.config.monitor_metrics,
-            multiclass=self.config.multiclass,
+            log_path=self.log_path,
+            learning_rate=self.learning_rate,
+            optimizer=self.optimizer,
+            momentum=self.momentum,
+            weight_decay=self.weight_decay,
+            lr_scheduler=self.lr_scheduler,
+            scheduler_config=self.scheduler_config,
+            val_metric=self.val_metric,
+            metric_threshold=self.metric_threshold,
+            monitor_metrics=self.monitor_metrics,
+            multiclass=self.multiclass,
             loss_function=self.loss_function,
             silent=self.silent,
-            save_k_predictions=self.config.save_k_predictions,
+            save_k_predictions=self.predict_top_k,
         )
         torch.nn.init.xavier_uniform_(model_1.network.attention.attention.weight)
 
@@ -378,19 +368,19 @@ class PLTTrainer:
             f"Training level 1. Number of labels: {self.num_classes}."
             f"Number of labels selected: {train_dataloader.dataset.num_labels_selected}"
         )
-        trainer.fit(model_1, train_dataloader, valid_dataloader)
+        trainer.fit(model_1, train_dataloader, val_dataloader)
         logger.info(f"Best model loaded from {best_model_path}")
         logger.info(f"Finish training level 1")
 
     def test(self, dataset, classes):
         test_x = self.reformat_text(dataset)
 
-        if self.preprocessor is None:
+        if self.binarizer is None:
             binarizer = MultiLabelBinarizer(classes=classes, sparse_output=True)
             binarizer.fit(None)
             test_y = binarizer.transform((i["label"] for i in dataset))
         else:
-            test_y = self.preprocessor.binarizer.transform((i["label"] for i in dataset))
+            test_y = self.binarizer.transform((i["label"] for i in dataset))
         logger.info("Testing process started")
         trainer = Trainer(
             devices=1,
@@ -411,8 +401,8 @@ class PLTTrainer:
 
         logger.info(f"Predicting level 0, Top: {self.predict_top_k}")
         test_pred = trainer.predict(model, test_dataloader)
-        test_score_pred = np.vstack([i["top_k_pred_scores"] for i in test_pred])
-        test_label_pred = np.vstack([i["top_k_pred"] for i in test_pred])
+        test_pred_scores = expit(np.vstack([i["top_k_pred_scores"] for i in test_pred]))
+        test_pred_cluters = np.vstack([i["top_k_pred"] for i in test_pred])
 
         clusters = np.load(self.get_cluster_path(), allow_pickle=True)
 
@@ -430,8 +420,8 @@ class PLTTrainer:
                 test_y,
                 num_classes=self.num_classes,
                 mapping=clusters,
-                clusters_selected=test_label_pred,
-                cluster_scores=test_score_pred,
+                clusters_selected=test_pred_cluters,
+                cluster_scores=test_pred_scores,
             ),
         )
 
@@ -445,14 +435,14 @@ class PLTTrainer:
                 lambda text: torch.tensor([self.word_dict[word] for word in text], dtype=torch.int64)
                 if text
                 else torch.tensor([self.word_dict[UNK]], dtype=torch.int64),
-                [instance["text"][: self.config["max_seq_length"]] for instance in dataset],
+                [instance["text"][: self.max_seq_length] for instance in dataset],
             )
         )
         # pad the first entry to be of length 500 if necessary
         encoded_text[0] = torch.cat(
             (
                 encoded_text[0],
-                torch.tensor(0, dtype=torch.int64).repeat(self.config["max_seq_length"] - encoded_text[0].shape[0]),
+                torch.tensor(0, dtype=torch.int64).repeat(self.max_seq_length - encoded_text[0].shape[0]),
             )
         )
         encoded_text = pad_sequence(encoded_text, batch_first=True)

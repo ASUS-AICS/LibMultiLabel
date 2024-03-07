@@ -1,11 +1,9 @@
 data_name: AmazonCat-13K
-training_file: /l/users/dongli.he/libml/LibMultiLabel/AmazonCat-13K/train.txt
-test_file: /l/users/dongli.he/libml/LibMultiLabel/AmazonCat-13K/test.txt
+# will change path later
+training_file: data/AmazonCat-13K/train.txt
+test_file: data/AmazonCat-13K/test.txt
 # pretrained embeddings
 embed_file: glove.840B.300d
-embed_cache_dir: /l/users/dongli.he/libml/LibMultiLabel/embedding
-# save path
-result_dir: /l/users/dongli.he/libml/LibMultiLabel/AmazonCat-13K/results
 
 # preprocessing
 min_vocab_freq: 1
@@ -28,11 +26,10 @@ val_metric: nDCG@5
 # train
 seed: 1337
 epochs: 10
-# https://github.com/Lightning-AI/lightning/issues/8826
 optimizer: adam
 learning_rate: 0.001
 # early stopping
-patience: 5
+patience: 10
 
 # model
 model_name: AttentionXML

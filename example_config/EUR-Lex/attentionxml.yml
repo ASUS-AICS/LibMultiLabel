@@ -1,10 +1,10 @@
 data_name: EUR-Lex
-training_file: /l/users/dongli.he/libml/LibMultiLabel/EUR-Lex/train.txt
-test_file: /l/users/dongli.he/libml/LibMultiLabel/EUR-Lex/test.txt
+training_file: data/EUR-Lex/train.txt
+test_file: data/EUR-Lex/test.txt
 # pretrained embeddings
 embed_file: glove.840B.300d
-embed_cache_dir: /l/users/dongli.he/libml/LibMultiLabel/embedding
 # save path
+# will change path later
 result_dir: /l/users/dongli.he/libml/LibMultiLabel/EUR-Lex/results
 
 # preprocessing
@@ -28,11 +28,10 @@ val_metric: nDCG@5
 # train
 seed: 1337
 epochs: 30
-# https://github.com/Lightning-AI/lightning/issues/8826
 optimizer: adam
 learning_rate: 0.001
 # early stopping
-patience: 5
+patience: 30
 
 # model
 model_name: AttentionXML
