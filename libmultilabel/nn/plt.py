@@ -250,7 +250,7 @@ class PLTTrainer:
             logger.info(f"Finish training level 0")
 
         logger.info(f"Best model loaded from {best_model_path}")
-        model_0 = Model.load_from_checkpoint(best_model_path, embed_vecs=self.embed_vecs, word_dict=self.word_dict)
+        model_0 = Model.load_from_checkpoint(best_model_path)
 
         logger.info(f"Generating predictions for level 1. Will use the top {self.predict_top_k} predictions")
         # load training and validation data and predict corresponding level 0 clusters
@@ -392,10 +392,7 @@ class PLTTrainer:
         # prediction starts from level 0
         model = Model.load_from_checkpoint(
             self.get_best_model_path(level=0),
-            embed_vecs=self.embed_vecs,
-            word_dict=self.word_dict,
             top_k=self.predict_top_k,
-            metrics=self.metrics,
         )
 
         test_dataloader = self.eval_dataloader(PlainDataset(test_x))
@@ -409,8 +406,6 @@ class PLTTrainer:
 
         model = PLTModel.load_from_checkpoint(
             self.get_best_model_path(level=1),
-            embed_vecs=self.embed_vecs,
-            word_dict=self.word_dict,
             top_k=self.predict_top_k,
             metrics=self.metrics,
         )
