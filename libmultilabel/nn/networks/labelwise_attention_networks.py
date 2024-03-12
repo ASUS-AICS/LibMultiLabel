@@ -290,8 +290,8 @@ class AttentionXML_0(nn.Module):
         self.output = MultilayerLinearOutput([rnn_dim] + linear_size, 1)
 
     def forward(self, inputs):
-        # the index of padding is 0
         inputs = inputs["text"]
+        # the index of padding is 0
         masks = inputs != 0
         lengths = masks.sum(dim=1)
         masks = masks[:, : lengths.max()]
@@ -322,7 +322,9 @@ class AttentionXML_1(nn.Module):
         self.attention = PartialLabelwiseAttention(rnn_dim, num_classes)
         self.output = MultilayerLinearOutput([rnn_dim] + linear_size, 1)
 
-    def forward(self, inputs, labels_selected):
+    def forward(self, inputs):
+        inputs = inputs["text"]
+        labels_selected = inputs["labels_selected"]
         # the index of padding is 0
         masks = inputs != 0
         lengths = masks.sum(dim=1)
