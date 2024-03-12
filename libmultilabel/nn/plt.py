@@ -358,6 +358,7 @@ class PLTTrainer:
         torch.nn.init.xavier_uniform_(model_1.network.attention.attention.weight)
 
         logger.info(f"Initialize model with weights from the last level")
+        # As the attention layer of model 1 is different from model 0, each layer needs to be initialized separately
         model_1.network.embedding.load_state_dict(model_0.network.embedding.state_dict())
         model_1.network.encoder.load_state_dict(model_0.network.encoder.state_dict())
         model_1.network.output.load_state_dict(model_0.network.output.state_dict())
