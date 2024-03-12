@@ -68,9 +68,13 @@ class PLTModel(Model):
         self.eval_metric.update(y_pred, y.long())
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
-        x = batch["text"]
         labels_selected = batch["labels_selected"]
         label_scores = batch["label_scores"]
-        logits = self.network(x, labels_selected=labels_selected)["logits"]
+        logits = self.network(batch)["logits"]
         scores, labels = torch.topk(torch.sigmoid(logits) * label_scores, self.top_k)
-        return scores.numpy(force=True), torch.take_along_dim(labels_selected, labels, dim=1).numpy(force=True)
+        # This calculation is to align with LibMultiLabel class where logits rather than probabilities are returned
+        logits = torch.logit(scores)
+        return {
+            "top_k_pred": torch.take_along_dim(labels_selected, labels, dim=1).numpy(force=True),
+            "top_k_pred_scores": logits.numpy(force=True),
+        }
