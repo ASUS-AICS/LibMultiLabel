@@ -73,6 +73,11 @@ class MultiLabelModel(L.LightningModule):
         """Return loss and predicted logits"""
         return NotImplemented
 
+    @abstractmethod
+    def get_logits(self, batch):
+        """Return predicted logits"""
+        return NotImplemented
+
     def configure_optimizers(self):
         """Initialize an optimizer for the free parameters of the network."""
         parameters = [p for p in self.parameters() if p.requires_grad]
@@ -232,3 +237,6 @@ class Model(MultiLabelModel):
         loss = self.loss_function(pred_logits, target_labels.float())
 
         return loss, pred_logits
+
+    def get_logits(self, batch):
+        return self.network(batch)["logits"]
