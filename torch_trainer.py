@@ -37,7 +37,6 @@ class TorchTrainer:
         self.run_name = config.run_name
         self.checkpoint_dir = config.checkpoint_dir
         self.log_path = config.log_path
-        self.classes = classes
         os.makedirs(self.checkpoint_dir, exist_ok=True)
 
         # Set up seed & device
@@ -64,26 +63,42 @@ class TorchTrainer:
         else:
             self.datasets = datasets
 
-        if config.embed_file is not None:
-            word_dict, embed_vecs = data_utils.load_or_build_text_dict(
-                dataset=self.datasets["train"]
-                if config.model_name.lower() != "attentionxml"
-                else self.datasets["train"] + self.datasets["val"],
-                vocab_file=config.vocab_file,
-                min_vocab_freq=config.min_vocab_freq,
-                embed_file=config.embed_file,
-                silent=config.silent,
-                normalize_embed=config.normalize_embed,
-                embed_cache_dir=config.embed_cache_dir,
-            )
-
-        if not classes:
-            self.classes = data_utils.load_or_build_label(self.datasets, config.label_file, config.include_test_labels)
-
         self.config.multiclass = is_multiclass_dataset(self.datasets["train"] + self.datasets.get("val", list()))
 
         if self.config.model_name.lower() == "attentionxml":
-            self.trainer = PLTTrainer(self.config, classes=self.classes, embed_vecs=embed_vecs, word_dict=word_dict)
+            # Note that AttentionXML produces two models. checkpoint_path directs to model_1
+            if config.checkpoint_path is None:
+                if self.config.embed_file is not None:
+                    logging.info("Load word dictionary ")
+                    word_dict, embed_vecs = data_utils.load_or_build_text_dict(
+                        dataset=self.datasets["train"] + self.datasets["val"],
+                        vocab_file=config.vocab_file,
+                        min_vocab_freq=config.min_vocab_freq,
+                        embed_file=config.embed_file,
+                        silent=config.silent,
+                        normalize_embed=config.normalize_embed,
+                        embed_cache_dir=config.embed_cache_dir,
+                    )
+
+                if not classes:
+                    classes = data_utils.load_or_build_label(
+                        self.datasets, self.config.label_file, self.config.include_test_labels
+                    )
+
+                if self.config.early_stopping_metric not in self.config.monitor_metrics:
+                    logging.warning(
+                        f"{self.config.early_stopping_metric} is not in `monitor_metrics`. "
+                        f"Add {self.config.early_stopping_metric} to `monitor_metrics`."
+                    )
+                    self.config.monitor_metrics += [self.config.early_stopping_metric]
+
+                if self.config.val_metric not in self.config.monitor_metrics:
+                    logging.warn(
+                        f"{self.config.val_metric} is not in `monitor_metrics`. "
+                        f"Add {self.config.val_metric} to `monitor_metrics`."
+                    )
+                    self.config.monitor_metrics += [self.config.val_metric]
+            self.trainer = PLTTrainer(self.config, classes=classes, embed_vecs=embed_vecs, word_dict=word_dict)
         else:
             self._setup_model(
                 word_dict=word_dict,
@@ -109,6 +124,7 @@ class TorchTrainer:
 
     def _setup_model(
         self,
+        classes: list = None,
         word_dict: dict = None,
         embed_vecs=None,
         log_path: str = None,
@@ -134,6 +150,21 @@ class TorchTrainer:
             self.model = Model.load_from_checkpoint(checkpoint_path, log_path=log_path)
         else:
             logging.info("Initialize model from scratch.")
+            if self.config.embed_file is not None:
+                logging.info("Load word dictionary ")
+                word_dict, embed_vecs = data_utils.load_or_build_text_dict(
+                    dataset=self.datasets["train"],
+                    vocab_file=self.config.vocab_file,
+                    min_vocab_freq=self.config.min_vocab_freq,
+                    embed_file=self.config.embed_file,
+                    silent=self.config.silent,
+                    normalize_embed=self.config.normalize_embed,
+                    embed_cache_dir=self.config.embed_cache_dir,
+                )
+            if not classes:
+                classes = data_utils.load_or_build_label(
+                    self.datasets, self.config.label_file, self.config.include_test_labels
+                )
 
             if self.config.early_stopping_metric not in self.config.monitor_metrics:
                 logging.warn(
@@ -152,7 +183,7 @@ class TorchTrainer:
             self.model = init_model(
                 model_name=self.config.model_name,
                 network_config=dict(self.config.network_config),
-                classes=self.classes,
+                classes=classes,
                 word_dict=word_dict,
                 embed_vecs=embed_vecs,
                 init_weight=self.config.init_weight,
@@ -201,6 +232,8 @@ class TorchTrainer:
         """
         if self.config.model_name.lower() == "attentionxml":
             self.trainer.fit(self.datasets)
+
+            dump_log(self.log_path, config=self.config)
         else:
             assert (
                 self.trainer is not None
