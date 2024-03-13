@@ -373,7 +373,21 @@ class PLTTrainer:
         logger.info(f"Best model loaded from {best_model_path}")
         logger.info(f"Finish training level 1")
 
-    def test(self, dataset, classes):
+    def test(self, dataset):
+        # retrieve word_dict from model_1
+        # prediction starts from level 0
+        model_0 = Model.load_from_checkpoint(
+            self.get_best_model_path(level=0),
+            top_k=self.predict_top_k,
+        )
+        model_1 = PLTModel.load_from_checkpoint(
+            self.get_best_model_path(level=1),
+            top_k=self.predict_top_k,
+            metrics=self.metrics,
+        )
+        self.word_dict = model_1.word_dict
+        classes = model_1.classes
+
         test_x = self.reformat_text(dataset)
 
         if self.binarizer is None:
@@ -389,26 +403,14 @@ class PLTTrainer:
             logger=False,
         )
 
-        # prediction starts from level 0
-        model = Model.load_from_checkpoint(
-            self.get_best_model_path(level=0),
-            top_k=self.predict_top_k,
-        )
-
         test_dataloader = self.eval_dataloader(PlainDataset(test_x))
 
         logger.info(f"Predicting level 0, Top: {self.predict_top_k}")
-        test_pred = trainer.predict(model, test_dataloader)
+        test_pred = trainer.predict(model_0, test_dataloader)
         test_pred_scores = expit(np.vstack([i["top_k_pred_scores"] for i in test_pred]))
         test_pred_cluters = np.vstack([i["top_k_pred"] for i in test_pred])
 
         clusters = np.load(self.get_cluster_path(), allow_pickle=True)
-
-        model = PLTModel.load_from_checkpoint(
-            self.get_best_model_path(level=1),
-            top_k=self.predict_top_k,
-            metrics=self.metrics,
-        )
 
         test_dataloader = self.eval_dataloader(
             PLTDataset(
@@ -422,7 +424,7 @@ class PLTTrainer:
         )
 
         logger.info(f"Testing on level 1")
-        trainer.test(model, test_dataloader)
+        trainer.test(model_1, test_dataloader)
         logger.info("Testing process finished")
 
     def reformat_text(self, dataset):
