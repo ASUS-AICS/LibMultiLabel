@@ -100,7 +100,7 @@ class PLTTrainer:
         self.patience = config.patience
         # ModelCheckpoint
         self.val_metric = config.val_metric
-        self.result_dir = Path(config.result_dir)
+        self.checkpoint_dir = Path(config.checkpoint_dir)
 
         self.metrics = config.monitor_metrics
         self.metric_threshold = config.metric_threshold
@@ -133,11 +133,11 @@ class PLTTrainer:
         The clusters of the instance are [0, 2].
 
         Args:
-            cluster_mapping: the clusters generated at a pre-defined level.
-            *ys: labels for train and/or valid datasets.
+            cluster_mapping: mapping from clusters to labels.
+            *ys: sparse labels.
 
         Returns:
-            Generator[csr_matrix]: the mapped labels (ancestor clusters) for train and/or valid datasets.
+            Generator[csr_matrix]: clusters generated from labels
         """
         mapping = np.empty(self.num_classes, dtype=np.uint64)
         for idx, clusters in enumerate(cluster_mapping):
@@ -157,11 +157,36 @@ class PLTTrainer:
 
         return (_label2cluster(y) for y in ys)
 
+    # def cluster2label(self, cluster_mapping, *ys):
+    #     """Map clusters to their corresponding labels. Notice this function only deals with dense matrix.
+    #
+    #     Args:
+    #         cluster_mapping: mapping from clusters to labels.
+    #         *ys: sparse clusters.
+    #
+    #     Returns:
+    #         Generator[csr_matrix]: labels generated from clusters
+    #     """
+    #
+    #     def _cluster2label(y: csr_matrix) -> csr_matrix:
+    #         self.labels_selected = [np.concatenate(cluster_mapping[labels]) for labels in y]
+    #     return (_cluster2label(y) for y in ys)
+
+    # def generate_goals(self, cluster_scores, y):
+    #     if cluster_scores is not None:
+    #         # label_scores are corresponding scores for selected labels and
+    #         # look like [[0.1, 0.1, 0.1, 0.4, 0.4, 0.5, 0.5,...], ...]. shape: (len(x), cluster_size * top_k)
+    #         # notice how scores repeat for each cluster.
+    #         self.label_scores = [
+    #             np.repeat(scores, [len(i) for i in cluster_mapping[labels]])
+    #             for labels, scores in zip(y, cluster_scores)
+    #         ]
+
     def fit(self, datasets):
         """fit model to the training dataset
 
         Args:
-            datasets: dict of train, val, and test
+            datasets: dict containing training, validation, and/or test datasets
         """
         if self.get_best_model_path(level=1).exists():
             return
@@ -189,12 +214,13 @@ class PLTTrainer:
         train_y = train_val_dataset_tf["y"][: len(datasets["train"])]
         val_y = train_val_dataset_tf["y"][len(datasets["train"]) :]
 
-        # clustering
+        # clusters are saved to the disk so that users doesn't need to provide the original training data when they want
+        # to do predicting solely
         build_label_tree(
             sparse_x=train_val_dataset_tf["x"],
             sparse_y=train_val_dataset_tf["y"],
             cluster_size=self.cluster_size,
-            output_dir=self.result_dir,
+            output_dir=self.checkpoint_dir,
         )
 
         clusters = np.load(self.get_cluster_path(), allow_pickle=True)
@@ -203,7 +229,7 @@ class PLTTrainer:
         train_y_clustered, val_y_clustered = self.label2cluster(clusters, train_y, val_y)
 
         trainer = init_trainer(
-            self.result_dir,
+            self.checkpoint_dir,
             epochs=self.epochs,
             patience=self.patience,
             early_stopping_metric=self.early_stopping_metric,
@@ -262,13 +288,15 @@ class PLTTrainer:
         val_scores_pred = expit(np.vstack([i["top_k_pred_scores"] for i in val_pred]))
         val_clusters_pred = np.vstack([i["top_k_pred"] for i in val_pred])
 
-        logger.info("Selecting relevant/irrelevant clusters of each instance for level 1 training")
+        logger.info(
+            "Selecting relevant/irrelevant clusters of each instance for generating labels for level 1 training"
+        )
         clusters_selected = np.empty((len(train_x), self.predict_top_k), dtype=np.int64)
         for i, ys in enumerate(tqdm(train_clusters_pred, leave=False, desc="Sampling clusters")):
             # relevant clusters are positive
             pos = set(train_y_clustered.indices[train_y_clustered.indptr[i] : train_y_clustered.indptr[i + 1]])
-            # Select relevant clusters first. Then from top-predicted clusters, sequentially include their labels until
-            # reaching self.predict_top_k if the number of positive labels is less than self.predict_top_k
+            # Select relevant clusters first. Then from top-predicted clusters, sequentially include them until
+            # clusters reach top_k
             if len(pos) <= self.predict_top_k:
                 selected = pos
                 for y in ys:
@@ -292,7 +320,7 @@ class PLTTrainer:
             clusters_selected[i] = np.asarray(list(selected))
 
         trainer = init_trainer(
-            self.result_dir,
+            self.checkpoint_dir,
             epochs=self.epochs,
             patience=self.patience,
             early_stopping_metric=self.val_metric,
@@ -378,11 +406,11 @@ class PLTTrainer:
         # prediction starts from level 0
         model_0 = Model.load_from_checkpoint(
             self.get_best_model_path(level=0),
-            top_k=self.predict_top_k,
+            save_k_predictions=self.predict_top_k,
         )
         model_1 = PLTModel.load_from_checkpoint(
             self.get_best_model_path(level=1),
-            top_k=self.predict_top_k,
+            save_k_predictions=self.predict_top_k,
             metrics=self.metrics,
         )
         self.word_dict = model_1.word_dict
@@ -447,7 +475,7 @@ class PLTTrainer:
         return encoded_text
 
     def get_best_model_path(self, level: int) -> Path:
-        return self.result_dir / f"{self.CHECKPOINT_NAME}{level}{ModelCheckpoint.FILE_EXTENSION}"
+        return self.checkpoint_dir / f"{self.CHECKPOINT_NAME}{level}{ModelCheckpoint.FILE_EXTENSION}"
 
     def get_cluster_path(self) -> Path:
-        return self.result_dir / f"{CLUSTER_NAME}{CLUSTER_FILE_EXTENSION}"
+        return self.checkpoint_dir / f"{CLUSTER_NAME}{CLUSTER_FILE_EXTENSION}"
