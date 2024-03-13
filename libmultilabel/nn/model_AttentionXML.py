@@ -25,7 +25,7 @@ class PLTModel(Model):
             **kwargs,
         )
 
-    def scatter_preds(
+    def scatter_logits(
         self,
         logits: Tensor,
         labels_selected: Tensor,
@@ -51,30 +51,22 @@ class PLTModel(Model):
             loss (torch.Tensor): Loss between target and predict logits.
             pred_logits (torch.Tensor): The predict logits (batch_size, num_classes).
         """
-        x = batch["text"]
-        y = batch["label"]
-        labels_selected = batch["labels_selected"]
-        logits = self.network(x, labels_selected=labels_selected)["logits"]
-        loss = self.loss_function(logits, torch.take_along_dim(y.float(), labels_selected, dim=1))
+        y = torch.take_along_dim(batch["label"], batch["labels_selected"], dim=1)
+        logits = self(batch)
+        loss = self.loss_function(logits, y)
         return loss, logits
 
     def _shared_eval_step(self, batch, batch_idx):
-        x = batch["text"]
-        y = batch["label"]
-        labels_selected = batch["labels_selected"]
-        label_scores = batch["label_scores"]
-        logits = self.network(x, labels_selected=labels_selected)["logits"]
-        y_pred = self.scatter_preds(logits, labels_selected, label_scores)
-        self.eval_metric.update(y_pred, y.long())
+        logits = self(batch)
+        logits = self.scatter_logits(logits, batch["labels_selected"], batch["label_scores"])
+        self.eval_metric.update(logits, batch["label"].long())
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
-        labels_selected = batch["labels_selected"]
-        label_scores = batch["label_scores"]
-        logits = self.network(batch)["logits"]
-        scores, labels = torch.topk(torch.sigmoid(logits) * label_scores, self.top_k)
+        logits = self(batch)
+        scores, labels = torch.topk(torch.sigmoid(logits) * batch["label_scores"], self.top_k)
         # This calculation is to align with LibMultiLabel class where logits rather than probabilities are returned
         logits = torch.logit(scores)
         return {
-            "top_k_pred": torch.take_along_dim(labels_selected, labels, dim=1).numpy(force=True),
+            "top_k_pred": torch.take_along_dim(batch["labels_selected"], labels, dim=1).numpy(force=True),
             "top_k_pred_scores": logits.numpy(force=True),
         }

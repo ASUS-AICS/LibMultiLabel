@@ -43,7 +43,7 @@ class MultiLabelModel(L.LightningModule):
         multiclass=False,
         silent=False,
         save_k_predictions=0,
-        **kwargs,
+        **kwargs
     ):
         super().__init__()
 
@@ -71,11 +71,6 @@ class MultiLabelModel(L.LightningModule):
     @abstractmethod
     def shared_step(self, batch):
         """Return loss and predicted logits"""
-        return NotImplemented
-
-    @abstractmethod
-    def get_logits(self, batch):
-        """Return predicted logits"""
         return NotImplemented
 
     def configure_optimizers(self):
@@ -202,7 +197,7 @@ class Model(MultiLabelModel):
         network,
         loss_function="binary_cross_entropy_with_logits",
         log_path=None,
-        **kwargs,
+        **kwargs
     ):
         super().__init__(num_classes=len(classes), log_path=log_path, **kwargs)
         self.save_hyperparameters(
@@ -237,6 +232,3 @@ class Model(MultiLabelModel):
         loss = self.loss_function(pred_logits, target_labels.float())
 
         return loss, pred_logits
-
-    def get_logits(self, batch):
-        return self.network(batch)["logits"]
