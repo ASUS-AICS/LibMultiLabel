@@ -99,28 +99,29 @@ class TorchTrainer:
                     )
                     self.config.monitor_metrics += [self.config.val_metric]
             self.trainer = PLTTrainer(self.config, classes=classes, embed_vecs=embed_vecs, word_dict=word_dict)
-        else:
-            self._setup_model(
-                word_dict=word_dict,
-                embed_vecs=embed_vecs,
-                log_path=self.log_path,
-                checkpoint_path=config.checkpoint_path,
-            )
-            self.trainer = init_trainer(
-                checkpoint_dir=self.checkpoint_dir,
-                epochs=config.epochs,
-                patience=config.patience,
-                early_stopping_metric=config.early_stopping_metric,
-                val_metric=config.val_metric,
-                silent=config.silent,
-                use_cpu=config.cpu,
-                limit_train_batches=config.limit_train_batches,
-                limit_val_batches=config.limit_val_batches,
-                limit_test_batches=config.limit_test_batches,
-                save_checkpoints=save_checkpoints,
-            )
-            callbacks = [callback for callback in self.trainer.callbacks if isinstance(callback, ModelCheckpoint)]
-            self.checkpoint_callback = callbacks[0] if callbacks else None
+            return
+        self._setup_model(
+            classes=classes,
+            word_dict=word_dict,
+            embed_vecs=embed_vecs,
+            log_path=self.log_path,
+            checkpoint_path=config.checkpoint_path,
+        )
+        self.trainer = init_trainer(
+            checkpoint_dir=self.checkpoint_dir,
+            epochs=config.epochs,
+            patience=config.patience,
+            early_stopping_metric=config.early_stopping_metric,
+            val_metric=config.val_metric,
+            silent=config.silent,
+            use_cpu=config.cpu,
+            limit_train_batches=config.limit_train_batches,
+            limit_val_batches=config.limit_val_batches,
+            limit_test_batches=config.limit_test_batches,
+            save_checkpoints=save_checkpoints,
+        )
+        callbacks = [callback for callback in self.trainer.callbacks if isinstance(callback, ModelCheckpoint)]
+        self.checkpoint_callback = callbacks[0] if callbacks else None
 
     def _setup_model(
         self,
@@ -234,37 +235,35 @@ class TorchTrainer:
             self.trainer.fit(self.datasets)
 
             dump_log(self.log_path, config=self.config)
+            return
+        assert (
+            self.trainer is not None
+        ), "Please make sure the trainer is successfully initialized by `self._setup_trainer()`."
+        train_loader = self._get_dataset_loader(split="train", shuffle=self.config.shuffle)
+
+        if "val" not in self.datasets:
+            logging.info("No validation dataset is provided. Train without vaildation.")
+            self.trainer.fit(self.model, train_loader)
         else:
-            assert (
-                self.trainer is not None
-            ), "Please make sure the trainer is successfully initialized by `self._setup_trainer()`."
-            train_loader = self._get_dataset_loader(split="train", shuffle=self.config.shuffle)
+            val_loader = self._get_dataset_loader(split="val")
+            self.trainer.fit(self.model, train_loader, val_loader)
 
-            if "val" not in self.datasets:
-                logging.info("No validation dataset is provided. Train without vaildation.")
-                self.trainer.fit(self.model, train_loader)
-            else:
-                val_loader = self._get_dataset_loader(split="val")
-                self.trainer.fit(self.model, train_loader, val_loader)
-
-            # Set model to the best model. If the validation process is skipped during
-            # training (i.e., val_size=0), the model is set to the last model.
-            model_path = self.checkpoint_callback.best_model_path or self.checkpoint_callback.last_model_path
-            if model_path:
-                logging.info(f"Finished training. Load best model from {model_path}.")
-                self._setup_model(checkpoint_path=model_path, log_path=self.log_path)
-            else:
-                logging.info(
-                    "No model is saved during training. \
-                    If you want to save the best and the last model, please set `save_checkpoints` to True."
-                )
-
-            dump_log(self.log_path, config=self.config)
-
-            # return best model score for ray
-            return (
-                self.checkpoint_callback.best_model_score.item() if self.checkpoint_callback.best_model_score else None
+        # Set model to the best model. If the validation process is skipped during
+        # training (i.e., val_size=0), the model is set to the last model.
+        model_path = self.checkpoint_callback.best_model_path or self.checkpoint_callback.last_model_path
+        if model_path:
+            logging.info(f"Finished training. Load best model from {model_path}.")
+            self._setup_model(checkpoint_path=model_path, log_path=self.log_path)
+        else:
+            logging.info(
+                "No model is saved during training. \
+                If you want to save the best and the last model, please set `save_checkpoints` to True."
             )
+
+        dump_log(self.log_path, config=self.config)
+
+        # return best model score for ray
+        return self.checkpoint_callback.best_model_score.item() if self.checkpoint_callback.best_model_score else None
 
     def test(self, split="test"):
         """Test model with pytorch lightning trainer. Top-k predictions are saved
@@ -279,17 +278,17 @@ class TorchTrainer:
         assert "test" in self.datasets and self.trainer is not None
 
         if self.config.model_name.lower() == "attentionxml":
-            self.trainer.test(self.datasets["test"], self.classes)
-        else:
-            logging.info(f"Testing on {split} set.")
-            test_loader = self._get_dataset_loader(split=split)
-            metric_dict = self.trainer.test(self.model, dataloaders=test_loader, verbose=False)[0]
+            self.trainer.test(self.datasets["test"])
+            return
+        logging.info(f"Testing on {split} set.")
+        test_loader = self._get_dataset_loader(split=split)
+        metric_dict = self.trainer.test(self.model, dataloaders=test_loader, verbose=False)[0]
 
-            if self.config.save_k_predictions > 0:
-                self._save_predictions(test_loader, self.config.predict_out_path)
+        if self.config.save_k_predictions > 0:
+            self._save_predictions(test_loader, self.config.predict_out_path)
 
-            dump_log(self.log_path, config=self.config)
-            return metric_dict
+        dump_log(self.log_path, config=self.config)
+        return metric_dict
 
     def _save_predictions(self, dataloader, predict_out_path):
         """Save top k label results.

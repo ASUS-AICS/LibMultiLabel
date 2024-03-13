@@ -276,7 +276,7 @@ class AttentionXML_0(nn.Module):
         embed_vecs,
         num_classes: int,
         rnn_dim: int,
-        linear_size: list[int, ...],
+        linear_size: list,
         freeze_embed_training: bool = False,
         rnn_layers: int = 1,
         embed_dropout: float = 0.2,
@@ -290,13 +290,13 @@ class AttentionXML_0(nn.Module):
         self.output = MultilayerLinearOutput([rnn_dim] + linear_size, 1)
 
     def forward(self, inputs):
-        inputs = inputs["text"]
+        x = inputs["text"]
         # the index of padding is 0
-        masks = inputs != 0
+        masks = x != 0
         lengths = masks.sum(dim=1)
         masks = masks[:, : lengths.max()]
 
-        x = self.embedding(inputs)[:, : lengths.max()]  # batch_size, length, embedding_size
+        x = self.embedding(x)[:, : lengths.max()]  # batch_size, length, embedding_size
         x = self.encoder(x, lengths)  # batch_size, length, hidden_size
         x, _ = self.attention(x)  # batch_size, num_classes, hidden_size
         x = self.output(x)  # batch_size, num_classes
@@ -309,7 +309,7 @@ class AttentionXML_1(nn.Module):
         embed_vecs,
         num_classes: int,
         rnn_dim: int,
-        linear_size: list[int],
+        linear_size: list,
         freeze_embed_training: bool = False,
         rnn_layers: int = 1,
         embed_dropout: float = 0.2,
@@ -323,14 +323,14 @@ class AttentionXML_1(nn.Module):
         self.output = MultilayerLinearOutput([rnn_dim] + linear_size, 1)
 
     def forward(self, inputs):
-        inputs = inputs["text"]
+        x = inputs["text"]
         labels_selected = inputs["labels_selected"]
         # the index of padding is 0
-        masks = inputs != 0
+        masks = x != 0
         lengths = masks.sum(dim=1)
         masks = masks[:, : lengths.max()]
 
-        x = self.embedding(inputs)[:, : lengths.max()]  # batch_size, length, embedding_size
+        x = self.embedding(x)[:, : lengths.max()]  # batch_size, length, embedding_size
         x = self.encoder(x, lengths)  # batch_size, length, hidden_size
         x, _ = self.attention(x, labels_selected)  # batch_size, sample_size, hidden_size
         x = self.output(x)  # batch_size, sample_size

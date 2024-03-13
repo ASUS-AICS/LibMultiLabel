@@ -63,7 +63,7 @@ class PLTModel(Model):
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         logits = self(batch)
-        scores, labels = torch.topk(torch.sigmoid(logits) * batch["label_scores"], self.top_k)
+        scores, labels = torch.topk(torch.sigmoid(logits) * batch["label_scores"], self.save_k_predictions)
         # This calculation is to align with LibMultiLabel class where logits rather than probabilities are returned
         logits = torch.logit(scores)
         return {
