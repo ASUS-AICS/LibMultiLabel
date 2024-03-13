@@ -155,13 +155,17 @@ class MultiLabelModel(L.LightningModule):
         Returns:
             dict: Top k label indexes and the prediction scores.
         """
-        _, pred_logits = self.shared_step(batch)
+        pred_logits = self(batch)
         pred_scores = pred_logits.detach().cpu().numpy()
         k = self.save_k_predictions
         top_k_idx = argsort_top_k(pred_scores, k, axis=1)
         top_k_scores = np.take_along_axis(pred_scores, top_k_idx, axis=1)
 
         return {"top_k_pred": top_k_idx, "top_k_pred_scores": top_k_scores}
+
+    def forward(self, batch):
+        """compute predicted logits"""
+        return self.network(batch)["logits"]
 
     def print(self, *args, **kwargs):
         """Prints only from process 0 and not in silent mode. Use this in any
@@ -224,8 +228,7 @@ class Model(MultiLabelModel):
             pred_logits (torch.Tensor): The predict logits (batch_size, num_classes).
         """
         target_labels = batch["label"]
-        outputs = self.network(batch)
-        pred_logits = outputs["logits"]
+        pred_logits = self(batch)
         loss = self.loss_function(pred_logits, target_labels.float())
 
         return loss, pred_logits
