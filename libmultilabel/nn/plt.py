@@ -278,7 +278,10 @@ class PLTTrainer:
         logger.info(f"Best model loaded from {best_model_path}")
         model_0 = Model.load_from_checkpoint(best_model_path)
 
-        logger.info(f"Generating predictions for level 1. Will use the top {self.predict_top_k} predictions")
+        logger.info(
+            f"Predicting clusters by level 0 model. We then select {self.predict_top_k} clusters and use then "
+            f"to extract labels for level 1 training."
+        )
         # load training and validation data and predict corresponding level 0 clusters
 
         train_pred = trainer.predict(model_0, train_dataloader)
@@ -288,15 +291,12 @@ class PLTTrainer:
         val_scores_pred = expit(np.vstack([i["top_k_pred_scores"] for i in val_pred]))
         val_clusters_pred = np.vstack([i["top_k_pred"] for i in val_pred])
 
-        logger.info(
-            "Selecting relevant/irrelevant clusters of each instance for generating labels for level 1 training"
-        )
         clusters_selected = np.empty((len(train_x), self.predict_top_k), dtype=np.int64)
         for i, ys in enumerate(tqdm(train_clusters_pred, leave=False, desc="Sampling clusters")):
             # relevant clusters are positive
             pos = set(train_y_clustered.indices[train_y_clustered.indptr[i] : train_y_clustered.indptr[i + 1]])
             # Select relevant clusters first. Then from top-predicted clusters, sequentially include them until
-            # clusters reach top_k
+            # cluster number reaches predict_top_k
             if len(pos) <= self.predict_top_k:
                 selected = pos
                 for y in ys:
@@ -383,9 +383,9 @@ class PLTTrainer:
             silent=self.silent,
             save_k_predictions=self.predict_top_k,
         )
+        logger.info(f"Initialize model with weights from level 0")
+        # For weights not initialized by the level-0 model, use xavier uniform initialization
         torch.nn.init.xavier_uniform_(model_1.network.attention.attention.weight)
-
-        logger.info(f"Initialize model with weights from the last level")
         # As the attention layer of model 1 is different from model 0, each layer needs to be initialized separately
         model_1.network.embedding.load_state_dict(model_0.network.embedding.state_dict())
         model_1.network.encoder.load_state_dict(model_0.network.encoder.state_dict())
@@ -456,6 +456,7 @@ class PLTTrainer:
         logger.info("Testing process finished")
 
     def reformat_text(self, dataset):
+        # Convert words to numbers according to their indices in word_dict. Then pad each instance to a certain length.
         encoded_text = list(
             map(
                 lambda text: torch.tensor([self.word_dict[word] for word in text], dtype=torch.int64)

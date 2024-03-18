@@ -31,7 +31,8 @@ class PLTModel(Model):
         labels_selected: Tensor,
         label_scores: Tensor,
     ) -> Tensor:
-        """map predictions from sample space to label space. The scores of unsampled labels are set to 0."""
+        """For each instance, we only have predictions on selected labels. This subroutine maps these predictions to
+        the whole label space. The scores of unsampled labels are set to 0."""
         src = torch.sigmoid(logits.detach()) * label_scores
         preds = torch.zeros(
             labels_selected.size(0), len(self.classes) + 1, device=labels_selected.device, dtype=src.dtype
