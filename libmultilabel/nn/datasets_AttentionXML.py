@@ -79,16 +79,15 @@ class PLTDataset(PlainDataset):
         self.cluster_scores = cluster_scores
         self.label_scores = None
 
-        # labels_selected are positive clusters at the current level. shape: (len(x), cluster_size * top_k)
-        # look like [[0, 1, 2, 4, 5, 18, 19,...], ...]
+        # labels_selected are labels extracted from cluster_selected.
+        # shape: (len(x), len(clusters_selected) * cluster_size)
         self.labels_selected = [
             np.concatenate(self.mapping[labels])
             for labels in tqdm(self.clusters_selected, leave=False, desc="Retrieving labels from selected clusters")
         ]
         if self.cluster_scores is not None:
-            # label_scores are corresponding scores for selected labels and
-            # look like [[0.1, 0.1, 0.1, 0.4, 0.4, 0.5, 0.5,...], ...]. shape: (len(x), cluster_size * top_k)
-            # notice how scores repeat for each cluster.
+            # label_scores are probability scores corresponding to labels_selected.
+            # shape: (len(x), len(clusters_selected) * cluster_size)
             self.label_scores = [
                 np.repeat(scores, [len(i) for i in self.mapping[labels]])
                 for labels, scores in zip(self.clusters_selected, self.cluster_scores)
