@@ -17,7 +17,7 @@ save_k_predictions: 64
 
 # dataloader
 batch_size: 40
-val_size: 200
+val_size: 0.14
 shuffle: true
 
 # eval

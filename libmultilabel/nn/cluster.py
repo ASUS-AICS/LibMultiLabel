@@ -54,7 +54,7 @@ def build_label_tree(sparse_x: csr_matrix, sparse_y: csr_matrix, cluster_size: i
     for _ in range(height):
         next_clusters = []
         for cluster in clusters:
-            next_clusters.extend(_split_cluster(cluster, label_repr[cluster]))
+            next_clusters += _split_cluster(cluster, label_repr[cluster])
         clusters = next_clusters
         logger.info(f"Having grouped {len(clusters)} clusters")
 

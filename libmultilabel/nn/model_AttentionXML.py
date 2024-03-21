@@ -53,9 +53,9 @@ class PLTModel(Model):
             pred_logits (torch.Tensor): The predict logits (batch_size, num_classes).
         """
         y = torch.take_along_dim(batch["label"], batch["labels_selected"], dim=1)
-        logits = self(batch)
-        loss = self.loss_function(logits, y)
-        return loss, logits
+        pred_logits = self(batch)
+        loss = self.loss_function(pred_logits, y)
+        return loss, pred_logits
 
     def _shared_eval_step(self, batch, batch_idx):
         logits = self(batch)

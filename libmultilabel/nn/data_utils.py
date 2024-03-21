@@ -17,7 +17,6 @@ from tqdm import tqdm
 transformers.logging.set_verbosity_error()
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
-# selection of UNK: https://groups.google.com/g/globalvectors/c/9w8ZADXJclA/m/hRdn4prm-XUJ
 UNK = "<unk>"
 PAD = "<pad>"
 
