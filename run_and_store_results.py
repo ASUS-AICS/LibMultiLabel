@@ -20,7 +20,7 @@ def store_components_from_trainer(trainer):
     # Store the components by pickle
     for name, component in zip(names, components):
         with open(os.path.join(trainer.checkpoint_dir, f"{name}.p"), "wb") as f:
-            pickle.dump(component, f)
+            pickle.dump(component, f, protocol=pickle.HIGHEST_PROTOCOL)
 
     logging.info(f"Components for testing saved to {trainer.checkpoint_dir}.")
 

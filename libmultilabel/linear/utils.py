@@ -48,6 +48,7 @@ def save_pipeline(checkpoint_dir: str, preprocessor: Preprocessor, model):
                 "model": model,
             },
             f,
+            protocol=pickle.HIGHEST_PROTOCOL,
         )
 
 
