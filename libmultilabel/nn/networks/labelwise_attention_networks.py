@@ -10,6 +10,8 @@ from .modules import (
     LabelwiseAttention,
     LabelwiseMultiHeadAttention,
     LabelwiseLinearOutput,
+    PartialLabelwiseAttention,
+    MultilayerLinearOutput,
 )
 
 
@@ -265,4 +267,71 @@ class CNNLWAN(LabelwiseAttentionNetwork):
         x = self.encoder(x)  # (batch_size, sequence_length, hidden_dim)
         x, _ = self.attention(x)  # (batch_size, num_classes, hidden_dim)
         x = self.output(x)  # (batch_size, num_classes)
+        return {"logits": x}
+
+
+class AttentionXML_0(nn.Module):
+    def __init__(
+        self,
+        embed_vecs,
+        num_classes: int,
+        rnn_dim: int,
+        linear_size: list,
+        freeze_embed_training: bool = False,
+        rnn_layers: int = 1,
+        embed_dropout: float = 0.2,
+        encoder_dropout: float = 0,
+        post_encoder_dropout: float = 0.5,
+    ):
+        super().__init__()
+        self.embedding = Embedding(embed_vecs, freeze=freeze_embed_training, dropout=embed_dropout)
+        self.encoder = LSTMEncoder(embed_vecs.shape[1], rnn_dim // 2, rnn_layers, encoder_dropout, post_encoder_dropout)
+        self.attention = LabelwiseAttention(rnn_dim, num_classes)
+        self.output = MultilayerLinearOutput([rnn_dim] + linear_size, 1)
+
+    def forward(self, inputs):
+        x = inputs["text"]
+        # the index of padding is 0
+        masks = x != 0
+        lengths = masks.sum(dim=1)
+        masks = masks[:, : lengths.max()]
+
+        x = self.embedding(x)[:, : lengths.max()]  # batch_size, length, embedding_size
+        x = self.encoder(x, lengths)  # batch_size, length, hidden_size
+        x, _ = self.attention(x)  # batch_size, num_classes, hidden_size
+        x = self.output(x)  # batch_size, num_classes
+        return {"logits": x}
+
+
+class AttentionXML_1(nn.Module):
+    def __init__(
+        self,
+        embed_vecs,
+        num_classes: int,
+        rnn_dim: int,
+        linear_size: list,
+        freeze_embed_training: bool = False,
+        rnn_layers: int = 1,
+        embed_dropout: float = 0.2,
+        encoder_dropout: float = 0,
+        post_encoder_dropout: float = 0.5,
+    ):
+        super().__init__()
+        self.embedding = Embedding(embed_vecs, freeze=freeze_embed_training, dropout=embed_dropout)
+        self.encoder = LSTMEncoder(embed_vecs.shape[1], rnn_dim // 2, rnn_layers, encoder_dropout, post_encoder_dropout)
+        self.attention = PartialLabelwiseAttention(rnn_dim, num_classes)
+        self.output = MultilayerLinearOutput([rnn_dim] + linear_size, 1)
+
+    def forward(self, inputs):
+        x = inputs["text"]
+        labels_selected = inputs["labels_selected"]
+        # the index of padding is 0
+        masks = x != 0
+        lengths = masks.sum(dim=1)
+        masks = masks[:, : lengths.max()]
+
+        x = self.embedding(x)[:, : lengths.max()]  # batch_size, length, embedding_size
+        x = self.encoder(x, lengths)  # batch_size, length, hidden_size
+        x, _ = self.attention(x, labels_selected)  # batch_size, sample_size, hidden_size
+        x = self.output(x)  # batch_size, sample_size
         return {"logits": x}

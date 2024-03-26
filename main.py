@@ -223,6 +223,13 @@ def add_all_arguments(parser):
     parser.add_argument(
         "--tree_max_depth", type=int, default=10, help="Maximum depth of the tree (default: %(default)s)"
     )
+    # AttentionXML
+    parser.add_argument(
+        "--cluster_size",
+        type=int,
+        default=8,
+        help="the maximal number of labels inside a cluster (default: %(default)s)",
+    )
     parser.add_argument(
         "-h",
         "--help",
