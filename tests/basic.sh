@@ -70,7 +70,7 @@ function cleanup()
 trap cleanup EXIT
 
 lml_labels=$(seq -s ' ' 100)
-lml_text=$(printf 'lorem %.0s' {1..10})
+lml_text=$(printf 'lorem ipsum %.0s' {1..5})
 lml_data=$lml_labels$'\t'$lml_text
 svm_labels=$(seq -s ',' 100)
 svm_features=$(echo {1..10}':0.1')
