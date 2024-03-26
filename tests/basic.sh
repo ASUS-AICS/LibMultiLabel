@@ -19,6 +19,7 @@
 
 result_dir="/tmp/libmultilabel-test-$(whoami)/runs"
 datasets=(
+    AmazonCat-13K
     MIMIC-50
     rcv1
     EUR-Lex
