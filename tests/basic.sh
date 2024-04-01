@@ -19,6 +19,7 @@
 
 result_dir="/tmp/libmultilabel-test-$(whoami)/runs"
 datasets=(
+    AmazonCat-13K
     MIMIC-50
     rcv1
     EUR-Lex
@@ -70,7 +71,7 @@ function cleanup()
 trap cleanup EXIT
 
 lml_labels=$(seq -s ' ' 100)
-lml_text=$(printf 'lorem %.0s' {1..10})
+lml_text=$(printf 'lorem ipsum %.0s' {1..5})
 lml_data=$lml_labels$'\t'$lml_text
 svm_labels=$(seq -s ',' 100)
 svm_features=$(echo {1..10}':0.1')
@@ -118,6 +119,7 @@ find example_config -name "*.yml" ${filters[@]} -type f -print0 |
         echo "Running $config"
         stderr=$(python $script --config "$config" --epochs 1 \
             --result_dir "$result_dir" --embed_cache_dir data \
+            --val_size 0.2 --save_k_predictions 2 \
             --cpu 2>&1 > /dev/null)
         if [[ $? -ne 0 ]]; then
             echo "$stderr" >&2
