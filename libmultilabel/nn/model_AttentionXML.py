@@ -54,7 +54,7 @@ class PLTModel(Model):
         """
         y = torch.take_along_dim(batch["label"], batch["labels_selected"], dim=1)
         pred_logits = self(batch)
-        loss = self.loss_function(pred_logits, y)
+        loss = self.loss_function(pred_logits, y.float())
         return loss, pred_logits
 
     def _shared_eval_step(self, batch, batch_idx):

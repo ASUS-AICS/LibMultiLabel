@@ -33,11 +33,11 @@ class PlainDataset(Dataset):
         # train/val/test
         if self.y is not None:
             if issparse(self.y):
-                y = self.y[idx].toarray().squeeze(0).astype(np.float32)
+                y = self.y[idx].toarray().squeeze(0).astype(np.int32)
             elif isinstance(self.y, ndarray):
-                y = self.y[idx].astype(np.float32)
+                y = self.y[idx].astype(np.int32)
             elif is_tensor(self.y):
-                y = self.y[idx].float()
+                y = self.y[idx].int()
             else:
                 raise TypeError(
                     "The type of y should be one of scipy.csr_matrix, numpy.ndarry, and torch.Tensor."
@@ -82,7 +82,7 @@ class PLTDataset(PlainDataset):
         item = {"text": self.x[idx], "labels_selected": np.asarray(self.labels_selected[idx])}
 
         if self.y is not None:
-            item["label"] = self.y[idx].toarray().squeeze(0).astype(np.float32)
+            item["label"] = self.y[idx].toarray().squeeze(0).astype(np.int32)
 
         # PyTorch requires inputs to be of the same shape. Pad any instances whose length is below num_labels_selected
         # train
