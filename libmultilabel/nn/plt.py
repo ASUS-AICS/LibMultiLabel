@@ -21,6 +21,7 @@ from .cluster import CLUSTER_NAME, FILE_EXTENSION as CLUSTER_FILE_EXTENSION, bui
 from .data_utils import UNK
 from .datasets_AttentionXML import PlainDataset, PLTDataset
 from .model_AttentionXML import PLTModel
+from ..common_utils import dump_log
 from ..linear.preprocessor import Preprocessor
 from ..nn import networks
 from ..nn.model import Model
@@ -126,6 +127,8 @@ class PLTTrainer:
 
         # save path
         self.log_path = config.log_path
+        self.predict_out_path = config.predict_out_path
+        self.config = config
 
     def label2cluster(self, cluster_mapping, *labels) -> Generator[csr_matrix, ...]:
         """Map labels to their corresponding clusters in CSR sparse format.
@@ -468,6 +471,20 @@ class PLTTrainer:
         logger.info(f"Testing level 1")
         trainer.test(model_1, test_dataloader)
         logger.info("Testing process finished")
+
+        if self.save_k_predictions > 0:
+            batch_predictions = trainer.predict(model_1, test_dataloader)
+            pred_labels = np.vstack([batch["top_k_pred"] for batch in batch_predictions])
+            pred_scores = np.vstack([batch["top_k_pred_scores"] for batch in batch_predictions])
+            with open(self.predict_out_path, "w") as fp:
+                for pred_label, pred_score in zip(pred_labels, pred_scores):
+                    out_str = " ".join(
+                        [f"{model_1.classes[label]}:{score:.4}" for label, score in zip(pred_label, pred_score)]
+                    )
+                    fp.write(out_str + "\n")
+            logging.info(f"Saved predictions to: {self.predict_out_path}")
+
+        dump_log(self.log_path, config=self.config)
 
     def reformat_text(self, dataset):
         # Convert words to numbers according to their indices in word_dict. Then pad each instance to a certain length.
