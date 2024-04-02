@@ -54,7 +54,8 @@ class PLTTrainer:
         # cluster
         self.cluster_size = config.cluster_size
         # predict the top k clusters for deciding relevant/irrelevant labels of each instance in level 1 model training
-        self.predict_top_k = config.save_k_predictions
+        self.beam_width = config.beam_width
+        self.save_k_predictions = config.save_k_predictions
 
         # dataset meta info
         self.embed_vecs = embed_vecs
@@ -273,7 +274,7 @@ class PLTTrainer:
                 multiclass=self.multiclass,
                 loss_function=self.loss_function,
                 silent=self.silent,
-                save_k_predictions=self.predict_top_k,
+                save_k_predictions=self.beam_width,
             )
 
             logger.info(f"Training level 0. Number of clusters: {len(clusters)}")
@@ -284,11 +285,10 @@ class PLTTrainer:
         model_0 = Model.load_from_checkpoint(best_model_path)
 
         logger.info(
-            f"Predicting clusters by level 0 model. We then select {self.predict_top_k} clusters and use then "
-            f"to extract labels for level 1 training."
+            f"Predicting clusters by level-0 model. We then select {self.beam_width} clusters and "
+            f"extract labels from them for level 1 training."
         )
         # load training and validation data and predict corresponding level 0 clusters
-
         train_dataloader = self.dataloader(PlainDataset(train_x))
         val_dataloader = self.dataloader(PlainDataset(val_x))
 
@@ -299,17 +299,17 @@ class PLTTrainer:
         val_scores_pred = expit(np.vstack([i["top_k_pred_scores"] for i in val_pred]))
         val_clusters_pred = np.vstack([i["top_k_pred"] for i in val_pred])
 
-        train_clusters_selected = np.empty((len(train_x), self.predict_top_k), dtype=np.uint)
+        train_clusters_selected = np.empty((len(train_x), self.beam_width), dtype=np.uint)
         for i, ys in enumerate(tqdm(train_clusters_pred, leave=False, desc="Sampling clusters")):
             # relevant clusters are positive
             pos = set(train_y_clustered.indices[train_y_clustered.indptr[i] : train_y_clustered.indptr[i + 1]])
             # Select relevant clusters first. Then from top-predicted clusters, sequentially include them until
-            # cluster number reaches predict_top_k
-            if len(pos) <= self.predict_top_k:
+            # cluster number reaches beam width
+            if len(pos) <= self.beam_width:
                 selected = pos
                 for y in ys:
                     y = y.item()
-                    if len(selected) == self.predict_top_k:
+                    if len(selected) == self.beam_width:
                         break
                     selected.add(y)
             # Regard positive (true) label as samples iff they appear in the predicted labels
@@ -321,15 +321,15 @@ class PLTTrainer:
                     y = y.item()
                     if y in pos:
                         selected.add(y)
-                    if len(selected) == self.predict_top_k:
+                    if len(selected) == self.beam_width:
                         break
-                if len(selected) < self.predict_top_k:
-                    selected = (list(selected) + list(pos - selected))[: self.predict_top_k]
+                if len(selected) < self.beam_width:
+                    selected = (list(selected) + list(pos - selected))[: self.beam_width]
             train_clusters_selected[i] = np.asarray(list(selected))
 
         train_labels_selected = PLTTrainer.cluster2label(clusters, train_clusters_selected)
         val_labels_pred, val_scores_pred = PLTTrainer.cluster2label(clusters, val_clusters_pred, val_scores_pred)
-        num_labels_selected = self.predict_top_k * max(len(c) for c in clusters)
+        num_labels_selected = self.beam_width * max(len(c) for c in clusters)
 
         trainer = init_trainer(
             self.checkpoint_dir,
@@ -393,7 +393,7 @@ class PLTTrainer:
             multiclass=self.multiclass,
             loss_function=self.loss_function,
             silent=self.silent,
-            save_k_predictions=self.predict_top_k,
+            save_k_predictions=self.save_k_predictions,
         )
         logger.info(f"Initialize model with weights from level 0")
         # For weights not initialized by the level-0 model, use xavier uniform initialization
@@ -418,11 +418,11 @@ class PLTTrainer:
         # prediction starts from level 0
         model_0 = Model.load_from_checkpoint(
             self.get_best_model_path(level=0),
-            save_k_predictions=self.predict_top_k,
+            save_k_predictions=self.beam_width,
         )
         model_1 = PLTModel.load_from_checkpoint(
             self.get_best_model_path(level=1),
-            save_k_predictions=self.predict_top_k,
+            save_k_predictions=self.save_k_predictions,
             metrics=self.metrics,
         )
         self.word_dict = model_1.word_dict
@@ -445,14 +445,14 @@ class PLTTrainer:
 
         test_dataloader = self.eval_dataloader(PlainDataset(test_x))
 
-        logger.info(f"Predicting level 0, Top: {self.predict_top_k}")
+        logger.info(f"Predicting level 0. Number of clusters: {self.beam_width}")
         test_pred = trainer.predict(model_0, test_dataloader)
         test_scores_pred = expit(np.vstack([i["top_k_pred_scores"] for i in test_pred]))
         test_clusters_pred = np.vstack([i["top_k_pred"] for i in test_pred])
 
         clusters = np.load(self.get_cluster_path(), allow_pickle=True)
         test_labels_pred, test_scores_pred = PLTTrainer.cluster2label(clusters, test_clusters_pred, test_scores_pred)
-        num_labels_selected = self.predict_top_k * max(len(c) for c in clusters)
+        num_labels_selected = self.beam_width * max(len(c) for c in clusters)
 
         test_dataloader = self.eval_dataloader(
             PLTDataset(
@@ -465,7 +465,7 @@ class PLTTrainer:
             ),
         )
 
-        logger.info(f"Testing on level 1")
+        logger.info(f"Testing level 1")
         trainer.test(model_1, test_dataloader)
         logger.info("Testing process finished")
 

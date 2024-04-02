@@ -13,7 +13,7 @@ max_seq_length: 500
 
 # AttentionXML-related parameters
 cluster_size: 8
-save_k_predictions: 64
+beam_width: 64
 
 # dataloader
 batch_size: 40
