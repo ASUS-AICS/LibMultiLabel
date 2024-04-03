@@ -55,8 +55,7 @@ class PLTTrainer:
         # cluster
         self.cluster_size = config.cluster_size
         # predict the top k clusters for deciding relevant/irrelevant labels of each instance in level 1 model training
-        # self.beam_width = config.beam_width
-        self.beam_width = config.save_k_predictions
+        self.beam_width = config.beam_width
 
         # dataset meta info
         self.embed_vecs = embed_vecs
