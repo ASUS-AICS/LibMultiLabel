@@ -224,6 +224,12 @@ def add_all_arguments(parser):
         "--tree_max_depth", type=int, default=10, help="Maximum depth of the tree (default: %(default)s)"
     )
     parser.add_argument(
+        "--beam_width",
+        type=int,
+        default=10,
+        help="The width of the beam search (default: %(default)s)",
+    )
+    parser.add_argument(
         "-h",
         "--help",
         action="help",
