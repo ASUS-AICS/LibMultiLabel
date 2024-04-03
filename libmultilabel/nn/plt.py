@@ -19,8 +19,8 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 
 from .cluster import CLUSTER_NAME, FILE_EXTENSION as CLUSTER_FILE_EXTENSION, build_label_tree
 from .data_utils import UNK
-from .datasets_AttentionXML import PlainDataset, PLTDataset
-from .model_AttentionXML import PLTModel
+from .dataset_attentionxml import PlainDataset, PLTDataset
+from .model_attentionxml import PLTModel
 from ..common_utils import dump_log
 from ..linear.preprocessor import Preprocessor
 from ..nn import networks
