@@ -119,7 +119,7 @@ find example_config -name "*.yml" ${filters[@]} -type f -print0 |
         echo "Running $config"
         stderr=$(python $script --config "$config" --epochs 1 \
             --result_dir "$result_dir" --embed_cache_dir data \
-            --val_size 0.2 --save_k_predictions 2 \
+            --val_size 0.2 --beam_width 1 \
             --cpu 2>&1 > /dev/null)
         if [[ $? -ne 0 ]]; then
             echo "$stderr" >&2
