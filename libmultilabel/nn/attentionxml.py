@@ -3,24 +3,22 @@ from __future__ import annotations
 import logging
 from functools import partial
 from pathlib import Path
-from typing import Generator, Optional
+from typing import Generator, Sequence, Optional
 
 import numpy as np
 import torch
-from scipy.special import expit
 from lightning import Trainer
-from scipy.sparse import csr_matrix
-from sklearn.preprocessing import MultiLabelBinarizer
-from torch import Tensor
+from numpy import ndarray
+from scipy.sparse import csr_matrix, csc_matrix, issparse
+from scipy.special import expit
+from sklearn.preprocessing import MultiLabelBinarizer, normalize
+from torch import Tensor, is_tensor
 from torch.nn.utils.rnn import pad_sequence
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 from lightning.pytorch.callbacks import ModelCheckpoint
 
-from .cluster import CLUSTER_NAME, FILE_EXTENSION as CLUSTER_FILE_EXTENSION, build_label_tree
 from .data_utils import UNK
-from .dataset_attentionxml import PlainDataset, PLTDataset
-from .model_attentionxml import PLTModel
 from ..common_utils import dump_log
 from ..linear.preprocessor import Preprocessor
 from ..nn import networks
@@ -513,3 +511,286 @@ class PLTTrainer:
 
     def get_cluster_path(self) -> Path:
         return self.checkpoint_dir / f"{CLUSTER_NAME}{CLUSTER_FILE_EXTENSION}"
+
+
+###################################### Model ######################################
+
+
+class PLTModel(Model):
+    def __init__(
+        self,
+        classes,
+        word_dict,
+        embed_vecs,
+        network,
+        loss_function="binary_cross_entropy_with_logits",
+        log_path=None,
+        **kwargs,
+    ):
+        super().__init__(
+            classes=classes,
+            word_dict=word_dict,
+            embed_vecs=embed_vecs,
+            network=network,
+            loss_function=loss_function,
+            log_path=log_path,
+            **kwargs,
+        )
+
+    def scatter_logits(
+        self,
+        logits: Tensor,
+        labels_selected: Tensor,
+        label_scores: Tensor,
+    ) -> Tensor:
+        """For each instance, we only have predictions on selected labels. This subroutine maps these predictions to
+        the whole label space. The scores of unsampled labels are set to 0."""
+        src = torch.sigmoid(logits.detach()) * label_scores
+        preds = torch.zeros(
+            labels_selected.size(0), len(self.classes) + 1, device=labels_selected.device, dtype=src.dtype
+        )
+        preds.scatter_(dim=1, index=labels_selected, src=src)
+        # remove dummy labels
+        preds = preds[:, :-1]
+        return preds
+
+    def shared_step(self, batch):
+        """Return loss and predicted logits of the network.
+
+        Args:
+            batch (dict): A batch of text and label.
+
+        Returns:
+            loss (torch.Tensor): Loss between target and predict logits.
+            pred_logits (torch.Tensor): The predict logits (batch_size, num_classes).
+        """
+        y = torch.take_along_dim(batch["label"], batch["labels_selected"], dim=1)
+        pred_logits = self(batch)
+        loss = self.loss_function(pred_logits, y.float())
+        return loss, pred_logits
+
+    def _shared_eval_step(self, batch, batch_idx):
+        logits = self(batch)
+        logits = self.scatter_logits(logits, batch["labels_selected"], batch["label_scores"])
+        self.eval_metric.update(logits, batch["label"].long())
+
+    def predict_step(self, batch, batch_idx, dataloader_idx=0):
+        logits = self(batch)
+        scores, labels = torch.topk(torch.sigmoid(logits) * batch["label_scores"], self.save_k_predictions)
+        # This calculation is to align with LibMultiLabel class where logits rather than probabilities are returned
+        logits = torch.logit(scores)
+        return {
+            "top_k_pred": torch.take_along_dim(batch["labels_selected"], labels, dim=1).numpy(force=True),
+            "top_k_pred_scores": logits.numpy(force=True),
+        }
+
+
+###################################### Dataset ######################################
+class PlainDataset(Dataset):
+    """Plain (compared to nn.data_utils.TextDataset) dataset class for multi-label dataset.
+    WHY EXISTS: The reason why this class is necessary is that it can process labels in sparse format, while TextDataset
+    does not.
+    Moreover, TextDataset implements multilabel binarization in a mandatory way. Nevertheless, AttentionXML already does
+    this while generating clusters. There is no need to do multilabel binarization again.
+
+    Args:
+        x (list | ndarray | Tensor): texts.
+        y (Optional: csr_matrix | ndarray | Tensor): labels.
+    """
+
+    def __init__(self, x, y=None):
+        if y is not None:
+            assert len(x) == y.shape[0], "Sizes mismatch between texts and labels"
+        self.x = x
+        self.y = y
+
+    def __getitem__(self, idx: int) -> tuple[Sequence, ndarray] | tuple[Sequence]:
+        item = {"text": self.x[idx]}
+
+        # train/val/test
+        if self.y is not None:
+            if issparse(self.y):
+                y = self.y[idx].toarray().squeeze(0).astype(np.int32)
+            elif isinstance(self.y, ndarray):
+                y = self.y[idx].astype(np.int32)
+            elif is_tensor(self.y):
+                y = self.y[idx].int()
+            else:
+                raise TypeError(
+                    "The type of y should be one of scipy.csr_matrix, numpy.ndarry, and torch.Tensor."
+                    f"But got {type(self.y)} instead."
+                )
+            item["label"] = y
+        return item
+
+    def __len__(self):
+        return len(self.x)
+
+
+class PLTDataset(PlainDataset):
+    """Dataset for model_1 of AttentionXML.
+
+    Args:
+        x: texts.
+        y: labels.
+        num_classes: number of classes.
+        num_labels_selected: the number of selected labels. Pad any labels that fail to reach this number.
+        labels_selected: sampled predicted labels from model_0. Shape: (len(x), predict_top_k).
+        label_scores: scores for each label. Shape: (len(x), predict_top_k).
+    """
+
+    def __init__(
+        self,
+        x,
+        y: Optional[csr_matrix | ndarray] = None,
+        *,
+        num_classes: int,
+        num_labels_selected: int,
+        labels_selected: ndarray | Tensor,
+        label_scores: Optional[ndarray | Tensor] = None,
+    ):
+        super().__init__(x, y)
+        self.num_classes = num_classes
+        self.num_labels_selected = num_labels_selected
+        self.labels_selected = labels_selected
+        self.label_scores = label_scores
+
+    def __getitem__(self, idx: int):
+        item = {"text": self.x[idx], "labels_selected": np.asarray(self.labels_selected[idx])}
+
+        if self.y is not None:
+            item["label"] = self.y[idx].toarray().squeeze(0).astype(np.int32)
+
+        # PyTorch requires inputs to be of the same shape. Pad any instances whose length is below num_labels_selected
+        # train
+        if self.label_scores is None:
+            # add real labels when the number is below num_labels_selected
+            if len(item["labels_selected"]) < self.num_labels_selected:
+                samples = np.random.randint(
+                    self.num_classes,
+                    size=self.num_labels_selected - len(item["labels_selected"]),
+                )
+                item["labels_selected"] = np.concatenate([item["labels_selected"], samples])
+
+        # val/test/pred
+        else:
+            item["label_scores"] = self.label_scores[idx]
+            # add dummy labels when the number is below num_labels_selected
+            if len(item["labels_selected"]) < self.num_labels_selected:
+                item["label_scores"] = np.concatenate(
+                    [
+                        item["label_scores"],
+                        [-np.inf] * (self.num_labels_selected - len(item["labels_selected"])),
+                    ]
+                )
+                item["labels_selected"] = np.concatenate(
+                    [
+                        item["labels_selected"],
+                        [self.num_classes] * (self.num_labels_selected - len(item["labels_selected"])),
+                    ]
+                )
+        return item
+
+
+###################################### Cluster ######################################
+
+CLUSTER_FILE_EXTENSION = CLUSTER_NAME = "label_clusters"
+FILE_EXTENSION = ".npy"
+
+
+def build_label_tree(sparse_x: csr_matrix, sparse_y: csr_matrix, cluster_size: int, output_dir: str | Path):
+    """Build a binary tree to group labels into clusters, each of which contains up tp cluster_size labels. The tree has
+    several layers; nodes in the last layer correspond to the output clusters.
+    Given a set of labels (0, 1, 2, 3, 4, 5) and a cluster size of 2, the resulting clusters look something like:
+    ((0, 2), (1, 3), (4, 5)).
+
+    Args:
+        sparse_x: features extracted from texts in CSR sparse format
+        sparse_y: binarized labels in CSR sparse format
+        cluster_size: the maximum number of labels within each cluster
+        output_dir: directory to store the clustering file
+    """
+    # skip constructing label tree if the output file already exists
+    output_dir = output_dir if isinstance(output_dir, Path) else Path(output_dir)
+    cluster_path = output_dir / f"{CLUSTER_NAME}{FILE_EXTENSION}"
+    if cluster_path.exists():
+        logger.info("Clustering has finished in a previous run")
+        return
+
+    # meta info
+    logger.info("Label clustering started")
+    logger.info(f"Cluster size: {cluster_size}")
+    # The height of the tree satisfies the following inequality:
+    # 2**(tree_height - 1) * cluster_size < num_labels <= 2**tree_height * cluster_size
+    height = int(np.ceil(np.log2(sparse_y.shape[1] / cluster_size)))
+    logger.info(f"Labels will be grouped into {2 ** height} clusters")
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # For each label, sum up normalized instances relevant to the label and normalize to get the label representation
+    label_repr = normalize(sparse_y.T @ csc_matrix(normalize(sparse_x)))
+
+    # clustering by a binary tree:
+    # at each layer split each cluster to two. Leave nodes correspond to the obtained clusters.
+    clusters = [np.arange(sparse_y.shape[1])]
+    for _ in range(height):
+        next_clusters = []
+        for cluster in clusters:
+            next_clusters += _split_cluster(cluster, label_repr[cluster])
+        clusters = next_clusters
+        logger.info(f"Having grouped {len(clusters)} clusters")
+
+    np.save(cluster_path, np.asarray(clusters, dtype=object))
+    logger.info(f"Label clustering finished. Saving results to {cluster_path}")
+
+
+def _split_cluster(cluster: ndarray, label_repr: csr_matrix) -> tuple[ndarray, ndarray]:
+    """A variant of KMeans implemented in AttentionXML. Here K = 2. The cluster is partitioned into two groups, each
+    with approximately equal size. Its main differences with the KMeans algorithm in scikit-learn are:
+    1. the distance metric is cosine similarity.
+    2. the end-of-loop criterion is the difference between the new and old average in-cluster distances to centroids.
+
+    Args:
+        cluster: a subset of labels
+        label_repr: the normalized representations of the relationship between labels and texts of the given cluster
+    """
+    # Randomly choose two points as initial centroids and obtain their label representations
+    centroids = label_repr[np.random.choice(len(cluster), size=2, replace=False)].toarray()
+
+    # Initialize distances (cosine similarity)
+    # Cosine similarity always falls to the interval [-1, 1]
+    old_dist = -2.0
+    new_dist = -1.0
+
+    # "c" denotes clusters
+    c0_idx = None
+    c1_idx = None
+
+    while new_dist - old_dist >= 1e-4:
+        # Notice that label_repr and centroids.T have been normalized
+        # Thus, dist indicates the cosine similarity between points and centroids.
+        dist = label_repr @ centroids.T  # shape: (n, 2)
+
+        # generate clusters
+        # let a = dist[:, 1] - dist[:, 0], the larger the element in a is, the closer the point is to c1
+        k = len(cluster) // 2
+        c_idx = np.argpartition(dist[:, 1] - dist[:, 0], kth=k)
+        c0_idx = c_idx[:k]
+        c1_idx = c_idx[k:]
+
+        # update distances
+        # the new distance is the average of in-cluster distances to the centroids
+        old_dist = new_dist
+        new_dist = (dist[c0_idx, 0].sum() + dist[c1_idx, 1].sum()) / len(cluster)
+
+        # update centroids
+        # the new centroid is the normalized average of the points in the cluster
+        centroids = normalize(
+            np.asarray(
+                [
+                    np.squeeze(np.asarray(label_repr[c0_idx].sum(axis=0))),
+                    np.squeeze(np.asarray(label_repr[c1_idx].sum(axis=0))),
+                ]
+            )
+        )
+    return cluster[c0_idx], cluster[c1_idx]

@@ -9,7 +9,7 @@ from libmultilabel.common_utils import dump_log, is_multiclass_dataset
 from libmultilabel.nn import data_utils
 from libmultilabel.nn.model import Model
 from libmultilabel.nn.nn_utils import init_device, init_model, init_trainer, set_seed
-from libmultilabel.nn.plt import PLTTrainer
+from libmultilabel.nn.attentionxml import PLTTrainer
 
 
 class TorchTrainer:
