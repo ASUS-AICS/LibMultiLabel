@@ -1,5 +1,4 @@
 data_name: AmazonCat-13K
-# will change path later
 training_file: data/AmazonCat-13K/train.txt
 test_file: data/AmazonCat-13K/test.txt
 # pretrained embeddings

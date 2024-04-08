@@ -1,11 +1,8 @@
 data_name: Wiki10-31K
-# will change path later
 training_file: data/Wiki10-31K/train.txt
 test_file: data/Wiki10-31K/test.txt
 # pretrained embeddings
 embed_file: glove.840B.300d
-# save path
-result_dir: /l/users/dongli.he/libml/LibMultiLabel/Wiki10-31K/results
 
 # preprocessing
 min_vocab_freq: 1

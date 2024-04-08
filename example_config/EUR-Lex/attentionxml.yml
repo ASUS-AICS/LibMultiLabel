@@ -3,9 +3,6 @@ training_file: data/EUR-Lex/train.txt
 test_file: data/EUR-Lex/test.txt
 # pretrained embeddings
 embed_file: glove.840B.300d
-# save path
-# will change path later
-result_dir: /l/users/dongli.he/libml/LibMultiLabel/EUR-Lex/results
 
 # preprocessing
 min_vocab_freq: 1
