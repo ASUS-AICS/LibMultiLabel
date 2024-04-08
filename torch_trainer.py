@@ -9,6 +9,7 @@ from libmultilabel.common_utils import dump_log, is_multiclass_dataset
 from libmultilabel.nn import data_utils
 from libmultilabel.nn.model import Model
 from libmultilabel.nn.nn_utils import init_device, init_model, init_trainer, set_seed
+from libmultilabel.nn.attentionxml import PLTTrainer
 
 
 class TorchTrainer:
@@ -63,6 +64,42 @@ class TorchTrainer:
             self.datasets = datasets
 
         self.config.multiclass = is_multiclass_dataset(self.datasets["train"] + self.datasets.get("val", list()))
+
+        if self.config.model_name.lower() == "attentionxml":
+            # Note that AttentionXML produces two models. checkpoint_path directs to model_1
+            if config.checkpoint_path is None:
+                if self.config.embed_file is not None:
+                    logging.info("Load word dictionary ")
+                    word_dict, embed_vecs = data_utils.load_or_build_text_dict(
+                        dataset=self.datasets["train"] + self.datasets["val"],
+                        vocab_file=config.vocab_file,
+                        min_vocab_freq=config.min_vocab_freq,
+                        embed_file=config.embed_file,
+                        silent=config.silent,
+                        normalize_embed=config.normalize_embed,
+                        embed_cache_dir=config.embed_cache_dir,
+                    )
+
+                if not classes:
+                    classes = data_utils.load_or_build_label(
+                        self.datasets, self.config.label_file, self.config.include_test_labels
+                    )
+
+                if self.config.early_stopping_metric not in self.config.monitor_metrics:
+                    logging.warning(
+                        f"{self.config.early_stopping_metric} is not in `monitor_metrics`. "
+                        f"Add {self.config.early_stopping_metric} to `monitor_metrics`."
+                    )
+                    self.config.monitor_metrics += [self.config.early_stopping_metric]
+
+                if self.config.val_metric not in self.config.monitor_metrics:
+                    logging.warn(
+                        f"{self.config.val_metric} is not in `monitor_metrics`. "
+                        f"Add {self.config.val_metric} to `monitor_metrics`."
+                    )
+                    self.config.monitor_metrics += [self.config.val_metric]
+            self.trainer = PLTTrainer(self.config, classes=classes, embed_vecs=embed_vecs, word_dict=word_dict)
+            return
         self._setup_model(
             classes=classes,
             word_dict=word_dict,
@@ -194,6 +231,11 @@ class TorchTrainer:
         """Train model with pytorch lightning trainer. Set model to the best model after the training
         process is finished.
         """
+        if self.config.model_name.lower() == "attentionxml":
+            self.trainer.fit(self.datasets)
+
+            dump_log(self.log_path, config=self.config)
+            return
         assert (
             self.trainer is not None
         ), "Please make sure the trainer is successfully initialized by `self._setup_trainer()`."
@@ -235,6 +277,9 @@ class TorchTrainer:
         """
         assert "test" in self.datasets and self.trainer is not None
 
+        if self.config.model_name.lower() == "attentionxml":
+            self.trainer.test(self.datasets["test"])
+            return
         logging.info(f"Testing on {split} set.")
         test_loader = self._get_dataset_loader(split=split)
         metric_dict = self.trainer.test(self.model, dataloaders=test_loader, verbose=False)[0]

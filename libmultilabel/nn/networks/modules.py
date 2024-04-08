@@ -210,3 +210,35 @@ class LabelwiseLinearOutput(nn.Module):
 
     def forward(self, input):
         return (self.output.weight * input).sum(dim=-1) + self.output.bias
+
+
+class PartialLabelwiseAttention(nn.Module):
+    """Similar to LabelwiseAttention.
+    What makes the class different from LabelwiseAttention is that only the weights of selected labels will be
+    updated in a single iteration.
+    """
+
+    def __init__(self, hidden_size, num_classes):
+        super().__init__()
+        self.attention = nn.Embedding(num_classes + 1, hidden_size)
+
+    def forward(self, inputs, labels_selected):
+        attn_inputs = inputs.transpose(1, 2)  # batch_size, hidden_dim, length
+        attn_weights = self.attention(labels_selected)  # batch_size, sample_size, hidden_dim
+        attention = attn_weights @ attn_inputs  # batch_size, sample_size, length
+        attention = F.softmax(attention, -1)  # batch_size, sample_size, length
+        logits = attention @ inputs  # batch_size, sample_size, hidden_dim
+        return logits, attention
+
+
+class MultilayerLinearOutput(nn.Module):
+    def __init__(self, linear_size, output_size):
+        super().__init__()
+        self.linears = nn.ModuleList(nn.Linear(in_s, out_s) for in_s, out_s in zip(linear_size[:-1], linear_size[1:]))
+        self.output = nn.Linear(linear_size[-1], output_size)
+
+    def forward(self, inputs):
+        linear_out = inputs
+        for linear in self.linears:
+            linear_out = F.relu(linear(linear_out))
+        return torch.squeeze(self.output(linear_out), -1)

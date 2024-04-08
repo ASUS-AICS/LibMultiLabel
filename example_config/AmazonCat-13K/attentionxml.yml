@@ -1,0 +1,41 @@
+data_name: AmazonCat-13K
+training_file: data/AmazonCat-13K/train.txt
+test_file: data/AmazonCat-13K/test.txt
+# pretrained embeddings
+embed_file: glove.840B.300d
+
+# preprocessing
+min_vocab_freq: 1
+max_seq_length: 500
+
+# label tree related parameters
+cluster_size: 8
+beam_width: 64
+
+# data
+batch_size: 200
+val_size: 4000
+shuffle: true
+
+# eval
+eval_batch_size: 200
+monitor_metrics: [P@1, P@3, P@5, nDCG@3, nDCG@5, RP@3, RP@5]
+val_metric: nDCG@5
+
+# train
+seed: 1337
+epochs: 10
+optimizer: adam
+learning_rate: 0.001
+# early stopping
+patience: 10
+
+# model
+model_name: AttentionXML
+network_config:
+  embed_dropout: 0.2
+  post_encoder_dropout: 0.5
+  rnn_dim: 1024
+  rnn_layers: 1
+  linear_size: [512, 256]
+  freeze_embed_training: false

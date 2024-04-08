@@ -229,6 +229,13 @@ def add_all_arguments(parser):
         default=10,
         help="The width of the beam search (default: %(default)s)",
     )
+    # AttentionXML
+    parser.add_argument(
+        "--cluster_size",
+        type=int,
+        default=8,
+        help="the maximal number of labels inside a cluster (default: %(default)s)",
+    )
     parser.add_argument(
         "-h",
         "--help",
