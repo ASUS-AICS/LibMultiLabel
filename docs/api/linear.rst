@@ -32,6 +32,12 @@ The simplest usage is::
 
 .. autofunction:: get_positive_labels
 
+.. autoclass:: FlatModel
+   :members:
+
+.. autoclass:: TreeModel
+   :members:
+
 Load Dataset
 ^^^^^^^^^^^^
 
