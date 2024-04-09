@@ -1,4 +1,4 @@
-Handling Data with Many Labels -- Neural Networks
+Handling Data with Many Labels with AttentionXML
 ===============================================================================
 As time and space complexities grow linearly as the label size increases, it is inefficient to train models in its
 original label space. We consider adopting AttentionXML :cite:p:`you2019attentionxml` to address the issue by training
@@ -19,9 +19,9 @@ Roughly speaking, training AttentionXML takes two steps. First, a model (model 0
 than labels). Then, another model (model 1) is trained to predict labels. Both models involve a BiLSTM layer with
 label-wise attention.
 
-One significant distinction between AttentionXML and one-vs-all algorithms is that AttentionXML only updates a subset of
-weights related to the original label space (in the attention layer) during backpropagation, thereby increasing
-training speed.
+One significant distinction between AttentionXML and one-vs-all algorithms is that in training model 1, AttentionXML
+only updates weights related to only a subset of the original label space (in the attention layer) during
+backpropagation, thereby increasing training speed.
 
 .. image:: images/AttentionXML_training.png
    :width: 70%
