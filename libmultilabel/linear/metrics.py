@@ -300,6 +300,15 @@ def get_metrics(monitor_metrics: list[str], num_classes: int, multiclass: bool =
         monitor_metrics = []
     metrics = {}
     for metric in monitor_metrics:
+        metric_at_k = re.match(r"(?:P|R|RP|NDCG)@(\d+)$", metric.upper())
+        if metric_at_k:
+            top_k = int(metric_at_k.groups()[0])
+
+            if top_k >= num_classes:
+                raise ValueError(
+                    f"Invalid metric: {metric}. top_k ({top_k}) is greater than num_classes({num_classes})."
+                )
+
         if re.match("P@\d+", metric):
             metrics[metric] = PrecisionAtK(top_k=int(metric[2:]))
         elif re.match("R@\d+", metric):
