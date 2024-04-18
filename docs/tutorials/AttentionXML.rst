@@ -1,7 +1,7 @@
 Handling Data with Many Labels with AttentionXML
-===============================================================================
+================================================
 As time and space complexities grow linearly as the label size increases, it is inefficient to train models in its
-original label space. We consider adopting AttentionXML :cite:p:`you2019attentionxml` to address the issue by training
+original label space. We consider adopting AttentionXML :cite:p:`RY19a` to address the issue by training
 models with a reduced space of labels.
 
 Usage
@@ -38,14 +38,14 @@ There are 2 extra hyperparameters for AttentionXML that users need to know:
 
 Performance
 -----------
-We compared the performance between BiGRU and AttentionXML as they have similar architectures. The datasest, Wiki10-31K,
-has 30,938 classes, which makes it hard for models to train in a one-vs-all manner.
+We compared the performance between BiLSTM and AttentionXML as they have similar architectures. The datasest,
+Wiki10-31K, has 30,938 classes, which makes it hard for models to train in a one-vs-all manner.
 
-Both models were trained on an A100 Nvidia GPU. The BiGRU network took 49.1 mins, while AttentionXML took 29.9 mins.
-Their results on test dataset are shown below:
+Both models were trained on an A100 Nvidia GPU. Their test results are shown below. Notice the difference
+between their running time.
 
 .. list-table::
-   :widths: 80 60 60 60
+   :widths: 80 60 60 60 60
    :header-rows: 1
    :stub-columns: 1
 
@@ -53,11 +53,14 @@ Their results on test dataset are shown below:
      - P@1
      - P@3
      - P@5
-   * - BiGRU
-     - 83.16
-     - 68.59
-     - 57.84
+     - Time (min)
+   * - BiLSTM
+     - 84.48
+     - 75.91
+     - 66.88
+     - 87.1
    * - AttentionXML
      - 87.44
      - 77.70
      - 67.85
+     - 29.9
