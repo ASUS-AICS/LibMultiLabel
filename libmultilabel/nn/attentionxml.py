@@ -381,7 +381,6 @@ class PLTTrainer:
         model_1 = PLTModel(
             classes=self.classes,
             word_dict=self.word_dict,
-            embed_vecs=self.embed_vecs,
             network=network,
             log_path=self.log_path,
             learning_rate=self.learning_rate,
@@ -521,7 +520,6 @@ class PLTModel(Model):
         self,
         classes,
         word_dict,
-        embed_vecs,
         network,
         loss_function="binary_cross_entropy_with_logits",
         log_path=None,
@@ -530,7 +528,6 @@ class PLTModel(Model):
         super().__init__(
             classes=classes,
             word_dict=word_dict,
-            embed_vecs=embed_vecs,
             network=network,
             loss_function=loss_function,
             log_path=log_path,

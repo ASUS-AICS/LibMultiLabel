@@ -100,7 +100,6 @@ def init_model(
     model = Model(
         classes=classes,
         word_dict=word_dict,
-        embed_vecs=embed_vecs,
         network=network,
         log_path=log_path,
         learning_rate=learning_rate,
