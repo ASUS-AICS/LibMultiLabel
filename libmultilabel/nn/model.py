@@ -199,7 +199,7 @@ class Model(MultiLabelModel):
     ):
         super().__init__(num_classes=len(classes), log_path=log_path, **kwargs)
         self.save_hyperparameters(
-            ignore=["log_path", "word_dict", "network"]
+            ignore=["log_path"]
         )  # If log_path is saved, loading the checkpoint will cause an error since each experiment has unique log_path (result_dir).
         self.word_dict = word_dict
         self.classes = classes
