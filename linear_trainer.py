@@ -19,9 +19,14 @@ def linear_test(config, model, datasets, label_mapping):
     else:
         labels = []
         scores = []
+
+    predict_kwargs = {}
+    if model.name == "tree":
+        predict_kwargs["beam_width"] = config.beam_width
+
     for i in tqdm(range(ceil(num_instance / config.eval_batch_size))):
         slice = np.s_[i * config.eval_batch_size : (i + 1) * config.eval_batch_size]
-        preds = linear.predict_values(model, datasets["test"]["x"][slice])
+        preds = model.predict_values(datasets["test"]["x"][slice], **predict_kwargs)
         target = datasets["test"]["y"][slice].toarray()
         metrics.update(preds, target)
         if k > 0:

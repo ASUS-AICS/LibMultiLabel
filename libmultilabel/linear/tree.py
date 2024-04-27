@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from . import linear
 
-__all__ = ["train_tree"]
+__all__ = ["train_tree", "TreeModel"]
 
 
 class Node:
@@ -38,6 +38,8 @@ class Node:
 
 
 class TreeModel:
+    """A model returned from train_tree."""
+
     def __init__(
         self,
         root: Node,

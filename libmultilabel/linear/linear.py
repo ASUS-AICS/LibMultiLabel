@@ -17,10 +17,13 @@ __all__ = [
     "predict_values",
     "get_topk_labels",
     "get_positive_labels",
+    "FlatModel",
 ]
 
 
 class FlatModel:
+    """A model returned from a training function."""
+
     def __init__(
         self,
         name: str,
@@ -619,7 +622,7 @@ def train_binary_and_multiclass(
 
 
 def predict_values(model, x: sparse.csr_matrix) -> np.ndarray:
-    """Calculates the decision values associated with x.
+    """Calculates the decision values associated with x, equivalent to model.predict_values(x).
 
     Args:
         model: A model returned from a training function.
