@@ -182,7 +182,6 @@ class Model(MultiLabelModel):
     Args:
         classes (list): List of class names.
         word_dict (torchtext.vocab.Vocab): A vocab object which maps tokens to indices.
-        embed_vecs (torch.Tensor): The pre-trained word vectors of shape (vocab_size, embed_dim).
         network (nn.Module): Network (i.e., CAML, KimCNN, or XMLCNN).
         loss_function (str, optional): Loss function name (i.e., binary_cross_entropy_with_logits,
             cross_entropy). Defaults to 'binary_cross_entropy_with_logits'.
@@ -193,7 +192,6 @@ class Model(MultiLabelModel):
         self,
         classes,
         word_dict,
-        embed_vecs,
         network,
         loss_function="binary_cross_entropy_with_logits",
         log_path=None,
@@ -204,7 +202,6 @@ class Model(MultiLabelModel):
             ignore=["log_path"]
         )  # If log_path is saved, loading the checkpoint will cause an error since each experiment has unique log_path (result_dir).
         self.word_dict = word_dict
-        self.embed_vecs = embed_vecs
         self.classes = classes
         self.network = network
         self.configure_loss_function(loss_function)
