@@ -246,7 +246,7 @@ def add_all_arguments(parser):
 
 
 def get_config():
-    parser = argparse.ArgumentParser(add_help=False, description="multi-label learning for text classification")
+    parser = argparse.ArgumentParser(add_help=False, description="multi-label and multi-class classification")
 
     # load params from config file
     parser.add_argument("-c", "--config", help="Path to configuration file")
