@@ -300,13 +300,13 @@ def get_metrics(monitor_metrics: list[str], num_classes: int, multiclass: bool =
         monitor_metrics = []
     metrics = {}
     for metric in monitor_metrics:
-        if re.match("P@\d+", metric):
+        if re.match(r"P@\d+", metric):
             metrics[metric] = PrecisionAtK(top_k=int(metric[2:]))
-        elif re.match("R@\d+", metric):
+        elif re.match(r"R@\d+", metric):
             metrics[metric] = RecallAtK(top_k=int(metric[2:]))
-        elif re.match("RP@\d+", metric):
+        elif re.match(r"RP@\d+", metric):
             metrics[metric] = RPrecisionAtK(top_k=int(metric[3:]))
-        elif re.match("NDCG@\d+", metric):
+        elif re.match(r"NDCG@\d+", metric):
             metrics[metric] = NDCGAtK(top_k=int(metric[5:]))
         elif metric in {"Another-Macro-F1", "Macro-F1", "Micro-F1"}:
             metrics[metric] = F1(num_classes, average=metric[:-3].lower(), multiclass=multiclass)
