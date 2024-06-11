@@ -244,7 +244,7 @@ the log, extracts the performance metrics for each epoch, and identifies the opt
     print(best_epoch)
 
 In this case, the optimal epoch should be 42.
-We then specify ``--no_merge_train_val`` to include the validation set for training and 
+We then specify ``--merge_train_val`` to include the validation set for training and 
 specify the number of epochs by ``--epochs``. Note that options explicitly defined 
 override those in the configuration file. Because of no validation set, only the model
 at the last epoch is returned.
