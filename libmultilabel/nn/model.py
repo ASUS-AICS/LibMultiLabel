@@ -17,6 +17,8 @@ class MultiLabelModel(L.LightningModule):
         num_classes (int): Total number of classes.
         optimizer (str, optional): Optimizer name (i.e., sgd, adam, or adamw). Defaults to 'adam'.
         optimizer_config (dict, optional): Optimizer parameters. The keys in the dictionary should match the parameter names defined by PyTorch for the optimizer.
+        lr_scheduler: (str, optional): Learning rate scheduler. Defaults to None, i.e., no learning rate scheduler. Currently, the only supported lr_scheduler is 'ReduceLROnPlateau'.
+        scheduler_config (dict, optional): Learning rate scheduler parameters. The keys in the dictionary should match the parameter names defined by PyTorch for the learning rate scheduler.
         metric_threshold (float, optional): The decision value threshold over which a label is predicted as positive. Defaults to 0.5.
         monitor_metrics (list, optional): Metrics to monitor while validating. Defaults to None.
         log_path (str): Path to a directory holding the log files and models.
