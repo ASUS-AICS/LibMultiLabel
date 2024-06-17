@@ -262,6 +262,7 @@ def retrain_best_model(exp_name, best_config, best_log_dir, retrain):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        "-c",
         "--config",
         help="Path to configuration file (default: %(default)s). Please specify a config with all arguments in LibMultiLabel/main.py::get_config.",
     )
