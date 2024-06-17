@@ -15,10 +15,8 @@ class MultiLabelModel(L.LightningModule):
 
     Args:
         num_classes (int): Total number of classes.
-        learning_rate (float, optional): Learning rate for optimizer. Defaults to 0.0001.
         optimizer (str, optional): Optimizer name (i.e., sgd, adam, or adamw). Defaults to 'adam'.
-        momentum (float, optional): Momentum factor for SGD only. Defaults to 0.9.
-        weight_decay (int, optional): Weight decay factor. Defaults to 0.
+        optimizer_config (dict, optional): Optimizer parameters. The keys in the dictionary should match the parameter names defined by PyTorch for the optimizer.
         metric_threshold (float, optional): The decision value threshold over which a label is predicted as positive. Defaults to 0.5.
         monitor_metrics (list, optional): Metrics to monitor while validating. Defaults to None.
         log_path (str): Path to a directory holding the log files and models.
@@ -30,10 +28,8 @@ class MultiLabelModel(L.LightningModule):
     def __init__(
         self,
         num_classes,
-        learning_rate=0.0001,
         optimizer="adam",
-        momentum=0.9,
-        weight_decay=0,
+        optimizer_config=None,
         lr_scheduler=None,
         scheduler_config=None,
         val_metric=None,
@@ -43,15 +39,13 @@ class MultiLabelModel(L.LightningModule):
         multiclass=False,
         silent=False,
         save_k_predictions=0,
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
 
         # optimizer
-        self.learning_rate = learning_rate
         self.optimizer = optimizer
-        self.momentum = momentum
-        self.weight_decay = weight_decay
+        self.optimizer_config = optimizer_config if optimizer_config is not None else {}
 
         # lr_scheduler
         self.lr_scheduler = lr_scheduler
@@ -78,15 +72,13 @@ class MultiLabelModel(L.LightningModule):
         parameters = [p for p in self.parameters() if p.requires_grad]
         optimizer_name = self.optimizer
         if optimizer_name == "sgd":
-            optimizer = optim.SGD(
-                parameters, self.learning_rate, momentum=self.momentum, weight_decay=self.weight_decay
-            )
+            optimizer = optim.SGD(parameters, **self.optimizer_config)
         elif optimizer_name == "adam":
-            optimizer = optim.Adam(parameters, weight_decay=self.weight_decay, lr=self.learning_rate)
+            optimizer = optim.Adam(parameters, **self.optimizer_config)
         elif optimizer_name == "adamw":
-            optimizer = optim.AdamW(parameters, weight_decay=self.weight_decay, lr=self.learning_rate)
+            optimizer = optim.AdamW(parameters, **self.optimizer_config)
         elif optimizer_name == "adamax":
-            optimizer = optim.Adamax(parameters, weight_decay=self.weight_decay, lr=self.learning_rate)
+            optimizer = optim.Adamax(parameters, **self.optimizer_config)
         else:
             raise RuntimeError("Unsupported optimizer: {self.optimizer}")
 
