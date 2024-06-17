@@ -77,6 +77,7 @@ def add_all_arguments(parser):
         "--optimizer",
         default="adam",
         choices=["adam", "adamw", "adamax", "sgd"],
+        type=str.lower,
         help="Optimizer (default: %(default)s)",
     )
     parser.add_argument(
