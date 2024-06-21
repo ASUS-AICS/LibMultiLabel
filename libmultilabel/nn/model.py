@@ -82,7 +82,7 @@ class MultiLabelModel(L.LightningModule):
         elif optimizer_name == "adamax":
             optimizer = optim.Adamax(parameters, **self.optimizer_config)
         else:
-            raise RuntimeError("Unsupported optimizer: {self.optimizer}")
+            raise RuntimeError(f"Unsupported optimizer: {self.optimizer}")
 
         if self.lr_scheduler:
             if self.lr_scheduler == "ReduceLROnPlateau":
