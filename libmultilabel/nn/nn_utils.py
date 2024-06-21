@@ -121,6 +121,7 @@ def init_model(
 
 def init_trainer(
     checkpoint_dir,
+    checkpoint_name="best_model",
     epochs=10000,
     patience=5,
     early_stopping_metric="P@1",
@@ -136,6 +137,7 @@ def init_trainer(
 
     Args:
         checkpoint_dir (str): Directory for saving models and log.
+        checkpoint_name (str): File name of the saved model.
         epochs (int): Number of epochs to train. Defaults to 10000.
         patience (int): Number of epochs to wait for improvement before early stopping. Defaults to 5.
         early_stopping_metric (str): The metric to monitor for early stopping. Defaults to 'P@1'.
@@ -167,7 +169,7 @@ def init_trainer(
         callbacks += [
             ModelCheckpoint(
                 dirpath=checkpoint_dir,
-                filename="best_model",
+                filename=checkpoint_name,
                 save_last=True,
                 save_top_k=1,
                 monitor=val_metric,
