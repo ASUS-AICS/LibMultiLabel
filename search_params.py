@@ -262,6 +262,7 @@ def retrain_best_model(exp_name, best_config, best_log_dir, retrain):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        "-c",
         "--config",
         help="Path to configuration file (default: %(default)s). Please specify a config with all arguments in LibMultiLabel/main.py::get_config.",
     )
@@ -302,7 +303,7 @@ def main():
     config = init_search_params_spaces(config, parameter_columns, prefix="")
     parser.set_defaults(**config)
     config = AttributeDict(vars(parser.parse_args()))
-    # no need to include validation during parameter search
+    # Validation sets are mandatoray during parameter search
     config.merge_train_val = False
     config.mode = "min" if config.val_metric == "Loss" else "max"
 
@@ -343,20 +344,32 @@ def main():
         Path(config.config).stem if config.config else config.model_name,
         datetime.now().strftime("%Y%m%d%H%M%S"),
     )
-    analysis = tune.run(
-        tune.with_parameters(train_libmultilabel_tune, **data),
-        search_alg=init_search_algorithm(config.search_alg, metric=f"val_{config.val_metric}", mode=config.mode),
-        scheduler=scheduler,
-        local_dir=config.result_dir,
-        num_samples=config.num_samples,
-        resources_per_trial={"cpu": config.cpu_count, "gpu": config.gpu_count},
-        progress_reporter=reporter,
-        config=config,
-        name=exp_name,
+
+    tuner = tune.Tuner(
+        tune.with_resources(
+            tune.with_parameters(train_libmultilabel_tune, **data),
+            resources={"cpu": config.cpu_count, "gpu": config.gpu_count},
+        ),
+        param_space=config,
+        tune_config=tune.TuneConfig(
+            scheduler=scheduler,
+            num_samples=config.num_samples,
+            search_alg=init_search_algorithm(
+                search_alg=config.search_alg,
+                metric=f"val_{config.val_metric}",
+                mode=config.mode,
+            ),
+        ),
+        run_config=ray_train.RunConfig(
+            name=exp_name,
+            storage_path=config.result_dir,
+            progress_reporter=reporter,
+        ),
     )
+    results = tuner.fit()
     # Save best model after parameter search.
-    best_trial = analysis.get_best_trial(metric=f"val_{config.val_metric}", mode=config.mode, scope="all")
-    retrain_best_model(exp_name, best_trial.config, best_trial.local_path, retrain=not config.no_retrain)
+    best_result = results.get_best_result(metric=f"val_{config.val_metric}", mode=config.mode, scope="all")
+    retrain_best_model(exp_name, best_result.config, best_result.path, retrain=not config.no_retrain)
 
 
 if __name__ == "__main__":
