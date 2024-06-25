@@ -41,10 +41,8 @@ def init_model(
     embed_vecs=None,
     init_weight=None,
     log_path=None,
-    learning_rate=0.0001,
     optimizer="adam",
-    momentum=0.9,
-    weight_decay=0,
+    optimizer_config=None,
     lr_scheduler=None,
     scheduler_config=None,
     val_metric=None,
@@ -69,10 +67,8 @@ def init_model(
             For example, the `init_weight` of `torch.nn.init.kaiming_uniform_`
             is `kaiming_uniform`. Defaults to None.
         log_path (str): Path to a directory holding the log files and models.
-        learning_rate (float, optional): Learning rate for optimizer. Defaults to 0.0001.
         optimizer (str, optional): Optimizer name (i.e., sgd, adam, or adamw). Defaults to 'adam'.
-        momentum (float, optional): Momentum factor for SGD only. Defaults to 0.9.
-        weight_decay (int, optional): Weight decay factor. Defaults to 0.
+        optimizer_config (dict, optional): Optimizer parameters. The keys in the dictionary should match the parameter names defined by PyTorch for the optimizer.
         lr_scheduler (str, optional): Name of the learning rate scheduler. Defaults to None.
         scheduler_config (dict, optional): The configuration for learning rate scheduler. Defaults to None.
         val_metric (str, optional): The metric to select the best model for testing. Used by some of the schedulers. Defaults to None.
@@ -102,10 +98,8 @@ def init_model(
         word_dict=word_dict,
         network=network,
         log_path=log_path,
-        learning_rate=learning_rate,
         optimizer=optimizer,
-        momentum=momentum,
-        weight_decay=weight_decay,
+        optimizer_config=optimizer_config,
         lr_scheduler=lr_scheduler,
         scheduler_config=scheduler_config,
         val_metric=val_metric,
