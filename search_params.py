@@ -171,13 +171,11 @@ def prepare_retrain_config(best_config, best_log_dir, retrain):
         best_config.merge_train_val = False
 
 
-def load_static_data(config, merge_train_val=False):
+def load_static_data(config):
     """Preload static data once for multiple trials.
 
     Args:
         config (AttributeDict): Config of the experiment.
-        merge_train_val (bool, optional): Whether to merge the training and validation data.
-            Defaults to False.
 
     Returns:
         dict: A dict of static data containing datasets, classes, and word_dict.
@@ -187,7 +185,7 @@ def load_static_data(config, merge_train_val=False):
         test_data=config.test_file,
         val_data=config.val_file,
         val_size=config.val_size,
-        merge_train_val=merge_train_val,
+        merge_train_val=config.merge_train_val,
         tokenize_text="lm_weight" not in config.network_config,
         remove_no_label_data=config.remove_no_label_data,
     )
@@ -231,7 +229,7 @@ def retrain_best_model(exp_name, best_config, best_log_dir, retrain):
     with open(os.path.join(checkpoint_dir, "params.yml"), "w") as fp:
         yaml.dump(dict(best_config), fp)
 
-    data = load_static_data(best_config, merge_train_val=best_config.merge_train_val)
+    data = load_static_data(best_config)
 
     if retrain:
         logging.info(f"Re-training with best config: \n{best_config}")
