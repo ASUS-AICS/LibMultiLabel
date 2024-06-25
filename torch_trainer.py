@@ -33,6 +33,7 @@ class TorchTrainer:
         word_dict: dict = None,
         embed_vecs=None,
         save_checkpoints: bool = True,
+        is_tune_mode: bool = False,
     ):
         self.run_name = config.run_name
         self.checkpoint_dir = config.checkpoint_dir
@@ -119,6 +120,7 @@ class TorchTrainer:
             limit_val_batches=config.limit_val_batches,
             limit_test_batches=config.limit_test_batches,
             save_checkpoints=save_checkpoints,
+            is_tune_mode=is_tune_mode,
         )
         callbacks = [callback for callback in self.trainer.callbacks if isinstance(callback, ModelCheckpoint)]
         self.checkpoint_callback = callbacks[0] if callbacks else None
