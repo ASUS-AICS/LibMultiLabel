@@ -1,5 +1,5 @@
-Linear
-======
+Hyperparameter Search
+=====================
 
 .. toctree::
     :maxdepth: 1
@@ -7,4 +7,4 @@ Linear
 
 
     ../auto_examples/plot_linear_gridsearch_tutorial
-    ../auto_examples/plot_linear_tree_tutorial
+    tutorials/Parameter_Selection_for_Neural_Networks

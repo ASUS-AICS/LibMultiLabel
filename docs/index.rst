@@ -18,7 +18,8 @@ For practical use, please see the `Tutorials <tutorial.html>`_. For Implementati
    cli_index
    library_index
    tutorial
-   LibMultiLabel Implementation Doc <https://www.csie.ntu.edu.tw/~cjlin/papers/libmultilabel/libmultilabel_implementation.pdf>
+   Implementation Document <https://www.csie.ntu.edu.tw/~cjlin/papers/libmultilabel/libmultilabel_implementation.pdf>
+   papers
    
 
 ..
