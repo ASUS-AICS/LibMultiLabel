@@ -1,5 +1,5 @@
-Handling Data with Many Labels with AttentionXML
-================================================
+Handling Data with Many Labels Using Neural Networks
+====================================================
 As time and space complexities grow linearly as the label size increases, it is inefficient to train models in its
 original label space. We consider adopting AttentionXML :cite:p:`RY19a` to address the issue by training
 models with a reduced space of labels.
@@ -38,7 +38,7 @@ There are 2 extra hyperparameters for AttentionXML that users need to know:
 
 Performance
 -----------
-We compared the performance between BiLSTM and AttentionXML as they have similar architectures. The datasest,
+We compared the performance between BiLSTM and AttentionXML as they have similar architectures. The dataset,
 Wiki10-31K, has 30,938 classes, which makes it hard for models to train in a one-vs-all manner.
 
 Both models were trained on an A100 Nvidia GPU. Their test results are shown below. Notice the difference

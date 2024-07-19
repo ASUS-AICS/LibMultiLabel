@@ -62,7 +62,7 @@ datasets = preprocessor.fit_transform(datasets)
 ###############################################################################
 # In this case, if you want to use a deep learning model,
 # use ``load_datasets`` from ``libmultilabel.nn.data_utils`` and change the data to the dataframes we created.
-# Here is the modification of our `Bert model quickstart <https://www.csie.ntu.edu.tw/~cjlin/libmultilabel/auto_examples/plot_BERT_quickstart.html>`_.
+# Here is the modification of our `Bert model quickstart <../auto_examples/plot_bert_quickstart.html>`_.
 
 from libmultilabel.nn.data_utils import load_datasets
 

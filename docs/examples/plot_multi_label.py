@@ -69,12 +69,12 @@ print({"Macro-F1":metrics["Macro-F1"], "Training_time":end - start})
 #      - Training time (sec)
 #
 #    * - Linear method (one-vs-rest)
-#      - 0.5171960144875225
-#      - 4.327306747436523
+#      - 0.52
+#      - 4.33
 #
 #    * - Deep learning method (BERT)
-#      - 0.564618763137536
-#      - 5412.955321788788
+#      - 0.56
+#      - 5412.96
 #
 # Step 2. Training: 
 # -----------------
@@ -120,13 +120,13 @@ print({"Macro-F1":metrics_cost_sensitive["Macro-F1"]})
 #      - Macro-F1
 #
 #    * - One-vs-rest
-#      - 0.5171960144875225
+#      - 0.52
 #
 #    * - Thresholding
-#      - 0.5643407144065415
+#      - 0.56
 #
 #    * - Cost-sensitive
-#      - 0.5704056980791481
+#      - 0.57
 #
 # From the comparison, one can see that these techniques improves the naive method.
 #
@@ -139,7 +139,7 @@ print({"Macro-F1":metrics_cost_sensitive["Macro-F1"]})
 # Training models directly in this case may result in high runtime and space consumption. 
 # A solution to reduce these costs is to utilize tree-based models.
 # Here we provide an example comparing a linear one-vs-rest model and a tree model on the EUR-Lex-57k dataset, which has a larger label space. 
-# We start by training a tree model following another detailed `tutorial <../auto_examples/plot_linear_tree_tutorial.html>`__.
+# We start by training a tree model following the `linear tree tutorial <../auto_examples/plot_linear_tree_tutorial.html>`__.
 
 datasets_eurlex = linear.load_dataset("txt", "data/eurlex57k/train.txt", "data/eurlex57k/test.txt")
 preprocessor_eurlex = linear.Preprocessor()
@@ -168,7 +168,7 @@ print({"P@5":tree_score["P@5"], "Training_time":end - start})
 # 
 # It is clear that the tree model significantly improves efficiency.
 # As for deep learning, a similar improvement in efficiency can be observed. 
-# Details for the tree-based deep learning model can be found in this `tutorial <../tutorials/AttentionXML.html>`__.
+# Details for the tree-based deep learning model can be found in the `deep learning tree tutorial <../tutorials/AttentionXML.html>`__.
 #
 # Step 3. Evaluation: Pick Suitable Metrics
 # -----------------------------------------
@@ -203,8 +203,7 @@ print({"Macro-F1":tree_score["Macro-F1"]})
 # -----------------------------
 # Models with suboptimal hyperparameters may lead to poor performance :cite:p:`JJL21a`.
 # Users can incorporate hyperparameter tuning into the training process.
-# Because this functionality is more complex and cannot be adequately demonstrated within a code snippet, please refer to these two tutorials for more details about hyperparameter tuning (`linear  <../auto_examples/plot_gridsearch_tutorial.html>`_
-# and `deep learning  <../tutorials/Parameter_Selection_for_Neural_Networks.html>`_).
+# Because this functionality is more complex and cannot be adequately demonstrated within a code snippet, please refer to these two tutorials for more details about hyperparameter tuning (`linear  <../auto_examples/plot_linear_gridsearch_tutorial.html>`_ and `deep learning  <../tutorials/Parameter_Selection_for_Neural_Networks.html>`_).
 # Another thing to consider is that hyperparameter search can be time-consuming, especially in the case of deep learning. 
 # Users need to conduct this step with consideration of the available resources and time.
 #
@@ -214,7 +213,7 @@ print({"Macro-F1":tree_score["Macro-F1"]})
 # To use as much information as possible, for linear methods, after determining the best hyperparameters, all available data are generally trained under these optimal hyperparameters to obtain the final model. 
 # We refer to this as the "retrain" strategy.
 #
-# For linear methods, the `tutorial <../auto_examples/plot_gridsearch_tutorial.html>`__ for hyperparameter search already handles retraining by default. 
+# For linear methods, the `tutorial <../auto_examples/plot_linear_gridsearch_tutorial.html>`_ for hyperparameter search already handles retraining by default. 
 # As for deep learning, since this additional step is not common in practice, we include it in the last section of this `tutorial <../tutorials/Parameter_Selection_for_Neural_Networks.html>`__.
 #
 # Step 6. Prediction

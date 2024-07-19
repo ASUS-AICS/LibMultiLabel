@@ -2,7 +2,7 @@ Tutorials
 =========
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
     :titlesonly:
 
     ../auto_examples/plot_multi_label

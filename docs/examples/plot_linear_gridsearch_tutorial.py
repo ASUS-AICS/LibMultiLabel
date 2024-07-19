@@ -34,7 +34,7 @@ pipeline = Pipeline(
 # As for the estimator ``MultiLabelEstimator``, argument ``options`` is a LIBLINEAR option
 # (see *train Usage* in `liblinear <https://github.com/cjlin1/liblinear>`__ README), and
 # ``linear_technique`` is one of the linear techniques, including ``1vsrest``, ``thresholding``, ``cost_sensitive``,
-# ``cost_sensitive_micro``, and ``binary_and_mulitclass``.
+# ``cost_sensitive_micro``, and ``binary_and_multiclass``.
 #
 # We can specify the aliases of the components used by the pipeline.
 # For example, ``tfidf`` is the alias of ``TfidfVectorizer`` and ``clf`` is the alias of the estimator.

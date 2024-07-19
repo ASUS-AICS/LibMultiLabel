@@ -1,5 +1,5 @@
 """
-Handling Data with Many Labels using Linear Methods.
+Handling Data with Many Labels Using Linear Methods
 ====================================================
 
 For the case that the amount of labels is very large,
