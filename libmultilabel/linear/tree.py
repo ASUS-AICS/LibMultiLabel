@@ -30,11 +30,18 @@ class Node:
     def isLeaf(self) -> bool:
         return len(self.children) == 0
 
-    def dfs(self, visit: Callable[[Node], None]):
-        visit(self)
+    def dfs(self, visit: Callable[[Node], None] | Callable[[Node, int], None], depth=None):
+        if depth == None:
+            visit(self)
+        else:
+            visit(self, depth)
+
         # Stops if self.children is empty, i.e. self is a leaf node
         for child in self.children:
-            child.dfs(visit)
+            if depth == None:
+                child.dfs(visit)
+            else:
+                child.dfs(visit, depth+1)
 
 
 class TreeModel:
@@ -108,6 +115,56 @@ class TreeModel:
         return scores
 
 
+def get_depthwise_stat(root, dmax):
+    stat = dict()
+
+    for d in range(dmax+5):
+        stat[d] = {
+            "num_labels": [],
+            "num_nnz_feats": [],
+            "num_children": [],
+            "num_branches": [],
+        }
+
+    def collect_stat(node: Node):
+        stat[node.depth]["num_labels"].append(len(node.label_map))
+        stat[node.depth]["num_nnz_feats"].append(node.num_nnz_feat)
+        stat[node.depth]["num_children"].append(len(node.children))
+
+        if node.isLeaf():
+            stat[node.depth]["num_branches"].append(len(node.label_map))
+        else:
+            stat[node.depth]["num_branches"].append(len(node.children))
+
+    root.dfs(collect_stat)
+
+    tree_depth = 0
+    while len(stat[tree_depth]["num_labels"]) > 0:
+        tree_depth += 1
+
+    return stat, tree_depth
+
+def get_nnz_for_tree_model(stat, tree_depth):
+    tree_nnz = 0
+    total_labels = 0
+    for d in range(tree_depth):
+        n_feat = np.array(stat[d]["num_nnz_feats"])
+        n_model = np.array(stat[d]["num_branches"])
+        tree_nnz += np.dot(n_feat, n_model)
+
+        # sanity check
+        for num_children, num_labels in\
+                zip(stat[d]["num_children"], stat[d]["num_labels"]):
+            if num_children == 0 or d == tree_depth-1:
+                total_labels += num_labels
+
+    L = stat[0]["num_labels"][0]
+    assert (total_labels == L)
+    return tree_nnz
+
+def get_estimated_model_size(stat, tree_depth):
+    return get_nnz_for_tree_model(stat, tree_depth) * 12
+
 def train_tree(
     y: sparse.csr_matrix,
     x: sparse.csr_matrix,
@@ -141,6 +198,18 @@ def train_tree(
         num_nodes += 1
 
     root.dfs(count)
+
+    # Estimate model size
+    def visit_size(node, depth):
+        node.depth = depth
+        node.num_nnz_feat = np.count_nonzero(label_representation[node.label_map,:].sum(axis=0))
+    
+    root.dfs(visit_size, 0)
+
+    stat, tree_depth = get_depthwise_stat(root, dmax)
+    model_size = get_estimated_model_size(stat, tree_depth)
+    print(f'*** model_size: {model_size / (1024**3):.3f} GB')
+
 
     pbar = tqdm(total=num_nodes, disable=not verbose)
 
