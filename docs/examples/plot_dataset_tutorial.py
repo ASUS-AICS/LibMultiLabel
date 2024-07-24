@@ -1,8 +1,8 @@
 """
-An Example of Using Data Stored in Different Forms
+Using Data not in Default Forms
 ===================================================
 
-Different data sets are stored in various structures and formats.
+Different datasets are stored in various structures and formats.
 To apply LibMultiLabel with any of them, one must convert the data to a form accepted by the library first.
 In this tutorial, we demonstrate an example of converting a hugging face data set.
 Before we start, note that LibMultiLabel format consists of IDs (optional), labels, and raw texts.
@@ -21,8 +21,8 @@ import pandas
 from datasets import load_dataset
 
 ######################################################################
-# We choose a multi-label set ``emoji`` from ``tweet_eval`` in this example.
-# The data set can be loaded by the following code.
+# We choose a multi-label dataset ``emoji`` from ``tweet_eval`` in this example.
+# The dataset can be loaded by the following code.
 
 hf_datasets = dict()
 hf_datasets["train"] = load_dataset("tweet_eval", "emoji", split="train")
@@ -60,9 +60,9 @@ preprocessor = linear.Preprocessor()
 datasets = preprocessor.fit_transform(datasets)
 
 ###############################################################################
-# Also, if you want to use a NN model,
+# In this case, if you want to use a deep learning model,
 # use ``load_datasets`` from ``libmultilabel.nn.data_utils`` and change the data to the dataframes we created.
-# Here is the modification of our `Bert model quickstart <https://www.csie.ntu.edu.tw/~cjlin/libmultilabel/auto_examples/plot_BERT_quickstart.html>`_.
+# Here is the modification of our `Bert model quickstart <../auto_examples/plot_bert_quickstart.html>`_.
 
 from libmultilabel.nn.data_utils import load_datasets
 

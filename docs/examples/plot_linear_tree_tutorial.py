@@ -1,14 +1,25 @@
 """
-Handling Data with Many Labels
-==============================
+Handling Data with Many Labels Using Linear Methods
+====================================================
 
 For the case that the amount of labels is very large,
 the training time of the standard ``train_1vsrest`` method may be unpleasantly long.
 The ``train_tree`` method in LibMultiLabel can vastly improve the training time on such data sets.
 
-To illustrate this speedup, we will use the `EUR-Lex dataset <https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel.html#EUR-Lex>`_,
-which contains 3,956 labels.
-In this example, the data is downloaded under the directory ``data/eur-lex``.
+To illustrate this speedup, we will use the `EUR-Lex dataset <https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel.html#EUR-Lex>`_, which contains 3,956 labels.
+The data in the following example is downloaded under the directory ``data/eur-lex``
+
+Users can use the following command to easily apply the ``train_tree`` method.
+
+.. code-block:: bash
+
+    $ python3 main.py --training_file data/eur-lex/train.txt
+                      --test_file data/eur-lex/test.txt
+                      --linear
+                      --linear_technique tree
+
+Besides CLI usage, users can also use API to apply ``train_tree`` method.
+Below is an example.
 """
 
 import math
@@ -88,6 +99,3 @@ def metrics_in_batches(model):
 print("Score of 1vsrest:", metrics_in_batches(ovr_model))
 print("Score of tree:", metrics_in_batches(tree_model))
 
-######################################################################
-#
-# .. bibliography::

@@ -2,9 +2,10 @@ Tutorials
 =========
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
     :titlesonly:
 
-    ../auto_examples/plot_dataset_tutorial.rst
-    neural_networks
-    linear
+    ../auto_examples/plot_multi_label
+    data_preparation
+    tree
+    search_retrain

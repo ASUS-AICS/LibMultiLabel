@@ -1,7 +1,7 @@
-Parameter Selection for Neural Networks
+Hyperparameter Search for Neural Networks
 ==========================================
 
-The performance of a model depends on the choice of hyper-parameters.
+The performance of a model depends on the choice of hyperparameters.
 The following example demonstrates how the BiGRU model performs differently on the EUR-Lex data set with two parameter sets.
 Datasets can be downloaded from the
 `LIBSVM datasets <https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multilabel.html>`_.
@@ -79,8 +79,8 @@ The process finds the best parameter set of ``learning_rate=0.0003``, ``embed_dr
 
 After the search process, the program applies the best parameters to obtain the final model by adding
 the validation set for training. The average P@1 score is 81.99% on the test set, better
-than the result without a hyper-parameter search. Note that after obtaining the best 
-hyper-parameters, we combine training and validation sets to train a final model for testing.
+than the result without a hyperparameter search. Note that after obtaining the best 
+hyperparameters, we combine training and validation sets to train a final model for testing.
 For more details about 're-training', please refer to the `Re-train or not`_ section.
 
 Early Stopping of the Parameter Search
@@ -145,7 +145,7 @@ Re-train or not
 
 In the `Grid Search over Parameters`_ section, we split the available data into training 
 and validation sets for hyperparameter search. For methods like SVM, they usually train the 
-final model with the best hyper-parameters by combining the training and validation sets. 
+final model with the best hyperparameters by combining the training and validation sets. 
 This approach maximizes the utilization of information for model learning, and we refer to 
 it as the "re-train" strategy.
 
@@ -153,13 +153,13 @@ it as the "re-train" strategy.
 .. set means that the optimization process, which previously relied on the validation set for 
 .. termination, no longer works. While there's no definitively proven best termination criterion 
 .. , a typical approach is to determine the optimal epoch during 
-.. hyper-parameter search based on the number of training steps that led to the best 
+.. hyperparameter search based on the number of training steps that led to the best 
 .. validation performance. This optimal epoch serves as a stopping criterion 
 .. when training the model with all available data. This strategy has been shown 
 .. to provide stable improvements while mitigating the risk of overfitting.
 
 Since re-training is usually beneficial, we have incorporated the strategy into ``search_params.py``.
-When hyper-parameter search is done, the re-training process will be automatically 
+When hyperparameter search is done, the re-training process will be automatically 
 executed by default, like the case in section `Grid Search over Parameters`_.
 
 Though not recommended, you can use the argument ``--no_retrain`` to disable the 
@@ -185,20 +185,20 @@ the advantages of the re-training.
      - P@1
      - P@5
 
-   * - wo/ re-training after hyper-parameter search
+   * - wo/ re-training after hyperparameter search
      - 22.95
      - 56.37
      - 80.08
      - 56.24
 
-   * - w/ re-training after hyper-parameter search
+   * - w/ re-training after hyperparameter search
      - 24.43
      - 57.99
      - 81.99
      - 57.57
 
 In a different scenario, if you want to skip the parameter search but still wish 
-to re-train the model with your chosen hyper-parameters, we will provide an example 
+to re-train the model with your chosen hyperparameters, we will provide an example 
 of how to do this.
 
 Let's train a BiGRU model using the configuration file used in the `Direct Trying Some Parameters`_ 
