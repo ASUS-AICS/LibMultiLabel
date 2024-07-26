@@ -7,6 +7,7 @@ import scipy.sparse as sparse
 import sklearn.cluster
 import sklearn.preprocessing
 from tqdm import tqdm
+import psutil
 
 from . import linear
 
@@ -108,22 +109,6 @@ class TreeModel:
         return scores
 
 
-def get_estimated_model_size(root):
-    num_nnz_feat_ls, num_branches_ls = [], []
-
-    def collect_stat(node: Node):
-        num_nnz_feat_ls.append(node.num_nnz_feat)
-        if node.isLeaf():
-            num_branches_ls.append(len(node.label_map))
-        else:
-            num_branches_ls.append(len(node.children))
-
-    root.dfs(collect_stat)
-
-    # 12 is because when storing sparse matrices, indices require 4 bytes while floats require 8 bytes
-    return np.dot(np.array(num_nnz_feat_ls), np.array(num_branches_ls)) * 12
-
-
 def train_tree(
     y: sparse.csr_matrix,
     x: sparse.csr_matrix,
@@ -151,17 +136,24 @@ def train_tree(
     root = _build_tree(label_representation, np.arange(y.shape[1]), 0, K, dmax)
 
     num_nodes = 0
+    used_dim_labels = (y.T * (x != 0)).tocsr()
 
     def count(node):
         nonlocal num_nodes
         num_nodes += 1
-        # count the number of dimentions that label representations used in a node
-        node.num_nnz_feat = np.count_nonzero(label_representation[node.label_map,:].sum(axis=0))
+        node.num_nnz_feat = np.count_nonzero(used_dim_labels[node.label_map,:].sum(axis=0))
 
     root.dfs(count)
 
-    model_size = get_estimated_model_size(root)
+    # calculate total system memory (without swap)
+    total_memory = psutil.virtual_memory().total 
+    print(f'{total_memory / (1024**3):.3f} GB')
+
+    model_size = get_estimated_model_size(root, num_nodes)
     print(f'*** model_size: {model_size / (1024**3):.3f} GB')
+
+    if (total_memory <= model_size):
+        raise MemoryError(f'Not enough memory to train the model. model_size: {model_size / (1024**3):.3f} GB')
 
     pbar = tqdm(total=num_nodes, disable=not verbose)
 
@@ -214,6 +206,26 @@ def _build_tree(label_representation: sparse.csr_matrix, label_map: np.ndarray, 
         children.append(child)
 
     return Node(label_map=label_map, children=children)
+
+
+def get_estimated_model_size(root, num_nodes):
+    num_nnz_feat, num_branches = np.zeros(num_nodes), np.zeros(num_nodes)
+    num_nodes = 0
+    def collect_stat(node: Node):
+        nonlocal num_nodes
+        num_nnz_feat[num_nodes] = node.num_nnz_feat
+        
+        if node.isLeaf():
+            num_branches[num_nodes] = len(node.label_map)
+        else:
+            num_branches[num_nodes] = len(node.children)
+        
+        num_nodes += 1
+
+    root.dfs(collect_stat)
+
+    # 12 is because when storing sparse matrices, indices require 4 bytes while floats require 8 bytes
+    return np.dot(num_nnz_feat, num_branches) * 12
 
 
 def _train_node(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str, node: Node):
