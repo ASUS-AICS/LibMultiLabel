@@ -5,3 +5,4 @@ PyYAML
 scikit-learn
 scipy
 tqdm
+psutil
