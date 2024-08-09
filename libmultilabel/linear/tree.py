@@ -147,10 +147,10 @@ def train_tree(
 
     # Calculate the total memory (excluding swap) on the local machine
     total_memory = psutil.virtual_memory().total 
-    print(f'{total_memory / (1024**3):.3f} GB')
+    print(f'Your system memory is: {total_memory / (1024**3):.3f} GB')
 
     model_size = get_estimated_model_size(root, num_nodes)
-    print(f'*** model_size: {model_size / (1024**3):.3f} GB')
+    print(f'The estimated tree model size is: {model_size / (1024**3):.3f} GB')
 
     if (total_memory <= model_size):
         raise MemoryError(f'Not enough memory to train the model. model_size: {model_size / (1024**3):.3f} GB')
