@@ -141,7 +141,7 @@ def train_tree(
     def count(node):
         nonlocal num_nodes
         num_nodes += 1
-        node.num_nnz_feat = np.count_nonzero(label_feature_used[:, node.label_map].sum(axis=0))
+        node.num_nnz_feat = np.count_nonzero(label_feature_used[:, node.label_map].sum(axis=1))
 
     root.dfs(count)
 
