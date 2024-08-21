@@ -136,24 +136,27 @@ def train_tree(
     root = _build_tree(label_representation, np.arange(y.shape[1]), 0, K, dmax)
 
     num_nodes = 0
-    label_feature_used = (x != 0).T * y
+    # Both type(x) and type(y) are sparse.csr_matrix
+    # However, type((x != 0).T) becomes sparse.csc_matrix
+    # So type((x != 0).T * y) results in sparse.csc_matrix
+    features_used_perlabel = (x != 0).T * y
 
     def count(node):
         nonlocal num_nodes
         num_nodes += 1
-        node.num_nnz_feat = np.count_nonzero(label_feature_used[:, node.label_map].sum(axis=1))
+        node.num_features_used = np.count_nonzero(features_used_perlabel[:, node.label_map].sum(axis=1))
 
     root.dfs(count)
+
+    model_size = get_estimated_model_size(root)
+    print(f'The estimated tree model size is: {model_size / (1024**3):.3f} GB')
 
     # Calculate the total memory (excluding swap) on the local machine
     total_memory = psutil.virtual_memory().total 
     print(f'Your system memory is: {total_memory / (1024**3):.3f} GB')
 
-    model_size = get_estimated_model_size(root)
-    print(f'The estimated tree model size is: {model_size / (1024**3):.3f} GB')
-
     if (total_memory <= model_size):
-        raise MemoryError(f'Not enough memory to train the model. model_size: {model_size / (1024**3):.3f} GB')
+        raise MemoryError(f'Not enough memory to train the model.')
 
     pbar = tqdm(total=num_nodes, disable=not verbose)
 
@@ -215,9 +218,9 @@ def get_estimated_model_size(root):
         nonlocal total_num_weights
         
         if node.isLeaf():
-            total_num_weights += len(node.label_map) * node.num_nnz_feat
+            total_num_weights += len(node.label_map) * node.num_features_used
         else:
-            total_num_weights += len(node.children) * node.num_nnz_feat
+            total_num_weights += len(node.children) * node.num_features_used
 
     root.dfs(collect_stat)
 
