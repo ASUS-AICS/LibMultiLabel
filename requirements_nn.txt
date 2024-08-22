@@ -1,7 +1,7 @@
 nltk
 # wait for https://github.com/Lightning-AI/pytorch-lightning/pull/19191
 lightning==2.0.9
-torch
+torch==2.2.2
 torchmetrics==0.10.3
-torchtext
+torchtext==0.17.2
 transformers
