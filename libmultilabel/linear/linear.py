@@ -79,7 +79,7 @@ def train_1vsrest(
     options: str = "",
     verbose: bool = True,
 ) -> FlatModel:
-    """Trains a linear model for multiabel data using a one-vs-rest strategy.
+    """Trains a linear model for multi-label data using a one-vs-rest strategy.
 
     Args:
         y (sparse.csr_matrix): A 0/1 matrix with dimensions number of instances * number of classes.
@@ -396,7 +396,7 @@ def train_cost_sensitive(
     options: str = "",
     verbose: bool = True,
 ) -> FlatModel:
-    """Trains a linear model for multilabel data using a one-vs-rest strategy
+    """Trains a linear model for multi-label data using a one-vs-rest strategy
     and cross-validation to pick an optimal asymmetric misclassification cost
     for Macro-F1.
     Outperforms train_1vsrest in most aspects at the cost of higher
@@ -500,7 +500,7 @@ def train_cost_sensitive_micro(
     options: str = "",
     verbose: bool = True,
 ) -> FlatModel:
-    """Trains a linear model for multilabel data using a one-vs-rest strategy
+    """Trains a linear model for multi-label data using a one-vs-rest strategy
     and cross-validation to pick an optimal asymmetric misclassification cost
     for Micro-F1.
     Outperforms train_1vsrest in most aspects at the cost of higher
