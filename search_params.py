@@ -42,7 +42,8 @@ def train_libmultilabel_tune(config, datasets, classes, word_dict):
         datasets=datasets,
         classes=classes,
         word_dict=word_dict,
-        save_checkpoints=True,
+        save_checkpoints=False,
+        is_tune_mode=True,
     )
     val_score = trainer.train()
     return {f"val_{config.val_metric}": val_score}

@@ -131,6 +131,7 @@ def init_trainer(
     limit_val_batches=1.0,
     limit_test_batches=1.0,
     save_checkpoints=True,
+    is_tune_mode=False,
 ):
     """Initialize a torch lightning trainer.
 
@@ -146,6 +147,7 @@ def init_trainer(
         limit_val_batches (Union[int, float]): Percentage of validation dataset to use. Defaults to 1.0.
         limit_test_batches (Union[int, float]): Percentage of test dataset to use. Defaults to 1.0.
         save_checkpoints (bool): Whether to save the last and the best checkpoint or not. Defaults to True.
+        is_tune_mode (bool): Whether is parameter search is running or not. Defaults to False.
 
     Returns:
         lightning.trainer: A torch lightning trainer.
@@ -163,7 +165,19 @@ def init_trainer(
         strict=False,
     )
     callbacks = [early_stopping_callback]
-    if save_checkpoints:
+
+    if is_tune_mode:
+        callbacks += [
+            ModelCheckpoint(
+                dirpath=checkpoint_dir,
+                filename="best_model",
+                save_top_k=1,
+                save_weights_only=True,
+                monitor=val_metric,
+                mode="min" if val_metric == "Loss" else "max",
+            )
+        ]
+    elif save_checkpoints:
         callbacks += [
             ModelCheckpoint(
                 dirpath=checkpoint_dir,
