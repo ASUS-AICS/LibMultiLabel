@@ -139,7 +139,7 @@ def _prepare_options(x: sparse.csr_matrix, options: str) -> tuple[sparse.csr_mat
             raise ValueError("Invalid LIBLINEAR solver type. Only classification solvers are allowed.")
     else:
         # workaround for liblinear warning about unspecified solver
-        options_split.extend(["-s", "2"])
+        options_split.extend(["-s", "1"])
 
     bias = -1.0
     if "-B" in options_split:
