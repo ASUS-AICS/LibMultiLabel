@@ -225,7 +225,8 @@ def get_estimated_model_size(root):
     root.dfs(collect_stat)
 
     # 16 is because when storing sparse matrices, indices (int64) require 8 bytes and floats require 8 bytes
-    return total_num_weights * 16
+    # 2/3 is because that dual coordinate descent method can further get a sparse model vector to save space
+    return total_num_weights * 16 * 2/3
 
 
 def _train_node(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str, node: Node):
