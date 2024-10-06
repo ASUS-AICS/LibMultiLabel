@@ -225,7 +225,8 @@ def get_estimated_model_size(root):
     root.dfs(collect_stat)
 
     # 16 is because when storing sparse matrices, indices (int64) require 8 bytes and floats require 8 bytes
-    return total_num_weights * 16
+    # Our study showed that among the used features of every binary classification problem, on average no more than 2/3 of weights obtained by the dual coordinate descent method are non-zeros.
+    return total_num_weights * 16 * 2/3
 
 
 def _train_node(y: sparse.csr_matrix, x: sparse.csr_matrix, options: str, node: Node):
