@@ -51,9 +51,9 @@ def linear_train(datasets, config):
         model = LINEAR_TECHNIQUES[config.linear_technique](
             datasets["train"]["y"],
             datasets["train"]["x"],
-            config.liblinear_options,
-            config.tree_degree,
-            config.tree_max_depth,
+            options=config.liblinear_options,
+            K=config.tree_degree,
+            dmax=config.tree_max_depth,
         )
     else:
         model = LINEAR_TECHNIQUES[config.linear_technique](
