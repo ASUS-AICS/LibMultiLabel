@@ -76,17 +76,18 @@ class MultiLabelEstimator(sklearn.base.BaseEstimator):
         scoring_metric (str, optional): The scoring metric. Defaults to 'P@1'.
     """
 
-    def __init__(self, options: str = "", linear_technique: str = "1vsrest", scoring_metric: str = "P@1"):
+    def __init__(self, options: str = "", linear_technique: str = "1vsrest", scoring_metric: str = "P@1", multiclass: bool = False):
         super().__init__()
         self.options = options
         self.linear_technique = linear_technique
         self.scoring_metric = scoring_metric
         self._is_fitted = False
+        self.multiclass = multiclass
 
     def fit(self, X: sparse.csr_matrix, y: sparse.csr_matrix):
         X, y = sklearn.utils.validation.check_X_y(X, y, accept_sparse=True, multi_output=True)
         self._is_fitted = True
-        self.model = LINEAR_TECHNIQUES[self.linear_technique](y, X, self.options)
+        self.model = LINEAR_TECHNIQUES[self.linear_technique](y, X, options=self.options)
         return self
 
     def predict(self, X: sparse.csr_matrix) -> np.ndarray:
@@ -96,8 +97,9 @@ class MultiLabelEstimator(sklearn.base.BaseEstimator):
 
     def score(self, X: sparse.csr_matrix, y: sparse.csr_matrix) -> float:
         metrics = linear.get_metrics(
-            [self.scoring_metric],
-            y.shape[1],
+            monitor_metrics=[self.scoring_metric],
+            num_classes=y.shape[1],
+            multiclass=self.multiclass
         )
         preds = self.predict(X)
         metrics.update(preds, y.toarray())
