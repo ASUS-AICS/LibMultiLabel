@@ -86,7 +86,6 @@ class MultiLabelModel(pl.LightningModule):
             raise RuntimeError(
                 'Unsupported optimizer: {self.optimizer}')
 
-        torch.nn.utils.clip_grad_value_(parameters, 0.5)
 
         return optimizer
 
