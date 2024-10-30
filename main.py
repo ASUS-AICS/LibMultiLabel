@@ -265,6 +265,9 @@ def get_config():
         args.early_stopping_metric = args.val_metric
     if not hasattr(args, "scheduler_config"):
         args.scheduler_config = None
+    args.optimizer_config = {"lr": args.learning_rate, "weight_decay": args.weight_decay}
+    if args.optimizer == "sgd":
+        args.optimizer_config["momentum"] = args.momentum
     config = AttributeDict(vars(args))
 
     config.run_name = "{}_{}_{}".format(
